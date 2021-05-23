@@ -13,12 +13,17 @@ set -e
 PROGNAME="$(basename "$0")"
 VERSION="0.0.1"
 
-### Default option values: ###
+
+### Default option values ###
+
 FACE_MARGE_WIDTH="25/100"
 FACE_MARGE_HEIGHT="50/100"
 OUTPATH="$PWD"
 LOGLEVEL=5
 LOGEXITPRIO=crit
+
+
+### Constants ###
 
 declare -A loglevels=(
 [emerg]=0
@@ -32,6 +37,8 @@ declare -A loglevels=(
 [debug]=7)
 
 
+### Handling options ###
+
 usage="Usage: $0 [OPTIONS...] IMAGES...
 "
 helpmsg="$usage
@@ -43,17 +50,6 @@ Options:
     -h, --help               show this help and exit
     -V, --version            show version and exit
 "
-
-_log() {
-	local priority=$1
-	shift
-	if ((loglevels[$priority] > $LOGLEVEL)) ; then
-		[[ "$1" ]] || cat >/dev/null
-	else
-		logger -p "$priority" --stderr --no-act --id=$$ -t "$PROGNAME" -- "$@"
-	fi
-	((loglevels[$priority] > loglevels[$LOGEXITPRIO] )) || exit $((8+loglevels[$priority]))
-}
 
 for ((i=0;$#;)) ; do
 case "$1" in
@@ -68,6 +64,20 @@ case "$1" in
 esac
 shift
 done
+
+
+### functions ###
+
+_log() {
+	local priority=$1
+	shift
+	if ((loglevels[$priority] > $LOGLEVEL)) ; then
+		[[ "$1" ]] || cat >/dev/null
+	else
+		logger -p "$priority" --stderr --no-act --id=$$ -t "$PROGNAME" -- "$@"
+	fi
+	((loglevels[$priority] > loglevels[$LOGEXITPRIO] )) || exit $((8+loglevels[$priority]))
+}
 
 _checkdigit() {
 	local char sum=0 weight=(7 3 1)
@@ -91,11 +101,11 @@ _onexit() {
 	[[ -d "$TMPDIR" ]] && rm -rvf "$TMPDIR"
 }
 
-######################## tmpdir ##############################
+
+### Init ###
 
 if ! TMPDIR=$(mktemp -d -t "$PROGNAME".XXXXXX) ; then
-	echo "Error: Can not create a safe temporary directory." # | logger -s -p user.notice -t "$PROGNAME" --id=$$
-	exit 1
+	log crit "crit: Can not create a safe temporary directory."
 fi
 
 trap _onexit EXIT
@@ -103,6 +113,9 @@ trap _onexit EXIT
 
 [[ "$1" ]] || { echo -e "$usage" >&2 ; exit 1 ; }
 #scanimage -l 2 -t 2 -x 120 -y 170 --mode Color --resolution 200 --format=tiff > tmpimg.tiff
+
+
+### Run ###
 
 while [[ "$1" ]] ; do
 	echo
@@ -112,7 +125,7 @@ while [[ "$1" ]] ; do
 
 	facep=$(facedetect --best -- "$f" 2> >(_log notice) || true )
 	if ! [[ "$facep" ]] ; then
-		_log err "Error: No face detected in $f" >&2
+		_log err "Error: No face detected in $f"
 		continue
 	fi
 	read px py sx sy etc <<<"$facep"
@@ -120,12 +133,12 @@ while [[ "$1" ]] ; do
 
 
 	if ! mrz=($(gm convert -crop +0+$((py+sy+sy*FACE_MARGE_HEIGHT)) "$f" - 2> >(_log notice) | tesseract --tessdata-dir tessdata/ -l mrz - - 2> >(_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
-		_log err "Error: No machine-readable zone detected in $f" >&2
+		_log err "Error: No machine-readable zone detected in $f"
 		continue
 	fi
 	if [[ ${mrz[0]:0:1} != P ]] ; then
 		_log debug "mrz[0]= \"${mrz[0]}\""
-		_log warning "Warning: $f: unsupported. (not an ISO/IEC 7501-1 passport)" >&2
+		_log warning "Warning: $f: unsupported. (not an ISO/IEC 7501-1 passport)"
 		continue
 	fi
 
@@ -143,17 +156,20 @@ while [[ "$1" ]] ; do
 		[check_expiration_date]=${mrz[1]:27:1}
 		[personal_number]=${mrz[1]:28:14}
 		[check_personal_number]=${mrz[1]:42:1}
+		[composite]="${mrz[1]:0:10}${mrz[1]:13:7}${mrz[1]:21:20}"
 		[check_composite]=${mrz[1]:43:1}
-		[checked_composite]=$(_checkdigit "${mrz[1]:0:10}${mrz[1]:13:7}${mrz[1]:21:20}")
-		[valid_composite]=$(_checkdigit "${mrz[1]:0:10}${mrz[1]:13:7}${mrz[1]:21:20}" "${mrz[1]:43:1}" && echo true || echo false )
 	)
 
-	passport[valid_date_of_birth]=$(_checkdigit "${passport[date_of_birth]}" "${passport[check_date_of_birth]}" && echo true || echo false )
-	passport[valid_expiration_date]=$(_checkdigit "${passport[expiration_date]}" "${passport[check_expiration_date]}" && echo true || echo false )
-	passport[valid_personal_number]=$(_checkdigit "${passport[personal_number]}" "${passport[check_personal_number]}" && echo true || echo false )
+	for ch in date_of_birth expiration_date personal_number composite ; do
+		passport[checked_$ch]=$(_checkdigit "${passport[$ch]}")
+		passport[valid_$ch]=$( (( passport[checked_$ch] == passport[check_$ch] )) && echo true || echo false )
+		${passport[valid_$ch]} || _log notice "OBI WAN KENOBI ??? $ch checksum -> ${passport[check_$ch]}. Should be ${passport[checked_$ch]}."
+	done
 
 	for i in "${!passport[@]}";do printf "[$i] -> ${passport[$i]}\n"; done | _log debug
-	_log info "$OUTPATH/${mrz[0]//</_}"
+
+	outdir="$OUTPATH/${mrz[0]//</_}"
+	mkdir -p "$outdir"
 
 	# gm convert -crop 390x470+27+235 FPassport0001.png face.jpg
 done
