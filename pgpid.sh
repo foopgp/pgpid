@@ -21,6 +21,7 @@ FACE_MARGE_HEIGHT="50/100"
 OUTPATH="$PWD"
 LOGLEVEL=5
 LOGEXITPRIO=crit
+OUTPUTJSON=false
 
 
 ### Constants ###
@@ -47,6 +48,7 @@ Options:
     -o, --output-path PATH   emplacement for generated subdirs and files (default: $OUTPATH )
     -l, --log-level LEVEL    log verbosity. 7 means max verbosity (...|warning|notice|info|debug) (default: $LOGLEVEL )
     -L, --log-exit PRIORITY  log exit priority: emerg|alert|crit|err|warning|... (default: $LOGEXITPRIO )
+    -j, --json               don't generate OpenPGP stuff, but only output json (like 'mrz' from PassportEye)
     -h, --help               show this help and exit
     -V, --version            show version and exit
 "
@@ -56,6 +58,7 @@ case "$1" in
     -o|--output*) shift ; OUTPATH="$1" ; ( cd "$OUTPATH" && touch . ) ;;
     -l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" ; exit 2 ; } ;;
     -L|--log-e*) shift ; LOGEXITPRIO="$1" ; grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit is none of ${!loglevels[@]}" ; exit 2 ; } ;;
+    -j|--json) OUTPUTJSON=true ;;
     -h|--h*) echo "$helpmsg" ; exit ;;
     -V|--vers*) echo "$0 $VERSION" ; exit ;;
     --) shift ; break ;;
@@ -92,13 +95,25 @@ _checkdigit() {
 	if ! [[ "$2" ]] ; then
 		echo $((sum%10))
 	else
-		(( sum%10 == $2 ))
+		[[ "$2" == $((sum%10)) ]]
 		return $?
 	fi
 }
 
 _onexit() {
-	[[ -d "$TMPDIR" ]] && rm -rvf "$TMPDIR"
+	[[ -d "$TMPDIR" ]] && rm -rvf "$TMPDIR" | _log info
+}
+
+_outputjson() {
+	local notstarted=true
+	printf "{\n"
+	for i in "${!passport[@]}"; do
+		$notstarted || printf ",\n"
+		notstarted=false
+		#TODO: Prevent eventual '"' in ${passport[$i]} (even if it means that passport is invalid)
+		printf "  \"$i\": \"${passport[$i]}\""
+	done
+	printf "\n}\n"
 }
 
 
@@ -118,7 +133,6 @@ trap _onexit EXIT
 ### Run ###
 
 while [[ "$1" ]] ; do
-	echo
 	f="$1"
 	shift
 
@@ -129,16 +143,22 @@ while [[ "$1" ]] ; do
 		continue
 	fi
 	read px py sx sy etc <<<"$facep"
-	_log info "$f face -> position: +$px+$py  size: ${sx}x$sy"
+	mx=$((sx*$FACE_MARGE_WIDTH))
+	my=$((sy*$FACE_MARGE_HEIGHT))
+	_log info "$f face -> position: +$px+$py  size: ${sx}x$sy  marges: +${mx}+$my"
 
 
-	if ! mrz=($(gm convert -crop +0+$((py+sy+sy*FACE_MARGE_HEIGHT)) "$f" - 2> >(_log notice) | tesseract --tessdata-dir tessdata/ -l mrz - - 2> >(_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
-		_log err "Error: No machine-readable zone detected in $f"
+	if ! mrz=($(gm convert -crop +0+$((py+sy+my)) "$f" - 2> >(_log notice) | tesseract --tessdata-dir tessdata/ -l mrz - - 2> >(_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
+		_log err "$f: No machine-readable zone detected"
 		continue
 	fi
 	if [[ ${mrz[0]:0:1} != P ]] ; then
 		_log debug "mrz[0]= \"${mrz[0]}\""
-		_log warning "Warning: $f: unsupported. (not an ISO/IEC 7501-1 passport)"
+		_log err "$f: unsupported. (not an ISO/IEC 7501-1 passport)"
+		continue
+	fi
+	if [[ ${#mrz[0]} != 44 ]] || [[ ${#mrz[1]} != 44 ]] ; then
+		_log err "$f: Invalid MRZ lenght ${#mrz[0]} ${#mrz[1]}"
 		continue
 	fi
 
@@ -160,18 +180,28 @@ while [[ "$1" ]] ; do
 		[check_composite]=${mrz[1]:43:1}
 	)
 
-	for ch in date_of_birth expiration_date personal_number composite ; do
+	for ch in number date_of_birth expiration_date personal_number composite ; do
 		passport[checked_$ch]=$(_checkdigit "${passport[$ch]}")
-		passport[valid_$ch]=$( (( passport[checked_$ch] == passport[check_$ch] )) && echo true || echo false )
-		${passport[valid_$ch]} || _log notice "OBI WAN KENOBI ??? $ch checksum -> ${passport[check_$ch]}. Should be ${passport[checked_$ch]}."
+		passport[valid_$ch]=$( [[ ${passport[checked_$ch]} == ${passport[check_$ch]} ]] && echo true || echo false )
+		${passport[valid_$ch]} || _log warning "OBI WAN KENOBI ??? $ch checksum -> ${passport[check_$ch]}. Should be ${passport[checked_$ch]}."
 	done
 
-	for i in "${!passport[@]}";do printf "[$i] -> ${passport[$i]}\n"; done | _log debug
+	if $OUTPUTJSON ; then
+		passport[names]=$(echo $(echo "${passport[all_names]#*<<}" | tr '<' ' ') )
+		passport[surname]=$(echo $(echo "${passport[all_names]%%<<*}" | tr '<' ' ') )
+		passport[filename]=$f
+		_outputjson
+		continue
+	fi
+
+	for i in "${!passport[@]}"; do printf "[$i] -> ${passport[$i]}\n"; done | _log debug
 
 	outdir="$OUTPATH/${mrz[0]//</_}"
 	mkdir -p "$outdir"
 
-	# gm convert -crop 390x470+27+235 FPassport0001.png face.jpg
+	gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$f" "$outdir/face.jpg" 2> >(_log warning)
+	cp -bvf "$f" "$outdir/document.orig" 2> >(_log warning) | _log info
+
 done
 
 exit 0
