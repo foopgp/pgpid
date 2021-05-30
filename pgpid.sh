@@ -16,8 +16,6 @@ VERSION="0.0.1"
 
 ### Default option values ###
 
-FACE_MARGE_WIDTH="25/100"
-FACE_MARGE_HEIGHT="50/100"
 OUTPATH="$PWD"
 LOGLEVEL=5
 LOGEXITPRIO=crit
@@ -26,6 +24,11 @@ LOGGERSYSLOG="--no-act"
 
 
 ### Constants ###
+
+FACE_MARGE_WIDTH="25/100"
+FACE_MARGE_HEIGHT="50/100"
+TESSDATADIR="$(dirname "$0")/data/"
+GEOLIST_CENTROID="$(dirname "$0")/data/geolist_centroid.txt"
 
 declare -A loglevels=(
 [emerg]=0
@@ -106,6 +109,50 @@ _checkdigit() {
 	fi
 }
 
+declare -A passport
+_mrz_analyse() {
+	local ch
+
+	_log debug "mrz[0]= \"${mrz[0]}\""
+	if [[ ${mrz[0]:0:1} != P ]] ; then
+		_log debug "mrz[0]= \"${mrz[0]}\""
+		_log warning "$FUNCNAME: unsupported. (not an ISO/IEC 7501-1 passport)"
+		return 1
+	fi
+	_log debug "mrz[1]= \"${mrz[1]}\""
+	if [[ ${#mrz[0]} != 44 ]] || [[ ${#mrz[1]} != 44 ]] ; then
+		_log warning "$FUNCNAME: Invalid MRZ lenght ${#mrz[0]} ${#mrz[1]}"
+		return 2
+	fi
+
+	passport=(
+		[type]=${mrz[0]:0:2}
+		[country]=${mrz[0]:2:3}
+		[all_names]=${mrz[0]:5}
+		[number]=${mrz[1]:0:9}
+		[check_number]=${mrz[1]:9:1}
+		[nationality]=${mrz[1]:10:3}
+		[date_of_birth]=${mrz[1]:13:6}
+		[check_date_of_birth]=${mrz[1]:19:1}
+		[sex]=${mrz[1]:20:1}
+		[expiration_date]=${mrz[1]:21:6}
+		[check_expiration_date]=${mrz[1]:27:1}
+		[personal_number]=${mrz[1]:28:14}
+		[check_personal_number]=${mrz[1]:42:1}
+		[composite]="${mrz[1]:0:10}${mrz[1]:13:7}${mrz[1]:21:20}"
+		[check_composite]=${mrz[1]:43:1}
+	)
+
+	for ch in number date_of_birth expiration_date personal_number composite ; do
+		passport[checked_$ch]=$(_checkdigit "${passport[$ch]}")
+		passport[valid_$ch]=$( [[ ${passport[checked_$ch]} == ${passport[check_$ch]} ]] && echo true || echo false )
+		${passport[valid_$ch]} || _log warning "OBI WAN KENOBI ??? $ch checksum -> ${passport[check_$ch]}. Should be ${passport[checked_$ch]}."
+	done
+
+	passport[names]=$(echo $(echo "${passport[all_names]#*<<}" | tr '<' ' ') )
+	passport[surname]=$(echo $(echo "${passport[all_names]%%<<*}" | tr '<' ' ') )
+}
+
 _onexit() {
 	[[ -d "$TMPDIR" ]] && rm -rvf "$TMPDIR" | _log info
 }
@@ -117,10 +164,41 @@ _outputjson() {
 		$notstarted || printf ",\n"
 		notstarted=false
 		#TODO: Prevent eventual '"' in ${passport[$i]} (even if it means that passport is invalid)
-		printf "  \"$i\": \"${passport[$i]//$'\n'/}\""
+		printf "  \"$i\": \"${passport[$i]//$'\n'/\\\\n}\""
 	done
 	printf "\n}\n"
 }
+
+
+_chooseinlist() {
+# Argument 1: Prompt before the list
+# Argument 2(optionnal): if argument 2 is a number>0, it indicates the number of item by line - defaut: 3.
+# Arguments 2,3...n : items to choose
+# Return the number of the choosen item, 0 if no items.
+
+	local ret=0 nperline=3 n
+	echo -n "$1"
+	shift
+	(($1>0)) && nperline=$1 && shift
+	n=$#
+	for ((i=0;$#;)) ; do
+		if ((i%nperline)) ; then
+			echo -en "\t\t"
+		else
+			echo -en "\n\t"
+		fi
+		echo -en "$((++i))) $1"
+		shift
+	done
+	echo
+	while ! ((ret)) || ((ret<1 || ret>n)) ; do
+		read -p "Reply (1-$n) ? " ret
+	done
+	return $ret
+}
+
+
+
 
 
 ### Init ###
@@ -152,50 +230,18 @@ while [[ "$1" ]] ; do
 	_log info "$f face -> position: +$px+$py  size: ${sx}x$sy  marges: +${mx}+$my"
 
 
-	if ! mrz=($(gm convert -crop +0+$((py+sy+my)) "$f" - 2> >(_log notice) | tesseract --tessdata-dir tessdata/ -l mrz - - 2> >(_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
+	if ! mrz=($(gm convert -crop +0+$((py+sy+my)) "$f" - 2> >(_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
 		_log err "$f: No machine-readable zone detected"
 		continue
 	fi
-	_log debug "mrz[0]= \"${mrz[0]}\""
-	if [[ ${mrz[0]:0:1} != P ]] ; then
-		_log debug "mrz[0]= \"${mrz[0]}\""
-		_log err "$f: unsupported. (not an ISO/IEC 7501-1 passport)"
-		continue
-	fi
-	_log debug "mrz[1]= \"${mrz[1]}\""
-	if [[ ${#mrz[0]} != 44 ]] || [[ ${#mrz[1]} != 44 ]] ; then
-		_log err "$f: Invalid MRZ lenght ${#mrz[0]} ${#mrz[1]}"
+
+	if ! _mrz_analyse ; then
+		_log err "$f: Invalid or unsupported machine-readable zone"
 		continue
 	fi
 
-	declare -A passport=(
-		[type]=${mrz[0]:0:2}
-		[country]=${mrz[0]:2:3}
-		[all_names]=${mrz[0]:5}
-		[number]=${mrz[1]:0:9}
-		[check_number]=${mrz[1]:9:1}
-		[nationality]=${mrz[1]:10:3}
-		[date_of_birth]=${mrz[1]:13:6}
-		[check_date_of_birth]=${mrz[1]:19:1}
-		[sex]=${mrz[1]:20:1}
-		[expiration_date]=${mrz[1]:21:6}
-		[check_expiration_date]=${mrz[1]:27:1}
-		[personal_number]=${mrz[1]:28:14}
-		[check_personal_number]=${mrz[1]:42:1}
-		[composite]="${mrz[1]:0:10}${mrz[1]:13:7}${mrz[1]:21:20}"
-		[check_composite]=${mrz[1]:43:1}
-	)
-
-	for ch in number date_of_birth expiration_date personal_number composite ; do
-		passport[checked_$ch]=$(_checkdigit "${passport[$ch]}")
-		passport[valid_$ch]=$( [[ ${passport[checked_$ch]} == ${passport[check_$ch]} ]] && echo true || echo false )
-		${passport[valid_$ch]} || _log warning "OBI WAN KENOBI ??? $ch checksum -> ${passport[check_$ch]}. Should be ${passport[checked_$ch]}."
-	done
-
-	passport[names]=$(echo $(echo "${passport[all_names]#*<<}" | tr '<' ' ') )
-	passport[surname]=$(echo $(echo "${passport[all_names]%%<<*}" | tr '<' ' ') )
 	passport[filename]=$f
-	passport[face_scan_64url]=$(gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$f" - 2> >(_log warning) | basenc --base64url)
+	passport[face_scan_64url]=$(gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$f" - 2> >(_log warning) | basenc --base64url --wrap 0 )
 	if ((${#passport[face_scan_64url]} < 2048 )) ; then
 		_log warning "$outdir/face.jpg: too small (${#passport[face_scan_64url]} < 2048)"
 		unset passport[face_scan_64url]
@@ -216,7 +262,6 @@ while [[ "$1" ]] ; do
 
 	cp -bvf "$f" "$outdir/document.orig" 2> >(_log warning) | _log info
 	_outputjson > "$outdir/passport.json" 2> >(_log crit)
-
 done
 
 exit 0
