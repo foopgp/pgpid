@@ -1,0 +1,231 @@
+e_12.52-069.98	ABW	Aruba
+e_33.84_066.00	AFG	Afghanistan
+e-12.29_017.54	AGO	Angola
+e_18.22-063.06	AIA	Anguilla
+e_41.14_020.05	ALB	Albania
+e_60.21_019.95	ALA	Aland Islands
+e_42.54_001.56	AND	Andorra
+e_23.91_054.30	ARE	United Arab Emirates
+e-35.38-065.18	ARG	Argentina
+e_40.29_044.93	ARM	Armenia
+e-14.30-170.72	ASM	American Samoa
+e-80.51_019.92	ATA	Antarctica
+e-49.25_069.23	ATF	French Southern and Antarctic Lands
+e_17.28-061.79	ATG	Antigua and Barbuda
+e-25.73_134.49	AUS	Australia
+e_47.59_014.13	AUT	Austria
+e_40.29_047.55	AZE	Azerbaijan
+e-03.36_029.88	BDI	Burundi
+e_50.64_004.64	BEL	Belgium
+e_09.64_002.33	BEN	Benin
+e_12.27-001.75	BFA	Burkina Faso
+e_23.87_090.24	BGD	Bangladesh
+e_42.77_025.22	BGR	Bulgaria
+e_26.04_050.54	BHR	Bahrain
+e_61.36-098.31	CAN	Canada
+e_24.29-076.63	BHS	Bahamas
+e_44.17_017.77	BIH	Bosnia and Herzegovina
+e_17.90-062.84	BLM	Saint-Barthélemy
+e_53.53_028.03	BLR	Belarus
+e_17.20-088.71	BLZ	Belize
+e_32.31-064.75	BMU	Bermuda
+e-16.71-064.69	BOL	Bolivia
+e-10.79-053.10	BRA	Brazil
+e_13.18-059.56	BRB	Barbados
+e_04.52_114.72	BRN	Brunei Darussalam
+e_27.41_090.40	BTN	Bhutan
+e-22.18_023.80	BWA	Botswana
+e_06.57_020.47	CAF	Central African Republic
+e_46.80_008.21	CHE	Switzerland
+e-37.73-071.38	CHL	Chile
+e_36.56_103.82	CHN	China
+e_07.63-005.57	CIV	Côte d'Ivoire
+e_05.69_012.74	CMR	Cameroon
+e-02.88_023.64	COD	Democratic Republic of the Congo
+e-00.84_015.22	COG	Republic of Congo
+e-21.22-159.79	COK	Cook Islands
+e_03.91-073.08	COL	Colombia
+e-11.88_043.68	COM	Comoros
+e_15.96-023.96	CPV	Cape Verde
+e_09.98-084.19	CRI	Costa Rica
+e_21.62-079.02	CUB	Cuba
+e_12.20-068.97	CUW	Curaçao
+e_19.43-080.91	CYM	Cayman Islands
+e_34.92_033.01	CYP	Cyprus
+e_49.73_015.31	CZE	Czech Republic
+e_51.11_010.39	DEU	Germany
+e_11.75_042.56	DJI	Djibouti
+e_15.44-061.36	DMA	Dominica
+e_55.98_010.03	DNK	Denmark
+e_18.89-070.51	DOM	Dominican Republic
+e_28.16_002.62	DZA	Algeria
+e-01.42-078.75	ECU	Ecuador
+e_26.50_029.86	EGY	Egypt
+e_15.36_038.85	ERI	Eritrea
+e_40.24-003.65	ESP	Spain
+e_58.67_025.54	EST	Estonia
+e_08.62_039.60	ETH	Ethiopia
+e_64.50_026.27	FIN	Finland
+e-17.43_165.45	FJI	Fiji
+e_42.17-002.76	FRA	France
+e_62.05-006.88	FRO	Faeroe Islands
+e_07.45_153.24	FSM	Federated States of Micronesia
+e-00.59_011.79	GAB	Gabon
+e_54.12-002.87	GBR	United Kingdom
+e_42.17_043.51	GEO	Georgia
+e_49.47-002.57	GGY	Guernsey
+e_07.95-001.22	GHA	Ghana
+e_10.44-010.94	GIN	Guinea
+e_13.45-015.40	GMB	The Gambia
+e_12.05-014.95	GNB	Guinea-Bissau
+e_01.71_010.34	GNQ	Equatorial Guinea
+e_39.07_022.96	GRC	Greece
+e_12.12-061.68	GRD	Grenada
+e_74.71-041.34	GRL	Greenland
+e_15.69-090.36	GTM	Guatemala
+e_13.44_144.77	GUM	Guam
+e_04.79-058.98	GUY	Guyana
+e_22.40_114.11	HKG	Hong Kong
+e-53.09_073.52	HMD	Heard I. and McDonald Islands
+e_14.83-086.62	HND	Honduras
+e_45.08_016.40	HRV	Croatia
+e_18.94-072.69	HTI	Haiti
+e_47.16_019.40	HUN	Hungary
+e-02.22_117.24	IDN	Indonesia
+e_54.22-004.54	IMN	Isle of Man
+e_22.89_079.61	IND	India
+e_53.18-008.14	IRL	Ireland
+e_32.58_054.27	IRN	Iran
+e_33.04_043.74	IRQ	Iraq
+e_65.00-018.57	ISL	Iceland
+e_31.46_035.00	ISR	Israel
+e_42.80_012.07	ITA	Italy
+e_18.16-077.31	JAM	Jamaica
+e_49.22-002.13	JEY	Jersey
+e_31.25_036.77	JOR	Jordan
+e_37.59_138.03	JPN	Japan
+e_48.16_067.29	KAZ	Kazakhstan
+e_00.60_037.80	KEN	Kenya
+e_41.46_074.54	KGZ	Kyrgyzstan
+e_12.72_104.91	KHM	Cambodia
+e_00.86-045.61	KIR	Kiribati
+e_17.26-062.69	KNA	Saint Kitts and Nevis
+e_36.39_127.84	KOR	Republic of Korea
+e_29.33_047.59	KWT	Kuwait
+e_18.50_103.74	LAO	Lao PDR
+e_33.92_035.88	LBN	Lebanon
+e_06.45-009.32	LBR	Liberia
+e_27.03_018.01	LBY	Libya
+e_13.89-060.97	LCA	Saint Lucia
+e_47.14_009.54	LIE	Liechtenstein
+e_07.61_080.70	LKA	Sri Lanka
+e-29.58_028.23	LSO	Lesotho
+e_55.33_023.89	LTU	Lithuania
+e_49.77_006.07	LUX	Luxembourg
+e_56.85_024.91	LVA	Latvia
+e_22.22_113.51	MAC	Macao
+e_18.09-063.06	MAF	Saint-Martin
+e_29.84-008.46	MAR	Morocco
+e_43.75_007.41	MCO	Monaco
+e_47.19_028.46	MDA	Moldova
+e-19.37_046.70	MDG	Madagascar
+e_03.73_073.46	MDV	Maldives
+e_23.95-102.52	MEX	Mexico
+e_07.00_170.34	MHL	Marshall Islands
+e_41.60_021.68	MKD	Macedonia
+e_17.35-003.54	MLI	Mali
+e_35.92_014.41	MLT	Malta
+e_21.19_096.49	MMR	Myanmar
+e_42.79_019.24	MNE	Montenegro
+e_46.83_103.05	MNG	Mongolia
+e_15.83_145.62	MNP	Northern Mariana Islands
+e-17.27_035.53	MOZ	Mozambique
+e_20.26-010.35	MRT	Mauritania
+e_16.74-062.19	MSR	Montserrat
+e-20.28_057.57	MUS	Mauritius
+e-13.22_034.29	MWI	Malawi
+e_03.79_109.70	MYS	Malaysia
+e-22.13_017.21	NAM	Namibia
+e-21.30_165.68	NCL	New Caledonia
+e_17.42_009.39	NER	Niger
+e-29.05_167.95	NFK	Norfolk Island
+e_09.59_008.09	NGA	Nigeria
+e_12.85-085.03	NIC	Nicaragua
+e-19.05-169.87	NIU	Niue
+e_52.10_005.28	NLD	Netherlands
+e_68.75_015.35	NOR	Norway
+e_28.25_083.92	NPL	Nepal
+e-00.52_166.93	NRU	Nauru
+e-41.81_171.48	NZL	New Zealand
+e_20.61_056.09	OMN	Oman
+e_29.95_069.34	PAK	Pakistan
+e_08.52-080.12	PAN	Panama
+e-24.37-128.32	PCN	Pitcairn Islands
+e-09.15-074.38	PER	Peru
+e_11.78_122.88	PHL	Philippines
+e_07.29_134.41	PLW	Palau
+e-06.46_145.21	PNG	Papua New Guinea
+e_52.13_019.39	POL	Poland
+e_18.23-066.47	PRI	Puerto Rico
+e_40.15_127.19	PRK	Dem. Rep. Korea
+e_39.60-008.50	PRT	Portugal
+e-23.23-058.40	PRY	Paraguay
+e_31.92_035.20	PSE	Palestine
+e-14.72-144.90	PYF	French Polynesia
+e_25.31_051.18	QAT	Qatar
+e_45.85_024.97	ROU	Romania
+e_61.98_096.69	RUS	Russian Federation
+e-01.99_029.92	RWA	Rwanda
+e_24.12_044.54	SAU	Saudi Arabia
+e_15.99_029.94	SDN	Sudan
+e_07.31_030.25	SSD	South Sudan
+e_14.37-014.47	SEN	Senegal
+e_01.36_103.82	SGP	Singapore
+e-54.46-036.43	SGS	South Georgia and South Sandwich Islands
+e-12.40-009.55	SHN	Saint Helena
+e-08.92_159.63	SLB	Solomon Islands
+e_08.56-011.79	SLE	Sierra Leone
+e_13.74-088.87	SLV	El Salvador
+e_43.94_012.46	SMR	San Marino
+e_04.75_045.71	SOM	Somalia
+e_46.92-056.30	SPM	Saint Pierre and Miquelon
+e_44.22_020.79	SRB	Serbia
+e_00.44_006.72	STP	Sao Tome and Principe
+e_04.13-055.91	SUR	Suriname
+e_48.71_019.48	SVK	Slovakia
+e_46.12_014.80	SVN	Slovenia
+e_62.78_016.75	SWE	Sweden
+e-26.56_031.48	SWZ	Swaziland
+e_18.05-063.06	SXM	Sint Maarten
+e-04.66_055.48	SYC	Seychelles
+e_35.03_038.51	SYR	Syria
+e_21.83-071.97	TCA	Turks and Caicos Islands
+e_15.33_018.64	TCD	Chad
+e_08.53_000.96	TGO	Togo
+e_15.12_101.00	THA	Thailand
+e_38.53_071.01	TJK	Tajikistan
+e_39.12_059.37	TKM	Turkmenistan
+e-08.83_125.84	TLS	Timor-Leste
+e-20.43-174.81	TON	Tonga
+e_10.46-061.27	TTO	Trinidad and Tobago
+e_34.12_009.55	TUN	Tunisia
+e_39.06_035.17	TUR	Turkey
+e-06.28_034.81	TZA	Tanzania
+e_01.27_032.37	UGA	Uganda
+e_49.00_031.38	UKR	Ukraine
+e-32.80-056.02	URY	Uruguay
+e_45.68-112.46	USA	United States
+e_41.76_063.14	UZB	Uzbekistan
+e_41.90_012.43	VAT	Vatican
+e_13.22-061.20	VCT	Saint Vincent and the Grenadines
+e_07.12-066.18	VEN	Venezuela
+e_18.53-064.47	VGB	British Virgin Islands
+e_17.96-064.80	VIR	United States Virgin Islands
+e_16.65_106.30	VNM	Vietnam
+e-16.23_167.69	VUT	Vanuatu
+e-13.89-177.35	WLF	Wallis and Futuna Islands
+e-13.75-172.16	WSM	Samoa
+e_15.91_047.59	YEM	Yemen
+e-29.00_025.08	ZAF	South Africa
+e-13.46_027.77	ZMB	Zambia
+e-19.00_029.85	ZWE	Zimbabwe

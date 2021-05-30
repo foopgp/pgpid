@@ -22,6 +22,7 @@ OUTPATH="$PWD"
 LOGLEVEL=5
 LOGEXITPRIO=crit
 OUTPUTJSON=false
+LOGGERSYSLOG="--no-act"
 
 
 ### Constants ###
@@ -45,9 +46,11 @@ usage="Usage: $0 [OPTIONS...] IMAGES...
 helpmsg="$usage
 If $PROGNAME succeed, it will create a subdirectories containing all generated files.
 Options:
-    -o, --output-path PATH   emplacement for generated subdirs and files (default: $OUTPATH )
-    -l, --log-level LEVEL    log verbosity. 7 means max verbosity (...|warning|notice|info|debug) (default: $LOGLEVEL )
-    -L, --log-exit PRIORITY  log exit priority: emerg|alert|crit|err|warning|... (default: $LOGEXITPRIO )
+    -o, --output-path PATH   emplacement for generated subdirs and files (current: $OUTPATH )
+    -L, --log-exit PRIORITY  log exit priority: emerg|alert|crit|err|warning|... (current: $LOGEXITPRIO )
+    -v, --verbose            increase log verbosity: ...<notice<info<debug  (default: [notice]=5)
+    -q, --quiet              decrease log verbosity: ...<err<warning<notice<...  (default: [notice]=5)
+    -s, --syslog             write also logs to the system logs
     -j, --json               don't generate OpenPGP stuff, but only output json (like 'mrz' from PassportEye)
     -h, --help               show this help and exit
     -V, --version            show version and exit
@@ -56,8 +59,11 @@ Options:
 for ((i=0;$#;)) ; do
 case "$1" in
     -o|--output*) shift ; OUTPATH="$1" ; ( cd "$OUTPATH" && touch . ) ;;
-    -l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" ; exit 2 ; } ;;
-    -L|--log-e*) shift ; LOGEXITPRIO="$1" ; grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit is none of ${!loglevels[@]}" ; exit 2 ; } ;;
+#    -l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" ; exit 2 ; } ;;
+    -L|--log-e*) shift ; LOGEXITPRIO="$1" ; grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$LOGEXITPRIO\" is none of: ${!loglevels[@]}" ; exit 2 ; } ;;
+    -v|--verb*) ((LOGLEVEL++)) ;;
+    -q|--quiet) ((LOGLEVEL--)) ;;
+    -s|--syslog) unset LOGGERSYSLOG ;;
     -j|--json) OUTPUTJSON=true ;;
     -h|--h*) echo "$helpmsg" ; exit ;;
     -V|--vers*) echo "$0 $VERSION" ; exit ;;
@@ -77,7 +83,7 @@ _log() {
 	if ((loglevels[$priority] > $LOGLEVEL)) ; then
 		[[ "$1" ]] || cat >/dev/null
 	else
-		logger -p "$priority" --stderr --no-act --id=$$ -t "$PROGNAME" -- "$@"
+		logger -p "$priority" --stderr $LOGGERSYSLOG --id=$$ -t "$PROGNAME" -- "$@"
 	fi
 	((loglevels[$priority] > loglevels[$LOGEXITPRIO] )) || exit $((8+loglevels[$priority]))
 }
@@ -111,7 +117,7 @@ _outputjson() {
 		$notstarted || printf ",\n"
 		notstarted=false
 		#TODO: Prevent eventual '"' in ${passport[$i]} (even if it means that passport is invalid)
-		printf "  \"$i\": \"${passport[$i]}\""
+		printf "  \"$i\": \"${passport[$i]//$'\n'/}\""
 	done
 	printf "\n}\n"
 }
@@ -119,9 +125,7 @@ _outputjson() {
 
 ### Init ###
 
-if ! TMPDIR=$(mktemp -d -t "$PROGNAME".XXXXXX) ; then
-	log crit "crit: Can not create a safe temporary directory."
-fi
+TMPDIR=$(mktemp -d -t "$PROGNAME".XXXXXX) || log crit "crit: Can not create a safe temporary directory."
 
 trap _onexit EXIT
 
@@ -152,11 +156,13 @@ while [[ "$1" ]] ; do
 		_log err "$f: No machine-readable zone detected"
 		continue
 	fi
+	_log debug "mrz[0]= \"${mrz[0]}\""
 	if [[ ${mrz[0]:0:1} != P ]] ; then
 		_log debug "mrz[0]= \"${mrz[0]}\""
 		_log err "$f: unsupported. (not an ISO/IEC 7501-1 passport)"
 		continue
 	fi
+	_log debug "mrz[1]= \"${mrz[1]}\""
 	if [[ ${#mrz[0]} != 44 ]] || [[ ${#mrz[1]} != 44 ]] ; then
 		_log err "$f: Invalid MRZ lenght ${#mrz[0]} ${#mrz[1]}"
 		continue
@@ -186,21 +192,30 @@ while [[ "$1" ]] ; do
 		${passport[valid_$ch]} || _log warning "OBI WAN KENOBI ??? $ch checksum -> ${passport[check_$ch]}. Should be ${passport[checked_$ch]}."
 	done
 
+	passport[names]=$(echo $(echo "${passport[all_names]#*<<}" | tr '<' ' ') )
+	passport[surname]=$(echo $(echo "${passport[all_names]%%<<*}" | tr '<' ' ') )
+	passport[filename]=$f
+	passport[face_scan_64url]=$(gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$f" - 2> >(_log warning) | basenc --base64url)
+	if ((${#passport[face_scan_64url]} < 2048 )) ; then
+		_log warning "$outdir/face.jpg: too small (${#passport[face_scan_64url]} < 2048)"
+		unset passport[face_scan_64url]
+	elif ((${#passport[face_scan_64url]} > (1<<16) )) ; then
+		_log warning "$outdir/face.jpg: too big (${#passport[face_scan_64url]} > $((1<<16)))"
+		unset passport[face_scan_64url]
+	fi
+
 	if $OUTPUTJSON ; then
-		passport[names]=$(echo $(echo "${passport[all_names]#*<<}" | tr '<' ' ') )
-		passport[surname]=$(echo $(echo "${passport[all_names]%%<<*}" | tr '<' ' ') )
-		passport[filename]=$f
 		_outputjson
 		continue
 	fi
 
-	for i in "${!passport[@]}"; do printf "[$i] -> ${passport[$i]}\n"; done | _log debug
+	#for i in "${!passport[@]}"; do printf "[$i] -> ${passport[$i]}\n"; done | _log debug
 
 	outdir="$OUTPATH/${mrz[0]//</_}"
 	mkdir -p "$outdir"
 
-	gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$f" "$outdir/face.jpg" 2> >(_log warning)
 	cp -bvf "$f" "$outdir/document.orig" 2> >(_log warning) | _log info
+	_outputjson > "$outdir/passport.json" 2> >(_log crit)
 
 done
 
