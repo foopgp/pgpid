@@ -34,8 +34,8 @@ LOGGERSYSLOG="--no-act"
 ### Constants (read only) ###
 
 declare -r \
-FACE_MARGE_WIDTH="25/100" \
-FACE_MARGE_HEIGHT="50/100" \
+FACE_MARGIN_WIDTH="25/100" \
+FACE_MARGIN_HEIGHT="50/100" \
 TESSDATADIR="$(dirname "$0")/data/" \
 GEOLIST_CENTROID="$(dirname "$0")/data/geolist_centroid.txt" \
 
@@ -126,8 +126,8 @@ mrz_checkdigit() {
 	fi
 }
 
-declare -A passport
-_mrz_analyse() {
+declare -A DOCUMENT
+mrz_analyse() {
 	local ch mrz=("$@")
 
 	_log debug "mrz[0]= \"${mrz[0]}\""
@@ -142,7 +142,7 @@ _mrz_analyse() {
 		return 2
 	fi
 
-	passport=(
+	DOCUMENT=(
 		[type]=${mrz[0]:0:2}
 		[country]=${mrz[0]:2:3}
 		[all_names]=${mrz[0]:5}
@@ -161,13 +161,13 @@ _mrz_analyse() {
 	)
 
 	for ch in number date_of_birth expiration_date personal_number composite ; do
-		passport[checked_$ch]=$(mrz_checkdigit "${passport[$ch]}")
-		passport[valid_$ch]=$( [[ ${passport[checked_$ch]} == ${passport[check_$ch]} ]] && echo true || echo false )
-		${passport[valid_$ch]} || _log warning "OBI WAN KENOBI ??? $ch checksum -> ${passport[check_$ch]}. Should be ${passport[checked_$ch]}."
+		DOCUMENT[checked_$ch]=$(mrz_checkdigit "${DOCUMENT[$ch]}")
+		DOCUMENT[valid_$ch]=$( [[ ${DOCUMENT[checked_$ch]} == ${DOCUMENT[check_$ch]} ]] && echo true || echo false )
+		${DOCUMENT[valid_$ch]} || _log warning "OBI WAN KENOBI ??? $ch checksum -> ${DOCUMENT[check_$ch]}. Should be ${DOCUMENT[checked_$ch]}."
 	done
 
-	passport[names]=$(echo $(echo "${passport[all_names]#*<<}" | tr '<' ' ') )
-	passport[surname]=$(echo $(echo "${passport[all_names]%%<<*}" | tr '<' ' ') )
+	DOCUMENT[names]=$(echo $(echo "${DOCUMENT[all_names]#*<<}" | tr '<' ' ') )
+	DOCUMENT[surname]=$(echo $(echo "${DOCUMENT[all_names]%%<<*}" | tr '<' ' ') )
 }
 
 _gen_mrzudid4() {
@@ -179,18 +179,18 @@ _gen_mrzudid4() {
 	#         * Humans may have done error on birthdate, surname or given names.
 
 	local c iso name tohash1 tohash2
-	if ! tohash1=$(grep -o "[A-Z]\{1,32\}<<[A-Z]\{1,32\}<[A-Z]\{0,32\}<" <<<"${passport[all_names]}" ) ; then
-		_log err "$FUNCNAME: no complete surname and given names extracted from ${passport[all_names]}"
+	if ! tohash1=$(grep -o "[A-Z]\{1,32\}<<[A-Z]\{1,32\}<[A-Z]\{0,32\}<" <<<"${DOCUMENT[all_names]}" ) ; then
+		_log err "$FUNCNAME: no complete surname and given names extracted from ${DOCUMENT[all_names]}"
 		return 1
 	fi
 	_log debug "$FUNCNAME: names: $tohash1"
-	if ! tohash2=$(date --date "$(($(date +"%y%m%d") < passport[date_of_birth] ? 19 : 20))${passport[date_of_birth]}" +"%Y-%m-%d" ) ; then
-		_log err "$FUNCNAME: can't reformart birthdate ${passport[date_of_birth]}"
+	if ! tohash2=$(date --date "$(($(date +"%y%m%d") < DOCUMENT[date_of_birth] ? 19 : 20))${DOCUMENT[date_of_birth]}" +"%Y-%m-%d" ) ; then
+		_log err "$FUNCNAME: can't reformart birthdate ${DOCUMENT[date_of_birth]}"
 		return 2
 	fi
 	_log debug "$FUNCNAME: birthdate: $tohash2"
-	if ! read c iso name < <(grep "	${passport[nationality]}	" data/geolist_centroid.txt) ; then
-		_log err "$FUNCNAME: no \"${passport[nationality]}\" in $GEOLIST_CENTROID"
+	if ! read c iso name < <(grep "	${DOCUMENT[nationality]}	" data/geolist_centroid.txt) ; then
+		_log err "$FUNCNAME: no \"${DOCUMENT[nationality]}\" in $GEOLIST_CENTROID"
 		return 3
 	fi
 	_log debug "$FUNCNAME: $c $iso $name"
@@ -200,11 +200,11 @@ _gen_mrzudid4() {
 _outputjson() {
 	local notstarted=true
 	printf "{\n"
-	for i in "${!passport[@]}"; do
+	for i in "${!DOCUMENT[@]}"; do
 		$notstarted || printf ",\n"
 		notstarted=false
-		#TODO: Prevent eventual '"' in ${passport[$i]} (even if it means that passport is invalid)
-		printf "  \"$i\": \"${passport[$i]//$'\n'/\\\\n}\""
+		#TODO: Prevent eventual '"' in ${DOCUMENT[$i]} (even if it means that DOCUMENT is invalid)
+		printf "  \"$i\": \"${DOCUMENT[$i]//$'\n'/\\\\n}\""
 	done
 	printf "\n}\n"
 }
@@ -269,8 +269,8 @@ while [[ "$1" ]] ; do
 		continue
 	fi
 	read px py sx sy etc <<<"$facep"
-	mx=$((sx*$FACE_MARGE_WIDTH))
-	my=$((sy*$FACE_MARGE_HEIGHT))
+	mx=$((sx*$FACE_MARGIN_WIDTH))
+	my=$((sy*$FACE_MARGIN_HEIGHT))
 	_log info "$f face -> position: +$px+$py  size: ${sx}x$sy  marges: +${mx}+$my"
 
 
@@ -279,23 +279,23 @@ while [[ "$1" ]] ; do
 		continue
 	fi
 
-	if ! _mrz_analyse "${mrz[@]}" ; then
+	if ! mrz_analyse "${mrz[@]}" ; then
 		_log err "$f: Invalid or unsupported machine-readable zone"
 		continue
 	fi
 
-	passport[filename]=$f
-	passport[face_scan_64url]=$(gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$f" jpeg:- 2> >(_log warning) | basenc --base64url --wrap 0 )
-	if ((${#passport[face_scan_64url]} < 2048 )) ; then
-		_log warning "$outdir/face.jpg: too small (${#passport[face_scan_64url]} < 2048)"
-		unset passport[face_scan_64url]
-	elif ((${#passport[face_scan_64url]} > (1<<16) )) ; then
-		_log warning "$outdir/face.jpg: too big (${#passport[face_scan_64url]} > $((1<<16)))"
-		unset passport[face_scan_64url]
+	DOCUMENT[filename]=$f
+	DOCUMENT[face_scan_64url]=$(gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$f" jpeg:- 2> >(_log warning) | basenc --base64url --wrap 0 )
+	if ((${#DOCUMENT[face_scan_64url]} < 2048 )) ; then
+		_log warning "$outdir/face.jpg: too small (${#DOCUMENT[face_scan_64url]} < 2048)"
+		unset DOCUMENT[face_scan_64url]
+	elif ((${#DOCUMENT[face_scan_64url]} > (1<<16) )) ; then
+		_log warning "$outdir/face.jpg: too big (${#DOCUMENT[face_scan_64url]} > $((1<<16)))"
+		unset DOCUMENT[face_scan_64url]
 	fi
-	if ! passport[udid4_auto]=$(_gen_mrzudid4) ; then
-		_log warning "can't generate a udid4 from mrz data"
-		unset passport[udid4_auto]
+	if ! DOCUMENT[udid4_auto]=$(_gen_mrzudid4) ; then
+		_log warning "can't generate an udid4 from mrz data"
+		unset DOCUMENT[udid4_auto]
 	fi
 
 	if $OUTPUTJSON ; then
@@ -303,13 +303,13 @@ while [[ "$1" ]] ; do
 		continue
 	fi
 
-	#for i in "${!passport[@]}"; do printf "[$i] -> ${passport[$i]}\n"; done | _log debug
+	#for i in "${!DOCUMENT[@]}"; do printf "[$i] -> ${DOCUMENT[$i]}\n"; done | _log debug
 
 	outdir="$OUTPATH/${mrz[0]//</_}"
 	mkdir -p "$outdir"
 
 	cp -bvf "$f" "$outdir/document.orig" 2> >(_log warning) | _log info
-	_outputjson > "$outdir/passport.json" 2> >(_log crit)
+	_outputjson > "$outdir/document.json" 2> >(_log crit)
 done
 
 exit 0
