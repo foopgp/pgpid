@@ -126,9 +126,9 @@ mrz_checkdigit() {
 	fi
 }
 
-declare -A DOCUMENT
 mrz_analyse() {
 	local ch mrz=("$@")
+	local -A doc
 
 	_log debug "mrz[0]= \"${mrz[0]}\""
 	if [[ ${mrz[0]:0:1} != P ]] ; then
@@ -142,7 +142,7 @@ mrz_analyse() {
 		return 2
 	fi
 
-	DOCUMENT=(
+	doc=(
 		[type]=${mrz[0]:0:2}
 		[country]=${mrz[0]:2:3}
 		[all_names]=${mrz[0]:5}
@@ -161,13 +161,14 @@ mrz_analyse() {
 	)
 
 	for ch in number date_of_birth expiration_date personal_number composite ; do
-		DOCUMENT[checked_$ch]=$(mrz_checkdigit "${DOCUMENT[$ch]}")
-		DOCUMENT[valid_$ch]=$( [[ ${DOCUMENT[checked_$ch]} == ${DOCUMENT[check_$ch]} ]] && echo true || echo false )
-		${DOCUMENT[valid_$ch]} || _log warning "OBI WAN KENOBI ??? $ch checksum -> ${DOCUMENT[check_$ch]}. Should be ${DOCUMENT[checked_$ch]}."
+		doc[checked_$ch]=$(mrz_checkdigit "${doc[$ch]}")
+		doc[valid_$ch]=$( [[ ${doc[checked_$ch]} == ${doc[check_$ch]} ]] && echo true || echo false )
+		${doc[valid_$ch]} || _log warning "OBI WAN KENOBI ??? $ch checksum -> ${doc[check_$ch]}. Should be ${doc[checked_$ch]}."
 	done
 
-	DOCUMENT[names]=$(echo $(echo "${DOCUMENT[all_names]#*<<}" | tr '<' ' ') )
-	DOCUMENT[surname]=$(echo $(echo "${DOCUMENT[all_names]%%<<*}" | tr '<' ' ') )
+	doc[names]=$(echo $(echo "${doc[all_names]#*<<}" | tr '<' ' ') )
+	doc[surname]=$(echo $(echo "${doc[all_names]%%<<*}" | tr '<' ' ') )
+	declare -p doc | sed 's,^[^=]*=,,'
 }
 
 _gen_mrzudid4() {
@@ -197,14 +198,16 @@ _gen_mrzudid4() {
 	echo "$(printf "$tohash1$tohash2" | md5sum | xxd -r -p | basenc --base64url | sed 's/==$//')$c"
 }
 
-_outputjson() {
+pgpi_tojson() {
 	local notstarted=true
+	local -n aa=$1
 	printf "{\n"
-	for i in "${!DOCUMENT[@]}"; do
+	for i in "${!aa[@]}"; do
 		$notstarted || printf ",\n"
 		notstarted=false
 		#TODO: Prevent eventual '"' in ${DOCUMENT[$i]} (even if it means that DOCUMENT is invalid)
-		printf "  \"$i\": \"${DOCUMENT[$i]//$'\n'/\\\\n}\""
+		#TODO: Maybe use and depend on "jq". cf. https://stackoverflow.com/questions/44792241/constructing-a-json-hash-from-a-bash-associative-array
+		printf "  \"$i\": \"${aa[$i]//$'\n'/\\\\n}\""
 	done
 	printf "\n}\n"
 }
@@ -279,7 +282,8 @@ while [[ "$1" ]] ; do
 		continue
 	fi
 
-	if ! mrz_analyse "${mrz[@]}" ; then
+	unset DOCUMENT
+	if ! declare -A DOCUMENT=$(mrz_analyse "${mrz[@]}") ; then
 		_log err "$f: Invalid or unsupported machine-readable zone"
 		continue
 	fi
@@ -299,7 +303,7 @@ while [[ "$1" ]] ; do
 	fi
 
 	if $OUTPUTJSON ; then
-		_outputjson
+		pgpi_tojson DOCUMENT
 		continue
 	fi
 
@@ -309,7 +313,7 @@ while [[ "$1" ]] ; do
 	mkdir -p "$outdir"
 
 	cp -bvf "$f" "$outdir/document.orig" 2> >(_log warning) | _log info
-	_outputjson > "$outdir/document.json" 2> >(_log crit)
+	pgpi_tojson DOCUMENT > "$outdir/document.json" 2> >(_log crit)
 done
 
 exit 0
