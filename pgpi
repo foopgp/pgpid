@@ -18,7 +18,7 @@ if [[ "$1" == --bash-completion ]] ; then
 		cur=${COMP_WORDS[COMP_CWORD]}
 
 		if [[ "$cur" == -* ]]; then
-			options="--output-path --json --help --version"
+			options="--syslog --output-path --json --verbose --quiet --help --version"
 
 			COMPREPLY=( $(IFS=" " compgen -W "$options" -- $cur ) )
 		else
@@ -35,7 +35,7 @@ if [[ "$1" == --bash-completion ]] ; then
 			COMPREPLY=( $(compgen -o plusdirs -f -X '!*.@(gif|GIF|jp?(e)g|JP?(E)G|miff|tif?(f)|pn[gm]|PN[GM]|p[bgp]m|bmp|BMP|xpm|ico|xwd|tga|pcx)' -- $cur ) )
 		fi
 	}
-	complete -o filenames -F _pgpi_completion "$(basename "$BASH_SOURCE")"
+	complete -o filenames -F _pgpi_completion "$BASH_SOURCE"
 	return 0
 fi
 
