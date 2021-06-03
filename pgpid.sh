@@ -11,35 +11,14 @@
 PGPI_NAME="$(basename $(readlink -f "$BASH_SOURCE") )"
 PGPI_VERSION="0.0.1"
 
-### Default option values ###
+### Constants ###
 
-if [[ "$BASH_SOURCE" == "$0" ]] ; then
-	# run as a script
-	set -e
-	_exit="exit"
-	LOGEXITPRIO=crit
-	LOGLEVEL=5
-else
-	# run as a library (source $0)
-	_exit="return"
-	LOGEXITPRIO=emerg
-	LOGLEVEL=6
-fi
+FACE_MARGIN_WIDTH="25/100"
+FACE_MARGIN_HEIGHT="50/100"
+TESSDATADIR="$(dirname "$0")/data/"
+GEOLIST_CENTROID="$(dirname "$0")/data/geolist_centroid.txt"
 
-OUTPATH="$PWD"
-OUTPUTJSON=false
-LOGGERSYSLOG="--no-act"
-
-
-### Constants (read only) ###
-
-declare -r \
-FACE_MARGIN_WIDTH="25/100" \
-FACE_MARGIN_HEIGHT="50/100" \
-TESSDATADIR="$(dirname "$0")/data/" \
-GEOLIST_CENTROID="$(dirname "$0")/data/geolist_centroid.txt" \
-
-declare -A -r loglevels=(
+declare -A loglevels=(
 [emerg]=0
 [alert]=1
 [crit]=2
@@ -51,27 +30,60 @@ declare -A -r loglevels=(
 [debug]=7)
 
 
+### Default option values ###
+
+LOGGERSYSLOG="--no-act"
+
+if [[ "$BASH_SOURCE" == "$0" ]] ; then
+	# run as a script
+	set -e
+	# set global constants real constant (read only)
+	declare -r FACE_MARGIN_WIDTH FACE_MARGIN_HEIGHT TESSDATADIR GEOLIST_CENTROID loglevels
+	_exit="exit"
+	LOGEXITPRIO=crit
+	LOGLEVEL=5
+
+	OUTPATH="$PWD"
+	OUTPUTJSON=false
+
+	usage="Usage: $BASH_SOURCE [OPTIONS...] IMAGES...
+If $PGPI_NAME succeed, it will create a subdirectories containing all generated files."
+
+	soptions="
+    -o, --output-path PATH   emplacement for generated subdirs and files (current: $OUTPATH )
+    -j, --json               don't generate OpenPGP stuff, but only output json (like 'mrz' from PassportEye)
+    -h, --help               show this help and exit
+    -V, --version            show version and exit"
+else
+	# run as a library (source $0)
+	_exit="true"
+	LOGEXITPRIO=emerg
+	LOGLEVEL=6
+
+	usage="Usage: source $BASH_SOURCE [OPTIONS...]"
+
+	soptions="
+    -l, --log-level LEVEL    log level: emerg<1=alert<crit<3=err<warning<5=notice<info<7=debug (current: $LOGLEVEL)
+    -h, --help               show this help
+    -V, --version            show version"
+fi
+
 ### Handling options ###
 
-usage="Usage: $BASH_SOURCE [OPTIONS...] IMAGES...
-"
 helpmsg="$usage
-If $PGPI_NAME succeed, it will create a subdirectories containing all generated files.
+
 Options:
-    -o, --output-path PATH   emplacement for generated subdirs and files (current: $OUTPATH )
     -L, --log-exit PRIORITY  log exit priority: emerg|alert|crit|err|warning|... (current: $LOGEXITPRIO )
     -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (current: $LOGLEVEL)
     -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (current: $LOGLEVEL)
     -s, --syslog             write also logs to the system logs
-    -j, --json               don't generate OpenPGP stuff, but only output json (like 'mrz' from PassportEye)
-    -h, --help               show this help and exit
-    -V, --version            show version and exit
+$soptions
 "
 
 for ((i=0;$#;)) ; do
 case "$1" in
     -o|--output*) shift ; OUTPATH="$1" ; ( cd "$OUTPATH" && touch . ) ;;
-#    -l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; $_exit 2 ; } ;;
+    -l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; $_exit 2 ; } ;;
     -L|--log-e*) shift ; LOGEXITPRIO="$1" ; grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$LOGEXITPRIO\" is none of: ${!loglevels[@]}" >&2 ; $_exit 2 ; } ;;
     -v|--verb*) ((LOGLEVEL++)) ;;
     -q|--quiet) ((LOGLEVEL--)) ;;
@@ -99,7 +111,7 @@ _log() {
 	if ((loglevels[$priority] > $LOGLEVEL)) ; then
 		[[ "$1" ]] || cat >/dev/null
 	else
-		logger -p "$priority" --stderr $LOGGERSYSLOG --id=$$ -t "$PGPI_NAME" -- "$@"
+		logger -p "$priority" --stderr $LOGGERSYSLOG --id=$$ -t "${0##*/}" -- "$@"
 	fi
 	((loglevels[$priority] > loglevels[$LOGEXITPRIO] )) || exit $((8+loglevels[$priority]))
 }
@@ -242,7 +254,7 @@ _chooseinlist() {
 }
 
 # Do nothing else if sourced
-[[ "$BASH_SOURCE" == "$0" ]] || $_exit
+[[ "$BASH_SOURCE" == "$0" ]] || return 0
 
 
 ### Init ###
