@@ -8,6 +8,37 @@
 # May also move or copy 3 importante keys (SC, E and A) to OpenPGP Security hardware (nitrokeys, yubikeys, etc.)
 #
 
+if [[ "$1" == --bash-completion ]] ; then
+	_pgpi_completion()
+	{
+		local cur prev options
+		local IFS=$'\n'
+
+		COMPREPLY=()
+		cur=${COMP_WORDS[COMP_CWORD]}
+
+		if [[ "$cur" == -* ]]; then
+			options="--output-path --json --help --version"
+
+			COMPREPLY=( $(IFS=" " compgen -W "$options" -- $cur ) )
+		else
+			prev=${COMP_WORDS[COMP_CWORD-1]}
+			case $prev in
+				-o|--output-path)
+					COMPREPLY=( $(compgen  -d -- $cur ) )
+					return ;;
+				# some options will exit without executing any actions, so don't complete anything
+				-h|--help|-V|--version)
+					return ;;
+			esac
+
+			COMPREPLY=( $(compgen -o plusdirs -f -X '!*.@(gif|GIF|jp?(e)g|JP?(E)G|miff|tif?(f)|pn[gm]|PN[GM]|p[bgp]m|bmp|BMP|xpm|ico|xwd|tga|pcx)' -- $cur ) )
+		fi
+	}
+	complete -o filenames -F _pgpi_completion "$(basename "$BASH_SOURCE")"
+	return 0
+fi
+
 PGPI_NAME="$(basename $(readlink -f "$BASH_SOURCE") )"
 PGPI_VERSION="0.0.1"
 
@@ -35,7 +66,7 @@ declare -A loglevels=(
 LOGGERSYSLOG="--no-act"
 
 if [[ "$BASH_SOURCE" == "$0" ]] ; then
-	# run as a script
+	# run as a program
 	set -e
 	# set global constants real constant (read only)
 	declare -r FACE_MARGIN_WIDTH FACE_MARGIN_HEIGHT TESSDATADIR GEOLIST_CENTROID loglevels
@@ -52,6 +83,8 @@ If $PGPI_NAME succeed, it will create a subdirectories containing all generated 
 	soptions="
     -o, --output-path PATH   emplacement for generated subdirs and files (current: $OUTPATH )
     -j, --json               don't generate OpenPGP stuff, but only output json (like 'mrz' from PassportEye)
+    -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (current: $LOGLEVEL)
+    -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (current: $LOGLEVEL)
     -h, --help               show this help and exit
     -V, --version            show version and exit"
 else
@@ -63,6 +96,7 @@ else
 	usage="Usage: source $BASH_SOURCE [OPTIONS...]"
 
 	soptions="
+        --bash-completion    set completion for $BASH_SOURCE program and return (without loading anything else)
     -l, --log-level LEVEL    log level: emerg<1=alert<crit<3=err<warning<5=notice<info<7=debug (current: $LOGLEVEL)
     -h, --help               show this help
     -V, --version            show version"
@@ -74,8 +108,6 @@ helpmsg="$usage
 
 Options:
     -L, --log-exit PRIORITY  log exit priority: emerg|alert|crit|err|warning|... (current: $LOGEXITPRIO )
-    -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (current: $LOGLEVEL)
-    -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (current: $LOGLEVEL)
     -s, --syslog             write also logs to the system logs
 $soptions
 "
