@@ -77,7 +77,7 @@ if [[ "$BASH_SOURCE" == "$0" ]] ; then
 	OUTPATH="$PWD"
 	OUTPUTJSON=false
 
-	usage="Usage: $BASH_SOURCE [OPTIONS...] IMAGES...
+	usage="Usage: $BASH_SOURCE [OPTIONS...] [--] IMAGES...
 If $PGPI_NAME succeed, it will create a subdirectories containing all generated files."
 
 	soptions="
@@ -134,10 +134,22 @@ done
 ### functions ###
 
 _log() {
-# Argument $1: warning|error|err|info|debug|notice|alert|crit|emerg
-# Arguments $2..n: message to format and write on stderr and eventually syslog
-# If there is no argument $2..., read message from stdin
-# Exit if $1 is greater than $LOGEXITPRIO.
+	local helpmsg="Usage: $FUNCNAME PRIORITY [MESSAGE]...
+PRIORITY list: $(declare -p loglevels)
+If level[PRIORITY] is under LOGLEVEL=$LOGLEVEL, don't log anything.
+If PRIORITY is more serious than LOGEXITPRIO=$LOGEXITPRIO, exit(8+level[PRIORITY])
+If there is no MESSAGE in command line, read it from stdin.
+"
+	for ((;$#;)) ; do
+		case "$1" in
+			-h|--h*) echo "$helpmsg" ; return ;;
+			-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
+			--) shift ; break ;;
+			-*) echo -e "$FUNCNAME: Error: Unrecognized option/parameters $1\n$helpmsg" >&2 ; return 2 ;;
+			*) break ;;
+		esac
+	done
+
 	local priority=$1
 	shift
 	if ((loglevels[$priority] > $LOGLEVEL)) ; then
@@ -149,10 +161,20 @@ _log() {
 }
 
 mrz_checkdigit() {
-# Argument $1: [0-9A-Z<] +* string to check
-# Arguments $2 (optionnal): expected result
-# If there is no argument $2: stdout <- calculated check digit
-# else return non-zero if $2 differs from calculated check digit.
+	local helpmsg="Usage: $FUNCNAME STRING [EXPECTED_RESULT]
+If there is no second arg: output calculated check digit from [0-9A-Z<]* string
+else return non-zero if EXPECTED_RESULT differs from calculated check digit.
+"
+	for ((;$#;)) ; do
+		case "$1" in
+			-h|--h*) echo "$helpmsg" ; return ;;
+			-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
+			--) shift ; break ;;
+			-*) echo -e "$FUNCNAME: Error: Unrecognized option/parameters $1\n$helpmsg" >&2 ; return 2 ;;
+			*) break ;;
+		esac
+	done
+
 	local char sum=0 weight=(7 3 1)
 	for ((i=0;i<${#1};i++)) ; do
 		char=${1:$i:1}
@@ -171,6 +193,19 @@ mrz_checkdigit() {
 }
 
 mrz_analyse() {
+	local helpmsg="Usage: $FUNCNAME MRZ
+Analyse a Machine Readable Zone and outut content of an associative array"
+
+	for ((;$#;)) ; do
+		case "$1" in
+			-h|--h*) echo "$helpmsg" ; return ;;
+			-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
+			--) shift ; break ;;
+			-*) echo -e "$FUNCNAME: Error: Unrecognized option/parameters $1\n$helpmsg" >&2 ; return 2 ;;
+			*) break ;;
+		esac
+	done
+
 	local ch mrz=("$@")
 	local -A doc
 
@@ -215,34 +250,91 @@ mrz_analyse() {
 	declare -p doc | sed 's,^[^=]*=,,'
 }
 
-_gen_mrzudid4() {
-	#WARNING: mrz data may be irrelevant to generate udid4. eg:
-	#         * Surname or given names may be incomplete (cut bc exceed mrz size)
-	#         * Surname or given names may differs from those given at birth (marriage, gender change, etc.)
-	#         * Surname or given names transliteration may have change over time
-	#         * Year of birtdate is not written with 4 digit (and people may live longer than 100 years)
-	#         * Humans may have done error on birthdate, surname or given names.
-
-	local c iso name tohash1 tohash2
-	if ! tohash1=$(grep -o "[A-Z]\{1,32\}<<[A-Z]\{1,32\}<[A-Z]\{0,32\}<" <<<"${DOCUMENT[all_names]}" ) ; then
-		_log err "$FUNCNAME: no complete surname and given names extracted from ${DOCUMENT[all_names]}"
+pgpi_gen_udid4() {
+	local mrzn sname gname c iso cname tohash1 tohash2
+	local helpmsg="Usage: $FUNCNAME PARAMETERS
+Parameters:
+    -s, --surname SURNAME            Surname/family name at birth
+    -g, --given-names GIVEN_NAME     Given names at birth
+    -d, --birth-date BIRTH_DATE      birth date
+    -p, --birth-place PLACE          coordinate of birth place
+    -m, --mrz-names NAMES_IN_MRZ     SURNAME<<GIVEN<NAMES< as written in a Machine Readable Zone
+    -c, --birth-country COUNTRY_CODE country code of birth place
+"
+	for ((;$#;)) ; do
+	case "$1" in
+		-h|--h*) echo "$helpmsg" ; return ;;
+		-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
+		-m|--mrz-n*)
+			shift
+			mrzn=$1 ;;
+		-s|--s*)
+			shift
+			sname=$(sed 's,[ ;,<-]\+,<,g'<<<"$1" )
+			sname="${sname^^}"
+			if ! [[ "$sname" =~ ^[A-Z'<']+$ ]] ; then
+				_log err "$FUNCNAME: only [A-Z] characters allowed in $1"
+				return 1
+			fi ;;
+		-g|--g*)
+			shift
+			gname=$(sed 's,[ ;,<-]\+,<,g'<<<"$1" )
+			gname="${gname^^}<<"
+			if ! [[ "$gname" =~ ^[A-Z'<']+$ ]] ; then
+				_log err "$FUNCNAME: only [A-Z] characters allowed in $1"
+				return 1
+			fi ;;
+		-d|--birth-d*)
+			shift
+			if ((${#1}<8)) ; then
+				bdate="$(($(date +"%y%m%d") < $1 ? 19 : 20))$1"
+				_log notice "$FUNCNAME: birth date '$1' is too short, assuming $bdate."
+			else
+				bdate=$1
+			fi
+			if ! tohash2=$(date --date "$bdate" +"%Y-%m-%d" ) ; then
+				_log err "$FUNCNAME: can't reformart birthdate $date"
+				return 2
+			fi ;;
+		-c|--birth-c*)
+			shift
+			if ! read c iso cname < <(grep "	$1	" "$GEOLIST_CENTROID") ; then
+				_log err "$FUNCNAME: no \"$1\" in $GEOLIST_CENTROID"
+				return 3
+			fi
+			_log debug "$FUNCNAME: $c $iso $cname" ;;
+		-p|--birth-p*)
+			shift
+			#TODO: check if coordinate is valid (cf. Specifications)
+			c="$1" ;;
+		*) echo -e "$FUNCNAME: Error: Unrecognized option/parameters $1\n$helpmsg" >&2 ; return 2 ;;
+	esac
+	shift
+	done
+	[[ "$mrzn" ]] || mrzn="${sname}<<$gname"
+	if ! tohash1=$(grep -o "[A-Z]\{1,32\}<<[A-Z]\{1,32\}<[A-Z]\{0,32\}<" <<<"$mrzn" ) ; then
+		_log err "$FUNCNAME: no complete surname and given names extracted from $mrzn"
 		return 1
 	fi
 	_log debug "$FUNCNAME: names: $tohash1"
-	if ! tohash2=$(date --date "$(($(date +"%y%m%d") < DOCUMENT[date_of_birth] ? 19 : 20))${DOCUMENT[date_of_birth]}" +"%Y-%m-%d" ) ; then
-		_log err "$FUNCNAME: can't reformart birthdate ${DOCUMENT[date_of_birth]}"
-		return 2
-	fi
 	_log debug "$FUNCNAME: birthdate: $tohash2"
-	if ! read c iso name < <(grep "	${DOCUMENT[nationality]}	" data/geolist_centroid.txt) ; then
-		_log err "$FUNCNAME: no \"${DOCUMENT[nationality]}\" in $GEOLIST_CENTROID"
-		return 3
-	fi
-	_log debug "$FUNCNAME: $c $iso $name"
 	echo "$(printf "$tohash1$tohash2" | md5sum | xxd -r -p | basenc --base64url | sed 's/==$//')$c"
 }
 
 pgpi_tojson() {
+	local helpmsg="Usage: $FUNCNAME VARNAME
+Output content of VARNAME in a json format."
+
+	for ((;$#;)) ; do
+		case "$1" in
+			-h|--h*) echo "$helpmsg" ; return ;;
+			-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
+			--) shift ; break ;;
+			-*) echo -e "$FUNCNAME: Error: Unrecognized option/parameters $1\n$helpmsg" >&2 ; return 2 ;;
+			*) break ;;
+		esac
+	done
+
 	local notstarted=true
 	local -n aa=$1
 	printf "{\n"
@@ -341,7 +433,14 @@ while [[ "$1" ]] ; do
 		_log warning "$outdir/face.jpg: too big (${#DOCUMENT[face_scan_64url]} > $((1<<16)))"
 		unset DOCUMENT[face_scan_64url]
 	fi
-	if ! DOCUMENT[udid4_auto]=$(_gen_mrzudid4) ; then
+
+	#WARNING: mrz data may be irrelevant to generate udid4. eg:
+	#         * Surname or given names may be incomplete (cut bc exceed mrz size)
+	#         * Surname or given names may differs from those given at birth (marriage, gender change, etc.)
+	#         * Surname or given names transliteration may have change over time
+	#         * Year of birth date is not written with 4 digit (and people may live longer than 100 years)
+	#         * Humans may have done error on birth date, surname or given names.
+	if ! DOCUMENT[udid4_auto]=$(pgpi_gen_udid4 --mrz-names "${DOCUMENT[all_names]}" --birth-date "${DOCUMENT[date_of_birth]}" --birth-country "${DOCUMENT[nationality]}") ; then
 		_log warning "can't generate an udid4 from mrz data"
 		unset DOCUMENT[udid4_auto]
 	fi
