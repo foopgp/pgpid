@@ -18,7 +18,7 @@ if [[ "$1" == --bash-completion ]] ; then
 		cur=${COMP_WORDS[COMP_CWORD]}
 
 		if [[ "$cur" == -* ]]; then
-			options="--syslog --output-path --json --verbose --quiet --help --version"
+			options="--syslog --output-path --json --hurry --verbose --quiet --help --version"
 
 			COMPREPLY=( $(IFS=" " compgen -W "$options" -- $cur ) )
 		else
@@ -74,15 +74,17 @@ if [[ "$BASH_SOURCE" == "$0" ]] ; then
 	LOGEXITPRIO=crit
 	LOGLEVEL=5
 
-	OUTPATH="$PWD"
-	OUTPUTJSON=false
+	PGPI_OUTPATH="$PWD"
+	PGPI_OUTPUTJSON=false
+	PGPI_INTERACTIVE=true
 
 	usage="Usage: $BASH_SOURCE [OPTIONS...] [--] IMAGES...
 If $PGPI_NAME succeed, it will create a subdirectories containing all generated files."
 
 	soptions="
-    -o, --output-path PATH   emplacement for generated subdirs and files (current: $OUTPATH )
+    -o, --output-path PATH   emplacement for generated subdirs and files (current: $PGPI_OUTPATH )
     -j, --json               don't generate OpenPGP stuff, but only output json (like 'mrz' from PassportEye)
+    -H, --hurry              don't be interactive : don't ask anything but loose features and robustness.
     -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (current: $LOGLEVEL)
     -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (current: $LOGLEVEL)
     -h, --help               show this help and exit
@@ -114,18 +116,20 @@ $soptions
 
 for ((i=0;$#;)) ; do
 case "$1" in
-    -o|--output*) shift ; OUTPATH="$1" ; ( cd "$OUTPATH" && touch . ) ;;
-    -l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; $_exit 2 ; } ;;
-    -L|--log-e*) shift ; LOGEXITPRIO="$1" ; grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$LOGEXITPRIO\" is none of: ${!loglevels[@]}" >&2 ; $_exit 2 ; } ;;
-    -v|--verb*) ((LOGLEVEL++)) ;;
-    -q|--quiet) ((LOGLEVEL--)) ;;
-    -s|--syslog) unset LOGGERSYSLOG ;;
-    -j|--json) OUTPUTJSON=true ;;
-    -h|--h*) echo "$helpmsg" ; $_exit ;;
-    -V|--vers*) echo "$PGPI_NAME $PGPI_VERSION" ; $_exit ;;
-    --) shift ; break ;;
-    -*) echo -e "Error: Unrecognized option $1\n$helpmsg" >&2 ; $_exit 2 ;;
-    *) break ;;
+	-o|--output*) shift ; PGPI_OUTPATH="$1" ; ( cd "$PGPI_OUTPATH" && touch . ) ;;
+	-l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; $_exit 2 ; } ;;
+	-L|--log-e*) shift ; LOGEXITPRIO="$1"
+		grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$LOGEXITPRIO\" is none of: ${!loglevels[@]}" >&2 ; $_exit 2 ; } ;;
+	-v|--verb*) ((LOGLEVEL++)) ;;
+	-q|--quiet) ((LOGLEVEL--)) ;;
+	-s|--syslog) unset LOGGERSYSLOG ;;
+	-j|--json) PGPI_OUTPUTJSON=true ;;
+	-H|--hurry) PGPI_INTERACTIVE=false ;;
+	-h|--h*) echo "$helpmsg" ; $_exit ;;
+	-V|--vers*) echo "$PGPI_NAME $PGPI_VERSION" ; $_exit ;;
+	--) shift ; break ;;
+	-*) echo -e "Error: Unrecognized option $1\n$helpmsg" >&2 ; $_exit 2 ;;
+	*) break ;;
 esac
 shift
 done
@@ -445,14 +449,46 @@ while [[ "$1" ]] ; do
 		unset DOCUMENT[udid4_auto]
 	fi
 
-	if $OUTPUTJSON ; then
+	if $PGPI_INTERACTIVE ; then
+		date_of_birth=$(date --date "$(($(date +"%y%m%d") < ${DOCUMENT[date_of_birth]} ? 19 : 20))${DOCUMENT[date_of_birth]}" +"%Y-%m-%d")
+		while true ; do
+			echo "
+Surname: ${surname:=${DOCUMENT[surname]}}
+Given names: ${names:=${DOCUMENT[names]}}
+Date of birth: ${date_of_birth}
+Country of birth: ${country_of_birth:=${DOCUMENT[nationality]}}
+" >&2
+			read -p " Is that correct (y/n) ? " rep
+			case "$rep" in
+			  [yY]*)
+				break ;;
+			  [nN]*)
+				read -p "Surname [${surname:=${DOCUMENT[surname]}}] ? "
+				surname=${REPLY:-$surname}
+				read -p "Names [${names:=${DOCUMENT[names]}}] ? "
+				names=${REPLY:-$names}
+				read -p "Date of birth [${date_of_birth:=${DOCUMENT[date_of_birth]}}] ? "
+				date_of_birth=${REPLY:-$date_of_birth}
+				read -p "Surname [${country_of_birth:=${DOCUMENT[nationality]}}] ? "
+				country_of_birth=${REPLY:-$country_of_birth}
+				continue ;;
+			  *) echo "  please answer \"yes\" or \"no\"" >&2 ;;
+			esac
+		done
+		if ! DOCUMENT[udid4]=$(pgpi_gen_udid4 --surname "$surname" --given-names "$names" --birth-date "$date_of_birth" --birth-country "$country_of_birth") ; then
+			_log error "can't generate an udid4 from data you have validated"
+			unset DOCUMENT[udid4]
+		fi
+	fi
+
+	if $PGPI_OUTPUTJSON ; then
 		pgpi_tojson DOCUMENT
 		continue
 	fi
 
 	#for i in "${!DOCUMENT[@]}"; do printf "[$i] -> ${DOCUMENT[$i]}\n"; done | _log debug
 
-	outdir="$OUTPATH/${mrz[0]//</_}"
+	outdir="$PGPI_OUTPATH/${mrz[0]//</_}"
 	mkdir -p "$outdir"
 
 	cp -bvf "$f" "$outdir/document.orig" 2> >(_log warning) | _log info
