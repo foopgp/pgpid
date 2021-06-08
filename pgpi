@@ -78,7 +78,7 @@ if [[ "$BASH_SOURCE" == "$0" ]] ; then
 	PGPI_OUTPUTJSON=false
 	PGPI_INTERACTIVE=true
 
-	usage="Usage: $BASH_SOURCE [OPTIONS...] [--] IMAGES...
+	usage="Usage: $BASH_SOURCE [OPTIONS]... [--] IMAGES...
 If $PGPI_NAME succeed, it will create a subdirectories containing all generated files."
 
 	soptions="
@@ -95,7 +95,7 @@ else
 	LOGEXITPRIO=emerg
 	LOGLEVEL=6
 
-	usage="Usage: source $BASH_SOURCE [OPTIONS...]"
+	usage="Usage: source $BASH_SOURCE [OPTIONS]..."
 
 	soptions="
         --bash-completion    set completion for $BASH_SOURCE program and return (without loading anything else)
@@ -157,7 +157,8 @@ If there is no MESSAGE in command line, read it from stdin.
 	local priority=$1
 	shift
 	if ((loglevels[$priority] > $LOGLEVEL)) ; then
-		[[ "$1" ]] || cat >/dev/null
+		# If there is no MESSAGE, purge stdin; else do nothing.
+		[[ "$@" ]] || cat >/dev/null
 	else
 		logger -p "$priority" --stderr $LOGGERSYSLOG --id=$$ -t "${0##*/}" -- "$@"
 	fi
@@ -198,7 +199,7 @@ else return non-zero if EXPECTED_RESULT differs from calculated check digit.
 
 mrz_analyse() {
 	local helpmsg="Usage: $FUNCNAME MRZ
-Analyse a Machine Readable Zone and outut content of an associative array"
+Analyse a Machine Readable Zone and output content of an associative array"
 
 	for ((;$#;)) ; do
 		case "$1" in
@@ -256,7 +257,7 @@ Analyse a Machine Readable Zone and outut content of an associative array"
 
 pgpi_gen_udid4() {
 	local mrzn sname gname c iso cname tohash1 tohash2
-	local helpmsg="Usage: $FUNCNAME PARAMETERS
+	local helpmsg="Usage: $FUNCNAME PARAMETERS...
 Parameters:
     -s, --surname SURNAME            Surname/family name at birth
     -g, --given-names GIVEN_NAME     Given names at birth
@@ -325,9 +326,11 @@ Parameters:
 	echo "$(printf "$tohash1$tohash2" | md5sum | xxd -r -p | basenc --base64url | sed 's/==$//')$c"
 }
 
-pgpi_tojson() {
-	local helpmsg="Usage: $FUNCNAME VARNAME
-Output content of VARNAME in a json format."
+pgpi_str_to_json() {
+	local helpmsg="Usage: $FUNCNAME [STRING]...
+"'Escape "\" and [/"\b\f\n\r\t] characters as required by JSON format.
+If there is no STRING in command line, read it from stdin.
+'
 
 	for ((;$#;)) ; do
 		case "$1" in
@@ -339,17 +342,48 @@ Output content of VARNAME in a json format."
 		esac
 	done
 
-	local notstarted=true
+	local from='cat'
+	[[ "$@" ]] && from='eval echo "$@"'
+	$from | sed 's,\\,\\\\,g; s,/,\\/,g; s,",\\",g; s,\x08,\\b,g; s,\x0c,\\f,g; s,\r,\\r,g; s,\t,\\t,g;' | sed ':a;N;$!ba; s,\n,\\n,g;'
+}
+
+pgpi_var_to_json() {
+	local nested=false shft=0
+	local helpmsg="Usage: $FUNCNAME [OPTIONS] VARNAME
+Output content of VARNAME in a JSON format.
+
+Options:
+    -n, --nested        Assume any value beginning with \"declare -[aA]\" are nested data to be translate to JSON format
+    -s, --shift NUMBER  Number of tabs shifting of each line (default $shft)
+"
+	for ((;$#;)) ; do
+		case "$1" in
+			-n|--nest*) nested=true ;;
+			-s|--shift) shift ; shft=$(($1)) ;;
+			-h|--h*) echo "$helpmsg" ; return ;;
+			-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
+			--) shift ; break ;;
+			-*) echo -e "$FUNCNAME: Error: Unrecognized option/parameters $1\n$helpmsg" >&2 ; return 2 ;;
+			*) break ;;
+		esac
+		shift
+	done
+
+	local lb notstarted=true
 	local -n aa=$1
-	printf "{\n"
+	((shft)) && lb=$(eval printf '\\t%.0s' {1..$shft})
+	printf "$lb{\n"
 	for i in "${!aa[@]}"; do
 		$notstarted || printf ",\n"
 		notstarted=false
-		#TODO: Prevent eventual '"' in ${DOCUMENT[$i]} (even if it means that DOCUMENT is invalid)
 		#TODO: Maybe use and depend on "jq". cf. https://stackoverflow.com/questions/44792241/constructing-a-json-hash-from-a-bash-associative-array
-		printf "  \"$i\": \"${aa[$i]//$'\n'/\\\\n}\""
+		if $nested && [[ "${aa[$i]}" =~ ^declare" "-[Aa][a-zA-Z]*" "([a-zA-Z_][a-zA-Z0-9_]*)= ]] ; then
+			echo -n "$lb	\"$(pgpi_str_to_json "$i")\": $(pgpi_var_to_json --nested --shift $((shft+2)) "${BASH_REMATCH[1]}")"
+		else
+			echo -n "$lb	\"$(pgpi_str_to_json "$i")\": \"$(pgpi_str_to_json "${aa[$i]}")\""
+		fi
 	done
-	printf "\n}\n"
+	printf "\n$lb}\n"
 }
 
 
@@ -482,7 +516,7 @@ Country of birth: ${country_of_birth:=${DOCUMENT[nationality]}}
 	fi
 
 	if $PGPI_OUTPUTJSON ; then
-		pgpi_tojson DOCUMENT
+		pgpi_var_to_json DOCUMENT
 		continue
 	fi
 
@@ -492,7 +526,7 @@ Country of birth: ${country_of_birth:=${DOCUMENT[nationality]}}
 	mkdir -p "$outdir"
 
 	cp -bvf "$f" "$outdir/document.orig" 2> >(_log warning) | _log info
-	pgpi_tojson DOCUMENT > "$outdir/document.json" 2> >(_log crit)
+	pgpi_var_to_json DOCUMENT > "$outdir/document.json" 2> >(_log crit)
 done
 
 exit 0
