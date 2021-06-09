@@ -63,7 +63,7 @@ declare -A loglevels=(
 
 ### Default option values ###
 
-LOGGERSYSLOG="--no-act"
+PGPI_LOGCMD="_log -Q"
 
 if [[ "$BASH_SOURCE" == "$0" ]] ; then
 	# run as a program
@@ -122,7 +122,7 @@ case "$1" in
 		grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$LOGEXITPRIO\" is none of: ${!loglevels[@]}" >&2 ; $_exit 2 ; } ;;
 	-v|--verb*) ((LOGLEVEL++)) ;;
 	-q|--quiet) ((LOGLEVEL--)) ;;
-	-s|--syslog) unset LOGGERSYSLOG ;;
+	-s|--syslog) PGPI_LOGCMD="_log" ;;
 	-j|--json) PGPI_OUTPUTJSON=true ;;
 	-H|--hurry) PGPI_INTERACTIVE=false ;;
 	-h|--h*) echo "$helpmsg" ; $_exit ;;
@@ -138,20 +138,57 @@ done
 ### functions ###
 
 _log() {
-	local helpmsg="Usage: $FUNCNAME PRIORITY [MESSAGE]...
+	local helpmsg="Usage: $FUNCNAME [OPTIONS]... PRIORITY [MESSAGE]...
 PRIORITY list: $(declare -p loglevels)
 If level[PRIORITY] is under LOGLEVEL=$LOGLEVEL, don't log anything.
 If PRIORITY is more serious than LOGEXITPRIO=$LOGEXITPRIO, exit(8+level[PRIORITY])
 If there is no MESSAGE in command line, read it from stdin.
+
+$FUNCNAME specific options:
+ -q, --quiet              do not output message to standard error
+ -Q, --no-act             do not send message to the logs system (syslog)
+
+Options forwarded to 'logger':
+ -f, --file <file>        log the contents of this file
+ -e, --skip-empty         do not log empty lines when processing files
+     --octet-count        use rfc6587 octet counting
+     --prio-prefix        look for a prefix on every line read from stdin
+ -S, --size <size>        maximum size for a single message
+ -n, --server <name>      write to this remote syslog server
+ -P, --port <port>        use this port for UDP or TCP connection
+ -T, --tcp                use TCP only
+ -d, --udp                use UDP only
+     --rfc3164            use the obsolete BSD syslog protocol
+     --rfc5424[=<snip>]   use the syslog protocol (the default for remote);
+                            <snip> can be notime, or notq, and/or nohost
+     --sd-id <id>         rfc5424 structured data ID
+     --sd-param <data>    rfc5424 structured data name=value
+     --msgid <msgid>      set rfc5424 message id field
+ -u, --socket <socket>    write to this Unix socket
+     --socket-errors[=<on|off|auto>]
+                          print connection errors when using Unix sockets
+     --journald[=<file>]  write journald entry
 "
+	local stderr="--stderr" no_act logger_options
 	for ((;$#;)) ; do
 		case "$1" in
-			-h|--h*) echo "$helpmsg" ; return ;;
-			-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
+			-q|--quiet) unset stderr ;;
+			-Q|--no-act) no_act="--no-act" ;;
+			-e|--skip-empty|--octet-count|--prio-prefix|-T|--tcp|-d|--udp|--rfc3164)
+				logger_options+=("$1") ;;
+			-f|--file|-S|--size|-n|--server|-P|--port|--sd-id|--sd-param|--msgid|-u|--socket)
+				logger_options+=("$1")
+				shift
+				logger_options+=("$1") ;;
+			--rfc5424*|--socket-errors*|--journald*)
+				logger_options+=("$1") ;;
+			-h|--help) echo "$helpmsg" ; return ;;
+			-V|--version) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
 			--) shift ; break ;;
 			-*) echo -e "$FUNCNAME: Error: Unrecognized option/parameters $1\n$helpmsg" >&2 ; return 2 ;;
 			*) break ;;
 		esac
+		shift
 	done
 
 	local priority=$1
@@ -160,7 +197,7 @@ If there is no MESSAGE in command line, read it from stdin.
 		# If there is no MESSAGE, purge stdin; else do nothing.
 		[[ "$@" ]] || cat >/dev/null
 	else
-		logger -p "$priority" --stderr $LOGGERSYSLOG --id=$$ -t "${0##*/}" -- "$@"
+		logger -p "$priority" $stderr $no_act "${logger_options[@]}" --id=$$ --tag "${0##*/}" -- "$@"
 	fi
 	((loglevels[$priority] > loglevels[$LOGEXITPRIO] )) || exit $((8+loglevels[$priority]))
 }
@@ -214,15 +251,15 @@ Analyse a Machine Readable Zone and output content of an associative array"
 	local ch mrz=("$@")
 	local -A doc
 
-	_log debug "mrz[0]= \"${mrz[0]}\""
+	$PGPI_LOGCMD debug "mrz[0]= \"${mrz[0]}\""
 	if [[ ${mrz[0]:0:1} != P ]] ; then
-		_log debug "mrz[0]= \"${mrz[0]}\""
-		_log warning "$FUNCNAME: unsupported. (not an ISO/IEC 7501-1 passport)"
+		$PGPI_LOGCMD debug "mrz[0]= \"${mrz[0]}\""
+		$PGPI_LOGCMD warning "$FUNCNAME: unsupported. (not an ISO/IEC 7501-1 passport)"
 		return 1
 	fi
-	_log debug "mrz[1]= \"${mrz[1]}\""
+	$PGPI_LOGCMD debug "mrz[1]= \"${mrz[1]}\""
 	if [[ ${#mrz[0]} != 44 ]] || [[ ${#mrz[1]} != 44 ]] ; then
-		_log warning "$FUNCNAME: Invalid MRZ lenght ${#mrz[0]} ${#mrz[1]}"
+		$PGPI_LOGCMD warning "$FUNCNAME: Invalid MRZ lenght ${#mrz[0]} ${#mrz[1]}"
 		return 2
 	fi
 
@@ -247,7 +284,7 @@ Analyse a Machine Readable Zone and output content of an associative array"
 	for ch in number date_of_birth expiration_date personal_number composite ; do
 		doc[checked_$ch]=$(mrz_checkdigit "${doc[$ch]}")
 		doc[valid_$ch]=$( [[ ${doc[checked_$ch]} == ${doc[check_$ch]} ]] && echo true || echo false )
-		${doc[valid_$ch]} || _log warning "OBI WAN KENOBI ??? $ch checksum -> ${doc[check_$ch]}. Should be ${doc[checked_$ch]}."
+		${doc[valid_$ch]} || $PGPI_LOGCMD warning "OBI WAN KENOBI ??? $ch checksum -> ${doc[check_$ch]}. Should be ${doc[checked_$ch]}."
 	done
 
 	doc[names]=$(echo $(echo "${doc[all_names]#*<<}" | tr '<' ' ') )
@@ -278,7 +315,7 @@ Parameters:
 			sname=$(sed 's,[ ;,<-]\+,<,g'<<<"$1" )
 			sname="${sname^^}"
 			if ! [[ "$sname" =~ ^[A-Z'<']+$ ]] ; then
-				_log err "$FUNCNAME: only [A-Z] characters allowed in $1"
+				$PGPI_LOGCMD err "$FUNCNAME: only [A-Z] characters allowed in $1"
 				return 1
 			fi ;;
 		-g|--g*)
@@ -286,28 +323,28 @@ Parameters:
 			gname=$(sed 's,[ ;,<-]\+,<,g'<<<"$1" )
 			gname="${gname^^}<<"
 			if ! [[ "$gname" =~ ^[A-Z'<']+$ ]] ; then
-				_log err "$FUNCNAME: only [A-Z] characters allowed in $1"
+				$PGPI_LOGCMD err "$FUNCNAME: only [A-Z] characters allowed in $1"
 				return 1
 			fi ;;
 		-d|--birth-d*)
 			shift
 			if ((${#1}<8)) ; then
 				bdate="$(($(date +"%y%m%d") < $1 ? 19 : 20))$1"
-				_log notice "$FUNCNAME: birth date '$1' is too short, assuming $bdate."
+				$PGPI_LOGCMD notice "$FUNCNAME: birth date '$1' is too short, assuming $bdate."
 			else
 				bdate=$1
 			fi
 			if ! tohash2=$(date --date "$bdate" +"%Y-%m-%d" ) ; then
-				_log err "$FUNCNAME: can't reformart birthdate $date"
+				$PGPI_LOGCMD err "$FUNCNAME: can't reformart birthdate $date"
 				return 2
 			fi ;;
 		-c|--birth-c*)
 			shift
 			if ! read c iso cname < <(grep "	$1	" "$GEOLIST_CENTROID") ; then
-				_log err "$FUNCNAME: no \"$1\" in $GEOLIST_CENTROID"
+				$PGPI_LOGCMD err "$FUNCNAME: no \"$1\" in $GEOLIST_CENTROID"
 				return 3
 			fi
-			_log debug "$FUNCNAME: $c $iso $cname" ;;
+			$PGPI_LOGCMD debug "$FUNCNAME: $c $iso $cname" ;;
 		-p|--birth-p*)
 			shift
 			#TODO: check if coordinate is valid (cf. Specifications)
@@ -318,11 +355,11 @@ Parameters:
 	done
 	[[ "$mrzn" ]] || mrzn="${sname}<<$gname"
 	if ! tohash1=$(grep -o "[A-Z]\{1,32\}<<[A-Z]\{1,32\}<[A-Z]\{0,32\}<" <<<"$mrzn" ) ; then
-		_log err "$FUNCNAME: no complete surname and given names extracted from $mrzn"
+		$PGPI_LOGCMD err "$FUNCNAME: no complete surname and given names extracted from $mrzn"
 		return 1
 	fi
-	_log debug "$FUNCNAME: names: $tohash1"
-	_log debug "$FUNCNAME: birthdate: $tohash2"
+	$PGPI_LOGCMD debug "$FUNCNAME: names: $tohash1"
+	$PGPI_LOGCMD debug "$FUNCNAME: birthdate: $tohash2"
 	echo "$(printf "$tohash1$tohash2" | md5sum | xxd -r -p | basenc --base64url | sed 's/==$//')$c"
 }
 
@@ -378,6 +415,7 @@ Options:
 		notstarted=false
 		#TODO: Maybe use and depend on "jq". cf. https://stackoverflow.com/questions/44792241/constructing-a-json-hash-from-a-bash-associative-array
 		if $nested && [[ "${aa[$i]}" =~ ^declare" "-[Aa][a-zA-Z]*" "([a-zA-Z_][a-zA-Z0-9_]*)= ]] ; then
+			echo
 			echo -n "$lb	\"$(pgpi_str_to_json "$i")\": $(pgpi_var_to_json --nested --shift $((shft+2)) "${BASH_REMATCH[1]}")"
 		else
 			echo -n "$lb	\"$(pgpi_str_to_json "$i")\": \"$(pgpi_str_to_json "${aa[$i]}")\""
@@ -422,7 +460,7 @@ _chooseinlist() {
 ### Init ###
 
 #_onexit() {
-#	[[ -d "$TMPDIR" ]] && rm -rvf "$TMPDIR" | _log info
+#	[[ -d "$TMPDIR" ]] && rm -rvf "$TMPDIR" | $PGPI_LOGCMD info
 #}
 #
 #TMPDIR=$(mktemp -d -t "$PGPI_NAME".XXXXXX) || log crit "crit: Can not create a safe temporary directory."
@@ -440,35 +478,35 @@ while [[ "$1" ]] ; do
 	shift
 
 
-	facep=$(facedetect --best -- "$f" 2> >(_log notice) || true )
+	facep=$(facedetect --best -- "$f" 2> >($PGPI_LOGCMD notice) || true )
 	if ! [[ "$facep" ]] ; then
-		_log err "Error: No face detected in $f"
+		$PGPI_LOGCMD err "Error: No face detected in $f"
 		continue
 	fi
 	read px py sx sy etc <<<"$facep"
 	mx=$((sx*$FACE_MARGIN_WIDTH))
 	my=$((sy*$FACE_MARGIN_HEIGHT))
-	_log info "$f face -> position: +$px+$py  size: ${sx}x$sy  marges: +${mx}+$my"
+	$PGPI_LOGCMD info "$f face -> position: +$px+$py  size: ${sx}x$sy  marges: +${mx}+$my"
 
 
-	if ! mrz=($(gm convert -crop +0+$((py+sy+my)) "$f" - 2> >(_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
-		_log err "$f: No machine-readable zone detected"
+	if ! mrz=($(gm convert -crop +0+$((py+sy+my)) "$f" - 2> >($PGPI_LOGCMD notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >($PGPI_LOGCMD notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
+		$PGPI_LOGCMD err "$f: No machine-readable zone detected"
 		continue
 	fi
 
 	unset DOCUMENT
 	if ! declare -A DOCUMENT=$(mrz_analyse "${mrz[@]}") ; then
-		_log err "$f: Invalid or unsupported machine-readable zone"
+		$PGPI_LOGCMD err "$f: Invalid or unsupported machine-readable zone"
 		continue
 	fi
 
 	DOCUMENT[filename]=$f
-	DOCUMENT[face_scan_64url]=$(gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$f" jpeg:- 2> >(_log warning) | basenc --base64url --wrap 0 )
+	DOCUMENT[face_scan_64url]=$(gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$f" jpeg:- 2> >($PGPI_LOGCMD warning) | basenc --base64url --wrap 0 )
 	if ((${#DOCUMENT[face_scan_64url]} < 2048 )) ; then
-		_log warning "$outdir/face.jpg: too small (${#DOCUMENT[face_scan_64url]} < 2048)"
+		$PGPI_LOGCMD warning "$outdir/face.jpg: too small (${#DOCUMENT[face_scan_64url]} < 2048)"
 		unset DOCUMENT[face_scan_64url]
 	elif ((${#DOCUMENT[face_scan_64url]} > (1<<16) )) ; then
-		_log warning "$outdir/face.jpg: too big (${#DOCUMENT[face_scan_64url]} > $((1<<16)))"
+		$PGPI_LOGCMD warning "$outdir/face.jpg: too big (${#DOCUMENT[face_scan_64url]} > $((1<<16)))"
 		unset DOCUMENT[face_scan_64url]
 	fi
 
@@ -479,7 +517,7 @@ while [[ "$1" ]] ; do
 	#         * Year of birth date is not written with 4 digit (and people may live longer than 100 years)
 	#         * Humans may have done error on birth date, surname or given names.
 	if ! DOCUMENT[udid4_auto]=$(pgpi_gen_udid4 --mrz-names "${DOCUMENT[all_names]}" --birth-date "${DOCUMENT[date_of_birth]}" --birth-country "${DOCUMENT[nationality]}") ; then
-		_log warning "can't generate an udid4 from mrz data"
+		$PGPI_LOGCMD warning "can't generate an udid4 from mrz data"
 		unset DOCUMENT[udid4_auto]
 	fi
 
@@ -510,7 +548,7 @@ Country of birth: ${country_of_birth:=${DOCUMENT[nationality]}}
 			esac
 		done
 		if ! DOCUMENT[udid4]=$(pgpi_gen_udid4 --surname "$surname" --given-names "$names" --birth-date "$date_of_birth" --birth-country "$country_of_birth") ; then
-			_log error "can't generate an udid4 from data you have validated"
+			$PGPI_LOGCMD error "can't generate an udid4 from data you have validated"
 			unset DOCUMENT[udid4]
 		fi
 	fi
@@ -520,13 +558,13 @@ Country of birth: ${country_of_birth:=${DOCUMENT[nationality]}}
 		continue
 	fi
 
-	#for i in "${!DOCUMENT[@]}"; do printf "[$i] -> ${DOCUMENT[$i]}\n"; done | _log debug
+	#for i in "${!DOCUMENT[@]}"; do printf "[$i] -> ${DOCUMENT[$i]}\n"; done | $PGPI_LOGCMD debug
 
 	outdir="$PGPI_OUTPATH/${mrz[0]//</_}"
 	mkdir -p "$outdir"
 
-	cp -bvf "$f" "$outdir/document.orig" 2> >(_log warning) | _log info
-	pgpi_var_to_json DOCUMENT > "$outdir/document.json" 2> >(_log crit)
+	cp -bvf "$f" "$outdir/document.orig" 2> >($PGPI_LOGCMD warning) | $PGPI_LOGCMD info
+	pgpi_var_to_json DOCUMENT > "$outdir/document.json" 2> >($PGPI_LOGCMD crit)
 done
 
 exit 0
