@@ -60,6 +60,7 @@ declare -A loglevels=(
 [info]=6
 [debug]=7)
 
+declare -a logcolors=(47 45 41 31 35 33 36 37)
 
 ### Default option values ###
 
@@ -69,7 +70,7 @@ if [[ "$BASH_SOURCE" == "$0" ]] ; then
 	# run as a program
 	set -e
 	# set global constants real constant (read only)
-	declare -r FACE_MARGIN_WIDTH FACE_MARGIN_HEIGHT TESSDATADIR GEOLIST_CENTROID loglevels
+	declare -r FACE_MARGIN_WIDTH FACE_MARGIN_HEIGHT TESSDATADIR GEOLIST_CENTROID loglevels logcolors
 	_exit="exit"
 	LOGEXITPRIO=crit
 	LOGLEVEL=5
@@ -147,6 +148,8 @@ If there is no MESSAGE in command line, read it from stdin.
 $FUNCNAME specific options:
  -q, --quiet              do not output message to standard error
  -Q, --no-act             do not send message to the logs system (syslog)
+     --color[=<on|off|auto>]
+                          colorize messages sent to standard error (default: auto)
 
 Options forwarded to 'logger':
  -f, --file <file>        log the contents of this file
@@ -169,11 +172,14 @@ Options forwarded to 'logger':
                           print connection errors when using Unix sockets
      --journald[=<file>]  write journald entry
 "
-	local stderr="--stderr" no_act logger_options
+	local stderr="--stderr" no_act logger_options color="auto"
 	for ((;$#;)) ; do
 		case "$1" in
 			-q|--quiet) unset stderr ;;
 			-Q|--no-act) no_act="--no-act" ;;
+			--color|--color=on) color=on ;;
+			--color=off) color=off ;;
+			--color=auto) color=auto ;;
 			-e|--skip-empty|--octet-count|--prio-prefix|-T|--tcp|-d|--udp|--rfc3164)
 				logger_options+=("$1") ;;
 			-f|--file|-S|--size|-n|--server|-P|--port|--sd-id|--sd-param|--msgid|-u|--socket)
@@ -191,15 +197,21 @@ Options forwarded to 'logger':
 		shift
 	done
 
-	local priority=$1
+	local priority=$1 filter
 	shift
-	if ((loglevels[$priority] > $LOGLEVEL)) ; then
+	local llevel=${loglevels[$priority]}
+	if ((llevel > $LOGLEVEL)) ; then
 		# If there is no MESSAGE, purge stdin; else do nothing.
 		[[ "$@" ]] || cat >/dev/null
 	else
-		logger -p "$priority" $stderr $no_act "${logger_options[@]}" --id=$$ --tag "${0##*/}" -- "$@"
+		if [[ "$color" == on ]] || [[ "$color" == auto ]] && [[ -t 2 ]] ; then
+			filter="2> >(sed 's,: ,: \x1b[${logcolors[$llevel]}m${priority}:\x1b[0m ,' >&2)"
+		else
+			filter="2> >(sed 's,: ,: ${priority}: ,' >&2)"
+		fi
+		eval 'logger -p "$priority" $stderr $no_act "${logger_options[@]}" --id=$$ --tag "${0##*/}" -- "$@"' "$filter"
 	fi
-	((loglevels[$priority] > loglevels[$LOGEXITPRIO] )) || exit $((8+loglevels[$priority]))
+	((llevel > loglevels[$LOGEXITPRIO] )) || exit $((8+llevel))
 }
 
 mrz_checkdigit() {
@@ -235,8 +247,8 @@ else return non-zero if EXPECTED_RESULT differs from calculated check digit.
 }
 
 mrz_analyse() {
-	local helpmsg="Usage: $FUNCNAME MRZ
-Analyse a Machine Readable Zone and output content of an associative array"
+	local helpmsg="Usage: $FUNCNAME AANAME MRZ
+Analyse a Machine Readable Zone and fill the associative array named AANAME"
 
 	for ((;$#;)) ; do
 		case "$1" in
@@ -248,8 +260,9 @@ Analyse a Machine Readable Zone and output content of an associative array"
 		esac
 	done
 
+	local -n doc=$1
+	shift
 	local ch mrz=("$@")
-	local -A doc
 
 	$PGPI_LOGCMD debug "mrz[0]= \"${mrz[0]}\""
 	if [[ ${mrz[0]:0:1} != P ]] ; then
@@ -289,7 +302,6 @@ Analyse a Machine Readable Zone and output content of an associative array"
 
 	doc[names]=$(echo $(echo "${doc[all_names]#*<<}" | tr '<' ' ') )
 	doc[surname]=$(echo $(echo "${doc[all_names]%%<<*}" | tr '<' ' ') )
-	declare -p doc | sed 's,^[^=]*=,,'
 }
 
 pgpi_gen_udid4() {
@@ -416,9 +428,9 @@ Options:
 		#TODO: Maybe use and depend on "jq". cf. https://stackoverflow.com/questions/44792241/constructing-a-json-hash-from-a-bash-associative-array
 		if $nested && [[ "${aa[$i]}" =~ ^declare" "-[Aa][a-zA-Z]*" "([a-zA-Z_][a-zA-Z0-9_]*)= ]] ; then
 			echo
-			echo -n "$lb	\"$(pgpi_str_to_json "$i")\": $(pgpi_var_to_json --nested --shift $((shft+2)) "${BASH_REMATCH[1]}")"
+			echo -n "$lb	\"$(pgpi_str_to_json -- "$i")\": $(pgpi_var_to_json --nested --shift $((shft+2)) "${BASH_REMATCH[1]}")"
 		else
-			echo -n "$lb	\"$(pgpi_str_to_json "$i")\": \"$(pgpi_str_to_json "${aa[$i]}")\""
+			echo -n "$lb	\"$(pgpi_str_to_json -- "$i")\": \"$(pgpi_str_to_json -- "${aa[$i]}")\""
 		fi
 	done
 	printf "\n$lb}\n"
@@ -494,8 +506,8 @@ while [[ "$1" ]] ; do
 		continue
 	fi
 
-	unset DOCUMENT
-	if ! declare -A DOCUMENT=$(mrz_analyse "${mrz[@]}") ; then
+	declare -A DOCUMENT=()
+	if ! mrz_analyse DOCUMENT "${mrz[@]}" ; then
 		$PGPI_LOGCMD err "$f: Invalid or unsupported machine-readable zone"
 		continue
 	fi
