@@ -285,7 +285,7 @@ Parameters:
 	echo "$(printf "$tohash1$tohash2" | md5sum | xxd -r -p | basenc --base64url | sed 's/==$//')$c"
 }
 
-pgpi_str_to_json() {
+pgpi_json_from_str() {
 	local helpmsg="Usage: $FUNCNAME [STRING]...
 "'Escape "\" and [/"\b\f\n\r\t] characters as required by JSON format.
 If there is no STRING in command line, read it from stdin.
@@ -306,7 +306,7 @@ If there is no STRING in command line, read it from stdin.
 	$from | sed 's,\\,\\\\,g; s,/,\\/,g; s,",\\",g; s,\x08,\\b,g; s,\x0c,\\f,g; s,\r,\\r,g; s,\t,\\t,g;' | sed ':a;N;$!ba; s,\n,\\n,g;'
 }
 
-pgpi_var_to_json() {
+pgpi_json_from_var() {
 	local nested=false shft=0
 	local helpmsg="Usage: $FUNCNAME [OPTIONS] VARNAME
 Output content of VARNAME in a JSON format.
@@ -338,9 +338,9 @@ Options:
 		#TODO: Maybe use and depend on "jq". cf. https://stackoverflow.com/questions/44792241/constructing-a-json-hash-from-a-bash-associative-array
 		if $nested && [[ "${aa[$i]}" =~ ^declare" "-[Aa][a-zA-Z]*" "([a-zA-Z_][a-zA-Z0-9_]*)= ]] ; then
 			echo
-			echo -n "$lb	\"$(pgpi_str_to_json -- "$i")\": $(pgpi_var_to_json --nested --shift $((shft+2)) "${BASH_REMATCH[1]}")"
+			echo -n "$lb	\"$(pgpi_json_from_str -- "$i")\": $(pgpi_json_from_var --nested --shift $((shft+2)) "${BASH_REMATCH[1]}")"
 		else
-			echo -n "$lb	\"$(pgpi_str_to_json -- "$i")\": \"$(pgpi_str_to_json -- "${aa[$i]}")\""
+			echo -n "$lb	\"$(pgpi_json_from_str -- "$i")\": \"$(pgpi_json_from_str -- "${aa[$i]}")\""
 		fi
 	done
 	printf "\n$lb}\n"
@@ -476,7 +476,7 @@ Country of birth: ${country_of_birth:=${DOCUMENT[nationality]}}
 	fi
 
 	if $PGPI_OUTPUTJSON ; then
-		pgpi_var_to_json DOCUMENT
+		pgpi_json_from_var DOCUMENT
 		continue
 	fi
 
@@ -486,7 +486,7 @@ Country of birth: ${country_of_birth:=${DOCUMENT[nationality]}}
 	mkdir -p "$outdir"
 
 	cp -bvf "$f" "$outdir/document.orig" 2> >(pl_log warning) | pl_log info
-	pgpi_var_to_json DOCUMENT > "$outdir/document.json" 2> >(pl_log crit)
+	pgpi_json_from_var DOCUMENT > "$outdir/document.json" 2> >(pl_log crit)
 done
 
 exit 0
