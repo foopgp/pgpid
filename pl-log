@@ -6,6 +6,8 @@
 # Bash library and executable that wraps 'logger to write log on stderr or syslog,
 # then exit if log level is more serious than PL_LOGEXITLNAME.
 #
+# TODO: set all global variables to upper case and add "PL_" prefix if missing
+# TODO: add logger's '--tag' and '--id' options into this library/executable options
 
 if [[ "$1" == --bash-completion ]] ; then
 	_pl_log_completion()
@@ -128,6 +130,7 @@ $soptions
 
 ### functions ###
 
+#TODO: explain in comment why we dont use getopts...
 _pl_parseoptions() {
 	local name=$1
 	[[ "$name" =~ ^- ]] && { echo "Usage: $FUNCNAME NAME \"\$@\"\nParse Options in \$@ and set ARGV array containing remaining parameters" >&2 ; return 1 ; }
@@ -182,7 +185,7 @@ pl_log() {
 		else
 			filter="2> >(sed 's,: ,: ${plname^}: ,' >&2)"
 		fi
-		eval 'logger -p "$priority" $stderr $no_act "${logger_options[@]}" --id=$$ --tag "${0##*/}" -- "$@"' "$filter"
+		eval 'logger -p "$priority" $stderr $no_act --id=$$ --tag "${0##*/}" ${logger_options[@]} -- "$@" '"$filter"
 	fi
 	((llevel > loglevels[$PL_LOGEXITLNAME] )) || exit $((8+llevel))
 }
