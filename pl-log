@@ -1,0 +1,202 @@
+#!/bin/bash
+#
+# Copyright © 2021 b Jean-Jacques Brucker <jjbrucker@free.fr>
+#          Confidential - All Right Reserved
+#
+# Bash library and executable that wraps 'logger to write log on stderr or syslog,
+# then exit if log level is more serious than PL_LOGEXITLNAME.
+#
+
+if [[ "$1" == --bash-completion ]] ; then
+	_pl_log_completion()
+	{
+		local cur prev options
+		local IFS=$'\n'
+
+		COMPREPLY=()
+		cur=${COMP_WORDS[COMP_CWORD]}
+
+		if [[ "$cur" == -* ]]; then
+			options="--syslog --help --version"
+
+			COMPREPLY=( $(IFS=" " compgen -W "$options" -- $cur ) )
+		else
+			prev=${COMP_WORDS[COMP_CWORD-1]}
+			case $prev in
+				-o|--output-path)
+					COMPREPLY=( $(compgen  -d -- $cur ) )
+					return ;;
+				# some options will exit without executing any actions, so don't complete anything
+				-h|--help|-V|--version)
+					return ;;
+			esac
+
+		fi
+	}
+	complete -o filenames -F _pl_log_completion "$BASH_SOURCE"
+	return 0
+fi
+
+declare -r PL_LOG_NAME="$(basename $(readlink -f "$BASH_SOURCE") )"
+declare -r PL_LOG_VERSION="0.0.1"
+
+### Constants ###
+
+[[ "$(declare -p loglevels 2>&1)" =~ ^declare" "-Ar ]] || declare -Ar loglevels=(
+[emerg]=0
+[alert]=1
+[crit]=2
+[error]=3 # deprecated synonym for err
+[err]=3
+[warning]=4
+[notice]=5
+[info]=6
+[debug]=7)
+
+### Default option values ###
+
+logcolors=(47 45 41 31 35 33 36 37)
+PL_LOGLEVEL="${PL_LOGLEVEL:-7}"
+stderr="--stderr"
+no_act=""
+logger_options=""
+color="auto"
+
+if [[ "$BASH_SOURCE" == "$0" ]] ; then
+	# run as a program
+	set -e
+	PL_LOGEXITLNAME="${PL_LOGEXITLNAME:-err}"
+
+	usage="Usage: $BASH_SOURCE [OPTIONS]... PRIORITY [MESSAGE]..."
+	soptions="
+$PL_LOG_NAME is also bash library, see:
+$ source $BASH_SOURCE --help"
+else
+	# run as a library (source $0)
+	PL_LOGEXITLNAME="${PL_LOGEXITLNAME:-emerg}"
+
+	usage="Usage: source $BASH_SOURCE [OPTIONS]..."
+
+	soptions="
+      --bash-completion    set completion for $BASH_SOURCE program and return (without loading anything else)"
+fi
+
+
+### Handling options ###
+
+commonhelpmsg="
+PRIORITY list: $(declare -p loglevels)
+If PRIORITY's level is under PL_LOGLEVEL=$PL_LOGLEVEL, don't log anything.
+If PRIORITY's level name is more serious than PL_LOGEXITLNAME=$PL_LOGEXITLNAME, exit(8+'PRIORITY's level')
+If there is no MESSAGE in command line, read it from stdin.
+
+Options:
+  -l, --log-level LEVEL    log level: emerg<1=alert<crit<3=err<warning<5=notice<info<7=debug (current: $PL_LOGLEVEL)
+  -L, --log-exit PRIORITY  log exit priority: emerg|alert|crit|err|warning|... (current: $PL_LOGEXITLNAME )
+  -q, --quiet              do not output message to standard error
+  -Q, --no-act             do not send message to the logs system (syslog)
+      --color[=<on|off|auto>]
+                           colorize messages sent to standard error (default: auto)
+  -h, --help               show this help and exit (or return)
+  -V, --version            show version and exit (or return)
+
+Options forwarded to 'logger':
+  -f, --file <file>        log the contents of this file
+  -e, --skip-empty         do not log empty lines when processing files
+      --octet-count        use rfc6587 octet counting
+      --prio-prefix        look for a prefix on every line read from stdin
+  -S, --size <size>        maximum size for a single message
+  -n, --server <name>      write to this remote syslog server
+  -P, --port <port>        use this port for UDP or TCP connection
+  -T, --tcp                use TCP only
+  -d, --udp                use UDP only
+      --rfc3164            use the obsolete BSD syslog protocol
+      --rfc5424[=<snip>]   use the syslog protocol (the default for remote);
+                             <snip> can be notime, or notq, and/or nohost
+      --sd-id <id>         rfc5424 structured data ID
+      --sd-param <data>    rfc5424 structured data name=value
+      --msgid <msgid>      set rfc5424 message id field
+  -u, --socket <socket>    write to this Unix socket
+      --socket-errors[=<on|off|auto>]
+                           print connection errors when using Unix sockets
+      --journald[=<file>]  write journald entry"
+
+helpmsg="
+$commonhelpmsg
+$soptions
+"
+
+### functions ###
+
+_pl_parseoptions() {
+	local name=$1
+	[[ "$name" =~ ^- ]] && { echo "Usage: $FUNCNAME NAME \"\$@\"\nParse Options in \$@ and set ARGV array containing remaining parameters" >&2 ; return 1 ; }
+	shift
+	for ((;$#;)) ; do
+		case "$1" in
+			-l|--log-l*) shift ; PL_LOGLEVEL="$1" ; [[ "$PL_LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; return 2 ; } ;;
+			-L|--log-e*) shift ; PL_LOGEXITLNAME="$1"
+				grep -q "\<$PL_LOGEXITLNAME\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$PL_LOGEXITLNAME\" is none of: ${!loglevels[@]}" >&2 ; return 2 ; } ;;
+			-q|--quiet) stderr="" ;;
+			-Q|--no-act) no_act="--no-act" ;;
+			--color|--color=on) color=on ;;
+			--color=off) color=off ;;
+			--color=auto) color=auto ;;
+			-e|--skip-empty|--octet-count|--prio-prefix|-T|--tcp|-d|--udp|--rfc3164)
+				logger_options+=("$1") ;;
+			-f|--file|-S|--size|-n|--server|-P|--port|--sd-id|--sd-param|--msgid|-u|--socket)
+				logger_options+=("$1")
+				shift
+				logger_options+=("$1") ;;
+			--rfc5424*|--socket-errors*|--journald*)
+				logger_options+=("$1") ;;
+			-h|--h*) echo "$usage$helpmsg" ; return 2 ;;
+			-V|--vers*) echo "$name $PL_LOG_VERSION" ; return 2 ;;
+			--) shift ; break ;;
+			-*) echo -e "$name: Error: Unrecognized option/parameters $1\n$usage$helpmsg" >&2 ; return 2 ;;
+			*) break ;;
+		esac
+		shift
+	done
+	ARGV=("$@")
+}
+
+
+
+pl_log() {
+	local usage="Usage: $FUNCNAME [OPTIONS]... PRIORITY [MESSAGE]..."
+	local -I PL_LOGLEVEL PL_LOGEXITLNAME stderr no_act logger_options color
+	_pl_parseoptions "$FUNCNAME" "$@" || return $?
+	set "${ARGV[@]}"
+
+	local priority=$1 plname=${1##*.} filter
+	grep -q "\<$plname\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit priority's level name ($plname) is none of: ${!loglevels[@]}" >&2 ; return 2 ; }
+	shift
+	local llevel=${loglevels[$plname]}
+	if ((llevel > $PL_LOGLEVEL)) ; then
+		# If there is no MESSAGE, purge stdin; else do nothing.
+		[[ "$@" ]] || cat >/dev/null
+	else
+		if [[ "$color" == on ]] || [[ "$color" == auto ]] && [[ -t 2 ]] ; then
+			filter="2> >(sed 's,: ,: \x1b[${logcolors[$llevel]}m${plname^}:\x1b[0m ,' >&2)"
+		else
+			filter="2> >(sed 's,: ,: ${plname^}: ,' >&2)"
+		fi
+		eval 'logger -p "$priority" $stderr $no_act "${logger_options[@]}" --id=$$ --tag "${0##*/}" -- "$@"' "$filter"
+	fi
+	((llevel > loglevels[$PL_LOGEXITLNAME] )) || exit $((8+llevel))
+}
+
+
+### Init ###
+
+# Parse Options
+_pl_parseoptions "$PL_LOG_NAME" "$@"
+
+# Do nothing else if sourced
+[[ "$BASH_SOURCE" == "$0" ]] || return 0
+
+
+### Run ###
+
+pl_log "${ARGV[@]}"
