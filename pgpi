@@ -18,7 +18,7 @@ if [[ "$1" == --bash-completion ]] ; then
 		cur=${COMP_WORDS[COMP_CWORD]}
 
 		if [[ "$cur" == -* ]]; then
-			options="--syslog --output-path --json --hurry --verbose --quiet --help --version"
+			options="--output-path --json --hurry --verbose --quiet --help --version"
 
 			COMPREPLY=( $(IFS=" " compgen -W "$options" -- $cur ) )
 		else
@@ -337,15 +337,14 @@ Options:
 		notstarted=false
 		#TODO: Maybe use and depend on "jq". cf. https://stackoverflow.com/questions/44792241/constructing-a-json-hash-from-a-bash-associative-array
 		if $nested && [[ "${aa[$i]}" =~ ^declare" "-[Aa][a-zA-Z]*" "([a-zA-Z_][a-zA-Z0-9_]*)= ]] ; then
-			echo
-			echo -n "$lb	\"$(pgpi_json_from_str -- "$i")\": $(pgpi_json_from_var --nested --shift $((shft+2)) "${BASH_REMATCH[1]}")"
+			#echo
+			echo -n "$lb	\"$(pgpi_json_from_str -- "$i")\":"$'\n'"$(pgpi_json_from_var --nested --shift $((shft+2)) "${BASH_REMATCH[1]}")"
 		else
 			echo -n "$lb	\"$(pgpi_json_from_str -- "$i")\": \"$(pgpi_json_from_str -- "${aa[$i]}")\""
 		fi
 	done
 	printf "\n$lb}\n"
 }
-
 
 
 _chooseinlist() {
@@ -400,7 +399,6 @@ while [[ "$1" ]] ; do
 	f="$1"
 	shift
 
-
 	facep=$(facedetect --best -- "$f" 2> >(pl_log notice) || true )
 	if ! [[ "$facep" ]] ; then
 		pl_log err "Error: No face detected in $f"
@@ -423,7 +421,7 @@ while [[ "$1" ]] ; do
 	fi
 
 	DOCUMENT[filename]=$f
-	DOCUMENT[face_scan_64url]=$(gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$f" jpeg:- 2> >(pl_log warning) | basenc --base64url --wrap 0 )
+	DOCUMENT[face_scan_64url]=$(gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$f" jpeg:- 2> >(pl_log warning) | basenc --base64url )
 	if ((${#DOCUMENT[face_scan_64url]} < 2048 )) ; then
 		pl_log warning "$outdir/face.jpg: too small (${#DOCUMENT[face_scan_64url]} < 2048)"
 		unset DOCUMENT[face_scan_64url]
@@ -443,40 +441,56 @@ while [[ "$1" ]] ; do
 		unset DOCUMENT[udid4_auto]
 	fi
 
+	declare -A PGPID=()
+	PGPID[document1]="$(declare -p DOCUMENT)"
 	if $PGPI_INTERACTIVE ; then
-		date_of_birth=$(date --date "$(($(date +"%y%m%d") < ${DOCUMENT[date_of_birth]} ? 19 : 20))${DOCUMENT[date_of_birth]}" +"%Y-%m-%d")
+
+		PGPID[birth_date]=$(date --date "$(($(date +"%y%m%d") < DOCUMENT[date_of_birth] ? 19 : 20))${DOCUMENT[date_of_birth]}" +"%Y-%m-%d")
 		while true ; do
 			echo "
-Surname: ${surname:=${DOCUMENT[surname]}}
-Given names: ${names:=${DOCUMENT[names]}}
-Date of birth: ${date_of_birth}
-Country of birth: ${country_of_birth:=${DOCUMENT[nationality]}}
+Surname at birth: ${PGPID[birth_surname]:=${DOCUMENT[surname]}}
+Given names at birth: ${PGPID[birth_given_names]:=${DOCUMENT[names]}}
+Date of birth: ${PGPID[birth_date]}
+Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 " >&2
 			read -p " Is that correct (y/n) ? " rep
 			case "$rep" in
 			  [yY]*)
 				break ;;
 			  [nN]*)
-				read -p "Surname [${surname:=${DOCUMENT[surname]}}] ? "
-				surname=${REPLY:-$surname}
-				read -p "Names [${names:=${DOCUMENT[names]}}] ? "
-				names=${REPLY:-$names}
-				read -p "Date of birth [${date_of_birth:=${DOCUMENT[date_of_birth]}}] ? "
-				date_of_birth=${REPLY:-$date_of_birth}
-				read -p "Surname [${country_of_birth:=${DOCUMENT[nationality]}}] ? "
-				country_of_birth=${REPLY:-$country_of_birth}
+				read -p "Surname [${PGPID[birth_surname]}] ? "
+				PGPID[birth_surname]=${REPLY:-${PGPID[birth_surname]}}
+				read -p "Names [${PGPID[birth_given_names]}] ? "
+				PGPID[birth_given_names]=${REPLY:-${PGPID[birth_given_names]}}
+				read -p "Date of birth [${PGPID[birth_date]}] ? "
+				PGPID[birth_date]=${REPLY:-${PGPID[birth_date]}}
+				read -p "Surname [${PGPID[nationality]}] ? "
+				PGPID[birth_country]=${REPLY:-${PGPID[birth_country]}}
 				continue ;;
 			  *) echo "  please answer \"yes\" or \"no\"" >&2 ;;
 			esac
 		done
-		if ! DOCUMENT[udid4]=$(pgpi_gen_udid4 --surname "$surname" --given-names "$names" --birth-date "$date_of_birth" --birth-country "$country_of_birth") ; then
+
+		if ! PGPID[udid4]=$(pgpi_gen_udid4 --surname "${PGPID[birth_surname]}" --given-names "${PGPID[birth_given_names]}" --birth-date "${PGPID[birth_date]}" --birth-country "${PGPID[birth_country]}") ; then
 			pl_log error "can't generate an udid4 from data you have validated"
-			unset DOCUMENT[udid4]
+			unset PGPID[udid4]
 		fi
+
+		basenc --base64url --decode <<<"${DOCUMENT[face_scan_64url]}" | display -immutable - &
+		while true ; do
+			read -p " Did the face of ${PGPID[birth_given_names],,} ${PGPID[birth_surname]} pop up (y/n) ? " rep
+			case "$rep" in
+			  [yY]*)
+				PGPID[face1_64url]="${DOCUMENT[face_scan_64url]}" ;&
+			  [nN]*)
+				break ;;
+			  *) echo "  please answer \"yes\" or \"no\"" >&2 ;;
+			esac
+		done
 	fi
 
 	if $PGPI_OUTPUTJSON ; then
-		pgpi_json_from_var DOCUMENT
+		pgpi_json_from_var --nested PGPID
 		continue
 	fi
 
@@ -486,7 +500,7 @@ Country of birth: ${country_of_birth:=${DOCUMENT[nationality]}}
 	mkdir -p "$outdir"
 
 	cp -bvf "$f" "$outdir/document.orig" 2> >(pl_log warning) | pl_log info
-	pgpi_json_from_var DOCUMENT > "$outdir/document.json" 2> >(pl_log crit)
+	pgpi_json_from_var --nested PGPID > "$outdir/document.json" 2> >(pl_log crit)
 done
 
 exit 0
