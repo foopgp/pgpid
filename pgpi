@@ -346,6 +346,48 @@ Options:
 	printf "\n$lb}\n"
 }
 
+_yesno() {
+	local usage="Usage: $FUNCNAME [OPTIONS] QUESTION"
+	local helpmsg="
+If REPLY == 'yes', return 0
+If REPLY == 'no', return 1
+Else loop asking the question.
+
+Options:
+      --default=<yes|no>   Set a default answer
+  -p, --preamble TEXT      Text to display before the question
+"
+	local def pr question
+	for ((;$#;)) ; do
+		case "$1" in
+			--default=yes) def="yes" ;;
+			--default=no) def="no" ;;
+			-p|--pre*) shift ; pr="$1" ;;
+			-h|--h*) printf "%s\n%s\n" "$usage" "$helpmsg" ; return ;;
+			-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
+			--) shift ; break ;;
+			-*) printf "$FUNCNAME: Error: unrecognized option '%s'\nTry '$FUNCNAME --help' for more information.\n" "$1" >&2 ; return 2 ;;
+			*) break ;;
+		esac
+		shift
+	done
+	question=" $1 (y/n)"
+	[[ -z "$def" ]] || question+=" [$def]"
+
+	while true ; do
+		echo "$pr" >&2
+		read -p " $question ? " rep
+		rep=${rep:-$def}
+		case "${rep,,}" in
+		  y|yes|oui|'sí'|ja|si|'да')
+			return 0 ;;
+		  n|no|non|nein|'нет')
+			return 1 ;;
+		  *) echo "  please answer \"yes\" or \"no\"" >&2 ;;
+		esac
+	done
+}
+
 
 _chooseinlist() {
 # Argument 1: Prompt before the list
@@ -441,52 +483,39 @@ while [[ "$1" ]] ; do
 		unset DOCUMENT[udid4_auto]
 	fi
 
+	# Display scanned face
+	basenc --base64url --decode <<<"${DOCUMENT[face_scan_64url]}" | display -immutable - &
 	declare -A PGPID=()
 	PGPID[document1]="$(declare -p DOCUMENT)"
-	if $PGPI_INTERACTIVE ; then
-
+	if $PGPI_INTERACTIVE && _yesno --default=yes "Did an image of a face pop up" ; then
 		PGPID[birth_date]=$(date --date "$(($(date +"%y%m%d") < DOCUMENT[date_of_birth] ? 19 : 20))${DOCUMENT[date_of_birth]}" +"%Y-%m-%d")
 		while true ; do
 			echo "
 Surname at birth: ${PGPID[birth_surname]:=${DOCUMENT[surname]}}
-Given names at birth: ${PGPID[birth_given_names]:=${DOCUMENT[names]}}
+Given names at birth: ${PGPID[birth_names]:=${DOCUMENT[names]}}
 Date of birth: ${PGPID[birth_date]}
 Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 " >&2
-			read -p " Is that correct (y/n) ? " rep
-			case "$rep" in
-			  [yY]*)
-				break ;;
-			  [nN]*)
-				read -p "Surname [${PGPID[birth_surname]}] ? "
-				PGPID[birth_surname]=${REPLY:-${PGPID[birth_surname]}}
-				read -p "Names [${PGPID[birth_given_names]}] ? "
-				PGPID[birth_given_names]=${REPLY:-${PGPID[birth_given_names]}}
-				read -p "Date of birth [${PGPID[birth_date]}] ? "
-				PGPID[birth_date]=${REPLY:-${PGPID[birth_date]}}
-				read -p "Surname [${PGPID[nationality]}] ? "
-				PGPID[birth_country]=${REPLY:-${PGPID[birth_country]}}
-				continue ;;
-			  *) echo "  please answer \"yes\" or \"no\"" >&2 ;;
-			esac
+			! _yesno "Is that correct" || break
+
+			read -p "Birth surname [${PGPID[birth_surname]}] ? "
+			PGPID[birth_surname]=${REPLY:-${PGPID[birth_surname]}}
+			read -p "Birth names [${PGPID[birth_names]}] ? "
+			PGPID[birth_names]=${REPLY:-${PGPID[birth_names]}}
+			read -p "Birth date [${PGPID[birth_date]}] ? "
+			PGPID[birth_date]=${REPLY:-${PGPID[birth_date]}}
+			read -p "Birth country: [${PGPID[birth_country]}] ? "
+			PGPID[birth_country]=${REPLY:-${PGPID[birth_country]}}
 		done
 
-		if ! PGPID[udid4]=$(pgpi_gen_udid4 --surname "${PGPID[birth_surname]}" --given-names "${PGPID[birth_given_names]}" --birth-date "${PGPID[birth_date]}" --birth-country "${PGPID[birth_country]}") ; then
+		if ! PGPID[udid4]=$(pgpi_gen_udid4 --surname "${PGPID[birth_surname]}" --given-names "${PGPID[birth_names]}" --birth-date "${PGPID[birth_date]}" --birth-country "${PGPID[birth_country]}") ; then
 			pl_log error "can't generate an udid4 from data you have validated"
 			unset PGPID[udid4]
 		fi
 
-		basenc --base64url --decode <<<"${DOCUMENT[face_scan_64url]}" | display -immutable - &
-		while true ; do
-			read -p " Did the face of ${PGPID[birth_given_names],,} ${PGPID[birth_surname]} pop up (y/n) ? " rep
-			case "$rep" in
-			  [yY]*)
-				PGPID[face1_64url]="${DOCUMENT[face_scan_64url]}" ;&
-			  [nN]*)
-				break ;;
-			  *) echo "  please answer \"yes\" or \"no\"" >&2 ;;
-			esac
-		done
+		if _yesno "Did the image correspond to ${PGPID[birth_names],,} ${PGPID[birth_surname]}"  ; then
+			PGPID[face1_64url]="${DOCUMENT[face_scan_64url]}"
+		fi
 	fi
 
 	if $PGPI_OUTPUTJSON ; then
@@ -500,7 +529,7 @@ Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 	mkdir -p "$outdir"
 
 	cp -bvf "$f" "$outdir/document.orig" 2> >(pl_log warning) | pl_log info
-	pgpi_json_from_var --nested PGPID > "$outdir/document.json" 2> >(pl_log crit)
+	pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(pl_log crit)
 done
 
 exit 0
