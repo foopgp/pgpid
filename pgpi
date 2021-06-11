@@ -230,7 +230,7 @@ Parameters:
 			shift
 			sname=$(sed 's,[ ;,<-]\+,<,g'<<<"$1" )
 			sname="${sname^^}"
-			if ! [[ "$sname" =~ ^[A-Z'<']+$ ]] ; then
+			if ! (LANG= ; [[ "$sname" =~ ^[A-Z\<]+$ ]]) ; then
 				pl_log error "$FUNCNAME: only [A-Z] characters allowed in $1"
 				return 1
 			fi ;;
@@ -238,17 +238,16 @@ Parameters:
 			shift
 			gname=$(sed 's,[ ;,<-]\+,<,g'<<<"$1" )
 			gname="${gname^^}<<"
-			if ! [[ "$gname" =~ ^[A-Z'<']+$ ]] ; then
+			if ! (LANG= ; [[ "$gname" =~ ^[A-Z\<]+$ ]]) ; then
 				pl_log error "$FUNCNAME: only [A-Z] characters allowed in $1"
 				return 1
 			fi ;;
 		-d|--birth-d*)
 			shift
+			bdate=$1
 			if ((${#1}<8)) ; then
-				bdate="$(($(date +"%y%m%d") < $1 ? 19 : 20))$1"
+				bdate="$(($(date +"%y%m%d") < bdate ? 19 : 20))$bdate"
 				pl_log notice "$FUNCNAME: birth date '$1' is too short, assuming $bdate."
-			else
-				bdate=$1
 			fi
 			if ! tohash2=$(date --date "$bdate" +"%Y-%m-%d" ) ; then
 				pl_log error "$FUNCNAME: can't reformart birthdate $date"
@@ -445,15 +444,24 @@ while [[ "$1" ]] ; do
 	my=$((sy*$FACE_MARGIN_HEIGHT))
 	pl_log info "$f face -> position: +$px+$py  size: ${sx}x$sy  marges: +${mx}+$my"
 
-	if ! mrz=($(gm convert -crop +0+$((py+sy+my)) "$f" - 2> >(pl_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(pl_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
-		pl_log error "$f: No machine-readable zone detected"
-		continue
-	fi
-
 	declare -A DOCUMENT=()
-	if ! mrz_analyse DOCUMENT "${mrz[@]}" ; then
-		pl_log error "$f: Invalid or unsupported machine-readable zone"
-		continue
+	if mrz=($(gm convert -crop +0+$((py+sy+my)) "$f" - 2> >(pl_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(pl_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
+		if mrz_analyse DOCUMENT "${mrz[@]}" ; then
+			#WARNING: mrz data may be irrelevant to generate udid4. eg:
+			#         * Surname or given names may be incomplete (cut bc exceed mrz size)
+			#         * Surname or given names may differs from those given at birth (marriage, gender change, etc.)
+			#         * Surname or given names transliteration may have change over time
+			#         * Year of birth date is not written with 4 digit (and people may live longer than 100 years)
+			#         * Humans may have done error on birth date, surname or given names.
+			if ! DOCUMENT[udid4_auto]=$(pgpi_gen_udid4 --mrz-names "${DOCUMENT[all_names]}" --birth-date "${DOCUMENT[date_of_birth]}" --birth-country "${DOCUMENT[nationality]}") ; then
+				pl_log warning "can't generate an udid4 from mrz data"
+				unset DOCUMENT[udid4_auto]
+			fi
+		else
+			pl_log warning "$f: Invalid or unsupported machine-readable zone"
+		fi
+	else
+		pl_log warning "$f: No machine-readable zone detected"
 	fi
 
 	DOCUMENT[filename]=$f
@@ -464,17 +472,6 @@ while [[ "$1" ]] ; do
 	elif ((${#DOCUMENT[face_scan_64url]} > (1<<16) )) ; then
 		pl_log error "$outdir/face.jpg: too big (${#DOCUMENT[face_scan_64url]} > $((1<<16)))"
 		continue
-	fi
-
-	#WARNING: mrz data may be irrelevant to generate udid4. eg:
-	#         * Surname or given names may be incomplete (cut bc exceed mrz size)
-	#         * Surname or given names may differs from those given at birth (marriage, gender change, etc.)
-	#         * Surname or given names transliteration may have change over time
-	#         * Year of birth date is not written with 4 digit (and people may live longer than 100 years)
-	#         * Humans may have done error on birth date, surname or given names.
-	if ! DOCUMENT[udid4_auto]=$(pgpi_gen_udid4 --mrz-names "${DOCUMENT[all_names]}" --birth-date "${DOCUMENT[date_of_birth]}" --birth-country "${DOCUMENT[nationality]}") ; then
-		pl_log warning "can't generate an udid4 from mrz data"
-		unset DOCUMENT[udid4_auto]
 	fi
 
 	declare -A PGPID=()
@@ -516,9 +513,8 @@ Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 	pl_log notice "Displaying face... close it to continue !"
 	(exec 2> >(pl_log error) ; basenc --base64url --decode <<<"${DOCUMENT[face_scan_64url]}" | tee "$outdir/face.jpg" | gm display -immutable - ) || continue
 
-	if _yesno "Did the image correspond to ${PGPID[birth_names],,} ${PGPID[birth_surname]}"  ; then
-		PGPID[face1_64url]="${DOCUMENT[face_scan_64url]}"
-	fi
+	_yesno "Did the image correspond to ${PGPID[birth_names],,} ${PGPID[birth_surname]}" || continue
+	PGPID[face1_64url]="${DOCUMENT[face_scan_64url]}"
 
 
 	while true ; do
@@ -538,7 +534,7 @@ Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 	pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(pl_log crit)
 
 	cat >"$outdir/gpg.genkey.batch" <<EOF
-%echo Generating a basic OpenPGP key
+%echo Generating OpenPGP key for ${PGPID[pseudonym]}
 Key-Type: default
 Subkey-Type: ecdh
 Subkey-Curve: Curve25519
@@ -550,14 +546,25 @@ Expire-Date: $(date -I -d "+11 years")
 Passphrase: ${PGPID[birth_date]//-/}
 # Do a commit here, so that we can later print "done" :-)
 %commit
-%echo done
 EOF
 
 	chmod 700 "$outdir"
-	if ! gpg --batch --generate-key --homedir "$outdir" --allow-freeform-uid "$outdir/gpg.genkey.batch" 2> >(pl_log notice) ; then
+	if ! gpg --homedir "$outdir" --batch --generate-key --allow-freeform-uid "$outdir/gpg.genkey.batch" 2> >(pl_log notice) ; then
 		pl_log error "gpg --generate-key return $?"
 		continue
 	fi
+
+	read PGPID[key_fpr_main] etc < <(gpg --homedir "$outdir" --list-options show-only-fpr-mbox --list-secret-keys 2> >(pl_log notice) )
+
+	gpg --homedir "$outdir" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --quick-add-key ${PGPID[key_fpr_main]} ed25519 auth 11y 2> >(pl_log notice)
+	gpg --homedir "$outdir" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --quick-add-key ${PGPID[key_fpr_main]} ed25519 sign 11y 2> >(pl_log notice)
+	# Add photo
+	gpg --homedir "$outdir" --command-fd 0 --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --edit-key ${PGPID[key_fpr_main]} 2> >(pl_log notice) <<<"
+addphoto
+$outdir/face.jpg
+y
+save
+"
 
 done
 
