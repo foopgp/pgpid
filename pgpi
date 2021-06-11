@@ -18,7 +18,7 @@ if [[ "$1" == --bash-completion ]] ; then
 		cur=${COMP_WORDS[COMP_CWORD]}
 
 		if [[ "$cur" == -* ]]; then
-			options="--output-path --json --hurry --verbose --quiet --help --version"
+			options="--output-path --verbose --quiet --help --version"
 
 			COMPREPLY=( $(IFS=" " compgen -W "$options" -- $cur ) )
 		else
@@ -62,16 +62,12 @@ if [[ "$BASH_SOURCE" == "$0" ]] ; then
 	LOGLEVEL=5
 
 	PGPI_OUTPATH="$PWD"
-	PGPI_OUTPUTJSON=false
-	PGPI_INTERACTIVE=true
 
 	usage="Usage: $BASH_SOURCE [OPTIONS]... [--] IMAGES...
 If $PGPI_NAME succeed, it will create a subdirectories containing all generated files."
 
 	soptions="
     -o, --output-path PATH   emplacement for generated subdirs and files (current: $PGPI_OUTPATH )
-    -j, --json               don't generate OpenPGP stuff, but only output json (like 'mrz' from PassportEye)
-    -H, --hurry              don't be interactive : don't ask anything but loose features and robustness.
     -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (current: $LOGLEVEL)
     -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (current: $LOGLEVEL)
     -h, --help               show this help and exit
@@ -108,8 +104,6 @@ case "$1" in
 		grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$LOGEXITPRIO\" is none of: ${!loglevels[@]}" >&2 ; $_exit 2 ; } ;;
 	-v|--verb*) ((LOGLEVEL++)) ;;
 	-q|--quiet) ((LOGLEVEL--)) ;;
-	-j|--json) PGPI_OUTPUTJSON=true ;;
-	-H|--hurry) PGPI_INTERACTIVE=false ;;
 	-h|--h*) echo "$helpmsg" ; $_exit ;;
 	-V|--vers*) echo "$PGPI_NAME $PGPI_VERSION" ; $_exit ;;
 	--) shift ; break ;;
@@ -237,7 +231,7 @@ Parameters:
 			sname=$(sed 's,[ ;,<-]\+,<,g'<<<"$1" )
 			sname="${sname^^}"
 			if ! [[ "$sname" =~ ^[A-Z'<']+$ ]] ; then
-				pl_log err "$FUNCNAME: only [A-Z] characters allowed in $1"
+				pl_log error "$FUNCNAME: only [A-Z] characters allowed in $1"
 				return 1
 			fi ;;
 		-g|--g*)
@@ -245,7 +239,7 @@ Parameters:
 			gname=$(sed 's,[ ;,<-]\+,<,g'<<<"$1" )
 			gname="${gname^^}<<"
 			if ! [[ "$gname" =~ ^[A-Z'<']+$ ]] ; then
-				pl_log err "$FUNCNAME: only [A-Z] characters allowed in $1"
+				pl_log error "$FUNCNAME: only [A-Z] characters allowed in $1"
 				return 1
 			fi ;;
 		-d|--birth-d*)
@@ -257,13 +251,13 @@ Parameters:
 				bdate=$1
 			fi
 			if ! tohash2=$(date --date "$bdate" +"%Y-%m-%d" ) ; then
-				pl_log err "$FUNCNAME: can't reformart birthdate $date"
+				pl_log error "$FUNCNAME: can't reformart birthdate $date"
 				return 2
 			fi ;;
 		-c|--birth-c*)
 			shift
 			if ! read c iso cname < <(grep "	$1	" "$GEOLIST_CENTROID") ; then
-				pl_log err "$FUNCNAME: no \"$1\" in $GEOLIST_CENTROID"
+				pl_log error "$FUNCNAME: no \"$1\" in $GEOLIST_CENTROID"
 				return 3
 			fi
 			pl_log debug "$FUNCNAME: $c $iso $cname" ;;
@@ -277,7 +271,7 @@ Parameters:
 	done
 	[[ "$mrzn" ]] || mrzn="${sname}<<$gname"
 	if ! tohash1=$(grep -o "[A-Z]\{1,32\}<<[A-Z]\{1,32\}<[A-Z]\{0,32\}<" <<<"$mrzn" ) ; then
-		pl_log err "$FUNCNAME: no complete surname and given names extracted from $mrzn"
+		pl_log error "$FUNCNAME: no complete surname and given names extracted from $mrzn"
 		return 1
 	fi
 	pl_log debug "$FUNCNAME: names: $tohash1"
@@ -443,7 +437,7 @@ while [[ "$1" ]] ; do
 
 	facep=$(facedetect --best -- "$f" 2> >(pl_log notice) || true )
 	if ! [[ "$facep" ]] ; then
-		pl_log err "Error: No face detected in $f"
+		pl_log error "Error: No face detected in $f"
 		continue
 	fi
 	read px py sx sy etc <<<"$facep"
@@ -452,24 +446,24 @@ while [[ "$1" ]] ; do
 	pl_log info "$f face -> position: +$px+$py  size: ${sx}x$sy  marges: +${mx}+$my"
 
 	if ! mrz=($(gm convert -crop +0+$((py+sy+my)) "$f" - 2> >(pl_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(pl_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
-		pl_log err "$f: No machine-readable zone detected"
+		pl_log error "$f: No machine-readable zone detected"
 		continue
 	fi
 
 	declare -A DOCUMENT=()
 	if ! mrz_analyse DOCUMENT "${mrz[@]}" ; then
-		pl_log err "$f: Invalid or unsupported machine-readable zone"
+		pl_log error "$f: Invalid or unsupported machine-readable zone"
 		continue
 	fi
 
 	DOCUMENT[filename]=$f
 	DOCUMENT[face_scan_64url]=$(gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$f" jpeg:- 2> >(pl_log warning) | basenc --base64url )
 	if ((${#DOCUMENT[face_scan_64url]} < 2048 )) ; then
-		pl_log warning "$outdir/face.jpg: too small (${#DOCUMENT[face_scan_64url]} < 2048)"
-		unset DOCUMENT[face_scan_64url]
+		pl_log error "$outdir/face.jpg: too small (${#DOCUMENT[face_scan_64url]} < 2048)"
+		continue
 	elif ((${#DOCUMENT[face_scan_64url]} > (1<<16) )) ; then
-		pl_log warning "$outdir/face.jpg: too big (${#DOCUMENT[face_scan_64url]} > $((1<<16)))"
-		unset DOCUMENT[face_scan_64url]
+		pl_log error "$outdir/face.jpg: too big (${#DOCUMENT[face_scan_64url]} > $((1<<16)))"
+		continue
 	fi
 
 	#WARNING: mrz data may be irrelevant to generate udid4. eg:
@@ -483,53 +477,88 @@ while [[ "$1" ]] ; do
 		unset DOCUMENT[udid4_auto]
 	fi
 
-	# Display scanned face
-	basenc --base64url --decode <<<"${DOCUMENT[face_scan_64url]}" | display -immutable - &
 	declare -A PGPID=()
+
 	PGPID[document1]="$(declare -p DOCUMENT)"
-	if $PGPI_INTERACTIVE && _yesno --default=yes "Did an image of a face pop up" ; then
-		PGPID[birth_date]=$(date --date "$(($(date +"%y%m%d") < DOCUMENT[date_of_birth] ? 19 : 20))${DOCUMENT[date_of_birth]}" +"%Y-%m-%d")
-		while true ; do
-			echo "
+
+	PGPID[birth_date]=$(date --date "$(($(date +"%y%m%d") < DOCUMENT[date_of_birth] ? 19 : 20))${DOCUMENT[date_of_birth]}" +"%Y-%m-%d")
+	while true ; do
+		echo "
 Surname at birth: ${PGPID[birth_surname]:=${DOCUMENT[surname]}}
 Given names at birth: ${PGPID[birth_names]:=${DOCUMENT[names]}}
 Date of birth: ${PGPID[birth_date]}
 Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 " >&2
-			! _yesno "Is that correct" || break
+		! _yesno "Is that correct" || break
 
-			read -p "Birth surname [${PGPID[birth_surname]}] ? "
-			PGPID[birth_surname]=${REPLY:-${PGPID[birth_surname]}}
-			read -p "Birth names [${PGPID[birth_names]}] ? "
-			PGPID[birth_names]=${REPLY:-${PGPID[birth_names]}}
-			read -p "Birth date [${PGPID[birth_date]}] ? "
-			PGPID[birth_date]=${REPLY:-${PGPID[birth_date]}}
-			read -p "Birth country: [${PGPID[birth_country]}] ? "
-			PGPID[birth_country]=${REPLY:-${PGPID[birth_country]}}
-		done
+		read -p "Birth surname [${PGPID[birth_surname]}] ? "
+		PGPID[birth_surname]=${REPLY:-${PGPID[birth_surname]}}
+		read -p "Birth names [${PGPID[birth_names]}] ? "
+		PGPID[birth_names]=${REPLY:-${PGPID[birth_names]}}
+		read -p "Birth date [${PGPID[birth_date]}] ? "
+		PGPID[birth_date]=${REPLY:-${PGPID[birth_date]}}
+		read -p "Birth country: [${PGPID[birth_country]}] ? "
+		PGPID[birth_country]=${REPLY:-${PGPID[birth_country]}}
+	done
 
-		if ! PGPID[udid4]=$(pgpi_gen_udid4 --surname "${PGPID[birth_surname]}" --given-names "${PGPID[birth_names]}" --birth-date "${PGPID[birth_date]}" --birth-country "${PGPID[birth_country]}") ; then
-			pl_log error "can't generate an udid4 from data you have validated"
-			unset PGPID[udid4]
-		fi
-
-		if _yesno "Did the image correspond to ${PGPID[birth_names],,} ${PGPID[birth_surname]}"  ; then
-			PGPID[face1_64url]="${DOCUMENT[face_scan_64url]}"
-		fi
-	fi
-
-	if $PGPI_OUTPUTJSON ; then
-		pgpi_json_from_var --nested PGPID
+	if PGPID[udid4]=$(pgpi_gen_udid4 --surname "${PGPID[birth_surname]}" --given-names "${PGPID[birth_names]}" --birth-date "${PGPID[birth_date]}" --birth-country "${PGPID[birth_country]}") ; then
+		pl_log info "udid4:${PGPID[udid4]}"
+	else
+		pl_log error "can't generate an udid4 from data you have validated"
 		continue
 	fi
 
-	#for i in "${!DOCUMENT[@]}"; do printf "[$i] -> ${DOCUMENT[$i]}\n"; done | pl_log debug
-
-	outdir="$PGPI_OUTPATH/${mrz[0]//</_}"
+	outdir="${PGPI_OUTPATH%/}/${PGPID[udid4]}"
 	mkdir -p "$outdir"
-
 	cp -bvf "$f" "$outdir/document.orig" 2> >(pl_log warning) | pl_log info
+
+	# Display scanned face
+	pl_log notice "Displaying face... close it to continue !"
+	(exec 2> >(pl_log error) ; basenc --base64url --decode <<<"${DOCUMENT[face_scan_64url]}" | tee "$outdir/face.jpg" | gm display -immutable - ) || continue
+
+	if _yesno "Did the image correspond to ${PGPID[birth_names],,} ${PGPID[birth_surname]}"  ; then
+		PGPID[face1_64url]="${DOCUMENT[face_scan_64url]}"
+	fi
+
+
+	while true ; do
+		while true ; do
+			read -p "Public email adress ? " PGPID[email]
+			grep -q "^[^@[:space:]]\+@[^.[:space:]]\+\.[^[:space:]]\+$" <<<"${PGPID[email]}" && break
+		done
+
+		read -p "Public name (or pseudonym) ? " PGPID[pseudonym]
+		echo -e "\nSummary:\n"\
+				"Public name/pseudonym: ${PGPID[pseudonym]}\n"\
+				"Public email: ${PGPID[email]}\n" >&2
+
+		! _yesno "Is that correct" || break
+	done
+
 	pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(pl_log crit)
+
+	cat >"$outdir/gpg.genkey.batch" <<EOF
+%echo Generating a basic OpenPGP key
+Key-Type: default
+Subkey-Type: ecdh
+Subkey-Curve: Curve25519
+Subkey-Usage: encrypt
+Name-Real: ${PGPID[pseudonym]}
+Name-Comment: udid4;${PGPID[udid4]}
+Name-Email: ${PGPID[email]}
+Expire-Date: $(date -I -d "+11 years")
+Passphrase: ${PGPID[birth_date]//-/}
+# Do a commit here, so that we can later print "done" :-)
+%commit
+%echo done
+EOF
+
+	chmod 700 "$outdir"
+	if ! gpg --batch --generate-key --homedir "$outdir" --allow-freeform-uid "$outdir/gpg.genkey.batch" 2> >(pl_log notice) ; then
+		pl_log error "gpg --generate-key return $?"
+		continue
+	fi
+
 done
 
 exit 0
