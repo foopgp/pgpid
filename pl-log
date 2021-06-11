@@ -84,7 +84,7 @@ else
 fi
 
 
-### Handling options ###
+### Help messages ###
 
 commonhelpmsg="
 PRIORITY list: $(declare -p loglevels)
@@ -123,17 +123,19 @@ Options forwarded to 'logger':
                            print connection errors when using Unix sockets
       --journald[=<file>]  write journald entry"
 
+
 helpmsg="
 $commonhelpmsg
 $soptions
 "
+
 
 ### functions ###
 
 #TODO: explain in comment why we dont use getopts...
 _pl_parseoptions() {
 	local name=$1
-	[[ "$name" =~ ^- ]] && { echo "Usage: $FUNCNAME NAME \"\$@\"\nParse Options in \$@ and set ARGV array containing remaining parameters" >&2 ; return 1 ; }
+	[[ "$name" =~ ^- ]] && { echo -e "Usage: $FUNCNAME NAME \"\$@\"\nFor program/function named NAME: parse Options in \$@ and set ARGV array containing remaining parameters" >&2 ; return 1 ; }
 	shift
 	for ((;$#;)) ; do
 		case "$1" in
@@ -156,7 +158,7 @@ _pl_parseoptions() {
 			-h|--h*) echo "$usage$helpmsg" ; return 2 ;;
 			-V|--vers*) echo "$name $PL_LOG_VERSION" ; return 2 ;;
 			--) shift ; break ;;
-			-*) echo -e "$name: Error: Unrecognized option/parameters $1\n$usage$helpmsg" >&2 ; return 2 ;;
+			-*) echo -e "$name: unrecognized option '$1'\n$usage\nTry '$name --help' for more information." >&2 ; return 2 ;;
 			*) break ;;
 		esac
 		shift
@@ -165,10 +167,10 @@ _pl_parseoptions() {
 }
 
 
-
 pl_log() {
 	local usage="Usage: $FUNCNAME [OPTIONS]... PRIORITY [MESSAGE]..."
 	local -I PL_LOGLEVEL PL_LOGEXITLNAME stderr no_act logger_options color
+	local helpmsg="$commonhelpmsg"
 	_pl_parseoptions "$FUNCNAME" "$@" || return $?
 	set "${ARGV[@]}"
 
