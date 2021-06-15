@@ -230,7 +230,7 @@ Parameters:
 			shift
 			sname=$(sed 's,[ ;,<-]\+,<,g'<<<"$1" )
 			sname="${sname^^}"
-			if ! (LANG= ; [[ "$sname" =~ ^[A-Z\<]+$ ]]) ; then
+			if ! (LC_CTYPE=C ; [[ "$sname" =~ ^[A-Z\<]+$ ]]) ; then
 				pl_log error "$FUNCNAME: only [A-Z] characters allowed in $1"
 				return 1
 			fi ;;
@@ -238,7 +238,7 @@ Parameters:
 			shift
 			gname=$(sed 's,[ ;,<-]\+,<,g'<<<"$1" )
 			gname="${gname^^}<<"
-			if ! (LANG= ; [[ "$gname" =~ ^[A-Z\<]+$ ]]) ; then
+			if ! (LC_CTYPE=C ; [[ "$gname" =~ ^[A-Z\<]+$ ]]) ; then
 				pl_log error "$FUNCNAME: only [A-Z] characters allowed in $1"
 				return 1
 			fi ;;
@@ -445,7 +445,7 @@ while [[ "$1" ]] ; do
 	pl_log info "$f face -> position: +$px+$py  size: ${sx}x$sy  marges: +${mx}+$my"
 
 	declare -A DOCUMENT=()
-	if mrz=($(gm convert -crop +0+$((py+sy+my)) "$f" - 2> >(pl_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(pl_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
+	if mrz=($(gm convert -crop +0+$((py+sy)) "$f" - 2> >(pl_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(pl_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
 		if mrz_analyse DOCUMENT "${mrz[@]}" ; then
 			#WARNING: mrz data may be irrelevant to generate udid4. eg:
 			#         * Surname or given names may be incomplete (cut bc exceed mrz size)
@@ -519,11 +519,13 @@ Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 
 	while true ; do
 		while true ; do
-			read -p "Public email adress ? " PGPID[email]
+			read -p "Public email adress [${PGPID[email]}] ? "
+			PGPID[email]=${REPLY:-${PGPID[email]}}
 			grep -q "^[^@[:space:]]\+@[^.[:space:]]\+\.[^[:space:]]\+$" <<<"${PGPID[email]}" && break
 		done
 
-		read -p "Public name (or pseudonym) ? " PGPID[pseudonym]
+		read -p "Public name (or pseudonym) [${PGPID[pseudonym]}] ? "
+		PGPID[pseudonym]=${REPLY:-${PGPID[pseudonym]}}
 		echo -e "\nSummary:\n"\
 				"Public name/pseudonym: ${PGPID[pseudonym]}\n"\
 				"Public email: ${PGPID[email]}\n" >&2
@@ -540,10 +542,11 @@ Subkey-Type: ecdh
 Subkey-Curve: Curve25519
 Subkey-Usage: encrypt
 Name-Real: ${PGPID[pseudonym]}
-Name-Comment: udid4;${PGPID[udid4]}
+Name-Comment: udid4=${PGPID[udid4]}
 Name-Email: ${PGPID[email]}
 Expire-Date: $(date -I -d "+11 years")
 Passphrase: ${PGPID[birth_date]//-/}
+Keyserver: hkp://foopgp.org
 # Do a commit here, so that we can later print "done" :-)
 %commit
 EOF
@@ -557,14 +560,14 @@ EOF
 	read PGPID[key_fpr_main] etc < <(gpg --homedir "$outdir" --list-options show-only-fpr-mbox --list-secret-keys 2> >(pl_log notice) )
 
 	gpg --homedir "$outdir" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --quick-add-key ${PGPID[key_fpr_main]} ed25519 auth 11y 2> >(pl_log notice)
-	gpg --homedir "$outdir" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --quick-add-key ${PGPID[key_fpr_main]} ed25519 sign 11y 2> >(pl_log notice)
 	# Add photo
-	gpg --homedir "$outdir" --command-fd 0 --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --edit-key ${PGPID[key_fpr_main]} 2> >(pl_log notice) <<<"
+	gpg --homedir "$outdir" --quiet --command-fd 0 --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --edit-key ${PGPID[key_fpr_main]} 2> >(pl_log notice) <<<"
 addphoto
 $outdir/face.jpg
 y
 save
 "
+	#gpg --homedir "$outdir" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --quick-add-key ${PGPID[key_fpr_main]} ed25519 sign 11y 2> >(pl_log notice)
 
 done
 
