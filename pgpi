@@ -509,12 +509,13 @@ Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 	mkdir -p "$outdir"
 	cp -bvf "$f" "$outdir/document.orig" 2> >(pl_log warning) | pl_log info
 
-	# Display scanned face
+	# Resize and display scanned face
+	(exec 2> >(pl_log error) ; basenc --base64url --decode <<<"${DOCUMENT[face_scan_64url]}" | gm convert -geometry x180 - "$outdir/face.jpg" ) || continue
 	pl_log notice "Displaying face... close it to continue !"
-	(exec 2> >(pl_log error) ; basenc --base64url --decode <<<"${DOCUMENT[face_scan_64url]}" | tee "$outdir/face.jpg" | gm display -immutable - ) || continue
+	gm display -immutable "$outdir/face.jpg" 2> >(pl_log error) || continue
 
 	_yesno "Did the image correspond to ${PGPID[birth_names],,} ${PGPID[birth_surname]}" || continue
-	PGPID[face1_64url]="${DOCUMENT[face_scan_64url]}"
+	PGPID[face1_64url]=$(basenc --base64url < "$outdir/face.jpg")
 
 
 	while true ; do
@@ -553,21 +554,32 @@ EOF
 
 	chmod 700 "$outdir"
 	if ! gpg --homedir "$outdir" --batch --generate-key --allow-freeform-uid "$outdir/gpg.genkey.batch" 2> >(pl_log notice) ; then
-		pl_log error "gpg --generate-key return $?"
+		pl_log error "gpg --generate-key FAIL ($?)"
 		continue
 	fi
 
-	read PGPID[key_fpr_main] etc < <(gpg --homedir "$outdir" --list-options show-only-fpr-mbox --list-secret-keys 2> >(pl_log notice) )
+	read PGPID[key_fpr_main] etc < <(gpg --homedir "$outdir" --list-options show-only-fpr-mbox --list-secret-keys 2> >(pl_log info) )
 
 	gpg --homedir "$outdir" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --quick-add-key ${PGPID[key_fpr_main]} ed25519 auth 11y 2> >(pl_log notice)
 	# Add photo
-	gpg --homedir "$outdir" --quiet --command-fd 0 --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --edit-key ${PGPID[key_fpr_main]} 2> >(pl_log notice) <<<"
+	if ! gpg --homedir "$outdir" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "${PGPID[birth_date]//-/}" --edit-key ${PGPID[key_fpr_main]} 1> >(pl_log debug) 2>&1 <<<"
 addphoto
 $outdir/face.jpg
 y
 save
-"
+" ; then
+		pl_log error "Adding photo ID to OpenPGP certificate FAIL ($?)"
+		continue
+	fi
+
 	#gpg --homedir "$outdir" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --quick-add-key ${PGPID[key_fpr_main]} ed25519 sign 11y 2> >(pl_log notice)
+
+	gpg --quiet --homedir "$outdir" --list-keys > >(pl_log info) 2> >(pl_log warning)
+
+	while ! gpg --card-status > >(pl_log info) 2> >(pl_log notice) ; do
+		read -p "Please plug an OpenPGP card or dongle, then press Enter ..."
+	done
+
 
 done
 
