@@ -535,6 +535,8 @@ Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 
 	pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(pl_log crit)
 
+	#TODO: check gpg version, because we use some recent feature, and compatibility may change (tested with gpg (GnuPG) 2.2.27 libgcrypt 1.8.8)
+
 	cat >"$outdir/gpg.genkey.batch" <<EOF
 %echo Generating OpenPGP key for ${PGPID[pseudonym]}
 Key-Type: RSA
@@ -587,7 +589,7 @@ save
 factory-reset
 y
 yes
-quit" | gpg --command-fd 0 --batch --with-colons --edit-card 1> >(pl_log debug) 2>&1 || pl_log crit "Factory Reset OpenPGP card FAIL ($?)"
+quit" | gpg --command-fd 0 --batch --with-colons --card-edit 1> >(pl_log debug) 2>&1 || pl_log crit "Factory Reset OpenPGP card FAIL ($?)"
 
 	echo "admin
 login
@@ -595,8 +597,17 @@ ${PGPID[pseudonym]}
 name
 ${PGPID[pseudonym]}
 
-quit" | gpg --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "12345678" --edit-card 1> >(pl_log debug) 2>&1 || pl_log crit "Setting OpenPGP card holder FAIL ($?)"
+quit" | gpg --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "12345678" --card-edit 1> >(pl_log debug) 2>&1 || pl_log crit "Setting OpenPGP card holder FAIL ($?)"
 
+	echo "admin
+key-attr
+1
+3072
+2
+1
+2
+1
+quit" | gpg --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "12345678" --card-edit 1> >(pl_log debug) 2>&1 || pl_log crit "Setting OpenPGP card keys attributes FAIL ($?)"
 		_yesno "Do you have an Other OpenPGP card to set up identically" || break
 	done
 
