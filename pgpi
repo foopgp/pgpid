@@ -83,6 +83,7 @@ else
 	soptions="
         --bash-completion    set completion for $BASH_SOURCE program and return (without loading anything else)
     -l, --log-level LEVEL    log level: emerg<1=alert<crit<3=err<warning<5=notice<info<7=debug (current: $LOGLEVEL)
+    -L, --log-exit PRIORITY  log exit priority: emerg|alert|crit|err|warning|... (current: $LOGEXITPRIO )
     -h, --help               show this help
     -V, --version            show version"
 fi
@@ -91,9 +92,7 @@ fi
 
 helpmsg="$usage
 
-Options:
-    -L, --log-exit PRIORITY  log exit priority: emerg|alert|crit|err|warning|... (current: $LOGEXITPRIO )
-$soptions
+Options: $soptions
 "
 
 for ((i=0;$#;)) ; do
@@ -538,7 +537,8 @@ Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 
 	cat >"$outdir/gpg.genkey.batch" <<EOF
 %echo Generating OpenPGP key for ${PGPID[pseudonym]}
-Key-Type: default
+Key-Type: RSA
+Key-Length: 3072
 Subkey-Type: ecdh
 Subkey-Curve: Curve25519
 Subkey-Usage: encrypt
@@ -562,8 +562,7 @@ EOF
 
 	gpg --homedir "$outdir" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --quick-add-key ${PGPID[key_fpr_main]} ed25519 auth 11y 2> >(pl_log notice)
 	# Add photo
-	if ! gpg --homedir "$outdir" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "${PGPID[birth_date]//-/}" --edit-key ${PGPID[key_fpr_main]} 1> >(pl_log debug) 2>&1 <<<"
-addphoto
+	if ! gpg --homedir "$outdir" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "${PGPID[birth_date]//-/}" --edit-key ${PGPID[key_fpr_main]} 1> >(pl_log debug) 2>&1 <<<"addphoto
 $outdir/face.jpg
 y
 save
@@ -572,14 +571,34 @@ save
 		continue
 	fi
 
+	#gpg --homedir . --export-secret-keys ${PGPID[key_fpr_main]}\! | paperkey | lpr
+
 	#gpg --homedir "$outdir" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --quick-add-key ${PGPID[key_fpr_main]} ed25519 sign 11y 2> >(pl_log notice)
 
 	gpg --quiet --homedir "$outdir" --list-keys > >(pl_log info) 2> >(pl_log warning)
 
-	while ! gpg --card-status > >(pl_log info) 2> >(pl_log notice) ; do
-		read -p "Please plug an OpenPGP card or dongle, then press Enter ..."
-	done
+	while true ; do
+		while ! gpg --card-status > >(pl_log info) 2> >(pl_log notice) ; do
+			read -p "Please plug an OpenPGP card or dongle, then press Enter ..."
+		done
+		_yesno "Factory reset OpenPGP card (This will destroys all OpenPGP keys stored on the card!)" || continue
 
+		echo "admin
+factory-reset
+y
+yes
+quit" | gpg --command-fd 0 --batch --with-colons --edit-card 1> >(pl_log debug) 2>&1 || pl_log crit "Factory Reset OpenPGP card FAIL ($?)"
+
+	echo "admin
+login
+${PGPID[pseudonym]}
+name
+${PGPID[pseudonym]}
+
+quit" | gpg --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "12345678" --edit-card 1> >(pl_log debug) 2>&1 || pl_log crit "Setting OpenPGP card holder FAIL ($?)"
+
+		_yesno "Do you have an Other OpenPGP card to set up identically" || break
+	done
 
 done
 
