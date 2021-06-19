@@ -307,6 +307,8 @@ Options:
     -n, --nested        Assume any value beginning with \"declare -[aA]\" are nested data to be translate to JSON format
     -s, --shift NUMBER  Number of tabs shifting of each line (default $shft)
 "
+#TODO: one more options to display non-associative array as json array, and to manage arrays with non-contiguous indices.
+#TODO: ... Maybe a selector <on|auto|off>, whith 'auto' to detect if array indices are non-contiguous.
 	for ((;$#;)) ; do
 		case "$1" in
 			-n|--nest*) nested=true ;;
@@ -329,7 +331,8 @@ Options:
 		notstarted=false
 		#TODO: Maybe use and depend on "jq". cf. https://stackoverflow.com/questions/44792241/constructing-a-json-hash-from-a-bash-associative-array
 		if $nested && [[ "${aa[$i]}" =~ ^declare" "-[Aa][a-zA-Z]*" "([a-zA-Z_][a-zA-Z0-9_]*)= ]] ; then
-			#echo
+			local "${BASH_REMATCH[1]}"
+			eval "${aa[$i]}"
 			echo -n "$lb	\"$(pgpi_json_from_str -- "$i")\":"$'\n'"$(pgpi_json_from_var --nested --shift $((shft+2)) "${BASH_REMATCH[1]}")"
 		else
 			echo -n "$lb	\"$(pgpi_json_from_str -- "$i")\": \"$(pgpi_json_from_str -- "${aa[$i]}")\""
@@ -475,7 +478,7 @@ while [[ "$1" ]] ; do
 
 	declare -A PGPID=()
 
-	PGPID[document1]="$(declare -p DOCUMENT)"
+	PGPID[document0]="$(declare -p DOCUMENT)"
 
 	PGPID[birth_date]=$(date --date "$(($(date +"%y%m%d") < DOCUMENT[date_of_birth] ? 19 : 20))${DOCUMENT[date_of_birth]}" +"%Y-%m-%d")
 	while true ; do
@@ -588,7 +591,7 @@ save
 
 	gpg --quiet --homedir "$outdir" --list-keys > >(pl_log info) 2> >(pl_log warning)
 
-	while true ; do
+	for ((i=0;;i++)) ; do
 		while ! gpg --card-status > >(pl_log info) 2> >(pl_log notice) ; do
 			read -p "Please plug an OpenPGP card or dongle, then press Enter ..."
 		done
@@ -600,7 +603,7 @@ y
 yes
 quit" | gpg --command-fd 0 --batch --with-colons --card-edit 1> >(pl_log debug) 2>&1 || pl_log crit "Factory Reset OpenPGP card FAIL ($?)"
 
-	echo "admin
+		echo "admin
 login
 ${PGPID[pseudonym]}
 name
@@ -608,7 +611,7 @@ ${PGPID[pseudonym]}
 
 quit" | gpg --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "12345678" --card-edit 1> >(pl_log debug) 2>&1 || pl_log crit "Setting OpenPGP card holder FAIL ($?)"
 
-	echo "admin
+		echo "admin
 key-attr
 1
 3072
@@ -618,17 +621,27 @@ key-attr
 1
 quit" | gpg --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "12345678" --card-edit 1> >(pl_log debug) 2>&1 || pl_log crit "Setting OpenPGP card keys attributes FAIL ($?)"
 
-	if [[ "${PGPID[wks_support]}" =~ :1: ]] ; then
-		#TODO: cf. previous TODO related to wks_support
-		echo "admin
+		if [[ "${PGPID[wks_support]}" =~ :1: ]] ; then
+			#TODO: cf. previous TODO related to wks_support
+			echo "admin
 url
 ${PGPID[wkd_uri]}
 quit" | gpg --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "12345678" --card-edit 1> >(pl_log debug) 2>&1 || pl_log crit "Setting Pubkey URL in OpenPGP card FAIL ($?)"
-	fi
+		fi
+
+		declare -A OPGPCARD=()
+		while IFS=':' read key value ; do
+			case "$key" in
+				[Rr]eader|version|vendor|serial)
+					OPGPCARD[${key,,}]="$value" ;;
+			esac
+		done < <(gpg --card-status --with-colons)
+		PGPID[card$i]="$(declare -p OPGPCARD)"
 
 		_yesno "Do you have an Other OpenPGP card to set up identically" || break
 	done
 
+	pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(pl_log crit)
 done
 
 exit 0
