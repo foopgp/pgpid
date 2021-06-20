@@ -69,7 +69,7 @@ if [[ "$BASH_SOURCE" == "$0" ]] ; then
 	set -e
 	PL_LOGEXITLNAME="${PL_LOGEXITLNAME:-err}"
 
-	usage="Usage: $BASH_SOURCE [OPTIONS]... PRIORITY [MESSAGE]..."
+	PL_LOG_usage="Usage: $BASH_SOURCE [OPTIONS]... PRIORITY [MESSAGE]..."
 	soptions="
 $PL_LOG_NAME is also bash library, see:
 $ source $BASH_SOURCE --help"
@@ -77,7 +77,7 @@ else
 	# run as a library (source $0)
 	PL_LOGEXITLNAME="${PL_LOGEXITLNAME:-emerg}"
 
-	usage="Usage: source $BASH_SOURCE [OPTIONS]..."
+	PL_LOG_usage="Usage: source $BASH_SOURCE [OPTIONS]..."
 
 	soptions="
       --bash-completion    set completion for $BASH_SOURCE program and return (without loading anything else)"
@@ -86,7 +86,7 @@ fi
 
 ### Help messages ###
 
-commonhelpmsg="
+PL_LOG_commonhelpmsg="
 PRIORITY list: $(declare -p loglevels)
 If PRIORITY's level is under PL_LOGLEVEL=$PL_LOGLEVEL, don't log anything.
 If PRIORITY's level name is more serious than PL_LOGEXITLNAME=$PL_LOGEXITLNAME, exit(8+'PRIORITY's level')
@@ -124,8 +124,8 @@ Options forwarded to 'logger':
       --journald[=<file>]  write journald entry"
 
 
-helpmsg="
-$commonhelpmsg
+PL_LOG_helpmsg="
+$PL_LOG_commonhelpmsg
 $soptions
 "
 
@@ -155,10 +155,10 @@ _pl_parseoptions() {
 				logger_options+=("$1") ;;
 			--rfc5424*|--socket-errors*|--journald*)
 				logger_options+=("$1") ;;
-			-h|--h*) echo "$usage$helpmsg" ; return 2 ;;
+			-h|--h*) echo "$PL_LOG_usage$PL_LOG_helpmsg" ; return 2 ;;
 			-V|--vers*) echo "$name $PL_LOG_VERSION" ; return 2 ;;
 			--) shift ; break ;;
-			-*) echo -e "$name: unrecognized option '$1'\n$usage\nTry '$name --help' for more information." >&2 ; return 2 ;;
+			-*) echo -e "$name: unrecognized option '$1'\n$PL_LOG_usage\nTry '$name --help' for more information." >&2 ; return 2 ;;
 			*) break ;;
 		esac
 		shift
@@ -168,9 +168,9 @@ _pl_parseoptions() {
 
 
 pl_log() {
-	local usage="Usage: $FUNCNAME [OPTIONS]... PRIORITY [MESSAGE]..."
+	local PL_LOG_usage="Usage: $FUNCNAME [OPTIONS]... PRIORITY [MESSAGE]..."
 	local -I PL_LOGLEVEL PL_LOGEXITLNAME stderr no_act logger_options color
-	local helpmsg="$commonhelpmsg"
+	local PL_LOG_helpmsg="$PL_LOG_commonhelpmsg"
 	_pl_parseoptions "$FUNCNAME" "$@" || return $?
 	set "${ARGV[@]}"
 

@@ -18,7 +18,7 @@ if [[ "$1" == --bash-completion ]] ; then
 		cur=${COMP_WORDS[COMP_CWORD]}
 
 		if [[ "$cur" == -* ]]; then
-			options="--output-path --verbose --quiet --help --version"
+			options="--output-path --verbose --quiet --udid --help --version"
 
 			COMPREPLY=( $(IFS=" " compgen -W "$options" -- $cur ) )
 		else
@@ -49,6 +49,7 @@ FACE_MARGIN_WIDTH="25/100"
 FACE_MARGIN_HEIGHT="50/100"
 TESSDATADIR="$(dirname "$0")/data/"
 GEOLIST_CENTROID="$(dirname "$0")/data/geolist_centroid.txt"
+ONLYUDID=false
 
 ### Default option values ###
 
@@ -70,6 +71,7 @@ If $PGPI_NAME succeed, it will create a subdirectories containing all generated 
     -o, --output-path PATH   emplacement for generated subdirs and files (current: $PGPI_OUTPATH )
     -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (current: $LOGLEVEL)
     -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (current: $LOGLEVEL)
+    -u, --udid               calculate and output udid string, whithout generating OpenPGP keys
     -h, --help               show this help and exit
     -V, --version            show version and exit"
 else
@@ -103,6 +105,7 @@ case "$1" in
 		grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$LOGEXITPRIO\" is none of: ${!loglevels[@]}" >&2 ; $_exit 2 ; } ;;
 	-v|--verb*) ((LOGLEVEL++)) ;;
 	-q|--quiet) ((LOGLEVEL--)) ;;
+	-u|--udid) ONLYUDID=true ;;
 	-h|--h*) echo "$helpmsg" ; $_exit ;;
 	-V|--vers*) echo "$PGPI_NAME $PGPI_VERSION" ; $_exit ;;
 	--) shift ; break ;;
@@ -208,15 +211,17 @@ Analyse a Machine Readable Zone and fill the associative array named AANAME"
 }
 
 pgpi_gen_udid4() {
-	local mrzn sname gname c iso cname tohash1 tohash2
+	local mrzn sname gname bdate bcountry c iso cname tohash1 tohash2
 	local helpmsg="Usage: $FUNCNAME PARAMETERS...
 Parameters:
     -s, --surname SURNAME            Surname/family name at birth
-    -g, --given-names GIVEN_NAME     Given names at birth
-    -d, --birth-date BIRTH_DATE      birth date
-    -p, --birth-place PLACE          coordinate of birth place
+    -g, --given-names GIVEN_NAMES    Given names at birth
+    -d, --birth-date BIRTH_DATE      Birth date
+    -c, --birth-country COUNTRY_CODE Country code of birth place
+    -p, --birth-place COORDINATES    Geographic coordinate of birth place
     -m, --mrz-names NAMES_IN_MRZ     SURNAME<<GIVEN<NAMES< as written in a Machine Readable Zone
-    -c, --birth-country COUNTRY_CODE country code of birth place
+If NAMES_IN_MRZ is given, SURNAME and GIVEN_NAMES are ignored.
+If COUNTRY_CODE is given, COORDINATES is ignored
 "
 	for ((;$#;)) ; do
 	case "$1" in
@@ -254,11 +259,7 @@ Parameters:
 			fi ;;
 		-c|--birth-c*)
 			shift
-			if ! read c iso cname < <(grep "	${1^^}	" "$GEOLIST_CENTROID") ; then
-				pl_log error "$FUNCNAME: no \"$1\" in $GEOLIST_CENTROID"
-				return 3
-			fi
-			pl_log debug "$FUNCNAME: $c $iso $cname" ;;
+			bcountry=$1 ;;
 		-p|--birth-p*)
 			shift
 			#TODO: check if coordinate is valid (cf. Specifications)
@@ -271,6 +272,13 @@ Parameters:
 	if ! tohash1=$(grep -o "[A-Z]\{1,32\}<<[A-Z]\{1,32\}<[A-Z]\{0,32\}<" <<<"$mrzn" ) ; then
 		pl_log error "$FUNCNAME: no complete surname and given names extracted from $mrzn"
 		return 1
+	fi
+
+	if [[ "$bcountry" ]] && read c iso cname < <(grep "	${bcountry^^}	" "$GEOLIST_CENTROID") ; then
+		pl_log debug "$FUNCNAME: $c $iso $cname"
+	else
+		pl_log error "$FUNCNAME: no \"${bcountry}\" in $GEOLIST_CENTROID"
+		return 3
 	fi
 	pl_log debug "$FUNCNAME: names: $tohash1"
 	pl_log debug "$FUNCNAME: birthdate: $tohash2"
@@ -426,9 +434,38 @@ _chooseinlist() {
 #
 #trap _onexit EXIT
 
-[[ "$1" ]] || { echo -e "$usage" >&2 ; exit 1 ; }
-#scanimage -l 2 -t 2 -x 120 -y 170 --mode Color --resolution 200 --format=tiff > tmpimg.tiff
+if ! [[ "$1" ]] ; then
+	if $ONLYUDID ; then
+		declare -A PGPID
+		while true ; do
+			read -p "Birth surname [${PGPID[birth_surname]^^}] ? "
+			PGPID[birth_surname]=${REPLY:-${PGPID[birth_surname]^^}}
+			read -p "Birth names [${PGPID[birth_names]}] ? "
+			PGPID[birth_names]=${REPLY:-${PGPID[birth_names]}}
+			read -p "Birth date [${PGPID[birth_date]}] ? "
+			PGPID[birth_date]=${REPLY:-${PGPID[birth_date]}}
+			read -p "Birth country: [${PGPID[birth_country]}] ? "
+			PGPID[birth_country]=${REPLY:-${PGPID[birth_country]}}
 
+			echo "
+Surname at birth: ${PGPID[birth_surname]^^}
+Given names at birth: ${PGPID[birth_names]}
+Date of birth: ${PGPID[birth_date]}
+Country of birth: ${PGPID[birth_country]}
+" >&2
+			! _yesno "Is that correct" || break
+		done
+
+		printf "udid4="
+		pgpi_gen_udid4 --surname "${PGPID[birth_surname]}" --given-names "${PGPID[birth_names]}" --birth-date "${PGPID[birth_date]}" --birth-country "${PGPID[birth_country]}"
+		exit $?
+	else
+		echo -e "$usage" >&2
+		exit 1
+	fi
+fi
+
+#scanimage -l 2 -t 2 -x 120 -y 170 --mode Color --resolution 200 --format=tiff > tmpimg.tiff
 
 ### Run ###
 
@@ -490,8 +527,8 @@ Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 " >&2
 		! _yesno "Is that correct" || break
 
-		read -p "Birth surname [${PGPID[birth_surname]}] ? "
-		PGPID[birth_surname]=${REPLY:-${PGPID[birth_surname]}}
+		read -p "Birth surname [${PGPID[birth_surname]^^}] ? "
+		PGPID[birth_surname]=${REPLY:-${PGPID[birth_surname]^^}}
 		read -p "Birth names [${PGPID[birth_names]}] ? "
 		PGPID[birth_names]=${REPLY:-${PGPID[birth_names]}}
 		read -p "Birth date [${PGPID[birth_date]}] ? "
@@ -501,7 +538,7 @@ Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 	done
 
 	if PGPID[udid4]=$(pgpi_gen_udid4 --surname "${PGPID[birth_surname]}" --given-names "${PGPID[birth_names]}" --birth-date "${PGPID[birth_date]}" --birth-country "${PGPID[birth_country]}") ; then
-		pl_log info "udid4:${PGPID[udid4]}"
+		pl_log info "udid4=${PGPID[udid4]}"
 	else
 		pl_log error "can't generate an udid4 from data you have validated"
 		continue
@@ -519,6 +556,11 @@ Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 	_yesno "Did the image correspond to ${PGPID[birth_names],,} ${PGPID[birth_surname]^^}" || continue
 	PGPID[face1_64url]=$(basenc --base64url < "$outdir/face.jpg")
 
+	if $ONLYUDID ; then
+		echo "udid4=${PGPID[udid4]}"
+		pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(pl_log crit)
+		continue
+	fi
 
 	while true ; do
 		while true ; do
