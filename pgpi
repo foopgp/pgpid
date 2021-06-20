@@ -254,7 +254,7 @@ Parameters:
 			fi ;;
 		-c|--birth-c*)
 			shift
-			if ! read c iso cname < <(grep "	$1	" "$GEOLIST_CENTROID") ; then
+			if ! read c iso cname < <(grep "	${1^^}	" "$GEOLIST_CENTROID") ; then
 				pl_log error "$FUNCNAME: no \"$1\" in $GEOLIST_CENTROID"
 				return 3
 			fi
@@ -294,7 +294,7 @@ If there is no STRING in command line, read it from stdin.
 	done
 
 	local from='cat'
-	[[ "$@" ]] && from='eval echo "$@"'
+	(($#)) && from='eval echo "$@"'
 	$from | sed 's,\\,\\\\,g; s,/,\\/,g; s,",\\",g; s,\x08,\\b,g; s,\x0c,\\f,g; s,\r,\\r,g; s,\t,\\t,g;' | sed ':a;N;$!ba; s,\n,\\n,g;'
 }
 
@@ -516,7 +516,7 @@ Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 	pl_log notice "Displaying face... close it to continue !"
 	gm display -immutable "$outdir/face.jpg" 2> >(pl_log error) || continue
 
-	_yesno "Did the image correspond to ${PGPID[birth_names],,} ${PGPID[birth_surname]}" || continue
+	_yesno "Did the image correspond to ${PGPID[birth_names],,} ${PGPID[birth_surname]^^}" || continue
 	PGPID[face1_64url]=$(basenc --base64url < "$outdir/face.jpg")
 
 
