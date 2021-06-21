@@ -6,7 +6,6 @@
 # Bash library and executable that wraps 'logger to write log on stderr or syslog,
 # then exit if log level is more serious than PL_LOGEXITLNAME.
 #
-# TODO: add logger's '--tag' and '--id' options into this library/executable options
 # TODO: complete completion
 
 if [[ "$1" == --bash-completion ]] ; then
@@ -103,11 +102,14 @@ Options:
   -V, --version            show version and exit (or return)
 
 Options forwarded to 'logger':
+  -i                       log the logger command's PID
+      --id[=<id>]          log the given <id>, or otherwise the PID (default \$\$ = logger's PPID)
   -f, --file <file>        log the contents of this file
   -e, --skip-empty         do not log empty lines when processing files
       --octet-count        use rfc6587 octet counting
       --prio-prefix        look for a prefix on every line read from stdin
   -S, --size <size>        maximum size for a single message
+  -t, --tag <tag>          mark every line with this tag (default \${0##*/})
   -n, --server <name>      write to this remote syslog server
   -P, --port <port>        use this port for UDP or TCP connection
   -T, --tcp                use TCP only
@@ -146,13 +148,13 @@ _pl_parseoptions() {
 			--color|--color=on) PL_LOG_COLOR=on ;;
 			--color=off) PL_LOG_COLOR=off ;;
 			--color=auto) PL_LOG_COLOR=auto ;;
-			-e|--skip-empty|--octet-count|--prio-prefix|-T|--tcp|-d|--udp|--rfc3164)
+			-i|-e|--skip-empty|--octet-count|--prio-prefix|-T|--tcp|-d|--udp|--rfc3164)
 				PL_LOGGER_OPTIONS+=("$1") ;;
-			-f|--file|-S|--size|-n|--server|-P|--port|--sd-id|--sd-param|--msgid|-u|--socket)
+			-f|--file|-S|--size|-t|--tag|-n|--server|-P|--port|--sd-id|--sd-param|--msgid|-u|--socket)
 				PL_LOGGER_OPTIONS+=("$1")
 				shift
 				PL_LOGGER_OPTIONS+=("$1") ;;
-			--rfc5424*|--socket-errors*|--journald*)
+			--id*|--rfc5424*|--socket-errors*|--journald*)
 				PL_LOGGER_OPTIONS+=("$1") ;;
 			-h|--h*) echo "$PL_LOG_usage$PL_LOG_helpmsg" ; return 2 ;;
 			-V|--vers*) echo "$name $PL_LOG_VERSION" ; return 2 ;;
