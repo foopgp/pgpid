@@ -6,8 +6,8 @@
 # Bash library and executable that wraps 'logger to write log on stderr or syslog,
 # then exit if log level is more serious than PL_LOGEXITLNAME.
 #
-# TODO: set all global variables to upper case and add "PL_" prefix if missing
 # TODO: add logger's '--tag' and '--id' options into this library/executable options
+# TODO: complete completion
 
 if [[ "$1" == --bash-completion ]] ; then
 	_pl_log_completion()
@@ -44,7 +44,7 @@ declare -r PL_LOG_VERSION="0.0.1"
 
 ### Constants ###
 
-[[ "$(declare -p loglevels 2>&1)" =~ ^declare" "-Ar ]] || declare -Ar loglevels=(
+[[ "$(declare -p PL_LOGLEVELS 2>&1)" =~ ^declare" "-Ar ]] || declare -Ar PL_LOGLEVELS=(
 [emerg]=0
 [alert]=1
 [crit]=2
@@ -57,12 +57,12 @@ declare -r PL_LOG_VERSION="0.0.1"
 
 ### Default option values ###
 
-logcolors=(47 45 41 31 35 33 36 37)
+PL_LOGCOLORS=(47 45 41 31 35 33 36 37)
 PL_LOGLEVEL="${PL_LOGLEVEL:-7}"
-stderr="--stderr"
-no_act=""
-logger_options=""
-color="auto"
+PL_LOG_O_STDERR="--stderr"
+PL_LOG_O_NOACT=""
+PL_LOGGER_OPTIONS=""
+PL_LOG_COLOR="auto"
 
 if [[ "$BASH_SOURCE" == "$0" ]] ; then
 	# run as a program
@@ -70,7 +70,7 @@ if [[ "$BASH_SOURCE" == "$0" ]] ; then
 	PL_LOGEXITLNAME="${PL_LOGEXITLNAME:-err}"
 
 	PL_LOG_usage="Usage: $BASH_SOURCE [OPTIONS]... PRIORITY [MESSAGE]..."
-	soptions="
+	PL_LOG_SOPTIONS="
 $PL_LOG_NAME is also bash library, see:
 $ source $BASH_SOURCE --help"
 else
@@ -79,7 +79,7 @@ else
 
 	PL_LOG_usage="Usage: source $BASH_SOURCE [OPTIONS]..."
 
-	soptions="
+	PL_LOG_SOPTIONS="
       --bash-completion    set completion for $BASH_SOURCE program and return (without loading anything else)"
 fi
 
@@ -87,7 +87,7 @@ fi
 ### Help messages ###
 
 PL_LOG_commonhelpmsg="
-PRIORITY list: $(declare -p loglevels)
+PRIORITY list: $(declare -p PL_LOGLEVELS)
 If PRIORITY's level is under PL_LOGLEVEL=$PL_LOGLEVEL, don't log anything.
 If PRIORITY's level name is more serious than PL_LOGEXITLNAME=$PL_LOGEXITLNAME, exit(8+'PRIORITY's level')
 If there is no MESSAGE in command line, read it from stdin.
@@ -126,9 +126,8 @@ Options forwarded to 'logger':
 
 PL_LOG_helpmsg="
 $PL_LOG_commonhelpmsg
-$soptions
+$PL_LOG_SOPTIONS
 "
-
 
 ### functions ###
 
@@ -141,20 +140,20 @@ _pl_parseoptions() {
 		case "$1" in
 			-l|--log-l*) shift ; PL_LOGLEVEL="$1" ; [[ "$PL_LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; return 2 ; } ;;
 			-L|--log-e*) shift ; PL_LOGEXITLNAME="$1"
-				grep -q "\<$PL_LOGEXITLNAME\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$PL_LOGEXITLNAME\" is none of: ${!loglevels[@]}" >&2 ; return 2 ; } ;;
-			-q|--quiet) stderr="" ;;
-			-Q|--no-act) no_act="--no-act" ;;
-			--color|--color=on) color=on ;;
-			--color=off) color=off ;;
-			--color=auto) color=auto ;;
+				grep -q "\<$PL_LOGEXITLNAME\>" <<<${!PL_LOGLEVELS[@]} || { echo -e "Error: log-exit \"$PL_LOGEXITLNAME\" is none of: ${!PL_LOGLEVELS[@]}" >&2 ; return 2 ; } ;;
+			-q|--quiet) PL_LOG_O_STDERR="" ;;
+			-Q|--no-act) PL_LOG_O_NOACT="--no-act" ;;
+			--color|--color=on) PL_LOG_COLOR=on ;;
+			--color=off) PL_LOG_COLOR=off ;;
+			--color=auto) PL_LOG_COLOR=auto ;;
 			-e|--skip-empty|--octet-count|--prio-prefix|-T|--tcp|-d|--udp|--rfc3164)
-				logger_options+=("$1") ;;
+				PL_LOGGER_OPTIONS+=("$1") ;;
 			-f|--file|-S|--size|-n|--server|-P|--port|--sd-id|--sd-param|--msgid|-u|--socket)
-				logger_options+=("$1")
+				PL_LOGGER_OPTIONS+=("$1")
 				shift
-				logger_options+=("$1") ;;
+				PL_LOGGER_OPTIONS+=("$1") ;;
 			--rfc5424*|--socket-errors*|--journald*)
-				logger_options+=("$1") ;;
+				PL_LOGGER_OPTIONS+=("$1") ;;
 			-h|--h*) echo "$PL_LOG_usage$PL_LOG_helpmsg" ; return 2 ;;
 			-V|--vers*) echo "$name $PL_LOG_VERSION" ; return 2 ;;
 			--) shift ; break ;;
@@ -169,27 +168,27 @@ _pl_parseoptions() {
 
 pl_log() {
 	local PL_LOG_usage="Usage: $FUNCNAME [OPTIONS]... PRIORITY [MESSAGE]..."
-	local -I PL_LOGLEVEL PL_LOGEXITLNAME stderr no_act logger_options color
+	local -I PL_LOGLEVEL PL_LOGEXITLNAME PL_LOG_O_STDERR PL_LOG_O_NOACT PL_LOGGER_OPTIONS PL_LOG_COLOR
 	local PL_LOG_helpmsg="$PL_LOG_commonhelpmsg"
 	_pl_parseoptions "$FUNCNAME" "$@" || return $?
 	set "${ARGV[@]}"
 
 	local priority=$1 plname=${1##*.} filter
-	grep -q "\<$plname\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit priority's level name ($plname) is none of: ${!loglevels[@]}" >&2 ; return 2 ; }
+	grep -q "\<$plname\>" <<<${!PL_LOGLEVELS[@]} || { echo -e "Error: log-exit priority's level name ($plname) is none of: ${!PL_LOGLEVELS[@]}" >&2 ; return 2 ; }
 	shift
-	local llevel=${loglevels[$plname]}
+	local llevel=${PL_LOGLEVELS[$plname]}
 	if ((llevel > $PL_LOGLEVEL)) ; then
 		# If there is no MESSAGE, purge stdin; else do nothing.
 		[[ "$@" ]] || cat >/dev/null
 	else
-		if [[ "$color" == on ]] || [[ "$color" == auto ]] && [[ -t 2 ]] ; then
-			filter="2> >(sed 's,: ,: \x1b[${logcolors[$llevel]}m${plname^}:\x1b[0m ,' >&2)"
+		if [[ "$PL_LOG_COLOR" == on ]] || [[ "$PL_LOG_COLOR" == auto ]] && [[ -t 2 ]] ; then
+			filter="2> >(sed 's,: ,: \x1b[${PL_LOGCOLORS[$llevel]}m${plname^}:\x1b[0m ,' >&2)"
 		else
 			filter="2> >(sed 's,: ,: ${plname^}: ,' >&2)"
 		fi
-		eval 'logger -p "$priority" $stderr $no_act --id=$$ --tag "${0##*/}" ${logger_options[@]} -- "$@" '"$filter"
+		eval 'logger -p "$priority" $PL_LOG_O_STDERR $PL_LOG_O_NOACT --id=$$ --tag "${0##*/}" ${PL_LOGGER_OPTIONS[@]} -- "$@" '"$filter"
 	fi
-	((llevel > loglevels[$PL_LOGEXITLNAME] )) || exit $((8+llevel))
+	((llevel > PL_LOGLEVELS[$PL_LOGEXITLNAME] )) || exit $((8+llevel))
 }
 
 

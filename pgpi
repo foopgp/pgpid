@@ -695,9 +695,7 @@ quit" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pin
 		fi
 
 		pl_log info "Reimport secret key to be moved with keytocard..."
-		#rm -rv "$outdir/gnupg/private-keys-v1.d/"* 1> >(pl_log debug) 2> >(pl_log crit)
 		gpg --homedir "$outdir/gnupg" --batch --command-fd 0 --pinentry-mode loopback --yes --delete-secret-keys ${FPRS[0]}\! ${FPRS[1]}\! ${FPRS[2]}\!
-		#killall gpg-agent # dirty workaround for gpg bug 
 		gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[birth_date]//-/}" --import 2> >(pl_log notice) < <(paperkey --pubring "$outdir/PGPcert.gpg" --secrets "$outdir/secret.paper.txt" 2> >(pl_log crit) )
 		gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[birth_date]//-/}" --import 2> >(pl_log info) <"$outdir/secret.E.asc"
 		gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[birth_date]//-/}" --import 2> >(pl_log info) <"$outdir/secret.A.asc"
