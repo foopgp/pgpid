@@ -578,7 +578,6 @@ Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 		! _yesno "Is that correct" || break
 	done
 
-
 	PGPID[wkd_uri]=$($(gpgconf --list-dirs libexecdir)/gpg-wks-client --print-wkd-url "${PGPID[email]}" 2> >(pl_log warning) )
 	PGPID[wks_support]=$(timeout --verbose 5s $(gpgconf --list-dirs libexecdir)/gpg-wks-client --supported --with-colons "${PGPID[email]}" 2> >(pl_log notice) || true )
 
@@ -587,6 +586,7 @@ Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 		pl_log warning "Your email provider support neither WKD or WKS protocol :-("
 	fi
 
+	PGPID[hkp_server]="foopgp.org:11371"
 	pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(pl_log crit)
 
 	#TODO: check gpg version, because we use some recent feature, and compatibility may change (tested with gpg (GnuPG) 2.2.27 libgcrypt 1.8.8)
@@ -604,7 +604,7 @@ Name-Comment: udid4=${PGPID[udid4]}
 Name-Email: ${PGPID[email]}
 Expire-Date: $(date -I -d "+11 years")
 Passphrase: ${PGPID[birth_date]//-/}
-Keyserver: hkp://foopgp.org
+Keyserver: hkp://${PGPID[hkp_server]}
 # Do a commit here, so that we can later print "done" :-)
 %commit
 EOF
@@ -617,6 +617,7 @@ EOF
 
 	# get first 2 fprs
 	FPRS=($(gpg --homedir "$outdir/gnupg" --list-secret-keys --with-colons 2> >(pl_log notice) | sed -n 's,^fpr:.*:\([[:xdigit:]]\{40\}\):,\1,p'))
+	PGPID[pubkey_uri]="http://${PGPID[hkp_server]}/pks/lookup?search=${FPRS[0]}&op=get"
 
 	# Add photo
 	if ! gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "${PGPID[birth_date]//-/}" --edit-key ${FPRS[0]} 1> >(pl_log debug) 2>&1 <<<"addphoto
@@ -686,13 +687,10 @@ key-attr
 1
 quit" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "12345678" --card-edit 1> >(pl_log debug) 2>&1 || pl_log crit "Setting OpenPGP card keys attributes FAIL ($?)"
 
-		if [[ "${PGPID[wks_support]}" =~ :1: ]] ; then
-			#TODO: cf. previous TODO related to wks_support
-			echo "admin
+		echo "admin
 url
-${PGPID[wkd_uri]}
+${PGPID[pubkey_uri]}
 quit" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "12345678" --card-edit 1> >(pl_log debug) 2>&1 || pl_log crit "Setting Pubkey URL in OpenPGP card FAIL ($?)"
-		fi
 
 		pl_log info "Reimport secret key to be moved with keytocard..."
 		gpg --homedir "$outdir/gnupg" --batch --command-fd 0 --pinentry-mode loopback --yes --delete-secret-keys ${FPRS[0]}\! ${FPRS[1]}\! ${FPRS[2]}\!
@@ -700,7 +698,7 @@ quit" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pin
 		gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[birth_date]//-/}" --import 2> >(pl_log info) <"$outdir/secret.E.asc"
 		gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[birth_date]//-/}" --import 2> >(pl_log info) <"$outdir/secret.A.asc"
 
-		gpg --homedir "$outdir/gnupg" --edit-key "${FPRS[0]}" || pl_log error "Moving OpenPGP keys to card FAIL ($?)"
+		gpg --homedir "$outdir/gnupg" --edit-key "${FPRS[0]}" || pl_log warning "Moving OpenPGP keys to card returns $?"
 
 		declare -A OPGPCARD=()
 		while IFS=':' read key value ; do
