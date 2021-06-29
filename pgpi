@@ -647,12 +647,12 @@ save
 	pl_log info "Prepare paper to backup master key, and export secret subkeys..."
 	umask 0077
 	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --export-secret-keys ${FPRS[0]}\! 2> >(pl_log crit) | paperkey 2> >(pl_log crit) > "$outdir/secret.paper.txt"
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --export-secret-keys ${FPRS[1]}\! 2> >(pl_log crit) > "$outdir/secret.E.asc"
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --export-secret-keys ${FPRS[2]}\! 2> >(pl_log crit) > "$outdir/secret.A.asc"
+	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! 2> >(pl_log crit) > "$outdir/secret.E.asc"
+	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[2]}\! 2> >(pl_log crit) > "$outdir/secret.A.asc"
 	pl_log info "export secret sub-keys to be use in thunderbird, delta chat, etc..."
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --export-secret-keys ${FPRS[3]}\! 2> >(pl_log crit) > "$outdir/secret.S1.asc"
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --export-secret-keys ${FPRS[1]}\! ${FPRS[4]}\! 2> >(pl_log crit) > "$outdir/secret.S2+E.asc"
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --export-secret-keys ${FPRS[1]}\! ${FPRS[5]}\! 2> >(pl_log crit) > "$outdir/secret.S3+E.asc"
+	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[3]}\! 2> >(pl_log crit) > "$outdir/secret.S1.asc"
+	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! ${FPRS[4]}\! 2> >(pl_log crit) > "$outdir/secret.S2+E.asc"
+	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! ${FPRS[5]}\! 2> >(pl_log crit) > "$outdir/secret.S3+E.asc"
 
 	# log some info
 	gpg --quiet --homedir "$outdir/gnupg" --list-keys > >(pl_log info) 2> >(pl_log warning)
