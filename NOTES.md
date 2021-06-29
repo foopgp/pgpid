@@ -65,9 +65,16 @@ website](https://foopgp.org).
 * $ apt search passport
 
 
+# Ideas
+
+* use Scrypt instead of md5sum for udid4
+* use ed25519 for main key then we can use "mnemonic" instead of paperkey to
+  print secret key
+* Maybe use ed25519 for main key to use derivations
+* Shamir shared secret.
+
 # TODO
 
-* ...
 * being able to directly read RFID of existing Passport, ID card, etc...
 
 # SEE ALSO
