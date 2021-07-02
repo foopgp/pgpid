@@ -67,10 +67,11 @@ website](https://foopgp.org).
 
 # Ideas
 
-* use Scrypt instead of md5sum for udid4
-* use ed25519 for main key then we can use "mnemonic" instead of paperkey to
+* use Scrypt instead of md5sum for udid => specify an udid5 and choose
+  good parameters for scrypt
+* use "mnemonic" (cf. BIP39) id addition to legacy paperkey to
   print secret key (cf.: https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki and https://iancoleman.io/bip39/)
-* Maybe use ed25519 for main key to use derivations
+* Maybe use ed25519 derivations
 * Shamir shared secret.
 
 # TODO

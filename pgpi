@@ -593,8 +593,8 @@ Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 
 	cat >"$outdir/gpg.genkey.batch" <<EOF
 %echo Generating OpenPGP key for ${PGPID[pseudonym]}
-Key-Type: RSA
-Key-Length: 3072
+Key-Type: eddsa
+Key-Curve: Ed25519
 Key-Usage: cert sign
 Subkey-Type: ecdh
 Subkey-Curve: Curve25519
@@ -679,8 +679,8 @@ quit" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pin
 
 		echo "admin
 key-attr
+2
 1
-3072
 2
 1
 2
