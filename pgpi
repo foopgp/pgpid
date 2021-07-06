@@ -570,9 +570,9 @@ fi
 DOCUMENT[filename]=$imgfile
 DOCUMENT[face_scan_64url]=$(gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$imgfile" jpeg:- 2> >(pl_log warning) | basenc --base64url )
 if ((${#DOCUMENT[face_scan_64url]} < 2048 )) ; then
-	pl_log crit "$outdir/face.jpg: too small (${#DOCUMENT[face_scan_64url]} < 2048)"
+	pl_log error "$outdir/face.jpg: too small (${#DOCUMENT[face_scan_64url]} < 2048)"
 elif ((${#DOCUMENT[face_scan_64url]} > (1<<16) )) ; then
-	pl_log crit "$outdir/face.jpg: too big (${#DOCUMENT[face_scan_64url]} > $((1<<16)))"
+	pl_log error "$outdir/face.jpg: too big (${#DOCUMENT[face_scan_64url]} > $((1<<16)))"
 fi
 
 declare -A PGPID=()
@@ -733,6 +733,7 @@ gpg --quiet --homedir "$outdir/gnupg" --list-keys > >(pl_log info) 2> >(pl_log w
 
 for ((i=0;;i++)) ; do
 	while ! gpg --homedir "$outdir/gnupg" --card-status > >(pl_log info) 2> >(pl_log notice) ; do
+		sleep 1
 		read -p "Please plug an OpenPGP card or dongle, then press Enter ..."
 	done
 	_yesno "Factory reset OpenPGP card (This will destroys all OpenPGP keys stored on the card!)" || continue
