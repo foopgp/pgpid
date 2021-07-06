@@ -64,8 +64,8 @@ if [[ "$BASH_SOURCE" == "$0" ]] ; then
 
 	PGPI_OUTPATH="$PWD"
 
-	usage="Usage: $BASH_SOURCE [OPTIONS]... [--] IMAGES...
-If $PGPI_NAME succeed, it will create a subdirectories containing all generated files."
+	usage="Usage: $BASH_SOURCE [OPTIONS]... [--] IMAGE
+If $PGPI_NAME succeed, it will create a subdirectory containing all generated files."
 
 	soptions="
     -o, --output-path PATH   emplacement for generated subdirs and files (current: $PGPI_OUTPATH )
@@ -498,7 +498,15 @@ Options:
 #
 #trap _onexit EXIT
 
-if ! [[ "$1" ]] ; then
+### Run ###
+
+imgfile="$1"
+if [[ "$2" ]] ; then
+	shift
+	pl_log warning "ignoring extra args $@"
+fi
+
+if ! [[ "$imgfile" ]] ; then
 	if $ONLYUDID ; then
 		declare -A PGPID
 		while true ; do
@@ -531,146 +539,136 @@ fi
 
 #scanimage -l 2 -t 2 -x 120 -y 170 --mode Color --resolution 200 --format=tiff > tmpimg.tiff
 
-### Run ###
+facep=$(facedetect --best -- "$imgfile" 2> >(pl_log notice) || true )
+[[ "$facep" ]] || pl_log crit "No face detected in $imgfile"
 
-while [[ "$1" ]] ; do
-	f="$1"
-	shift
+read px py sx sy etc <<<"$facep"
+mx=$((sx*$FACE_MARGIN_WIDTH))
+my=$((sy*$FACE_MARGIN_HEIGHT))
+pl_log info "$imgfile face -> position: +$px+$py  size: ${sx}x$sy  marges: +${mx}+$my"
 
-	facep=$(facedetect --best -- "$f" 2> >(pl_log notice) || true )
-	if ! [[ "$facep" ]] ; then
-		pl_log error "Error: No face detected in $f"
-		continue
-	fi
-	read px py sx sy etc <<<"$facep"
-	mx=$((sx*$FACE_MARGIN_WIDTH))
-	my=$((sy*$FACE_MARGIN_HEIGHT))
-	pl_log info "$f face -> position: +$px+$py  size: ${sx}x$sy  marges: +${mx}+$my"
-
-	declare -A DOCUMENT=()
-	if mrz=($(gm convert -crop +0+$((py+sy)) "$f" - 2> >(pl_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(pl_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
-		if mrz_analyse DOCUMENT "${mrz[@]}" ; then
-			#WARNING: mrz data may be irrelevant to generate udid4. eg:
-			#         * Surname or given names may be incomplete (cut bc exceed mrz size)
-			#         * Surname or given names may differs from those given at birth (marriage, gender change, etc.)
-			#         * Surname or given names transliteration may have change over time
-			#         * Year of birth date is not written with 4 digit (and people may live longer than 100 years)
-			#         * Humans may have done error on birth date, surname or given names.
-			if ! DOCUMENT[udid4_auto]=$(pgpi_gen_udid4 --mrz-names "${DOCUMENT[all_names]}" --birth-date "${DOCUMENT[date_of_birth]}" --birth-country "${DOCUMENT[nationality]}") ; then
-				pl_log warning "can't generate an udid4 from mrz data"
-				unset DOCUMENT[udid4_auto]
-			fi
-		else
-			pl_log warning "$f: Invalid or unsupported machine-readable zone"
+declare -A DOCUMENT=()
+if mrz=($(gm convert -crop +0+$((py+sy)) "$imgfile" - 2> >(pl_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(pl_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
+	if mrz_analyse DOCUMENT "${mrz[@]}" ; then
+		#WARNING: mrz data may be irrelevant to generate udid4. eg:
+		#         * Surname or given names may be incomplete (cut bc exceed mrz size)
+		#         * Surname or given names may differs from those given at birth (marriage, gender change, etc.)
+		#         * Surname or given names transliteration may have change over time
+		#         * Year of birth date is not written with 4 digit (and people may live longer than 100 years)
+		#         * Humans may have done error on birth date, surname or given names.
+		if ! DOCUMENT[udid4_auto]=$(pgpi_gen_udid4 --mrz-names "${DOCUMENT[all_names]}" --birth-date "${DOCUMENT[date_of_birth]}" --birth-country "${DOCUMENT[nationality]}") ; then
+			pl_log warning "can't generate an udid4 from mrz data"
+			unset DOCUMENT[udid4_auto]
 		fi
 	else
-		pl_log warning "$f: No machine-readable zone detected"
+		pl_log warning "$imgfile: Invalid or unsupported machine-readable zone"
 	fi
+else
+	pl_log warning "$imgfile: No machine-readable zone detected"
+fi
 
-	DOCUMENT[filename]=$f
-	DOCUMENT[face_scan_64url]=$(gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$f" jpeg:- 2> >(pl_log warning) | basenc --base64url )
-	if ((${#DOCUMENT[face_scan_64url]} < 2048 )) ; then
-		pl_log error "$outdir/face.jpg: too small (${#DOCUMENT[face_scan_64url]} < 2048)"
-		continue
-	elif ((${#DOCUMENT[face_scan_64url]} > (1<<16) )) ; then
-		pl_log error "$outdir/face.jpg: too big (${#DOCUMENT[face_scan_64url]} > $((1<<16)))"
-		continue
-	fi
+DOCUMENT[filename]=$imgfile
+DOCUMENT[face_scan_64url]=$(gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$imgfile" jpeg:- 2> >(pl_log warning) | basenc --base64url )
+if ((${#DOCUMENT[face_scan_64url]} < 2048 )) ; then
+	pl_log crit "$outdir/face.jpg: too small (${#DOCUMENT[face_scan_64url]} < 2048)"
+elif ((${#DOCUMENT[face_scan_64url]} > (1<<16) )) ; then
+	pl_log crit "$outdir/face.jpg: too big (${#DOCUMENT[face_scan_64url]} > $((1<<16)))"
+fi
 
-	declare -A PGPID=()
+declare -A PGPID=()
 
-	PGPID[document0]="$(declare -p DOCUMENT)"
+PGPID[document0]="$(declare -p DOCUMENT)"
 
-	PGPID[birth_date]=$(date --date "$(($(date +"%y%m%d") < DOCUMENT[date_of_birth] ? 19 : 20))${DOCUMENT[date_of_birth]}" +"%Y-%m-%d")
-	while true ; do
-		echo "
+PGPID[birth_date]=$(date --date "$(($(date +"%y%m%d") < DOCUMENT[date_of_birth] ? 19 : 20))${DOCUMENT[date_of_birth]}" +"%Y-%m-%d")
+while true ; do
+	echo "
 Surname at birth: ${PGPID[birth_surname]:=${DOCUMENT[surname]}}
 Given names at birth: ${PGPID[birth_names]:=${DOCUMENT[names]}}
 Date of birth: ${PGPID[birth_date]}
 Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 " >&2
-		! _yesno "Is that correct" || break
+	! _yesno "Is that correct" || break
 
-		read -p "Birth surname [${PGPID[birth_surname]^^}] ? "
-		PGPID[birth_surname]=${REPLY:-${PGPID[birth_surname]^^}}
-		read -p "Birth names [${PGPID[birth_names]}] ? "
-		PGPID[birth_names]=${REPLY:-${PGPID[birth_names]}}
-		read -p "Birth date [${PGPID[birth_date]}] ? "
-		PGPID[birth_date]=${REPLY:-${PGPID[birth_date]}}
-		read -p "Birth country: [${PGPID[birth_country]}] ? "
-		PGPID[birth_country]=${REPLY:-${PGPID[birth_country]}}
-	done
+	read -p "Birth surname [${PGPID[birth_surname]^^}] ? "
+	PGPID[birth_surname]=${REPLY:-${PGPID[birth_surname]^^}}
+	read -p "Birth names [${PGPID[birth_names]}] ? "
+	PGPID[birth_names]=${REPLY:-${PGPID[birth_names]}}
+	read -p "Birth date [${PGPID[birth_date]}] ? "
+	PGPID[birth_date]=${REPLY:-${PGPID[birth_date]}}
+	read -p "Birth country: [${PGPID[birth_country]}] ? "
+	PGPID[birth_country]=${REPLY:-${PGPID[birth_country]}}
+done
 
-	if PGPID[udid4]=$(pgpi_gen_udid4 --surname "${PGPID[birth_surname]}" --given-names "${PGPID[birth_names]}" --birth-date "${PGPID[birth_date]}" --birth-country "${PGPID[birth_country]}") ; then
-		pl_log info "udid4=${PGPID[udid4]}"
-	else
-		pl_log error "can't generate an udid4 from data you have validated"
-		continue
-	fi
+if PGPID[udid4]=$(pgpi_gen_udid4 --surname "${PGPID[birth_surname]}" --given-names "${PGPID[birth_names]}" --birth-date "${PGPID[birth_date]}" --birth-country "${PGPID[birth_country]}") ; then
+	pl_log info "udid4=${PGPID[udid4]}"
+else
+	pl_log crit "can't generate an udid4 from data you have validated"
+fi
 
-	outdir="${PGPI_OUTPATH%/}/${PGPID[udid4]}"
-	cp -bvf "$f" "$outdir/document.orig" 2> >(pl_log warning) | pl_log info
+outdir="${PGPI_OUTPATH%/}/${PGPID[udid4]}"
+mkdir -p "$outdir"
+cp -bvf "$imgfile" "$outdir/document.orig" 2> >(pl_log warning) | pl_log info
 
-	# Resize and display scanned face
-	(exec 2> >(pl_log error) ; basenc --base64url --decode <<<"${DOCUMENT[face_scan_64url]}" | gm convert -geometry x180 - "$outdir/face.jpg" ) || continue
-	pl_log notice "Displaying face... close it to continue !"
-	gm display -immutable "$outdir/face.jpg" 2> >(pl_log error) || continue
+# Resize and display scanned face
+(exec 2> >(pl_log error) ; basenc --base64url --decode <<<"${DOCUMENT[face_scan_64url]}" | gm convert -geometry x180 - "$outdir/face.jpg" )
+pl_log notice "Displaying face... close it to continue !"
+gm display -immutable "$outdir/face.jpg" 2> >(pl_log error)
 
-	_yesno "Did the image correspond to ${PGPID[birth_names],,} ${PGPID[birth_surname]^^}" || continue
-	PGPID[face1_64url]=$(basenc --base64url < "$outdir/face.jpg")
+_yesno "Did the image correspond to ${PGPID[birth_names],,} ${PGPID[birth_surname]^^}"
+PGPID[face1_64url]=$(basenc --base64url < "$outdir/face.jpg")
 
-	if $ONLYUDID ; then
-		echo "udid4=${PGPID[udid4]}"
-		pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(pl_log crit)
-		continue
-	fi
-
-	while true ; do
-		while true ; do
-			read -p "Public email adress [${PGPID[email]}] ? "
-			PGPID[email]=${REPLY:-${PGPID[email]}}
-			grep -q "^[^@[:space:]]\+@[^.[:space:]]\+\.[^[:space:]]\+$" <<<"${PGPID[email]}" && break
-		done
-
-		read -p "Public name (or pseudonym) [${PGPID[pseudonym]}] ? "
-		PGPID[pseudonym]=${REPLY:-${PGPID[pseudonym]}}
-		echo -e "\nSummary:\n"\
-				"Public name/pseudonym: ${PGPID[pseudonym]}\n"\
-				"Public email: ${PGPID[email]}\n" >&2
-
-		! _yesno "Is that correct" || break
-	done
-
-	PGPID[wkd_uri]=$($(gpgconf --list-dirs libexecdir)/gpg-wks-client --print-wkd-url "${PGPID[email]}" 2> >(pl_log warning) )
-	PGPID[wks_support]=$(timeout --verbose 5s $(gpgconf --list-dirs libexecdir)/gpg-wks-client --supported --with-colons "${PGPID[email]}" 2> >(pl_log notice) || true )
-
-	if ! [[ "${PGPID[wks_support]}" =~ :1: ]] ; then
-		#TODO: Improve parsing wks_support and distinct WKD and WKS (and later WKS versions)
-		pl_log warning "Your email provider support neither WKD or WKS protocol :-("
-	fi
-
-	aspell_dicts=($(aspell dump dicts | grep "^[a-z]\+$"))
-	nd=$(_chooseinlist -n 5 -p "Prefered language to generate a good passphrase ?" "${aspell_dicts[@]}")
-	((nd--))
-	sd=$(aspell -d "${aspell_dicts[$nd]}" dump master | grep -v "'" | wc -l)
-	while true ; do
-		PGPID[passphrase]="$(aspell -d "${aspell_dicts[$nd]}" dump master | grep -v "'" | sed -n "$(_urandom $sd)p ; $(_urandom $sd)p ; $(_urandom $sd)p" | tr '\n' '_')"
-		PGPID[passphrase]="${PGPID[passphrase]::-1}"
-		! _yesno --default=yes -p "random passphrase: ${PGPID[passphrase]}" "Agree" || break
-	done
-
-	PGPID[hkp_server]="foopgp.org:11371"
+if $ONLYUDID ; then
+	echo "udid4=${PGPID[udid4]}"
 	pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(pl_log crit)
+	exit
+fi
 
-	#TODO: check gpg version, because we use some recent feature, and compatibility may change (tested with gpg (GnuPG) 2.2.27 libgcrypt 1.8.8)
-	# Remove previous gnupg temp dir, if present.
-	if [[ -d "$outdir/gnupg" ]] ; then
-		_shreddir -v -f "$outdir/gnupg" 2> >(pl_log warning) | pl_log debug
-	fi
-	mkdir -p "$outdir/gnupg"
-	chmod -R go-rwx "$outdir"
+while true ; do
+	while true ; do
+		read -p "Public email adress [${PGPID[email]}] ? "
+		PGPID[email]=${REPLY:-${PGPID[email]}}
+		grep -q "^[^@[:space:]]\+@[^.[:space:]]\+\.[^[:space:]]\+$" <<<"${PGPID[email]}" && break
+	done
 
-	cat >"$outdir/gnupg/gpg.genkey.batch" <<EOF
+	read -p "Public name (or pseudonym) [${PGPID[pseudonym]}] ? "
+	PGPID[pseudonym]=${REPLY:-${PGPID[pseudonym]}}
+	echo -e "\nSummary:\n"\
+			"Public name/pseudonym: ${PGPID[pseudonym]}\n"\
+			"Public email: ${PGPID[email]}\n" >&2
+
+	! _yesno "Is that correct" || break
+done
+
+PGPID[wkd_uri]=$($(gpgconf --list-dirs libexecdir)/gpg-wks-client --print-wkd-url "${PGPID[email]}" 2> >(pl_log warning) )
+PGPID[wks_support]=$(timeout --verbose 5s $(gpgconf --list-dirs libexecdir)/gpg-wks-client --supported --with-colons "${PGPID[email]}" 2> >(pl_log notice) || true )
+
+if ! [[ "${PGPID[wks_support]}" =~ :1: ]] ; then
+	#TODO: Improve parsing wks_support and distinct WKD and WKS (and later WKS versions)
+	pl_log warning "Your email provider support neither WKD or WKS protocol :-("
+fi
+
+aspell_dicts=($(aspell dump dicts | grep "^[a-z]\+$"))
+nd=$(_chooseinlist -n 5 -p "Prefered language to generate a good passphrase ?" "${aspell_dicts[@]}")
+((nd--))
+sd=$(aspell -d "${aspell_dicts[$nd]}" dump master | grep -v "'" | wc -l)
+while true ; do
+	PGPID[passphrase]="$(aspell -d "${aspell_dicts[$nd]}" dump master | grep -v "'" | sed -n "$(_urandom $sd)p ; $(_urandom $sd)p ; $(_urandom $sd)p" | tr '\n' '_')"
+	PGPID[passphrase]="${PGPID[passphrase]::-1}"
+	! _yesno --default=yes -p "random passphrase: ${PGPID[passphrase]}" "Agree" || break
+done
+
+PGPID[hkp_server]="foopgp.org:11371"
+pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(pl_log crit)
+
+#TODO: check gpg version, because we use some recent feature, and compatibility may change (tested with gpg (GnuPG) 2.2.27 libgcrypt 1.8.8)
+# Remove previous gnupg temp dir, if present.
+if [[ -d "$outdir/gnupg" ]] ; then
+	_shreddir -v -f "$outdir/gnupg" 2> >(pl_log warning) | pl_log debug
+fi
+mkdir -p "$outdir/gnupg"
+chmod -R go-rwx "$outdir"
+
+cat >"$outdir/gnupg/gpg.genkey.batch" <<EOF
 %echo Generating OpenPGP key for ${PGPID[pseudonym]}
 Key-Type: eddsa
 Key-Curve: Ed25519
@@ -687,67 +685,65 @@ Keyserver: hkp://${PGPID[hkp_server]}
 # Do a commit here, so that we can later print "done" :-)
 %commit
 EOF
-	if ! gpg --homedir "$outdir/gnupg" --batch --generate-key --allow-freeform-uid "$outdir/gnupg/gpg.genkey.batch" 2> >(pl_log notice) ; then
-		pl_log error "gpg --generate-key FAIL ($?)"
-		continue
-	fi
+if ! gpg --homedir "$outdir/gnupg" --batch --generate-key --allow-freeform-uid "$outdir/gnupg/gpg.genkey.batch" 2> >(pl_log notice) ; then
+	pl_log crit "gpg --generate-key FAIL ($?)"
+fi
 
-	# get first 2 fprs
-	FPRS=($(gpg --homedir "$outdir/gnupg" --list-secret-keys --with-colons 2> >(pl_log notice) | sed -n 's,^fpr:.*:\([[:xdigit:]]\{40\}\):,\1,p'))
-	PGPID[pubkey_uri]="http://${PGPID[hkp_server]}/pks/lookup?search=${FPRS[0]}&op=get"
+# get first 2 fprs
+FPRS=($(gpg --homedir "$outdir/gnupg" --list-secret-keys --with-colons 2> >(pl_log notice) | sed -n 's,^fpr:.*:\([[:xdigit:]]\{40\}\):,\1,p'))
+PGPID[pubkey_uri]="http://${PGPID[hkp_server]}/pks/lookup?search=${FPRS[0]}&op=get"
 
-	# Add photo
-	if ! gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --edit-key ${FPRS[0]} 1> >(pl_log debug) 2>&1 <<<"addphoto
+# Add photo
+if ! gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --edit-key ${FPRS[0]} 1> >(pl_log debug) 2>&1 <<<"addphoto
 $outdir/face.jpg
 y
 save
 " ; then
-		pl_log error "Adding photo ID to OpenPGP certificate FAIL ($?)"
-		continue
-	fi
+	pl_log crit "Adding photo ID to OpenPGP certificate FAIL ($?)"
+fi
 
-	pl_log info "Generate auth key to be put in OpenPGP card..."
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --quick-add-key ${FPRS[0]} ed25519 auth 11y 2> >(pl_log notice)
-	pl_log info "Generate extra signing keys..."
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(pl_log notice)
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(pl_log notice)
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(pl_log notice)
+pl_log info "Generate auth key to be put in OpenPGP card..."
+gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --quick-add-key ${FPRS[0]} ed25519 auth 11y 2> >(pl_log notice)
+pl_log info "Generate extra signing keys..."
+gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(pl_log notice)
+gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(pl_log notice)
+gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(pl_log notice)
 
-	# updates array of fingerprints
-	FPRS=($(gpg --homedir "$outdir/gnupg" --list-secret-keys --with-colons 2> >(pl_log notice) | sed -n 's,^fpr:.*:\([[:xdigit:]]\{40\}\):,\1,p'))
-	PGPID[frps]="$(declare -p FPRS)"
-	pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(pl_log crit)
+# updates array of fingerprints
+FPRS=($(gpg --homedir "$outdir/gnupg" --list-secret-keys --with-colons 2> >(pl_log notice) | sed -n 's,^fpr:.*:\([[:xdigit:]]\{40\}\):,\1,p'))
+PGPID[frps]="$(declare -p FPRS)"
+pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(pl_log crit)
 
-	pl_log info "Export OpenPGP first certificate and public ssh key..."
-	gpg --homedir "$outdir/gnupg" --export 2> >(pl_log crit) > "$outdir/PGPcert.gpg"
-	gpg --homedir "$outdir/gnupg" --export-ssh-key ${FPRS[0]} 2> >(pl_log crit) > "$outdir/ssh_${PGPID[udid4]}.pub"
-	pl_log info "Prepare paper to backup master key, and export secret subkeys..."
-	umask 0077
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --export-secret-keys ${FPRS[0]}\! 2> >(pl_log crit) | paperkey 2> >(pl_log crit) > "$outdir/secret.paper.txt"
-	printf "\n# Initial passphrase: ${PGPID[passphrase]}\n" >> "$outdir/secret.paper.txt"
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! 2> >(pl_log crit) > "$outdir/secret.E.asc"
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[2]}\! 2> >(pl_log crit) > "$outdir/secret.A.asc"
-	pl_log info "export secret sub-keys to be use in thunderbird, delta chat, etc..."
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[3]}\! 2> >(pl_log crit) > "$outdir/secret.S1.asc"
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! ${FPRS[4]}\! 2> >(pl_log crit) > "$outdir/secret.S2+E.asc"
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! ${FPRS[5]}\! 2> >(pl_log crit) > "$outdir/secret.S3+E.asc"
+pl_log info "Export OpenPGP first certificate and public ssh key..."
+gpg --homedir "$outdir/gnupg" --export 2> >(pl_log crit) > "$outdir/PGPcert.gpg"
+gpg --homedir "$outdir/gnupg" --export-ssh-key ${FPRS[0]} 2> >(pl_log crit) > "$outdir/ssh_${PGPID[udid4]}.pub"
+pl_log info "Prepare paper to backup master key, and export secret subkeys..."
+umask 0077
+gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --export-secret-keys ${FPRS[0]}\! 2> >(pl_log crit) | paperkey 2> >(pl_log crit) > "$outdir/secret.paper.txt"
+printf "\n# Initial passphrase: ${PGPID[passphrase]}\n" >> "$outdir/secret.paper.txt"
+gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! 2> >(pl_log crit) > "$outdir/secret.E.asc"
+gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[2]}\! 2> >(pl_log crit) > "$outdir/secret.A.asc"
+pl_log info "export secret sub-keys to be use in thunderbird, delta chat, etc..."
+gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[3]}\! 2> >(pl_log crit) > "$outdir/secret.S1.asc"
+gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! ${FPRS[4]}\! 2> >(pl_log crit) > "$outdir/secret.S2+E.asc"
+gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! ${FPRS[5]}\! 2> >(pl_log crit) > "$outdir/secret.S3+E.asc"
 
-	# log some info
-	gpg --quiet --homedir "$outdir/gnupg" --list-keys > >(pl_log info) 2> >(pl_log warning)
+# log some info
+gpg --quiet --homedir "$outdir/gnupg" --list-keys > >(pl_log info) 2> >(pl_log warning)
 
-	for ((i=0;;i++)) ; do
-		while ! gpg --homedir "$outdir/gnupg" --card-status > >(pl_log info) 2> >(pl_log notice) ; do
-			read -p "Please plug an OpenPGP card or dongle, then press Enter ..."
-		done
-		_yesno "Factory reset OpenPGP card (This will destroys all OpenPGP keys stored on the card!)" || continue
+for ((i=0;;i++)) ; do
+	while ! gpg --homedir "$outdir/gnupg" --card-status > >(pl_log info) 2> >(pl_log notice) ; do
+		read -p "Please plug an OpenPGP card or dongle, then press Enter ..."
+	done
+	_yesno "Factory reset OpenPGP card (This will destroys all OpenPGP keys stored on the card!)" || continue
 
-		echo "admin
+	echo "admin
 factory-reset
 y
 yes
 quit" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --card-edit 1> >(pl_log debug) 2>&1 || pl_log crit "Factory Reset OpenPGP card FAIL ($?)"
 
-		echo "admin
+	echo "admin
 login
 ${PGPID[pseudonym]}
 name
@@ -755,7 +751,7 @@ ${PGPID[pseudonym]}
 
 quit" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "12345678" --card-edit 1> >(pl_log debug) 2>&1 || pl_log crit "Setting OpenPGP card holder FAIL ($?)"
 
-		echo "admin
+	echo "admin
 key-attr
 2
 1
@@ -765,41 +761,40 @@ key-attr
 1
 quit" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "12345678" --card-edit 1> >(pl_log debug) 2>&1 || pl_log crit "Setting OpenPGP card keys attributes FAIL ($?)"
 
-		echo "admin
+	echo "admin
 url
 ${PGPID[pubkey_uri]}
 quit" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "12345678" --card-edit 1> >(pl_log debug) 2>&1 || pl_log crit "Setting Pubkey URL in OpenPGP card FAIL ($?)"
 
-		pl_log info "Reimport secret key to be moved with keytocard..."
-		gpg --homedir "$outdir/gnupg" --batch --command-fd 0 --pinentry-mode loopback --yes --delete-secret-keys ${FPRS[0]}\! ${FPRS[1]}\! ${FPRS[2]}\!
-		gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --import 2> >(pl_log notice) < <(paperkey --pubring "$outdir/PGPcert.gpg" --secrets "$outdir/secret.paper.txt" 2> >(pl_log crit) )
-		gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --import 2> >(pl_log info) <"$outdir/secret.E.asc"
-		gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --import 2> >(pl_log info) <"$outdir/secret.A.asc"
+	pl_log info "Reimport secret key to be moved with keytocard..."
+	gpg --homedir "$outdir/gnupg" --batch --command-fd 0 --pinentry-mode loopback --yes --delete-secret-keys ${FPRS[0]}\! ${FPRS[1]}\! ${FPRS[2]}\!
+	gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --import 2> >(pl_log notice) < <(paperkey --pubring "$outdir/PGPcert.gpg" --secrets "$outdir/secret.paper.txt" 2> >(pl_log crit) )
+	gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --import 2> >(pl_log info) <"$outdir/secret.E.asc"
+	gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --import 2> >(pl_log info) <"$outdir/secret.A.asc"
 
-		pl_log notice "Unfortunately, we can't automatize moving key to card, then you should move keys master 1 and 2 manualy..."
-		pl_log notice "Note: password is now set to 'm' to ease this manual operation."
-		printf "${PGPID[passphrase]}\nm\n" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --change-passphrase ${FPRS[0]} 1> >(pl_log notice) 2>&1 || true
-		gpg --homedir "$outdir/gnupg" --edit-key "${FPRS[0]}" || pl_log warning "Moving OpenPGP keys to card returns $?"
-		#printf "m\n${PGPID[passphrase]}\n" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --change-passphrase ${FPRS[0]} 1> >(pl_log crit) 2>&1
+	pl_log notice "Unfortunately, we can't automatize moving key to card, then you should move keys master 1 and 2 manualy..."
+	pl_log notice "Note: password is now set to 'm' to ease this manual operation."
+	printf "${PGPID[passphrase]}\nm\n" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --change-passphrase ${FPRS[0]} 1> >(pl_log notice) 2>&1 || true
+	gpg --homedir "$outdir/gnupg" --edit-key "${FPRS[0]}" || pl_log warning "Moving OpenPGP keys to card returns $?"
+	#printf "m\n${PGPID[passphrase]}\n" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --change-passphrase ${FPRS[0]} 1> >(pl_log crit) 2>&1
 
-		declare -A OPGPCARD=()
-		while IFS=':' read key value ; do
-			case "$key" in
-				[Rr]eader|version|vendor|serial)
-					OPGPCARD[${key,,}]="$value" ;;
-			esac
-		done < <(gpg --homedir "$outdir/gnupg" --card-status --with-colons)
-		PGPID[card$i]="$(declare -p OPGPCARD)"
+	declare -A OPGPCARD=()
+	while IFS=':' read key value ; do
+		case "$key" in
+			[Rr]eader|version|vendor|serial)
+				OPGPCARD[${key,,}]="$value" ;;
+		esac
+	done < <(gpg --homedir "$outdir/gnupg" --card-status --with-colons)
+	PGPID[card$i]="$(declare -p OPGPCARD)"
 
-		_yesno "Do you have an Other OpenPGP card to set up identically" || break
+	_yesno "Do you have an Other OpenPGP card to set up identically" || break
 
-	done
-
-	_shreddir -v -f "$outdir/gnupg" 2> >(pl_log warning) | pl_log debug
-	pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(pl_log crit)
-
-	#lpr < "$outdir/secret.paper.txt"
-	#shred -u "$outdir/secret.paper.txt"
 done
+
+_shreddir -v -f "$outdir/gnupg" 2> >(pl_log warning) | pl_log debug
+pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(pl_log crit)
+
+#lpr < "$outdir/secret.paper.txt"
+#shred -u "$outdir/secret.paper.txt"
 
 exit 0
