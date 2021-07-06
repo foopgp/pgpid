@@ -349,6 +349,26 @@ Options:
 	printf "\n$lb}\n"
 }
 
+_urandom() {
+	local usage="Usage: $FUNCNAME [MODULO]"
+	local helpmsg="
+Output a good random number between 0 and 1<<32,
+or between 0 and (MODULO - 1) if MODULO is given.
+"
+	for ((;$#;)) ; do
+		case "$1" in
+			-h|--h*) printf "%s\n%s\n" "$usage" "$helpmsg" ; return ;;
+			-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
+			--) shift ; break ;;
+			-*) printf "$FUNCNAME: Error: unrecognized option '%s'\nTry '$FUNCNAME --help' for more information.\n" "$1" >&2 ; return 2 ;;
+			*) break ;;
+		esac
+		shift
+	done
+	local m=$1 r=$(od -An -N4 -t u4 < /dev/urandom);
+	echo $((m?r%m:r))
+}
+
 _yesno() {
 	local usage="Usage: $FUNCNAME [OPTIONS] QUESTION"
 	local helpmsg="
@@ -393,30 +413,45 @@ Options:
 
 
 _chooseinlist() {
-# Argument 1: Prompt before the list
-# Argument 2(optionnal): if argument 2 is a number>0, it indicates the number of item by line - defaut: 3.
-# Arguments 2,3...n : items to choose
-# Return the number of the choosen item, 0 if no items.
+	local usage="Usage: $FUNCNAME [OPTIONS] ITEMS..."
+	local helpmsg="
+Display (stderr) numbered list of item and loop asking for a number in this list
+Then echo (stdout) selected number (1-n).
 
-	local ret=0 nperline=3 n
-	echo -n "$1"
-	shift
-	(($1>0)) && nperline=$1 && shift
-	n=$#
-	for ((i=0;$#;)) ; do
-		if ((i%nperline)) ; then
-			echo -en "\t\t"
-		else
-			echo -en "\n\t"
-		fi
-		echo -en "$((++i))) $1"
+Options:
+  -p, --preamble     TEXT    Text/Question to display before the list
+  -n, --num-per-line NUMBER  Number of items per line (default: 3)
+"
+	local pr nperline=3 n i ret=0
+	for ((;$#;)) ; do
+		case "$1" in
+			-p|--pre*) shift ; pr="$1" ;;
+			-n|--num*) shift ; nperline="$1" ;;
+			-h|--h*) printf "%s\n%s\n" "$usage" "$helpmsg" ; return ;;
+			-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
+			--) shift ; break ;;
+			-*) printf "$FUNCNAME: Error: unrecognized option '%s'\nTry '$FUNCNAME --help' for more information.\n" "$1" >&2 ; return 2 ;;
+			*) break ;;
+		esac
 		shift
 	done
-	echo
-	while ! ((ret)) || ((ret<1 || ret>n)) ; do
+	n=$#
+	((n)) || { printf "$FUNCNAME: Error: need items\nTry '$FUNCNAME --help' for more information.\n" >&2 ; return 1 ; }
+	printf "$pr" >&2
+	for ((i=0;i<n;)) ; do
+		if ((i%nperline)) ; then
+			printf "\t\t" >&2
+		else
+			printf "\n\t" >&2
+		fi
+		printf "$((++i))) $1" >&2
+		shift
+	done
+	echo >&2
+	while ((ret<1 || ret>n)) ; do
 		read -p "Reply (1-$n) ? " ret
 	done
-	return $ret
+	echo $ret
 }
 
 
@@ -585,6 +620,16 @@ Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 		#TODO: Improve parsing wks_support and distinct WKD and WKS (and later WKS versions)
 		pl_log warning "Your email provider support neither WKD or WKS protocol :-("
 	fi
+
+	aspell_dicts=($(aspell dump dicts | grep "^[a-z]\+$"))
+	nd=$(_chooseinlist -n 5 -p "Prefered language to generate a good passphrase ?" "${aspell_dicts[@]}")
+	((nd--))
+	sd=$(aspell -d "${aspell_dicts[$nd]}" dump master | grep -v "'" | wc -l)
+	while true ; do
+		PGPID[passphrase]="$(aspell -d "${aspell_dicts[$nd]}" dump master | grep -v "'" | sed -n "$(_urandom $sd)p ; $(_urandom $sd)p ; $(_urandom $sd)p" | tr '\n' '_')"
+		PGPID[passphrase]="${PGPID[passphrase]::-1}"
+		! _yesno --default=yes -p "random passphrase: ${PGPID[passphrase]}" "Agree" || break
+	done
 
 	PGPID[hkp_server]="foopgp.org:11371"
 	pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(pl_log crit)
