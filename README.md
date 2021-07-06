@@ -24,6 +24,13 @@ pgpid - generate OpenPGP certificates and keys from passports or ID cards.
 
 Returns zero on normal operation, non-zero on errors.
 
+# DEPENDENCIES
+
+For Debian:
+
+```
+apt install facedetect graphicsmagick tesseract-ocr
+```
 
 # EXAMPLES
 
