@@ -369,6 +369,35 @@ or between 0 and (MODULO - 1) if MODULO is given.
 	echo $((m?r%m:r))
 }
 
+_shreddir() {
+	local usage="Usage: $FUNCNAME [OPTIONS] PATHS..."
+	local helpmsg="
+Recursively shred all files in a directory tree.
+Options:
+      -f, --force          Change file permissions if necessary, ignore nonexistent files or dir, never prompt
+      -v, --verbose        Explain what is being done (stdout)
+"
+	local farg varg files
+	for ((;$#;)) ; do
+		case "$1" in
+			-f|--force) farg="-f" ;;
+			-v|--verb*) varg="-v" ;;
+			-h|--h*) printf "%s\n%s\n" "$usage" "$helpmsg" ; return ;;
+			-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
+			--) shift ; break ;;
+			-*) printf "$FUNCNAME: Error: unrecognized option '%s'\nTry '$FUNCNAME --help' for more information.\n" "$1" >&2 ; return 2 ;;
+			*) break ;;
+		esac
+		shift
+	done
+	IFS=$'\n' files=($(find "$@" -type f))
+	! [[ "$varg" ]] || echo "shredding and removing: ${files[@]}"
+	shred -u $farg "${files[@]}" || return 1
+	rm -r $farg $varg "$@" || return 1
+}
+
+
+
 _yesno() {
 	local usage="Usage: $FUNCNAME [OPTIONS] QUESTION"
 	local helpmsg="
@@ -580,7 +609,6 @@ Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 	fi
 
 	outdir="${PGPI_OUTPATH%/}/${PGPID[udid4]}"
-	mkdir -p "$outdir/gnupg"
 	cp -bvf "$f" "$outdir/document.orig" 2> >(pl_log warning) | pl_log info
 
 	# Resize and display scanned face
@@ -635,8 +663,14 @@ Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
 	pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(pl_log crit)
 
 	#TODO: check gpg version, because we use some recent feature, and compatibility may change (tested with gpg (GnuPG) 2.2.27 libgcrypt 1.8.8)
+	# Remove previous gnupg temp dir, if present.
+	if [[ -d "$outdir/gnupg" ]] ; then
+		_shreddir -v -f "$outdir/gnupg" 2> >(pl_log warning) | pl_log debug
+	fi
+	mkdir -p "$outdir/gnupg"
+	chmod -R go-rwx "$outdir"
 
-	cat >"$outdir/gpg.genkey.batch" <<EOF
+	cat >"$outdir/gnupg/gpg.genkey.batch" <<EOF
 %echo Generating OpenPGP key for ${PGPID[pseudonym]}
 Key-Type: eddsa
 Key-Curve: Ed25519
@@ -648,14 +682,12 @@ Name-Real: ${PGPID[pseudonym]}
 Name-Comment: udid4=${PGPID[udid4]}
 Name-Email: ${PGPID[email]}
 Expire-Date: $(date -I -d "+11 years")
-Passphrase: ${PGPID[birth_date]//-/}
+Passphrase: ${PGPID[passphrase]}
 Keyserver: hkp://${PGPID[hkp_server]}
 # Do a commit here, so that we can later print "done" :-)
 %commit
 EOF
-
-	chmod -R go-rwx "$outdir"
-	if ! gpg --homedir "$outdir/gnupg" --batch --generate-key --allow-freeform-uid "$outdir/gpg.genkey.batch" 2> >(pl_log notice) ; then
+	if ! gpg --homedir "$outdir/gnupg" --batch --generate-key --allow-freeform-uid "$outdir/gnupg/gpg.genkey.batch" 2> >(pl_log notice) ; then
 		pl_log error "gpg --generate-key FAIL ($?)"
 		continue
 	fi
@@ -665,7 +697,7 @@ EOF
 	PGPID[pubkey_uri]="http://${PGPID[hkp_server]}/pks/lookup?search=${FPRS[0]}&op=get"
 
 	# Add photo
-	if ! gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "${PGPID[birth_date]//-/}" --edit-key ${FPRS[0]} 1> >(pl_log debug) 2>&1 <<<"addphoto
+	if ! gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --edit-key ${FPRS[0]} 1> >(pl_log debug) 2>&1 <<<"addphoto
 $outdir/face.jpg
 y
 save
@@ -675,11 +707,11 @@ save
 	fi
 
 	pl_log info "Generate auth key to be put in OpenPGP card..."
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --quick-add-key ${FPRS[0]} ed25519 auth 11y 2> >(pl_log notice)
+	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --quick-add-key ${FPRS[0]} ed25519 auth 11y 2> >(pl_log notice)
 	pl_log info "Generate extra signing keys..."
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(pl_log notice)
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(pl_log notice)
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(pl_log notice)
+	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(pl_log notice)
+	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(pl_log notice)
+	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(pl_log notice)
 
 	# updates array of fingerprints
 	FPRS=($(gpg --homedir "$outdir/gnupg" --list-secret-keys --with-colons 2> >(pl_log notice) | sed -n 's,^fpr:.*:\([[:xdigit:]]\{40\}\):,\1,p'))
@@ -691,13 +723,14 @@ save
 	gpg --homedir "$outdir/gnupg" --export-ssh-key ${FPRS[0]} 2> >(pl_log crit) > "$outdir/ssh_${PGPID[udid4]}.pub"
 	pl_log info "Prepare paper to backup master key, and export secret subkeys..."
 	umask 0077
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --export-secret-keys ${FPRS[0]}\! 2> >(pl_log crit) | paperkey 2> >(pl_log crit) > "$outdir/secret.paper.txt"
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! 2> >(pl_log crit) > "$outdir/secret.E.asc"
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[2]}\! 2> >(pl_log crit) > "$outdir/secret.A.asc"
+	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --export-secret-keys ${FPRS[0]}\! 2> >(pl_log crit) | paperkey 2> >(pl_log crit) > "$outdir/secret.paper.txt"
+	printf "\n# Initial passphrase: ${PGPID[passphrase]}\n" >> "$outdir/secret.paper.txt"
+	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! 2> >(pl_log crit) > "$outdir/secret.E.asc"
+	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[2]}\! 2> >(pl_log crit) > "$outdir/secret.A.asc"
 	pl_log info "export secret sub-keys to be use in thunderbird, delta chat, etc..."
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[3]}\! 2> >(pl_log crit) > "$outdir/secret.S1.asc"
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! ${FPRS[4]}\! 2> >(pl_log crit) > "$outdir/secret.S2+E.asc"
-	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[birth_date]//-/}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! ${FPRS[5]}\! 2> >(pl_log crit) > "$outdir/secret.S3+E.asc"
+	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[3]}\! 2> >(pl_log crit) > "$outdir/secret.S1.asc"
+	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! ${FPRS[4]}\! 2> >(pl_log crit) > "$outdir/secret.S2+E.asc"
+	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! ${FPRS[5]}\! 2> >(pl_log crit) > "$outdir/secret.S3+E.asc"
 
 	# log some info
 	gpg --quiet --homedir "$outdir/gnupg" --list-keys > >(pl_log info) 2> >(pl_log warning)
@@ -739,11 +772,15 @@ quit" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pin
 
 		pl_log info "Reimport secret key to be moved with keytocard..."
 		gpg --homedir "$outdir/gnupg" --batch --command-fd 0 --pinentry-mode loopback --yes --delete-secret-keys ${FPRS[0]}\! ${FPRS[1]}\! ${FPRS[2]}\!
-		gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[birth_date]//-/}" --import 2> >(pl_log notice) < <(paperkey --pubring "$outdir/PGPcert.gpg" --secrets "$outdir/secret.paper.txt" 2> >(pl_log crit) )
-		gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[birth_date]//-/}" --import 2> >(pl_log info) <"$outdir/secret.E.asc"
-		gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[birth_date]//-/}" --import 2> >(pl_log info) <"$outdir/secret.A.asc"
+		gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --import 2> >(pl_log notice) < <(paperkey --pubring "$outdir/PGPcert.gpg" --secrets "$outdir/secret.paper.txt" 2> >(pl_log crit) )
+		gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --import 2> >(pl_log info) <"$outdir/secret.E.asc"
+		gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --import 2> >(pl_log info) <"$outdir/secret.A.asc"
 
+		pl_log notice "Unfortunately, we can't automatize moving key to card, then you should move keys master 1 and 2 manualy..."
+		pl_log notice "Note: password is now set to 'm' to ease this manual operation."
+		printf "${PGPID[passphrase]}\nm\n" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --change-passphrase ${FPRS[0]} 1> >(pl_log notice) 2>&1 || true
 		gpg --homedir "$outdir/gnupg" --edit-key "${FPRS[0]}" || pl_log warning "Moving OpenPGP keys to card returns $?"
+		#printf "m\n${PGPID[passphrase]}\n" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --change-passphrase ${FPRS[0]} 1> >(pl_log crit) 2>&1
 
 		declare -A OPGPCARD=()
 		while IFS=':' read key value ; do
@@ -758,6 +795,7 @@ quit" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pin
 
 	done
 
+	_shreddir -v -f "$outdir/gnupg" 2> >(pl_log warning) | pl_log debug
 	pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(pl_log crit)
 
 	#lpr < "$outdir/secret.paper.txt"
