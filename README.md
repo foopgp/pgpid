@@ -8,7 +8,7 @@ date: May 2021
 
 # NAME
 
-pgpid - generate OpenPGP certificates and keys from passports or ID cards.
+pgpid-gen - generate OpenPGP certificates and keys from passports or ID cards.
 
 # SYNOPSIS
 
@@ -29,7 +29,7 @@ Returns zero on normal operation, non-zero on errors.
 For Debian:
 
 ```
-apt install facedetect graphicsmagick tesseract-ocr
+apt install facedetect graphicsmagick tesseract-ocr paperkey
 ```
 
 # EXAMPLES
