@@ -154,7 +154,8 @@ else return non-zero if EXPECTED_RESULT differs from calculated check digit.
 
 mrz_analyse() {
 	local helpmsg="Usage: $FUNCNAME AANAME MRZ
-Analyse a Machine Readable Zone and fill the associative array named AANAME"
+Analyse a Machine Readable Zone and fill the associative array named AANAME
+"
 
 	for ((;$#;)) ; do
 		case "$1" in
@@ -396,7 +397,52 @@ Options:
 	rm -r $farg $varg "$@" || return 1
 }
 
+_gen_passphrase () {
+	local dict=${LANG::2} nw=3 interactive=false sedcmd sd ret
+	local usage="Usage: $FUNCNAME [OPTIONS]"
+	local helpmsg="
+Generate a good random passphrase
+Options:
+  -i, --interactive        Ask language and user agreement
+  -l, --list-dicts         List available dictionaries (aspell) and return
+  -D, --dict DICTIONARY    Dictionary to use (default: ${dict:=en})
+  -n, --nwords NUMBER      Number of words in passphrase (default: $nw)
+"
+	for ((;$#;)) ; do
+		case "$1" in
+			-i|--interactive) interactive=true ;;
+			-l|--list-dict*) aspell dump dicts ; return $? ;;
+			-D|--dict*) shift ; dict="$1" ;;
+			-n|--nword*) shift ; nw="$1" ;;
+			-h|--h*) printf "%s\n%s\n" "$usage" "$helpmsg" ; return ;;
+			-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
+			--) shift ; break ;;
+			-*) printf "$FUNCNAME: Error: unrecognized option '%s'\nTry '$FUNCNAME --help' for more information.\n" "$1" >&2 ; return 2 ;;
+			*) break ;;
+		esac
+		shift
+	done
+	((! $#)) || printf "$FUNCNAME: Warning: ignoring arguments $@\n" >&2
 
+	while ((nw-- > 0)) ; do
+		sedcmd+="\$(_urandom \$sd)p ; "
+	done
+
+	if $interactive ; then
+		local nd aspell_dicts=( $(aspell dump dicts | grep "^[a-z]\+$") )
+		nd=$(_chooseinlist -n 5 -p "Prefered language to generate a good passphrase ?" "${aspell_dicts[@]}")
+		((nd--))
+		dict="${aspell_dicts[$nd]}"
+	fi
+	sd=$(aspell -d "$dict" dump master | grep -v "'" | wc -l)
+	while true ; do
+		ret="$(aspell -d "$dict" dump master | grep -v "'" | eval sed -n \""$sedcmd"\" | tr '\n' '_')"
+		ret="${ret::-1}"
+		$interactive || break
+		! _yesno --default=yes -p "random passphrase: $ret" "Agree" || break
+	done
+	echo "$ret"
+}
 
 _yesno() {
 	local usage="Usage: $FUNCNAME [OPTIONS] QUESTION"
@@ -647,15 +693,8 @@ if ! [[ "${PGPID[wks_support]}" =~ :1: ]] ; then
 	pl_log warning "Your email provider support neither WKD or WKS protocol :-("
 fi
 
-aspell_dicts=($(aspell dump dicts | grep "^[a-z]\+$"))
-nd=$(_chooseinlist -n 5 -p "Prefered language to generate a good passphrase ?" "${aspell_dicts[@]}")
-((nd--))
-sd=$(aspell -d "${aspell_dicts[$nd]}" dump master | grep -v "'" | wc -l)
-while true ; do
-	PGPID[passphrase]="$(aspell -d "${aspell_dicts[$nd]}" dump master | grep -v "'" | sed -n "$(_urandom $sd)p ; $(_urandom $sd)p ; $(_urandom $sd)p" | tr '\n' '_')"
-	PGPID[passphrase]="${PGPID[passphrase]::-1}"
-	! _yesno --default=yes -p "random passphrase: ${PGPID[passphrase]}" "Agree" || break
-done
+
+PGPID[passphrase]="$(_gen_passphrase --interactive)"
 
 PGPID[hkp_server]="foopgp.org:11371"
 pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(pl_log crit)
