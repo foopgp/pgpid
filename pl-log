@@ -38,12 +38,18 @@ if [[ "$1" == --bash-completion ]] ; then
 	return 0
 fi
 
-declare -r PL_LOG_NAME="$(basename $(readlink -f "$BASH_SOURCE") )"
-declare -r PL_LOG_VERSION="0.0.1"
+# If sourcing while _pl_log_parseoptions is already set, execute the function and return without reloading rest of file.
+if [[ "$BASH_SOURCE" != "$0" ]] && [[ "$(type -t _pl_log_parseoptions)" == function ]] ; then
+	_pl_log_parseoptions "$PL_LOG_NAME" "$@"
+	return $?
+fi
 
 ### Constants ###
 
-[[ "$(declare -p PL_LOGLEVELS 2>&1)" =~ ^declare" "-Ar ]] || declare -Ar PL_LOGLEVELS=(
+declare -r PL_LOG_NAME="$(basename $(readlink -f "$BASH_SOURCE") )"
+declare -r PL_LOG_VERSION="0.0.1"
+
+declare -Ar PL_LOGLEVELS=(
 [emerg]=0
 [alert]=1
 [crit]=2
@@ -79,7 +85,9 @@ else
 	PL_LOG_usage="Usage: source $BASH_SOURCE [OPTIONS]..."
 
 	PL_LOG_SOPTIONS="
-      --bash-completion    set completion for $BASH_SOURCE program and return (without loading anything else)"
+      --bash-completion    set completion for $BASH_SOURCE program and return (without loading anything else)
+
+Reminder: when used as a library, all functions calls share the same environment variables, i.e. the same options."
 fi
 
 
@@ -134,7 +142,7 @@ $PL_LOG_SOPTIONS
 ### functions ###
 
 #TODO: explain in comment why we dont use getopts...
-_pl_parseoptions() {
+_pl_log_parseoptions() {
 	local name=$1
 	[[ "$name" =~ ^- ]] && { echo -e "Usage: $FUNCNAME NAME \"\$@\"\nFor program/function named NAME: parse Options in \$@ and set ARGV array containing remaining parameters" >&2 ; return 1 ; }
 	shift
@@ -172,7 +180,7 @@ pl_log() {
 	local PL_LOG_usage="Usage: $FUNCNAME [OPTIONS]... PRIORITY [MESSAGE]..."
 	local -I PL_LOGLEVEL PL_LOGEXITLNAME PL_LOG_O_STDERR PL_LOG_O_NOACT PL_LOGGER_OPTIONS PL_LOG_COLOR
 	local PL_LOG_helpmsg="$PL_LOG_commonhelpmsg"
-	_pl_parseoptions "$FUNCNAME" "$@" || return $?
+	_pl_log_parseoptions "$FUNCNAME" "$@" || return $?
 	set "${ARGV[@]}"
 
 	local priority=$1 plname=${1##*.} filter
@@ -197,7 +205,7 @@ pl_log() {
 ### Init ###
 
 # Parse Options
-_pl_parseoptions "$PL_LOG_NAME" "$@"
+_pl_log_parseoptions "$PL_LOG_NAME" "$@"
 
 # Do nothing else if sourced
 [[ "$BASH_SOURCE" == "$0" ]] || return 0
