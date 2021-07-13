@@ -5,36 +5,62 @@
 #
 # Bash library and executable that wraps 'logger to write log on stderr or syslog,
 # then exit if log level is more serious than PL_LOGEXITLNAME.
-#
-# TODO: complete completion
 
 if [[ "$1" == --bash-completion ]] ; then
 	_pl_log_completion()
 	{
-		local cur prev options
-		local IFS=$'\n'
-
+		local cur prev OPTS
 		COMPREPLY=()
-		cur=${COMP_WORDS[COMP_CWORD]}
-
-		if [[ "$cur" == -* ]]; then
-			options="--syslog --help --version"
-
-			COMPREPLY=( $(IFS=" " compgen -W "$options" -- $cur ) )
-		else
-			prev=${COMP_WORDS[COMP_CWORD-1]}
-			case $prev in
-				-o|--output-path)
-					COMPREPLY=( $(compgen  -d -- $cur ) )
-					return ;;
-				# some options will exit without executing any actions, so don't complete anything
-				-h|--help|-V|--version)
-					return ;;
-			esac
-
+		cur="${COMP_WORDS[COMP_CWORD]}"
+		prev="${COMP_WORDS[COMP_CWORD-1]}"
+		if grep -q -- "\<\(emerg\|alert\|crit\|err\|error\|warning\|notice\|info\|debug\)\>" <<< "${COMP_WORDS[@]}" ; then
+			return 0
 		fi
+		case $prev in
+			'-f'|'--file')
+				local IFS=$'\n'
+				compopt -o filenames
+				COMPREPLY=( $(compgen -f -- $cur) )
+				return 0 ;;
+			'-n'|'--server')
+				COMPREPLY=( $(compgen -A hostname -- $cur) )
+				return 0 ;;
+			'-P'|'--port')
+				COMPREPLY=( $(compgen -W "$(awk '$1 ~ /^syslog$/  {split($2, a, "/"); print a[1]}' /etc/services)" -- $cur) )
+				return 0 ;;
+			'-t'|'--tag')
+				COMPREPLY=( $(compgen -W "tag" -- $cur) )
+				return 0 ;;
+			'-u'|'--socket')
+				COMPREPLY=( $(compgen -W "$(awk '$NF ~ /^\// {print $NF}' /proc/net/unix)" -- $cur) )
+				return 0 ;;
+			'--msgid')
+				COMPREPLY=( $(compgen -W "msgid" -- $cur) )
+				return 0 ;;
+			'-h'|'--help'|'-V'|'--version')
+				return 0 ;;
+			'--log-exit')
+				COMPREPLY=( $(compgen -W "{emerg,alert,crit,err,error,warning,notice,info,debug}" -- $cur) )
+				return 0 ;;
+		esac
+		case $cur in
+			'--socket-errors'*|'--color'*)
+				COMPREPLY=( $(compgen -W "--{socket-errors,color}={on,off,auto}" -- "$cur" ) )
+				return 0 ;;
+			'--journald'*)
+				local IFS=$'\n'
+				compopt -o filenames
+				COMPREPLY=( $(compgen -P "--journald=" -f -- "${cur:12}" ) )
+				return 0 ;;
+			-*)
+				OPTS="--file --help --id= --journald --journald= --msgid --no-act --octet-count --port --prio-prefix --rfc3164 --rfc5424= --server --size --skip-empty --socket --socket-errors --socket-errors= --stderr --tag --tcp --udp --version --log-level --log-exit --color --color= --quiet "
+				COMPREPLY=( $(compgen -W "${OPTS}" -- $cur) )
+				return 0 ;;
+		esac
+		COMPREPLY=( $(compgen -W "{,auth.,authpriv.,cron.,daemon.,ftp.,lpr.,mail.,news.,syslog.}{emerg,alert,crit,err,error,warning,notice,info,debug}" -- $cur) )
+		return 0
 	}
-	complete -o filenames -F _pl_log_completion "$BASH_SOURCE"
+	complete -F _pl_log_completion "$BASH_SOURCE"
 	return 0
 fi
 
