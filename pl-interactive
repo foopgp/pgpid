@@ -10,7 +10,7 @@
 if [[ "$1" == --bash-completion ]] ; then
 	_pl_interactive_completion()
 	{
-		local cur prev coptions="--help --version"
+		local cur prev coptions="--help --version --"
 		local IFS=$'\n'
 
 		COMPREPLY=()
@@ -79,7 +79,7 @@ Options:
 
 _pl_interactive_parseoptions() {
 	local name=$1
-	[[ "$name" =~ ^- ]] && { echo -e "Usage: $FUNCNAME NAME \"\$@\"\nFor program/function named NAME: parse Options in \$@ and set ARGV array containing remaining parameters" >&2 ; return 1 ; }
+	[[ "$name" =~ ^- ]] && { echo -e "Usage: $FUNCNAME NAME \"\$@\"\nFor program/function named NAME: parse Options beginning \$@." >&2 ; return 1 ; }
 	shift
 	for ((;$#;)) ; do
 		case "$1" in
@@ -91,7 +91,6 @@ _pl_interactive_parseoptions() {
 		esac
 		shift
 	done
-	ARGV=("$@")
 }
 
 
@@ -113,7 +112,7 @@ Options:
 			--default=no) def="no" ;;
 			-p|--pre*) shift ; pr="$1" ;;
 			-h|--h*) printf "%s\n%s\n" "$usage" "$helpmsg" ; return ;;
-			-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
+			-V|--vers*) echo "$FUNCNAME $PL_INTERACTIVE_VERSION" ; return ;;
 			--) shift ; break ;;
 			-*) printf "$FUNCNAME: Error: unrecognized option '%s'\nTry '$FUNCNAME --help' for more information.\n" "$1" >&2 ; return 2 ;;
 			*) break ;;
@@ -154,7 +153,7 @@ Options:
 			-p|--pre*) shift ; pr="$1" ;;
 			-n|--num*) shift ; nperline="$1" ;;
 			-h|--h*) printf "%s\n%s\n" "$usage" "$helpmsg" ; return ;;
-			-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
+			-V|--vers*) echo "$FUNCNAME $PL_INTERACTIVE_VERSION" ; return ;;
 			--) shift ; break ;;
 			-*) printf "$FUNCNAME: Error: unrecognized option '%s'\nTry '$FUNCNAME --help' for more information.\n" "$1" >&2 ; return 2 ;;
 			*) break ;;

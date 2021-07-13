@@ -75,7 +75,7 @@ if [[ "$BASH_SOURCE" == "$0" ]] ; then
 	PL_LOGEXITLNAME="${PL_LOGEXITLNAME:-err}"
 
 	PL_LOG_usage="Usage: $BASH_SOURCE [OPTIONS]... PRIORITY [MESSAGE]..."
-	PL_LOG_SOPTIONS="
+	PL_LOG_shelpmsg="
 $PL_LOG_NAME is also bash library, see:
 $ source $BASH_SOURCE --help"
 else
@@ -84,7 +84,7 @@ else
 
 	PL_LOG_usage="Usage: source $BASH_SOURCE [OPTIONS]..."
 
-	PL_LOG_SOPTIONS="
+	PL_LOG_shelpmsg="
       --bash-completion    set completion for $BASH_SOURCE program and return (without loading anything else)
 
 Reminder: when used as a library, all functions calls share the same environment variables, i.e. the same options."
@@ -93,7 +93,7 @@ fi
 
 ### Help messages ###
 
-PL_LOG_commonhelpmsg="
+PL_LOG_chelpmsg="
 PRIORITY list: $(declare -p PL_LOGLEVELS)
 If PRIORITY's level is under PL_LOGLEVEL=$PL_LOGLEVEL, don't log anything.
 If PRIORITY's level name is more serious than PL_LOGEXITLNAME=$PL_LOGEXITLNAME, exit(8+'PRIORITY's level')
@@ -134,11 +134,6 @@ Options forwarded to 'logger':
       --journald[=<file>]  write journald entry"
 
 
-PL_LOG_helpmsg="
-$PL_LOG_commonhelpmsg
-$PL_LOG_SOPTIONS
-"
-
 ### functions ###
 
 #TODO: explain in comment why we dont use getopts...
@@ -148,9 +143,9 @@ _pl_log_parseoptions() {
 	shift
 	for ((;$#;)) ; do
 		case "$1" in
-			-l|--log-l*) shift ; PL_LOGLEVEL="$1" ; [[ "$PL_LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; return 2 ; } ;;
+			-l|--log-l*) shift ; PL_LOGLEVEL="$1" ; [[ "$PL_LOGLEVEL" == [0-9] ]] || { printf "Error: log-level out of range [0-7]\n" >&2 ; return 2 ; } ;;
 			-L|--log-e*) shift ; PL_LOGEXITLNAME="$1"
-				grep -q "\<$PL_LOGEXITLNAME\>" <<<${!PL_LOGLEVELS[@]} || { echo -e "Error: log-exit \"$PL_LOGEXITLNAME\" is none of: ${!PL_LOGLEVELS[@]}" >&2 ; return 2 ; } ;;
+				grep -q "\<$PL_LOGEXITLNAME\>" <<<${!PL_LOGLEVELS[@]} || { printf "Error: log-exit \"$PL_LOGEXITLNAME\" is none of: ${!PL_LOGLEVELS[@]}\n" >&2 ; return 2 ; } ;;
 			-q|--quiet) PL_LOG_O_STDERR="" ;;
 			-Q|--no-act) PL_LOG_O_NOACT="--no-act" ;;
 			--color|--color=on) PL_LOG_COLOR=on ;;
@@ -164,10 +159,10 @@ _pl_log_parseoptions() {
 				PL_LOGGER_OPTIONS+=("$1") ;;
 			--id*|--rfc5424*|--socket-errors*|--journald*)
 				PL_LOGGER_OPTIONS+=("$1") ;;
-			-h|--h*) echo "$PL_LOG_usage$PL_LOG_helpmsg" ; return 2 ;;
-			-V|--vers*) echo "$name $PL_LOG_VERSION" ; return 2 ;;
+			-h|--h*) printf "$PL_LOG_usage\n$PL_LOG_chelpmsg\n$PL_LOG_shelpmsg\n" ; return 2 ;;
+			-V|--vers*) printf "$name $PL_LOG_VERSION\n" ; return 2 ;;
 			--) shift ; break ;;
-			-*) echo -e "$name: unrecognized option '$1'\n$PL_LOG_usage\nTry '$name --help' for more information." >&2 ; return 2 ;;
+			-*) printf "$name: unrecognized option '$1'\n$PL_LOG_usage\nTry '$name --help' for more information.\n" >&2 ; return 2 ;;
 			*) break ;;
 		esac
 		shift
@@ -179,7 +174,7 @@ _pl_log_parseoptions() {
 pl_log() {
 	local PL_LOG_usage="Usage: $FUNCNAME [OPTIONS]... PRIORITY [MESSAGE]..."
 	local -I PL_LOGLEVEL PL_LOGEXITLNAME PL_LOG_O_STDERR PL_LOG_O_NOACT PL_LOGGER_OPTIONS PL_LOG_COLOR
-	local PL_LOG_helpmsg="$PL_LOG_commonhelpmsg"
+	local PL_LOG_helpmsg="$PL_LOG_chelpmsg"
 	_pl_log_parseoptions "$FUNCNAME" "$@" || return $?
 	set "${ARGV[@]}"
 
