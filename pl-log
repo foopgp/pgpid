@@ -91,7 +91,6 @@ declare -Ar PL_LOGLEVELS=(
 PL_LOGCOLORS=(47 45 41 31 35 33 36 37)
 PL_LOGLEVEL="${PL_LOGLEVEL:-7}"
 PL_LOG_O_STDERR="--stderr"
-PL_LOG_O_NOACT=""
 PL_LOGGER_OPTIONS=""
 PL_LOG_COLOR="auto"
 
@@ -173,10 +172,10 @@ _pl_log_parseoptions() {
 			-L|--log-e*) shift ; PL_LOGEXITLNAME="$1"
 				grep -q "\<$PL_LOGEXITLNAME\>" <<<${!PL_LOGLEVELS[@]} || { printf "Error: log-exit \"$PL_LOGEXITLNAME\" is none of: ${!PL_LOGLEVELS[@]}\n" >&2 ; return 2 ; } ;;
 			-q|--quiet) PL_LOG_O_STDERR="" ;;
-			-Q|--no-act) PL_LOG_O_NOACT="--no-act" ;;
 			--color|--color=on) PL_LOG_COLOR=on ;;
 			--color=off) PL_LOG_COLOR=off ;;
 			--color=auto) PL_LOG_COLOR=auto ;;
+			-Q|--no-act) PL_LOGGER_OPTIONS+=("--no-act") ;;
 			-i|-e|--skip-empty|--octet-count|--prio-prefix|-T|--tcp|-d|--udp|--rfc3164)
 				PL_LOGGER_OPTIONS+=("$1") ;;
 			-f|--file|-S|--size|-t|--tag|-n|--server|-P|--port|--sd-id|--sd-param|--msgid|-u|--socket)
@@ -199,13 +198,14 @@ _pl_log_parseoptions() {
 
 pl_log() {
 	local PL_LOG_usage="Usage: $FUNCNAME [OPTIONS]... PRIORITY [MESSAGE]..."
-	local -I PL_LOGLEVEL PL_LOGEXITLNAME PL_LOG_O_STDERR PL_LOG_O_NOACT PL_LOGGER_OPTIONS PL_LOG_COLOR
+	local -I PL_LOGLEVEL PL_LOGEXITLNAME PL_LOG_O_STDERR PL_LOGGER_OPTIONS PL_LOG_COLOR
 	local PL_LOG_helpmsg="$PL_LOG_chelpmsg"
 	_pl_log_parseoptions "$FUNCNAME" "$@" || return $?
+	[[ -n "${ARGV[*]}" ]] || { echo "Error: Please give at least a priority (${!PL_LOGLEVELS[@]})" >&2 ; return 2 ; }
 	set "${ARGV[@]}"
 
 	local priority=$1 plname=${1##*.} filter
-	grep -q "\<$plname\>" <<<${!PL_LOGLEVELS[@]} || { echo -e "Error: log-exit priority's level name ($plname) is none of: ${!PL_LOGLEVELS[@]}" >&2 ; return 2 ; }
+	grep -q "\<$plname\>" <<<${!PL_LOGLEVELS[@]} || { echo "Error: priority's level name ($plname) is none of: ${!PL_LOGLEVELS[@]}" >&2 ; return 2 ; }
 	shift
 	local llevel=${PL_LOGLEVELS[$plname]}
 	if ((llevel > $PL_LOGLEVEL)) ; then
@@ -217,7 +217,7 @@ pl_log() {
 		else
 			filter="2> >(sed 's,: ,: ${plname^}: ,' >&2)"
 		fi
-		eval 'logger -p "$priority" $PL_LOG_O_STDERR $PL_LOG_O_NOACT --id=$$ --tag "${0##*/}" ${PL_LOGGER_OPTIONS[@]} -- "$@" '"$filter"
+		eval 'logger -p "$priority" $PL_LOG_O_STDERR --id=$$ --tag "${0##*/}" ${PL_LOGGER_OPTIONS[@]} -- "$@" '"$filter"
 	fi
 	((llevel > PL_LOGLEVELS[$PL_LOGEXITLNAME] )) || exit $((8+llevel))
 }
