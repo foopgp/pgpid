@@ -1,0 +1,69 @@
+23:07
+salut, content de te voir arriver là.
+poka m'a passé la vidéo de ton intervention oenpgp, cool que tu ai pu rapporter ça à la piniche.
+Je voudrai te présenter cet algo de calcul de confiance https://www.copylaradio.com/blog/blog-1/post/un-systeme-de-confiance-28
+Qu'en penses-tu?
+11:12
+Plein de bonne chose
+11:25
+Excuse moi de mettre du temps à répondre. J'ai lu ta présentation à la frontière Hongrie-Ukraine (on y a passé 3 heures...) et depuis je me suis dit qu'il fallait au moins 2 heures pour te répondre complètement... bah je sais pas quand je les prendraient.
+
+En effet sur certains passage je n'ai rien à redire, sur d'autres je vois des trucs à préciser ou améliorer.
+
+Et le plus important, cela m'a donné des idées pour la suite des outils que je suis en train de faire autour d'OpenPGP :
+A coté du programme qui sert à générer son identité numérique sous forme de certificat OpenPGP,
+faire un programme pour accompagner la certification des certificats d'autrui.
+
+Sachant que quand l'on certifie un autre certificat, on peut y ajouter plein d'informations, et celui qui possède le certificat doit pouvoir choisir de les publier, ou non.
+
+Je verrez donc bien une série de question :
+* Voulez certifiez comment cette personne publie généralement des informations ? (yes/no)
+
+Si oui, Selon vous ...
+
+* En règle générale, quelle importance cette personne accorde-t-elle à l'exactitude des informations qu'elle propage ?
+0 ne sait pas
+1 faible importance (cette personne privilégie les opinions plutôt que les faits)
+2 moyenne
+3 haute importance (cette personne n'hésite pas à propager des informations qui déplaceraient ses points de vue)
+
+* En règle générale, quelle importance cette personne accorde-t-elle à la forme des informations qu'elle propage ?
+0 ne sait pas
+1 faible importance, cette personne se met difficilement à la place d'un de ses lecteurs
+2
+3 haute importance, cette personne fait attention à utiliser un langage soigné et compréhensible par le maximum de lecteurs
+
+En règle générale cette personne est-elle corruptible ?
+0 ne sait pas
+1 Tres peu corruptible
+2
+3 extrêmement cupide
+
+En règle générale, cette personne est-elle corruptrice ?
+0 ne sait pas
+1 faiblement, cette personne est très libérale dans son rapport aux autres
+2
+3 cette personne n’hésite pas à utiliser tous les moyens à sa disposition pour influencer les autres
+
+(etc... à toi de réfléchir aussi 😉
+
+Puis ensuite pour des domaines :
+* Ferez vous confiance à cette personne pour propager des informations médicales ?
+0 ne sait pas
+1 pas confiance
+2 moyen
+3 hautement
+
+* Ferez vous confiance à cette personne pour propager des informations politiques ?
+* Ferez vous confiance à cette personne pour propager des informations sur la sécurité informatique ?
+* Ferez vous confiance à cette personne pour propager des informations sur le thème de la montagne ?
+etc...
+12:20
+j'aime beaucoup le QCM que tu proposes, il élargit la finesse et signification de la "toile de confiance".
+En plus elle ouvre à ses autres usages "administratifs" p2p.
+pour moi la WoT de la June est comme l'Etat civil (équivalent du contrat qui relie notre nom de famille en majuscule au contrat du jeu de société)
+Avant que le système complet ne soit au point complètement, j'ai créé une démo qui démarre en envoyant un SMS, puis qui guide l'utilisateur dans sa compréhension et sa découverte de ce nouveau concept (paradigme!)...
+Cela a donné naissance au "JEu ONE LOVE" qui change le jeu de société animé par https://oasis.astroport.com
+
+on en reparle avec joie
+

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# Copyright © 2021 by Friends Of OpenPGP organization.
-#          Confidential - All Right Reserved
+# Copyright © 2021 by Friends Of OpenPGP organization <info@foopgp.org>.
+#          All Right Reserved
 #
 # Extract MRZ data and photo from ID documents (eg: International Passeports)
 # to generate OpenPGP certificates and keys to be imported for multiple applications (mail, chat, vote, etc.).
