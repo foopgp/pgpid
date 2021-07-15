@@ -33,60 +33,26 @@ fi
 
 # If sourcing while _pl_interactive_parseoptions is already set, execute the function and return without reloading rest of file.
 if [[ "$BASH_SOURCE" != "$0" ]] && [[ "$(type -t _pl_interactive_parseoptions)" == function ]] ; then
-	_pl_interactive_parseoptions "$PL_INTERACTIVE_NAME" "$@"
+	_pl_interactive_parseoptions "$@"
 	return $?
 fi
+
 
 ### Constants ###
 
 declare -r PL_INTERACTIVE_NAME="$(basename $(readlink -f "$BASH_SOURCE") )"
 declare -r PL_INTERACTIVE_VERSION="0.0.1"
 
-### Help Messages (and set -e if program) ###
-
-if [[ "$BASH_SOURCE" == "$0" ]] ; then
-	# run as a program
-	set -e
-
-	PL_INTERACTIVE_usage="Usage: $BASH_SOURCE [OPTIONS]... ACTION [ACTION_ARGUMENTS]..."
-	PL_INTERACTIVE_shelpmsg="
-Actions:
-  yesno                    helper for a yes/no question (binary choice)
-  chooseinlist             helper for a single choice in a list (like radiobutton)
-
-$PL_INTERACTIVE_NAME is also bash library, see:
-$ source $BASH_SOURCE --help"
-else
-	# run as a library (source $0)
-
-	PL_INTERACTIVE_usage="Usage: source $BASH_SOURCE [OPTIONS]..."
-
-	PL_INTERACTIVE_shelpmsg="
-      --bash-completion    set completion for $BASH_SOURCE program and return (without loading anything else)
-
-Functions:
-$(sed -n 's,^\(pl_[^(]*\)().*,  \1,p' "$BASH_SOURCE")
-
-Reminder: when used as a library, all functions calls share the same environment variables, i.e. the same options."
-fi
-
-PL_INTERACTIVE_chelpmsg="
-Options:
-  -h, --help               show this help and exit (or return)
-  -V, --version            show version and exit (or return)"
 
 ### functions ###
 
 _pl_interactive_parseoptions() {
-	local name=$1
-	[[ "$name" =~ ^- ]] && { echo -e "Usage: $FUNCNAME NAME \"\$@\"\nFor program/function named NAME: parse Options beginning \$@." >&2 ; return 1 ; }
-	shift
 	for ((;$#;)) ; do
 		case "$1" in
 			-h|--h*) printf "$PL_INTERACTIVE_usage\n$PL_INTERACTIVE_chelpmsg\n$PL_INTERACTIVE_shelpmsg\n" ; return 2 ;;
-			-V|--vers*) printf "$name $PL_INTERACTIVE_VERSION\n" ; return 2 ;;
+			-V|--vers*) printf "$PL_INTERACTIVE_NAME $PL_INTERACTIVE_VERSION\n" ; return 2 ;;
 			--) shift ; break ;;
-			-*) printf "$name: unrecognized option '$1'\n$PL_INTERACTIVE_usage\nTry '$name --help' for more information.\n" >&2 ; return 2 ;;
+			-*) printf "$PL_INTERACTIVE_NAME: unrecognized option '$1'\n$PL_INTERACTIVE_usage\nTry '$BASH_SOURCE --help' for more information.\n" >&2 ; return 2 ;;
 			*) break ;;
 		esac
 		shift
@@ -95,8 +61,11 @@ _pl_interactive_parseoptions() {
 
 
 pl_yesno() {
-	local usage="Usage: $FUNCNAME [OPTIONS] QUESTION"
+	local name
+	((PL_INTERACTIVE_isprogram)) && name="$PL_INTERACTIVE_NAME ${FUNCNAME:3}" || name="$FUNCNAME"
+	local usage="Usage: $name [OPTIONS] QUESTION"
 	local helpmsg="
+Helper for a yes/no question (binary choice)
 If REPLY == 'yes', return 0
 If REPLY == 'no', return 1
 Else loop asking the question.
@@ -114,12 +83,12 @@ Options:
 			-h|--h*) printf "%s\n%s\n" "$usage" "$helpmsg" ; return ;;
 			-V|--vers*) echo "$FUNCNAME $PL_INTERACTIVE_VERSION" ; return ;;
 			--) shift ; break ;;
-			-*) printf "$FUNCNAME: Error: unrecognized option '%s'\nTry '$FUNCNAME --help' for more information.\n" "$1" >&2 ; return 2 ;;
+			-*) printf "$FUNCNAME: Error: unrecognized option '%s'\nTry '$name --help' for more information.\n" "$1" >&2 ; return 2 ;;
 			*) break ;;
 		esac
 		shift
 	done
-	question=" $1 (y/n)"
+	question=" $@ (y/n)"
 	[[ -z "$def" ]] || question+=" [$def]"
 
 	while true ; do
@@ -138,8 +107,11 @@ Options:
 
 
 pl_chooseinlist() {
-	local usage="Usage: $FUNCNAME [OPTIONS] ITEMS..."
+	local name
+	((PL_INTERACTIVE_isprogram)) && name="$PL_INTERACTIVE_NAME ${FUNCNAME:3}" || name="$FUNCNAME"
+	local usage="Usage: $name [OPTIONS] ITEMS..."
 	local helpmsg="
+Helper for a single choice in a list (like radiobutton)
 Display (stderr) numbered list of item and loop asking for a number in this list
 Then echo (stdout) selected number (1-n).
 
@@ -155,13 +127,13 @@ Options:
 			-h|--h*) printf "%s\n%s\n" "$usage" "$helpmsg" ; return ;;
 			-V|--vers*) echo "$FUNCNAME $PL_INTERACTIVE_VERSION" ; return ;;
 			--) shift ; break ;;
-			-*) printf "$FUNCNAME: Error: unrecognized option '%s'\nTry '$FUNCNAME --help' for more information.\n" "$1" >&2 ; return 2 ;;
+			-*) printf "$FUNCNAME: Error: unrecognized option '%s'\nTry '$name --help' for more information.\n" "$1" >&2 ; return 2 ;;
 			*) break ;;
 		esac
 		shift
 	done
 	n=$#
-	((n)) || { printf "$FUNCNAME: Error: need items\nTry '$FUNCNAME --help' for more information.\n" >&2 ; return 1 ; }
+	((n)) || { printf "$FUNCNAME: Error: need items\nTry '$name --help' for more information.\n" >&2 ; return 1 ; }
 	printf "$pr" >&2
 	for ((i=0;i<n;)) ; do
 		if ((i%nperline)) ; then
@@ -179,10 +151,45 @@ Options:
 	echo $ret
 }
 
+
+### Help Messages (and set -e if program) ###
+
+if [[ "$BASH_SOURCE" == "$0" ]] ; then
+	# run as a program
+	set -e
+	declare -r PL_INTERACTIVE_isprogram=1
+
+	PL_INTERACTIVE_usage="Usage: $BASH_SOURCE [OPTIONS]... ACTION [ACTION_ARGUMENTS]..."
+	PL_INTERACTIVE_shelpmsg="
+Actions:
+$(for f in $(sed -n 's,^\(pl_[^(]*\)().*, \1,p' "$BASH_SOURCE") ; do printf "   %-19s%s\n" "${f:3}" "$($f --help | sed -n '/^$/{n;p;q}')" ; done)
+
+$PL_INTERACTIVE_NAME is also bash library, see:
+$ source $BASH_SOURCE --help"
+else
+	# run as a library (source $0)
+
+	PL_INTERACTIVE_usage="Usage: source $BASH_SOURCE [OPTIONS]..."
+
+	PL_INTERACTIVE_shelpmsg="
+      --bash-completion    set completion for $BASH_SOURCE program and return (without loading anything else)
+
+Functions:
+$(for f in $(sed -n 's,^\(pl_[^(]*\)().*, \1,p' "$BASH_SOURCE") ; do printf "   %-19s%s\n" "$f" "$($f --help | sed -n '/^$/{n;p;q}')" ; done)
+
+Reminder: when used as a library, all functions calls share the same environment variables, i.e. the same global options."
+fi
+
+PL_INTERACTIVE_chelpmsg="
+Options:
+  -h, --help               show this help and exit (or return)
+  -V, --version            show version and exit (or return)"
+
+
 ### Init ###
 
 # Parse Options
-_pl_interactive_parseoptions "$PL_INTERACTIVE_NAME" "$@"
+_pl_interactive_parseoptions "$@"
 
 # Do nothing else if sourced
 [[ "$BASH_SOURCE" == "$0" ]] || return 0
@@ -190,12 +197,13 @@ _pl_interactive_parseoptions "$PL_INTERACTIVE_NAME" "$@"
 
 ### Run ###
 
-case "$1" in
-	yesno)
-		shift ; pl_yesno "$@" ; exit $? ;;
-	chooseinlist)
-		shift ; pl_chooseinlist "$@" ; exit $? ;;
-	*)
-		printf "$PL_INTERACTIVE_NAME: unrecognized action '$1'\n$PL_INTERACTIVE_usage\nTry '$PL_INTERACTIVE_NAME --help' for more information.\n" >&2 ; exit 2 ;;
-esac
+if grep -q "^pl_$1()" "$BASH_SOURCE" ; then
+	function="pl_$1"
+	shift
+	$function "$@"
+	exit $?
+else
+	printf "$PL_INTERACTIVE_NAME: unrecognized action '$1'\n$PL_INTERACTIVE_usage\nTry '$BASH_SOURCE --help' for more information.\n" >&2
+	exit 2
+fi
 
