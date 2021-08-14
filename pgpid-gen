@@ -378,22 +378,19 @@ if ! [[ "$imgfile" ]] ; then
 	if $ONLYUDID ; then
 		declare -A PGPID
 		while true ; do
-			read -p "Birth surname [${PGPID[birth_surname]^^}] ? "
-			PGPID[birth_surname]=${REPLY:-${PGPID[birth_surname]^^}}
-			read -p "Birth names [${PGPID[birth_names]}] ? "
-			PGPID[birth_names]=${REPLY:-${PGPID[birth_names]}}
-			read -p "Birth date [${PGPID[birth_date]}] ? "
-			PGPID[birth_date]=${REPLY:-${PGPID[birth_date]}}
-			read -p "Birth country: [${PGPID[birth_country]}] ? "
-			PGPID[birth_country]=${REPLY:-${PGPID[birth_country]}}
+			PGPID[birth_surname]=$(bl_input --default "${PGPID[birth_surname]^^}" "Birth surname")
+			PGPID[birth_names]=$(bl_input --default "${PGPID[birth_names]}" "Birth names")
+			PGPID[birth_date]=$(bl_input --default "${PGPID[birth_date]}" "Birth date")
+			PGPID[birth_country]=$(bl_input --default "${PGPID[birth_country]}" "Birth country")
 
-			echo "
-Surname at birth: ${PGPID[birth_surname]^^}
+			! bl_yesno --default=no --preamble \
+"
+Surname at birth:     ${PGPID[birth_surname]^^}
 Given names at birth: ${PGPID[birth_names]}
-Date of birth: ${PGPID[birth_date]}
-Country of birth: ${PGPID[birth_country]}
-" >&2
-			! bl_yesno "Is that correct" || break
+Date of birth:        ${PGPID[birth_date]}
+Country of birth:     ${PGPID[birth_country]}
+" \
+				"Is that correct" || break
 		done
 
 		printf "udid4="
@@ -449,22 +446,19 @@ PGPID[document0]="$(declare -p DOCUMENT)"
 
 PGPID[birth_date]=$(date --date "$(($(date +"%y%m%d") < DOCUMENT[date_of_birth] ? 19 : 20))${DOCUMENT[date_of_birth]}" +"%Y-%m-%d")
 while true ; do
-	echo "
-Surname at birth: ${PGPID[birth_surname]:=${DOCUMENT[surname]}}
+	! bl_yesno --default=no --preamble \
+"
+Surname at birth:     ${PGPID[birth_surname]:=${DOCUMENT[surname]}}
 Given names at birth: ${PGPID[birth_names]:=${DOCUMENT[names]}}
-Date of birth: ${PGPID[birth_date]}
-Country of birth: ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
-" >&2
-	! bl_yesno "Is that correct" || break
+Date of birth:        ${PGPID[birth_date]}
+Country of birth:     ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
+" \
+		"Is that correct" || break
 
-	read -p "Birth surname [${PGPID[birth_surname]^^}] ? "
-	PGPID[birth_surname]=${REPLY:-${PGPID[birth_surname]^^}}
-	read -p "Birth names [${PGPID[birth_names]}] ? "
-	PGPID[birth_names]=${REPLY:-${PGPID[birth_names]}}
-	read -p "Birth date [${PGPID[birth_date]}] ? "
-	PGPID[birth_date]=${REPLY:-${PGPID[birth_date]}}
-	read -p "Birth country: [${PGPID[birth_country]}] ? "
-	PGPID[birth_country]=${REPLY:-${PGPID[birth_country]}}
+	PGPID[birth_surname]=$(bl_input --default "${PGPID[birth_surname]^^}" "Birth surname")
+	PGPID[birth_names]=$(bl_input --default "${PGPID[birth_names]}" "Birth names")
+	PGPID[birth_date]=$(bl_input --default "${PGPID[birth_date]}" "Birth date")
+	PGPID[birth_country]=$(bl_input --default "${PGPID[birth_country]}" "Birth country")
 done
 
 if PGPID[udid4]=$(pgpi_gen_udid4 --surname "${PGPID[birth_surname]}" --given-names "${PGPID[birth_names]}" --birth-date "${PGPID[birth_date]}" --birth-country "${PGPID[birth_country]}") ; then
@@ -493,18 +487,17 @@ fi
 
 while true ; do
 	while true ; do
-		read -p "Public email adress [${PGPID[email]}] ? "
-		PGPID[email]=${REPLY:-${PGPID[email]}}
+		PGPID[email]=$(bl_input --default "${PGPID[email]}" "Public email adress")
 		grep -q "^[^@[:space:]]\+@[^.[:space:]]\+\.[^[:space:]]\+$" <<<"${PGPID[email]}" && break
 	done
 
-	read -p "Public name (or pseudonym) [${PGPID[pseudonym]}] ? "
-	PGPID[pseudonym]=${REPLY:-${PGPID[pseudonym]}}
-	echo -e "\nSummary:\n"\
-			"Public name/pseudonym: ${PGPID[pseudonym]}\n"\
-			"Public email: ${PGPID[email]}\n" >&2
-
-	! bl_yesno "Is that correct" || break
+	PGPID[pseudonym]=$(bl_input --default "${PGPID[pseudonym]}" "Public name (or pseudonym)")
+	! bl_yesno --preamble \
+"
+Public name (or pseudonym): ${PGPID[pseudonym]}
+Public email adress:        ${PGPID[email]}
+" \
+		"Is that correct" || break
 done
 
 PGPID[wkd_uri]=$($(gpgconf --list-dirs libexecdir)/gpg-wks-client --print-wkd-url "${PGPID[email]}" 2> >(bl_log warning) )
