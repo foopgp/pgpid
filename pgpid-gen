@@ -383,7 +383,7 @@ if ! [[ "$imgfile" ]] ; then
 			PGPID[birth_date]=$(bl_input --default "${PGPID[birth_date]}" "Birth date")
 			PGPID[birth_country]=$(bl_input --default "${PGPID[birth_country]}" "Birth country")
 
-			! bl_yesno --default=no --preamble \
+			! bl_yesno --default=no --text \
 "
 Surname at birth:     ${PGPID[birth_surname]^^}
 Given names at birth: ${PGPID[birth_names]}
@@ -446,7 +446,7 @@ PGPID[document0]="$(declare -p DOCUMENT)"
 
 PGPID[birth_date]=$(date --date "$(($(date +"%y%m%d") < DOCUMENT[date_of_birth] ? 19 : 20))${DOCUMENT[date_of_birth]}" +"%Y-%m-%d")
 while true ; do
-	! bl_yesno --default=no --preamble \
+	! bl_yesno --default=no --text \
 "
 Surname at birth:     ${PGPID[birth_surname]:=${DOCUMENT[surname]}}
 Given names at birth: ${PGPID[birth_names]:=${DOCUMENT[names]}}
@@ -492,7 +492,7 @@ while true ; do
 	done
 
 	PGPID[pseudonym]=$(bl_input --default "${PGPID[pseudonym]}" "Public name (or pseudonym)")
-	! bl_yesno --preamble \
+	! bl_yesno --text \
 "
 Public name (or pseudonym): ${PGPID[pseudonym]}
 Public email adress:        ${PGPID[email]}
@@ -588,7 +588,7 @@ gpg --quiet --homedir "$outdir/gnupg" --list-keys > >(bl_log info) 2> >(bl_log w
 for ((i=0;;i++)) ; do
 	while ! gpg --homedir "$outdir/gnupg" --card-status > >(bl_log info) 2> >(bl_log notice) ; do
 		sleep 1
-		read -p "Please plug an OpenPGP card or dongle, then press Enter ..."
+		bl_msgstop "Please plug an OpenPGP card or dongle..."
 	done
 	bl_yesno "Factory reset OpenPGP card (This will destroys all OpenPGP keys stored on the card!)" || continue
 
