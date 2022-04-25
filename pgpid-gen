@@ -64,8 +64,9 @@ if [[ "$BASH_SOURCE" == "$0" ]] ; then
 
 	PGPI_OUTPATH="$PWD"
 
-	usage="Usage: $BASH_SOURCE [OPTIONS]... [--] IMAGE
-If $PGPI_NAME succeed, it will create a subdirectory containing all generated files."
+	usage="Usage: $BASH_SOURCE [OPTIONS]... [--] [IMAGE]
+If $PGPI_NAME succeed, it will create a subdirectory containing all generated files.
+If no IMAGE is given, $PGPI_NAME will try to use webcam."
 
 	soptions="
     -o, --output-path PATH   emplacement for generated subdirs and files (current: $PGPI_OUTPATH )
@@ -397,8 +398,21 @@ Country of birth:     ${PGPID[birth_country]}
 		pgpi_gen_udid4 --surname "${PGPID[birth_surname]}" --given-names "${PGPID[birth_names]}" --birth-date "${PGPID[birth_date]}" --birth-country "${PGPID[birth_country]}"
 		exit $?
 	else
-		echo -e "$usage" >&2
-		exit 1
+		v4ldevices=($(ls /dev/v4l/by-id/*index0)) || bl_log crit "No image file given and no video input (eg. webcam) detected"
+		v4lchoosed=$(bl_chooseinlist --num-per-line 1 --text "No Image file given, device to take picture of a face or an ID card ?" "${v4ldevices[@]}")
+		v4ldevice="$(readlink -f "${v4ldevices[$((v4lchoosed-1))]}")"
+		ffplay -loglevel warning -video_size 1024x768 -i "$v4ldevice" & sleep 3 ; kill $!
+		bl_log notice "Taking picture, please don't move (2 seconds) !"
+		ffmpeg -loglevel error -y -ss 00:02 -video_size 1024x768 -i "$v4ldevice" -frames:v 1 -q:v 2 v4l.jpg
+		#fswebcam --no-banner --resolution 1024x768 --skip 40 --frame 3 --set lights=on --device "$v4ldevice" v4l.jpg 2> >(bl_log notice)
+		#gm display -immutable v4l.jpg 2> >(bl_log info) & sleep 1 ; kill $!
+		while ! facedetect -q v4l.jpg 2> >(bl_log notice) ; do
+			bl_log notice "No face detected..."
+			ffplay -loglevel warning -video_size 1024x768 -i "$v4ldevice" & sleep 3 ; kill $!
+			bl_log notice "Taking picture, please don't move (2 seconds) !"
+			ffmpeg -loglevel error -y -ss 00:02 -video_size 1024x768 -i "$v4ldevice" -frames:v 1 -q:v 2 v4l.jpg
+		done
+		imgfile="v4l.jpg"
 	fi
 fi
 
