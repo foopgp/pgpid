@@ -413,7 +413,8 @@ my=$((sy*$FACE_MARGIN_HEIGHT))
 bl_log info "$imgfile face -> position: +$px+$py  size: ${sx}x$sy  marges: +${mx}+$my"
 
 declare -A DOCUMENT=()
-if mrz=($(gm convert -crop +0+$((py+sy)) "$imgfile" - 2> >(bl_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(bl_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
+# OCR only on zone below the image, converted to PNG because tesseract work better whith this format.
+if mrz=($(gm convert -crop +0+$((py+sy)) "$imgfile" png:- 2> >(bl_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(bl_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
 	if mrz_analyse DOCUMENT "${mrz[@]}" ; then
 		#WARNING: mrz data may be irrelevant to generate udid4. eg:
 		#         * Surname or given names may be incomplete (cut bc exceed mrz size)
