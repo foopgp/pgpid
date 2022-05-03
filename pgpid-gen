@@ -1,12 +1,12 @@
 #!/bin/bash
 #
-# Copyright © 2021 by Friends Of OpenPGP organization <info@foopgp.org>.
+# Copyright © 2021-2022 by Friends Of OpenPGP organization <info@foopgp.org>.
 #          All Right Reserved
 #
-# Extract MRZ data and photo from ID documents (eg: International Passeports)
-# to generate OpenPGP certificates and keys to be imported for multiple applications (mail, chat, vote, etc.).
-# May also move or copy 3 importante keys (SC, E and A) to OpenPGP Security hardware (nitrokeys, yubikeys, etc.)
+# Generate OpenPGP certificates and keys to be imported for multiple applications (mail, chat, vote, etc.)
+# 3 important keys (SC, E and A) are only printed, to be imported into OpenPGP Security hardware (nitrokeys, yubikeys, etc.)
 #
+# It may and should read identification data from ID documents (eg: International Passeports)
 
 if [[ "$1" == --bash-completion ]] ; then
 	_pgpi_completion()
@@ -65,7 +65,9 @@ if [[ "$BASH_SOURCE" == "$0" ]] ; then
 	PGPI_OUTPATH="$PWD"
 
 	usage="Usage: $BASH_SOURCE [OPTIONS]... [--] [IMAGE]
-If $PGPI_NAME succeed, it will create a subdirectory containing all generated files.
+If $PGPI_NAME succeed, it will :
+  * create a subdirectory containing the public certificate and the pubkey to be use for ssh.
+  * print the secret keys on 4 QRcodes. To be put on a OpenPGP card (eg. yubikey) using pgpid-qrscan.
 If no IMAGE is given, $PGPI_NAME will try to use webcam."
 
 	soptions="
@@ -359,13 +361,14 @@ Options:
 
 ### Init ###
 
-#_onexit() {
-#	[[ -d "$TMPDIR" ]] && rm -rvf "$TMPDIR" | bl_log info
-#}
-#
+_pgpi_onexit() {
+	[[ -d "$outdir/gnupg" ]] && bl_shred_path -v -f -r "$outdir/gnupg" 2> >(bl_log warning) | bl_log debug
+	[[ -d "$outdir/temp" ]] && bl_shred_path -v -f -r "$outdir/temp" 2> >(bl_log warning) | bl_log debug
+}
+
 #TMPDIR=$(mktemp -d -t "$PGPI_NAME".XXXXXX) || log crit "crit: Can not create a safe temporary directory."
-#
-#trap _onexit EXIT
+
+trap _pgpi_onexit EXIT
 
 ### Run ###
 
@@ -403,20 +406,26 @@ Country of birth:     ${PGPID[birth_country]}
 		v4ldevice="$(readlink -f "${v4ldevices[$((v4lchoosed-1))]}")"
 		ffplay -loglevel warning -video_size 1024x768 -i "$v4ldevice" 2> >(bl_log warning) & sleep 5 ; kill $! 2> >(bl_log crit)
 		bl_log notice "Taking picture, please don't move (2 seconds) !"
-		ffmpeg -loglevel error -y -ss 00:02 -video_size 1024x768 -i "$v4ldevice" -frames:v 1 -q:v 2 v4l.jpg 2> >(bl_log error)
-		#fswebcam --no-banner --resolution 1024x768 --skip 40 --frame 3 --set lights=on --device "$v4ldevice" v4l.jpg 2> >(bl_log notice)
-		#gm display -immutable v4l.jpg 2> >(bl_log info) & sleep 1 ; kill $!
-		while ! facedetect -q v4l.jpg 2> >(bl_log notice) ; do
+		ffmpeg -loglevel error -y -ss 00:02 -video_size 1024x768 -i "$v4ldevice" -frames:v 1 -q:v 2 "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log error)
+		#fswebcam --no-banner --resolution 1024x768 --skip 40 --frame 3 --set lights=on --device "$v4ldevice" "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log notice)
+		#gm display -immutable "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log info) & sleep 1 ; kill $!
+		while ! facedetect -q "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log notice) ; do
 			bl_log notice "No face detected..."
 			ffplay -loglevel warning -video_size 1024x768 -i "$v4ldevice" 2> >(bl_log warning) & sleep 3 ; kill $! 2> >(bl_log crit)
 			bl_log notice "Taking picture, please don't move (2 seconds) !"
-			ffmpeg -loglevel error -y -ss 00:02 -video_size 1024x768 -i "$v4ldevice" -frames:v 1 -q:v 2 v4l.jpg 2> >(bl_log error)
+			ffmpeg -loglevel error -y -ss 00:02 -video_size 1024x768 -i "$v4ldevice" -frames:v 1 -q:v 2 "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log error)
 		done
-		imgfile="v4l.jpg"
+		imgfile="${PGPI_OUTPATH}/v4l.jpg"
 	fi
 fi
 
 #scanimage -l 2 -t 2 -x 120 -y 170 --mode Color --resolution 200 --format=tiff > tmpimg.tiff
+
+printers=($(LANG= lpstat -p 2> >(bl_log crit) | sed -n 's,printer \([^ ]*\).*,\1,p')) || bl_log crit "No printer detected"
+printchoosed=$(bl_chooseinlist --num-per-line 1 --text "Where to print the 4 QRcodes ?" "${printers[@]}")
+((printchoosed--))
+lpstat -p "${printers[$printchoosed]}" 2> >(bl_log crit) | bl_log info
+printcopies=$(bl_chooseinlist --num-per-line 3 --default 1 --text "Number of copies ?" "" "" "")
 
 facep=$(facedetect --best -- "$imgfile" 2> >(bl_log notice) || true )
 [[ "$facep" ]] || bl_log crit "No face detected in $imgfile"
@@ -450,9 +459,9 @@ fi
 DOCUMENT[filename]=$imgfile
 DOCUMENT[face_scan_64url]=$(gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$imgfile" jpeg:- 2> >(bl_log warning) | basenc --base64url )
 if ((${#DOCUMENT[face_scan_64url]} < 2048 )) ; then
-	bl_log error "$outdir/face.jpg: too small (${#DOCUMENT[face_scan_64url]} < 2048)"
+	bl_log error "face image: too small (${#DOCUMENT[face_scan_64url]} < 2048)"
 elif ((${#DOCUMENT[face_scan_64url]} > (1<<16) )) ; then
-	bl_log error "$outdir/face.jpg: too big (${#DOCUMENT[face_scan_64url]} > $((1<<16)))"
+	bl_log error "face image: too big (${#DOCUMENT[face_scan_64url]} > $((1<<16)))"
 fi
 
 declare -A PGPID=()
@@ -483,16 +492,16 @@ else
 fi
 
 outdir="${PGPI_OUTPATH%/}/${PGPID[udid4]}"
-mkdir -p "$outdir"
+mkdir -p "$outdir"/{gnupg,temp}
 cp -bvf "$imgfile" "$outdir/document.orig" 2> >(bl_log warning) | bl_log info
 
 # Resize and display scanned face
-(exec 2> >(bl_log error) ; basenc --base64url --decode <<<"${DOCUMENT[face_scan_64url]}" | gm convert -geometry x180 - "$outdir/face.jpg" )
+(exec 2> >(bl_log error) ; basenc --base64url --decode <<<"${DOCUMENT[face_scan_64url]}" | gm convert -geometry x180 - "$outdir/temp/face.jpg" )
 bl_log notice "Displaying face... close it to continue !"
-gm display -immutable "$outdir/face.jpg" 2> >(bl_log error)
+gm display -immutable "$outdir/temp/face.jpg" 2> >(bl_log error)
 
 bl_yesno "Did the image correspond to ${PGPID[birth_names],,} ${PGPID[birth_surname]^^}"
-PGPID[face1_64url]=$(basenc --base64url < "$outdir/face.jpg")
+PGPID[face1_64url]=$(basenc --base64url < "$outdir/temp/face.jpg")
 
 if $ONLYUDID ; then
 	echo "udid4=${PGPID[udid4]}"
@@ -527,17 +536,12 @@ fi
 PGPID[passphrase]="$(bl_gen_passphrase --interactive)"
 
 PGPID[hkp_server]="foopgp.org:11371"
-pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(bl_log crit)
 
 #TODO: check gpg version, because we use some recent feature, and compatibility may change (tested with gpg (GnuPG) 2.2.27 libgcrypt 1.8.8)
-# Remove previous gnupg temp dir, if present.
-if [[ -d "$outdir/gnupg" ]] ; then
-	bl_shred_path -v -f -r "$outdir/gnupg" 2> >(bl_log warning) | bl_log debug
-fi
-mkdir -p "$outdir/gnupg"
+# Start using "$outdir/gnupg" which need to be rwx only for user... then we may also remove rwx for all $outdir.
 chmod -R go-rwx "$outdir"
 
-cat >"$outdir/gnupg/gpg.genkey.batch" <<EOF
+cat >"$outdir/temp/gpg.genkey.batch" <<EOF
 %echo Generating OpenPGP key for ${PGPID[pseudonym]}
 Key-Type: eddsa
 Key-Curve: Ed25519
@@ -554,7 +558,7 @@ Keyserver: hkp://${PGPID[hkp_server]}
 # Do a commit here, so that we can later print "done" :-)
 %commit
 EOF
-if ! gpg --homedir "$outdir/gnupg" --batch --generate-key --allow-freeform-uid "$outdir/gnupg/gpg.genkey.batch" 2> >(bl_log notice) ; then
+if ! gpg --homedir "$outdir/gnupg" --batch --generate-key --allow-freeform-uid "$outdir/temp/gpg.genkey.batch" 2> >(bl_log notice) ; then
 	bl_log crit "gpg --generate-key FAIL ($?)"
 fi
 
@@ -562,109 +566,49 @@ fi
 FPRS=($(gpg --homedir "$outdir/gnupg" --list-secret-keys --with-colons 2> >(bl_log notice) | sed -n 's,^fpr:.*:\([[:xdigit:]]\{40\}\):,\1,p'))
 PGPID[pubkey_uri]="http://${PGPID[hkp_server]}/pks/lookup?search=${FPRS[0]}&op=get"
 
+bl_log info "Generate auth key to be put in OpenPGP card..."
+gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --quick-add-key ${FPRS[0]} ed25519 auth 11y 2> >(bl_log notice)
+
+# updates array of fingerprints
+FPRS=($(gpg --homedir "$outdir/gnupg" --list-secret-keys --with-colons 2> >(bl_log notice) | sed -n 's,^fpr:.*:\([[:xdigit:]]\{40\}\):,\1,p'))
+PGPID[frps]="$(declare -p FPRS)"
+
+# Following lines are inspired from https://gist.github.com/joostrijneveld/59ab61faa21910c8434c
+#
+# Comparison between 1) "--export-secret-key" and 2) "--export-secret-key | paperkey":
+# First export also certificate, with pubkeys and uid. Then exported data are bigger, need bigger QRcodes, but import is easier.
+# Second export only secrets (of asymmetric keys). Then data are smaller, use smaller QRcodes, but import is more complex as it need to get certificate somewhere
+# If we are using curve 25519, we spare so much information, then we are not forced to use paperkey
+#
+# TODO: Security: check than secrets are distributed along the parts, ie. we need to retrieve and read all QRCode to reconstruct all keys.
+
+gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --export-secret-key ${FPRS[0]} | base64 > "$outdir/temp/secrets.gpg"
+#gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --export-secret-key ${FPRS[0]} | paperkey --output-type raw | base64 > "$outdir/temp/secrets.gpg"
+
+split "$outdir/temp/secrets.gpg" -d -n 4 "$outdir/temp/SECRET-"
+i=0
+for f in "$outdir/temp/SECRET-"* ; do
+	#TODO: manage stdouts and stderrs on next line
+	( ( printf "Ps3$i" ; cat "$f" ) | qrencode -o - -t UTF8i -m 2 ; echo -e "## ${PGPID[udid4]} PGPID SECRET $((i+1))/4\n## ${PGPID[pseudonym]} <${PGPID[email]}>" ) | paps | ps2pdf - "$f.pdf"
+	((++i))
+	lpr -# "$printcopies" -P "${printers[$printchoosed]}" "$f.pdf" 2> >(bl_log crit) | bl_log notice
+done
+
 # Add photo
 if ! gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --edit-key ${FPRS[0]} 1> >(bl_log debug) 2>&1 <<<"addphoto
-$outdir/face.jpg
+$outdir/temp/face.jpg
 y
 save
 " ; then
 	bl_log crit "Adding photo ID to OpenPGP certificate FAIL ($?)"
 fi
 
-bl_log info "Generate auth key to be put in OpenPGP card..."
-gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --quick-add-key ${FPRS[0]} ed25519 auth 11y 2> >(bl_log notice)
-bl_log info "Generate extra signing keys..."
-gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(bl_log notice)
-gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(bl_log notice)
-gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(bl_log notice)
-
-# updates array of fingerprints
-FPRS=($(gpg --homedir "$outdir/gnupg" --list-secret-keys --with-colons 2> >(bl_log notice) | sed -n 's,^fpr:.*:\([[:xdigit:]]\{40\}\):,\1,p'))
-PGPID[frps]="$(declare -p FPRS)"
-pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(bl_log crit)
-
 bl_log info "Export OpenPGP first certificate and public ssh key..."
 gpg --homedir "$outdir/gnupg" --export 2> >(bl_log crit) > "$outdir/PGPcert.gpg"
 gpg --homedir "$outdir/gnupg" --export-ssh-key ${FPRS[0]} 2> >(bl_log crit) > "$outdir/ssh_${PGPID[udid4]}.pub"
-bl_log info "Prepare paper to backup master key, and export secret subkeys..."
-umask 0077
-gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --export-secret-keys ${FPRS[0]}\! 2> >(bl_log crit) | paperkey 2> >(bl_log crit) > "$outdir/secret.paper.txt"
-printf "\n# Initial passphrase: ${PGPID[passphrase]}\n" >> "$outdir/secret.paper.txt"
-gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! 2> >(bl_log crit) > "$outdir/secret.E.asc"
-gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[2]}\! 2> >(bl_log crit) > "$outdir/secret.A.asc"
-bl_log info "export secret sub-keys to be use in thunderbird, delta chat, etc..."
-gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[3]}\! 2> >(bl_log crit) > "$outdir/secret.S1.asc"
-gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! ${FPRS[4]}\! 2> >(bl_log crit) > "$outdir/secret.S2+E.asc"
-gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! ${FPRS[5]}\! 2> >(bl_log crit) > "$outdir/secret.S3+E.asc"
 
-# log some info
-gpg --quiet --homedir "$outdir/gnupg" --list-keys > >(bl_log info) 2> >(bl_log warning)
-
-for ((i=0;;i++)) ; do
-	while ! gpg --homedir "$outdir/gnupg" --card-status > >(bl_log info) 2> >(bl_log notice) ; do
-		sleep 1
-		bl_msgstop "Please plug an OpenPGP card or dongle..."
-	done
-	bl_yesno "Factory reset OpenPGP card (This will destroys all OpenPGP keys stored on the card!)" || continue
-
-	echo "admin
-factory-reset
-y
-yes
-quit" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --card-edit 1> >(bl_log debug) 2>&1 || bl_log crit "Factory Reset OpenPGP card FAIL ($?)"
-
-	echo "admin
-login
-${PGPID[pseudonym]}
-name
-${PGPID[pseudonym]}
-
-quit" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "12345678" --card-edit 1> >(bl_log debug) 2>&1 || bl_log crit "Setting OpenPGP card holder FAIL ($?)"
-
-	echo "admin
-key-attr
-2
-1
-2
-1
-2
-1
-quit" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "12345678" --card-edit 1> >(bl_log debug) 2>&1 || bl_log crit "Setting OpenPGP card keys attributes FAIL ($?)"
-
-	echo "admin
-url
-${PGPID[pubkey_uri]}
-quit" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "12345678" --card-edit 1> >(bl_log debug) 2>&1 || bl_log crit "Setting Pubkey URL in OpenPGP card FAIL ($?)"
-
-	bl_log info "Reimport secret key to be moved with keytocard..."
-	gpg --homedir "$outdir/gnupg" --batch --command-fd 0 --pinentry-mode loopback --yes --delete-secret-keys ${FPRS[0]}\! ${FPRS[1]}\! ${FPRS[2]}\!
-	gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --import 2> >(bl_log notice) < <(paperkey --pubring "$outdir/PGPcert.gpg" --secrets "$outdir/secret.paper.txt" 2> >(bl_log crit) )
-	gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --import 2> >(bl_log info) <"$outdir/secret.E.asc"
-	gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --import 2> >(bl_log info) <"$outdir/secret.A.asc"
-
-	bl_log notice "Unfortunately, we can't automatize moving key to card, then you should move keys master 1 and 2 manualy..."
-	bl_log notice "Note: password is now set to 'm' to ease this manual operation."
-	printf "${PGPID[passphrase]}\nm\n" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --change-passphrase ${FPRS[0]} 1> >(bl_log notice) 2>&1 || true
-	gpg --homedir "$outdir/gnupg" --edit-key "${FPRS[0]}" || bl_log warning "Moving OpenPGP keys to card returns $?"
-	#printf "m\n${PGPID[passphrase]}\n" | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --change-passphrase ${FPRS[0]} 1> >(bl_log crit) 2>&1
-
-	declare -A OPGPCARD=()
-	while IFS=':' read key value ; do
-		case "$key" in
-			[Rr]eader|version|vendor|serial)
-				OPGPCARD[${key,,}]="$value" ;;
-		esac
-	done < <(gpg --homedir "$outdir/gnupg" --card-status --with-colons)
-	PGPID[card$i]="$(declare -p OPGPCARD)"
-
-	bl_yesno "Do you have an Other OpenPGP card to set up identically" || break
-
-done
-
-bl_shred_path -v -f "$outdir/gnupg" 2> >(bl_log warning) | bl_log debug
+bl_log info "Generate JSON file, for eventual futur use..."
 pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(bl_log crit)
-
-#lpr < "$outdir/secret.paper.txt"
-#shred -u "$outdir/secret.paper.txt"
+bl_log info "All Done :-)"
 
 exit 0
