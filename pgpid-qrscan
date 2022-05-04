@@ -145,8 +145,8 @@ for ((i=0;i<${max:=4};i++)) ; do
 	[[ -z "${parts[$i]}" ]] || continue
 
 	v4ldevices=($(ls /dev/v4l/by-id/*index0)) || bl_log crit "No video input (eg. webcam) detected"
-	v4lchoosed=$(bl_radiolist --num-per-line 1 --default -1 --text "Device to scan QRcode $((i+1)) / $max ?" "${v4ldevices[@]}")
-	v4ldevice="$(readlink -f "${v4ldevices[$((v4lchoosed-1))]}")"
+	v4ldevice=$(bl_radiolist --output-value --num-per-line 1 --default -1 --text "No Image file given, device to take picture of a face or an ID card ?" "${v4ldevices[@]}")
+	v4ldevice="$(readlink -f "${v4ldevice}")"
 	ffplay -loglevel warning -video_size 1024x768 -i "$v4ldevice" 2> >(bl_log warning) & sleep 5 ; kill $! 2> >(bl_log crit)
 	bl_log notice "Taking picture, please don't move (2 seconds) !"
 	ffmpeg -loglevel error -y -ss 00:02 -video_size 1024x768 -i "$v4ldevice" -frames:v 1 -q:v 2 "$TMPDIR/v4l.jpg" 2> >(bl_log error)
