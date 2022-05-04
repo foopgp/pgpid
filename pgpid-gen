@@ -225,7 +225,7 @@ Parameters:
     -d, --birth-date BIRTH_DATE      Birth date
     -c, --birth-country COUNTRY_CODE Country code of birth place
     -p, --birth-place COORDINATES    Geographic coordinate of birth place
-    -m, --mrz-names NAMES_IN_MRZ     SURNAME<<GIVEN<NAMES< as written in a Machine Readable Zone
+    -m, --iso7501-mrz-names NAMES_IN_MRZ     SURNAME<<GIVEN<NAMES< as written in a ISO/IEC 7501-1 or ICAO-9303 Passport
 If NAMES_IN_MRZ is given, SURNAME and GIVEN_NAMES are ignored.
 If COUNTRY_CODE is given, COORDINATES is ignored
 "
@@ -233,7 +233,7 @@ If COUNTRY_CODE is given, COORDINATES is ignored
 	case "$1" in
 		-h|--h*) echo "$helpmsg" ; return ;;
 		-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
-		-m|--mrz-n*)
+		-m|-*-mrz-name*)
 			shift
 			mrzn=$1 ;;
 		-s|--s*)
@@ -402,8 +402,8 @@ Country of birth:     ${PGPID[birth_country]}
 		exit $?
 	else
 		v4ldevices=($(ls /dev/v4l/by-id/*index0)) || bl_log crit "No image file given and no video input (eg. webcam) detected"
-		v4lchoosed=$(bl_chooseinlist --num-per-line 1 --default -1 --text "No Image file given, device to take picture of a face or an ID card ?" "${v4ldevices[@]}")
-		v4ldevice="$(readlink -f "${v4ldevices[$((v4lchoosed-1))]}")"
+		v4ldevice=$(bl_radiolist --output-value --num-per-line 1 --default -1 --text "No Image file given, device to take picture of a face or an ID card ?" "${v4ldevices[@]}")
+		v4ldevice="$(readlink -f "${v4ldevice}")"
 		ffplay -loglevel warning -video_size 1024x768 -i "$v4ldevice" 2> >(bl_log warning) & sleep 5 ; kill $! 2> >(bl_log crit)
 		bl_log notice "Taking picture, please don't move (2 seconds) !"
 		ffmpeg -loglevel error -y -ss 00:02 -video_size 1024x768 -i "$v4ldevice" -frames:v 1 -q:v 2 "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log error)
@@ -422,10 +422,8 @@ fi
 #scanimage -l 2 -t 2 -x 120 -y 170 --mode Color --resolution 200 --format=tiff > tmpimg.tiff
 
 printers=($(LANG= lpstat -p 2> >(bl_log crit) | sed -n 's,printer \([^ ]*\).*,\1,p')) || bl_log crit "No printer detected"
-printchoosed=$(bl_chooseinlist --num-per-line 1 --text "Where to print the 4 QRcodes ?" "${printers[@]}")
-((printchoosed--))
-lpstat -p "${printers[$printchoosed]}" 2> >(bl_log crit) | bl_log info
-printcopies=$(bl_chooseinlist --num-per-line 3 --default 1 --text "Number of copies ?" "" "" "")
+printer="$(bl_radiolist --output-value --num-per-line 1 --text "Where to print the 4 QRcodes ?" "${printers[@]}")"
+lpstat -p "${printer}" 2> >(bl_log crit) | bl_log info
 
 facep=$(facedetect --best -- "$imgfile" 2> >(bl_log notice) || true )
 [[ "$facep" ]] || bl_log crit "No face detected in $imgfile"
@@ -445,7 +443,7 @@ if mrz=($(gm convert -crop +0+$((py+sy)) "$imgfile" png:- 2> >(bl_log notice) | 
 		#         * Surname or given names transliteration may have change over time
 		#         * Year of birth date is not written with 4 digit (and people may live longer than 100 years)
 		#         * Humans may have done error on birth date, surname or given names.
-		if ! DOCUMENT[udid4_auto]=$(pgpi_gen_udid4 --mrz-names "${DOCUMENT[all_names]}" --birth-date "${DOCUMENT[date_of_birth]}" --birth-country "${DOCUMENT[nationality]}") ; then
+		if ! DOCUMENT[udid4_auto]=$(pgpi_gen_udid4 --iso7501-mrz-names "${DOCUMENT[all_names]}" --birth-date "${DOCUMENT[date_of_birth]}" --birth-country "${DOCUMENT[nationality]}") ; then
 			bl_log warning "can't generate an udid4 from mrz data"
 			unset DOCUMENT[udid4_auto]
 		fi
@@ -584,6 +582,8 @@ PGPID[frps]="$(declare -p FPRS)"
 
 gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --export-secret-key ${FPRS[0]} | base64 > "$outdir/temp/secrets.gpg"
 #gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --export-secret-key ${FPRS[0]} | paperkey --output-type raw | base64 > "$outdir/temp/secrets.gpg"
+
+printcopies=$(bl_radiolist --num-per-line 3 --default 1 --text "Number of copies ?" "" "" "")
 
 split "$outdir/temp/secrets.gpg" -d -n 4 "$outdir/temp/SECRET-"
 i=0
