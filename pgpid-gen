@@ -591,7 +591,7 @@ for f in "$outdir/temp/SECRET-"* ; do
 	#TODO: manage stdouts and stderrs on next line
 	( ( printf "Ps3$i" ; cat "$f" ) | qrencode -o - -t UTF8i -m 2 ; echo -e "## ${PGPID[udid4]} PGPID SECRET $((i+1))/4\n## ${PGPID[pseudonym]} <${PGPID[email]}>" ) | paps | ps2pdf - "$f.pdf"
 	((++i))
-	lpr -# "$printcopies" -P "${printers[$printchoosed]}" "$f.pdf" 2> >(bl_log crit) | bl_log notice
+	lpr -# "$printcopies" -P "$printer" "$f.pdf" 2> >(bl_log crit) | bl_log notice
 done
 
 # Add photo
