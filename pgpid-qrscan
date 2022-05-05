@@ -127,37 +127,52 @@ trap _pgpid_qrscan_onexit EXIT
 ### Run ###
 
 touch "$TMPDIR/qrcontent"
-for imgfile in "$@" ; do
-	{ if file "$imgfile" 2> >(bl_log crit) | grep --color "PDF document" ; then
-		convert pdf:"$imgfile" +append  png:-
+for file in "$@" ; do
+	if file "$file" 2> >(bl_log crit) | grep "PDF document" > >(bl_log info) ; then
+		imgfile="$TMPDIR/imgfile$((i++)).png"
+		convert pdf:"$file" +append "${imgfile}" 2> >(bl_log error)
 	else
-		cat "$imgfile"
-	fi ;} | zbarimg --quiet -Sdisable -Sqrcode.enable - | tr -d '\n' | sed 's,QR-Code:,\n,g' | grep "^Ps" >> "$TMPDIR/qrcontent" || bl_log error "No QR code with expected data in $imgfile"
+		imgfile="$file"
+	fi
+	if zbarimg --quiet -Sdisable -Sqrcode.enable "$imgfile" 2> >(bl_log warning) | tr -d '\n' | sed 's,QR-Code:,\n,g' | grep "^Ps" >> "$TMPDIR/qrcontent" ; then
+		bl_log info "QR code(s) with expected data succefully extracted from $file"
+	else
+		bl_log error "No QR code with expected data in $file"
+	fi
 done
 
-while read part ; do
-	parts[${part:3:1}]=${part:4}
+# Expected QRdata begin with "Ps" followed by the maximum number of part-1 (default: 4-1=3) then by the index of the part (O to 9).
+while read -r part ; do
+	parts[${part:3:1}]="${part:4}"
 	max=${part:2:1}
-	((max++))
 done <"$TMPDIR/qrcontent"
 
-for ((i=0;i<${max:=4};i++)) ; do
+for ((i=0;i<=${max:=3};i++)) ; do
 	[[ -z "${parts[$i]}" ]] || continue
 
 	v4ldevices=($(ls /dev/v4l/by-id/*index0)) || bl_log crit "No video input (eg. webcam) detected"
-	v4ldevice=$(bl_radiolist --output-value --num-per-line 1 --default -1 --text "No Image file given, device to take picture of a face or an ID card ?" "${v4ldevices[@]}")
+	v4ldevice=$(bl_radiolist --output-value --num-per-line 1 --default -1 --text "Missing part $((i+1)), device to scan qrcode ?" "${v4ldevices[@]}")
 	v4ldevice="$(readlink -f "${v4ldevice}")"
 	ffplay -loglevel warning -video_size 1024x768 -i "$v4ldevice" 2> >(bl_log warning) & sleep 5 ; kill $! 2> >(bl_log crit)
 	bl_log notice "Taking picture, please don't move (2 seconds) !"
 	ffmpeg -loglevel error -y -ss 00:02 -video_size 1024x768 -i "$v4ldevice" -frames:v 1 -q:v 2 "$TMPDIR/v4l.jpg" 2> >(bl_log error)
-	while ! zbarimg -Sdisable -Sqrcode.enable "$TMPDIR/v4l.jpg" 2> >(bl_log debug) | tr -d '\n' | sed 's,QR-Code:,\n,g' | grep "^Ps" ; do
+	while ! part="$(zbarimg -Sdisable -Sqrcode.enable "$TMPDIR/v4l.jpg" 2> >(bl_log debug) | tr -d '\n' | sed 's,QR-Code:,\n,g' | grep "^Ps")" ; do
 		bl_log notice "No QR code with expected data detected..."
 		ffplay -loglevel warning -video_size 1024x768 -i "$v4ldevice" 2> >(bl_log warning) & sleep 3 ; kill $! 2> >(bl_log crit)
 		bl_log notice "Taking picture, please don't move (2 seconds) !"
 		ffmpeg -loglevel error -y -ss 00:02 -video_size 1024x768 -i "$v4ldevice" -frames:v 1 -q:v 2 "$TMPDIR/v4l.jpg" 2> >(bl_log error)
 	done
-
+	max=${part:2:1}
+	i=${part:3:1}
+	parts[$i]="${part:4}"
+	bl_log notice "Scanning part $((i+1)) / $((max+1)) : OK"
+	i=0
 done
+echo "----"
+printf "%s" ${parts[@]}
+echo -e "\n${!parts[@]}\n"
+
+printf "%s" ${parts[@]} | base64 -d > temp.gpg
 
 exit
 
@@ -169,7 +184,6 @@ for f in IMG*.pdf; do zbarimg --raw $f | head -c -1 > $f.out ; done
 cat *.out | base64 -d | paperkey --pubring "$outdir/PGPcert.gpg" 2> >(bl_log crit) | gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --import 2> >(bl_log notice)
 }
 
-done
 
 imgfile="$1"
 if [[ "$2" ]] ; then
