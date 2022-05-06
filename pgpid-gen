@@ -53,6 +53,8 @@ ONLYUDID=false
 
 ### Default option values ###
 
+PGPI_SPLITN=4
+
 if [[ "$BASH_SOURCE" == "$0" ]] ; then
 	# run as a program
 	set -e
@@ -67,11 +69,12 @@ if [[ "$BASH_SOURCE" == "$0" ]] ; then
 	usage="Usage: $BASH_SOURCE [OPTIONS]... [--] [IMAGE]
 If $PGPI_NAME succeed, it will :
   * create a subdirectory containing the public certificate and the pubkey to be use for ssh.
-  * print the secret keys on 4 QRcodes. To be put on a OpenPGP card (eg. yubikey) using pgpid-qrscan.
+  * print the secret keys on multiple QRcodes. To be put on a OpenPGP card (eg. yubikey) using pgpid-qrscan.
 If no IMAGE is given, $PGPI_NAME will try to use webcam."
 
 	soptions="
-    -o, --output-path PATH   emplacement for generated subdirs and files (current: $PGPI_OUTPATH )
+    -o, --output-path PATH   location for generated subdirs and files (current: $PGPI_OUTPATH )
+    -s, --split NUM          number of split (current: $PGPI_SPLITN)
     -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (current: $LOGLEVEL)
     -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (current: $LOGLEVEL)
     -u, --udid               calculate and output udid string, whithout generating OpenPGP keys
@@ -103,6 +106,7 @@ Options: $soptions
 for ((i=0;$#;)) ; do
 case "$1" in
 	-o|--output*) shift ; PGPI_OUTPATH="$1" ; ( cd "$PGPI_OUTPATH" && touch . ) ;;
+	-s|--split) shift ; PGPI_SPLITN="$1" ;;
 	-l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; $_exit 2 ; } ;;
 	-L|--log-e*) shift ; LOGEXITPRIO="$1"
 		grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$LOGEXITPRIO\" is none of: ${!loglevels[@]}" >&2 ; $_exit 2 ; } ;;
@@ -125,6 +129,7 @@ done
 . "$(dirname "$BASH_SOURCE")"/bl-interactive --
 . "$(dirname "$BASH_SOURCE")"/bl-security --
 
+# Implementation of ICAO doc 9303 part 3 (Specifications Common to all MRTDs - 4.9)
 mrz_checkdigit() {
 	local helpmsg="Usage: $FUNCNAME STRING [EXPECTED_RESULT]
 If there is no second arg: output calculated check digit from [0-9A-Z<]* string
@@ -586,11 +591,11 @@ gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pine
 
 printcopies=$(bl_radiolist --num-per-line 3 --default 1 --text "Number of copies ?" "" "" "")
 
-split "$outdir/temp/secrets.gpg" -d -n 4 "$outdir/temp/SECRET-"
+split "$outdir/temp/secrets.gpg" -d -n "$PGPI_SPLITN" "$outdir/temp/SECRET-"
 i=0
 for f in "$outdir/temp/SECRET-"* ; do
 	#TODO: manage stdouts and stderrs on next line
-	( ( printf "Ps3$i" ; cat "$f" ) | qrencode -o - -t UTF8i -m 2 ; echo -e "## ${PGPID[udid4]} PGPID SECRET $((i+1))/4\n## ${PGPID[pseudonym]} <${PGPID[email]}>" ) | paps | ps2pdf - "$f.pdf"
+	( ( printf "Ps$((PGPI_SPLITN-1))$i" ; cat "$f" ) | qrencode -o - -t UTF8i -m 2 ; echo -e "## ${PGPID[udid4]} PGPID SECRET $((i+1))/${PGPI_SPLITN}\n## ${PGPID[pseudonym]} <${PGPID[email]}>" ) | paps | ps2pdf - "$f.pdf"
 	((++i))
 	lpr -# "$printcopies" -P "$printer" "$f.pdf" 2> >(bl_log crit) | bl_log notice
 done
