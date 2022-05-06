@@ -166,7 +166,7 @@ for ((i=0;i<=${max:=3};i++)) ; do
 	i=${part:3:1}
 	parts[$i]="${part:4}"
 	bl_log notice "Scanning part $((i+1)) / $((max+1)) : OK"
-	i=0
+	i=-1
 done
 echo "----"
 printf "%s" ${parts[@]}

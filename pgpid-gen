@@ -530,8 +530,9 @@ if ! [[ "${PGPID[wks_support]}" =~ :1: ]] ; then
 	bl_log warning "Your email provider support neither WKD or WKS protocol :-("
 fi
 
+PGPID[passphrase]="$(sed 's/[^0-9]//g' <<<"${PGPID[birth_date]}" )"
 
-PGPID[passphrase]="$(bl_gen_passphrase --interactive)"
+! bl_yesno --default=no --text "QRcode passphrase: ${PGPID[passphrase]}" "Change it" || PGPID[passphrase]="$(bl_gen_passphrase --interactive)"
 
 PGPID[hkp_server]="foopgp.org:11371"
 
