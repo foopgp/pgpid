@@ -130,7 +130,7 @@ done
 . "$(dirname "$BASH_SOURCE")"/bl-security --
 
 # Implementation of ICAO doc 9303 part 3 (Specifications Common to all MRTDs - 4.9)
-mrz_checkdigit() {
+icao9303_mrz_checkdigit() {
 	local helpmsg="Usage: $FUNCNAME STRING [EXPECTED_RESULT]
 If there is no second arg: output calculated check digit from [0-9A-Z<]* string
 else return non-zero if EXPECTED_RESULT differs from calculated check digit.
@@ -162,7 +162,7 @@ else return non-zero if EXPECTED_RESULT differs from calculated check digit.
 	fi
 }
 
-mrz_analyse() {
+icao9303_mrz_analyse() {
 	local helpmsg="Usage: $FUNCNAME AANAME MRZ
 Analyse a Machine Readable Zone and fill the associative array named AANAME
 "
@@ -184,7 +184,7 @@ Analyse a Machine Readable Zone and fill the associative array named AANAME
 	bl_log debug "mrz[0]= \"${mrz[0]}\""
 	if [[ ${mrz[0]:0:1} != P ]] ; then
 		bl_log debug "mrz[0]= \"${mrz[0]}\""
-		bl_log warning "$FUNCNAME: unsupported. (not an ISO/IEC 7501-1 passport)"
+		bl_log warning "$FUNCNAME: Not an ICAO-9303 (ISO/IEC-7501-1) passport."
 		return 1
 	fi
 	bl_log debug "mrz[1]= \"${mrz[1]}\""
@@ -212,9 +212,9 @@ Analyse a Machine Readable Zone and fill the associative array named AANAME
 	)
 
 	for ch in number date_of_birth expiration_date personal_number composite ; do
-		doc[checked_$ch]=$(mrz_checkdigit "${doc[$ch]}")
+		doc[checked_$ch]=$(icao9303_mrz_checkdigit "${doc[$ch]}")
 		doc[valid_$ch]=$( [[ ${doc[checked_$ch]} == ${doc[check_$ch]} ]] && echo true || echo false )
-		${doc[valid_$ch]} || bl_log warning "OBI WAN KENOBI ??? $ch checksum -> ${doc[check_$ch]}. Should be ${doc[checked_$ch]}."
+		${doc[valid_$ch]} || bl_log warning "$ch checksum -> ${doc[check_$ch]}. Should be ${doc[checked_$ch]}."
 	done
 
 	doc[names]=$(echo $(echo "${doc[all_names]#*<<}" | tr '<' ' ') )
@@ -441,7 +441,7 @@ bl_log info "$imgfile face -> position: +$px+$py  size: ${sx}x$sy  marges: +${mx
 declare -A DOCUMENT=()
 # OCR only on zone below the image, converted to PNG because tesseract work better whith this format.
 if mrz=($(gm convert -crop +0+$((py+sy)) "$imgfile" png:- 2> >(bl_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(bl_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
-	if mrz_analyse DOCUMENT "${mrz[@]}" ; then
+	if icao9303_mrz_analyse DOCUMENT "${mrz[@]}" ; then
 		#WARNING: mrz data may be irrelevant to generate udid4. eg:
 		#         * Surname or given names may be incomplete (cut bc exceed mrz size)
 		#         * Surname or given names may differs from those given at birth (marriage, gender change, etc.)
