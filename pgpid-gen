@@ -105,7 +105,7 @@ Options: $soptions
 
 for ((i=0;$#;)) ; do
 case "$1" in
-	-o|--output*) shift ; PGPI_OUTPATH="$1" ; ( cd "$PGPI_OUTPATH" && touch . ) ;;
+	-o|--output*) shift ; PGPI_OUTPATH="$1" ; ( cd "$PGPI_OUTPATH" && touch . ) ;; # cd and touch to verify outpath exist and is writable
 	-s|--split) shift ; PGPI_SPLITN="$1" ;;
 	-l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; $_exit 2 ; } ;;
 	-L|--log-e*) shift ; LOGEXITPRIO="$1"
@@ -297,7 +297,7 @@ If COUNTRY_CODE is given, COORDINATES is ignored
 }
 
 pgpi_json_from_str() {
-	local helpmsg="Usage: $FUNCNAME [STRING]...
+	local helpmsg="Usage: $FUNCNAME [--] [STRING]...
 "'Escape "\" and [/"\b\f\n\r\t] characters as required by JSON format.
 If there is no STRING in command line, read it from stdin.
 '
@@ -313,7 +313,7 @@ If there is no STRING in command line, read it from stdin.
 	done
 
 	local from='cat'
-	(($#)) && from='eval echo "$@"'
+	! (($#)) || from='eval echo "$@"'
 	$from | sed 's,\\,\\\\,g; s,/,\\/,g; s,",\\",g; s,\x08,\\b,g; s,\x0c,\\f,g; s,\r,\\r,g; s,\t,\\t,g;' | sed ':a;N;$!ba; s,\n,\\n,g;'
 }
 
@@ -343,7 +343,7 @@ Options:
 
 	local lb notstarted=true
 	local -n aa=$1
-	((shft)) && lb=$(eval printf '\\t%.0s' {1..$shft})
+	! ((shft)) || lb=$(eval printf '\\t%.0s' {1..$shft})
 	printf "$lb{\n"
 	for i in "${!aa[@]}"; do
 		$notstarted || printf ",\n"
