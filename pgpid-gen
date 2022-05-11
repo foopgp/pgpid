@@ -18,7 +18,7 @@ if [[ "$1" == --bash-completion ]] ; then
 		cur=${COMP_WORDS[COMP_CWORD]}
 
 		if [[ "$cur" == -* ]]; then
-			options="--output-path --verbose --quiet --udid --help --version"
+			options="--output-path --split --with-secret-words --verbose --quiet --udid --help --version"
 
 			COMPREPLY=( $(IFS=" " compgen -W "$options" -- $cur ) )
 		else
@@ -26,10 +26,13 @@ if [[ "$1" == --bash-completion ]] ; then
 			case $prev in
 				-o|--output-path)
 					COMPREPLY=( $(compgen  -d -- $cur ) )
-					return ;;
+					return 0 ;;
+				-s|--split)
+					COMPREPLY=( $(IFS=" " compgen -W "3 4 5 6 7 8 9 10" -- $cur ) )
+					return 0 ;;
 				# some options will exit without executing any actions, so don't complete anything
 				-h|--help|-V|--version)
-					return ;;
+					return 0 ;;
 			esac
 
 			COMPREPLY=( $(compgen -o plusdirs -f -X '!*.@(gif|GIF|jp?(e)g|JP?(E)G|miff|tif?(f)|pn[gm]|PN[GM]|p[bgp]m|bmp|BMP|xpm|ico|xwd|tga|pcx)' -- $cur ) )
@@ -76,9 +79,10 @@ If no IMAGE is given, $PGPI_NAME will try to use webcam."
 	soptions="
     -o, --output-path PATH   location for generated subdirs and files (current: $PGPI_OUTPATH )
     -s, --split NUM          number of split (current: $PGPI_SPLITN)
+    -w, --with-secret-words  Increase security, but worsen User eXperience.
     -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (current: $LOGLEVEL)
     -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (current: $LOGLEVEL)
-    -u, --udid               calculate and output udid string, whithout generating OpenPGP keys
+    -u, --udid               calculate and output udid string, whithout generating PGPID QRcodes.
     -h, --help               show this help and exit
     -V, --version            show version and exit"
 else
@@ -108,6 +112,7 @@ for ((i=0;$#;)) ; do
 case "$1" in
 	-o|--output*) shift ; PGPI_OUTPATH="$1" ; ( cd "$PGPI_OUTPATH" && touch . ) ;; # cd and touch to verify outpath exist and is writable
 	-s|--split) shift ; PGPI_SPLITN="$1" ;;
+	-w|--with-secret-words) PGPI_QRVERSION=2 ;;
 	-l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; $_exit 2 ; } ;;
 	-L|--log-e*) shift ; LOGEXITPRIO="$1"
 		grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$LOGEXITPRIO\" is none of: ${!loglevels[@]}" >&2 ; $_exit 2 ; } ;;
@@ -605,9 +610,9 @@ for f in "$outdir/temp/SECRET-"* ; do
 
 ## PGPID SECRET - ${i}/${PGPI_SPLITN}
 
-![qrcode $i]($f.png)
-
 ${PGPID[pseudonym]} \<${PGPID[email]}\>
+
+![qrcode $i]($f.png)
 
 *udid4=${PGPID[udid4]}*
 
