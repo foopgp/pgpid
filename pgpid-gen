@@ -54,6 +54,7 @@ ONLYUDID=false
 ### Default option values ###
 
 PGPI_SPLITN=4
+PGPI_QRVERSION=1
 
 if [[ "$BASH_SOURCE" == "$0" ]] ; then
 	# run as a program
@@ -535,9 +536,10 @@ if ! [[ "${PGPID[wks_support]}" =~ :1: ]] ; then
 	bl_log warning "Your email provider support neither WKD or WKS protocol :-("
 fi
 
-PGPID[passphrase]="$(sed 's/[^0-9]//g' <<<"${PGPID[birth_date]}" )"
+PASSPHRASE=("$(sed 's/[^0-9]//g' <<<"${PGPID[birth_date]}" )")
+((PGPI_QRVERSION<2)) || PASSPHRASE+=($(bl_gen_passphrase --dict en --num "$PGPI_SPLITN" --delimiter " ")) # PGPI_QRVERSION == 2 : improve security but worsen User Experience
 
-! bl_yesno --default=no --text "QRcode passphrase: ${PGPID[passphrase]}" "Change it" || PGPID[passphrase]="$(bl_gen_passphrase --interactive)"
+PGPID[passphrase]="${PASSPHRASE[@]}"
 
 PGPID[hkp_server]="foopgp.org:11371"
 
@@ -579,24 +581,38 @@ PGPID[frps]="$(declare -p FPRS)"
 
 # Following lines are inspired from https://gist.github.com/joostrijneveld/59ab61faa21910c8434c
 #
-# Comparison between 1) "--export-secret-key" and 2) "--export-secret-key | paperkey":
+# Comparison between 1) "--export-secret-key" and 2) "--export-secret-key | paperkey --output-type raw":
 # First export also certificate, with pubkeys and uid. Then exported data are bigger, need bigger QRcodes, but import is easier.
 # Second export only secrets (of asymmetric keys). Then data are smaller, use smaller QRcodes, but import is more complex as it need to get certificate somewhere
 # If we are using curve 25519, we spare so much information, then we are not forced to use paperkey
 #
-# TODO: Security: check than secrets are distributed along the parts, ie. we need to retrieve and read all QRCode to reconstruct all keys.
+# We use a symmetric encryption after to export, to force retrieving all secret words and QRCodes to reconstruct all keys.
 
-gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --export-secret-key ${FPRS[0]} | base64 > "$outdir/temp/secrets.gpg"
-#gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --export-secret-key ${FPRS[0]} | paperkey --output-type raw | base64 > "$outdir/temp/secrets.gpg"
+gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --export-secret-key ${FPRS[0]} | gpg --batch --symmetric --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback | basenc --base64url --wrap 0 > "$outdir/temp/s.gpg.gpg.b64url"
 
 printcopies=$(bl_radiolist --num-per-line 3 --default 1 --text "Number of copies ?" "" "" "")
 
-split "$outdir/temp/secrets.gpg" -d -n "$PGPI_SPLITN" "$outdir/temp/SECRET-"
+split "$outdir/temp/s.gpg.gpg.b64url" -d -n "$PGPI_SPLITN" "$outdir/temp/SECRET-"
 i=0
 for f in "$outdir/temp/SECRET-"* ; do
-	#TODO: manage stdouts and stderrs on next line
-	( ( printf "Ps$((PGPI_SPLITN-1))$i" ; cat "$f" ) | qrencode -o - -t UTF8i -m 2 ; echo -e "## ${PGPID[udid4]} PGPID SECRET $((i+1))/${PGPI_SPLITN}\n## ${PGPID[pseudonym]} <${PGPID[email]}>" ) | paps | ps2pdf - "$f.pdf"
-	((++i))
+
+	#TODO: manage stdouts and stderrs on next lines
+	# 4 chars QR Code Header : one magic char '~', one version char, one char for split number, one char for index of split part.
+	( printf "~$((PGPI_QRVERSION))$((PGPI_SPLITN-1))$i" ; cat "$f" ) | qrencode --level=M --output "$f.png"
+	((++i)) # Not i++ because i start from 0 and set -e ;-)
+	cat <<EOF | pandoc --from markdown --to pdf -fmarkdown-implicit_figures | pdfcrop --margins "4" - "$f.pdf" > >(bl_log debug)
+\pagenumbering{gobble}
+
+## PGPID SECRET - ${i}/${PGPI_SPLITN}
+
+![qrcode $i]($f.png)
+
+${PGPID[pseudonym]} \<${PGPID[email]}\>
+
+*udid4=${PGPID[udid4]}*
+
+$([[ -z "${PASSPHRASE[$i]}" ]] || echo "Secret word - ${i}/${PGPI_SPLITN} -> **${PASSPHRASE[$i]}**")
+EOF
 	lpr -# "$printcopies" -P "$printer" "$f.pdf" 2> >(bl_log crit) | bl_log notice
 done
 
