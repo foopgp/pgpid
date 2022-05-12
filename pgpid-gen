@@ -395,7 +395,7 @@ if ! [[ "$imgfile" ]] ; then
 		while true ; do
 			PGPID[birth_surname]=$(bl_input --default "${PGPID[birth_surname]^^}" "Birth surname")
 			PGPID[birth_names]=$(bl_input --default "${PGPID[birth_names]}" "Birth names")
-			PGPID[birth_date]=$(bl_input --default "${PGPID[birth_date]}" "Birth date")
+			PGPID[birth_date]=$(bl_input --default "${PGPID[birth_date]}" "Birth date (YYYY-mm-dd)")
 			PGPID[birth_country]=$(bl_input --default "${PGPID[birth_country]}" "Birth country")
 
 			! bl_yesno --default=no --text \
