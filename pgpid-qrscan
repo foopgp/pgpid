@@ -18,7 +18,7 @@ if [[ "$1" == --bash-completion ]] ; then
 		cur=${COMP_WORDS[COMP_CWORD]}
 
 		if [[ "$cur" == -* ]]; then
-			options="--shred --verbose --quiet --help --version"
+			options="--verbose --quiet --help --version"
 
 			COMPREPLY=( $(IFS=" " compgen -W "$options" -- $cur ) )
 		else
@@ -60,7 +60,6 @@ $PGPI_NAME scan QRcodes containing parts of OpenPGP secrets from IMAGES or webca
 and import this secrets into a factory reseted OpenPGP secured device (eg yubikey)."
 
 	soptions="
-    -s, --shred              also shred IMAGES if secrets are successfully imported to OpenPGP secured device.
     -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (current: $LOGLEVEL)
     -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (current: $LOGLEVEL)
     -h, --help               show this help and exit
@@ -153,7 +152,7 @@ while read -r part ; do
 	parts[${part:3:1}]="${part:4}"
 done <"$TMPDIR/qrcontent"
 
-for ((i=0;i<=${max:=3};i++)) ; do
+for ((i=0;i<=${max:-3};i++)) ; do
 	[[ -z "${parts[$i]}" ]] || continue
 
 	v4ldevices=($(ls /dev/v4l/by-id/*index0)) || bl_log crit "No video input (eg. webcam) detected"
