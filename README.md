@@ -29,7 +29,7 @@ Returns zero on normal operation, non-zero on errors.
 For Debian:
 
 ```
-apt install facedetect graphicsmagick tesseract-ocr paperkey
+apt install facedetect graphicsmagick tesseract-ocr qrencode zbar-img
 ```
 
 # EXAMPLES

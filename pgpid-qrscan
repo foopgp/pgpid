@@ -182,14 +182,18 @@ done
 # If we are using paperkey, we have to retrieve the PGPcert (use to need network) and use something like:
 # ... base64 -d | paperkey --pubring "$TMPDIR/PGPcert.gpg" 2> >(bl_log crit) | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${passphrase}" --import 2> >(bl_log notice)
 
-birth_date=$(bl_input --default "${birth_date}" "Birth date (YYYY-mm-dd)")
-passphrase="$(sed 's/[^0-9]//g' <<<"${birth_date}" )"
-if [[ "$pgpi_qrversion" == "2" ]] ; then
-	for ((i=1;i<=max+1;i++)) ; do
-		passphrase+=" $(bl_input "Secret word $i/$((max+1))")"
-	done
-fi
-printf "%s" ${parts[@]} | basenc --decode --base64url | gpg --decrypt --batch --pinentry-mode loopback --passphrase "${passphrase}" 2> >(bl_log notice) | gpg --homedir "$TMPDIR/gnupg" --batch --pinentry-mode loopback --passphrase "${passphrase}" --import 2> >(bl_log notice)
+while true ; do
+	birth_date=$(bl_input --default "${birth_date}" "Birth date (YYYY-mm-dd)")
+	passphrase[0]="$(sed 's/[^0-9]//g' <<<"${birth_date}" )"
+	if [[ "$pgpi_qrversion" == "2" ]] ; then
+		for ((i=1;i<=max+1;i++)) ; do
+			passphrase[$i]="$(bl_input --default "${passphrase[$i]}" "Secret word $i/$((max+1))")"
+		done
+	fi
+	if printf "%s" ${parts[@]} | basenc --decode --base64url | gpg --decrypt --batch --pinentry-mode loopback --passphrase "${passphrase[*]}" 2> >(bl_log notice) | gpg --homedir "$TMPDIR/gnupg" --batch --pinentry-mode loopback --passphrase "${passphrase[*]}" --import 2> >(bl_log notice) ; then
+		break
+	fi
+done
 
 FPRS=($(gpg --homedir "$TMPDIR/gnupg" --list-secret-keys --with-colons 2> >(bl_log notice) | sed -n 's,^fpr:.*:\([[:xdigit:]]\{40\}\):,\1,p'))
 
