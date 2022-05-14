@@ -180,7 +180,7 @@ done
 #printf "%s" ${parts[@]} | basenc --decode --base64url | gpg --decrypt > temp.gpg
 
 # If we are using paperkey, we have to retrieve the PGPcert (use to need network) and use something like:
-# ... base64 -d | paperkey --pubring "$TMPDIR/PGPcert.gpg" 2> >(bl_log crit) | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${passphrase}" --import 2> >(bl_log notice)
+# ... base64 -d | paperkey --pubring "$TMPDIR/PGPcert.gpg" 2> >(bl_log crit) | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${passphrase[*]}" --import 2> >(bl_log notice)
 
 while true ; do
 	birth_date=$(bl_input --default "${birth_date}" "Birth date (YYYY-mm-dd)")
@@ -199,11 +199,11 @@ FPRS=($(gpg --homedir "$TMPDIR/gnupg" --list-secret-keys --with-colons 2> >(bl_l
 
 ##TODO: check gpg version, because we use some recent feature, and compatibility may change (tested with gpg (GnuPG) 2.2.27 libgcrypt 1.8.8)
 #bl_log info "Generate auth key to be put in OpenPGP card..."
-#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase}" --pinentry-mode loopback --quick-add-key ${FPRS[0]} ed25519 auth 11y 2> >(bl_log notice)
+#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase[*]}" --pinentry-mode loopback --quick-add-key ${FPRS[0]} ed25519 auth 11y 2> >(bl_log notice)
 #bl_log info "Generate extra signing keys..."
-#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(bl_log notice)
-#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(bl_log notice)
-#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(bl_log notice)
+#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase[*]}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(bl_log notice)
+#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase[*]}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(bl_log notice)
+#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase[*]}" --pinentry-mode loopback --quick-add-key "${FPRS[0]}" ed25519 sign 11y 2> >(bl_log notice)
 #
 ## updates array of fingerprints
 #FPRS=($(gpg --homedir "$TMPDIR/gnupg" --list-secret-keys --with-colons 2> >(bl_log notice) | sed -n 's,^fpr:.*:\([[:xdigit:]]\{40\}\):,\1,p'))
@@ -215,14 +215,14 @@ FPRS=($(gpg --homedir "$TMPDIR/gnupg" --list-secret-keys --with-colons 2> >(bl_l
 #gpg --homedir "$TMPDIR/gnupg" --export-ssh-key ${FPRS[0]} 2> >(bl_log crit) > "$TMPDIR/ssh_${PGPID[udid4]}.pub"
 #bl_log info "Prepare paper to backup master key, and export secret subkeys..."
 #umask 0077
-#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase}" --pinentry-mode loopback --export-secret-keys ${FPRS[0]}\! 2> >(bl_log crit) | paperkey 2> >(bl_log crit) > "$TMPDIR/secret.paper.txt"
-#printf "\n# Initial passphrase: ${passphrase}\n" >> "$TMPDIR/secret.paper.txt"
-#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! 2> >(bl_log crit) > "$TMPDIR/secret.E.asc"
-#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[2]}\! 2> >(bl_log crit) > "$TMPDIR/secret.A.asc"
+#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase[*]}" --pinentry-mode loopback --export-secret-keys ${FPRS[0]}\! 2> >(bl_log crit) | paperkey 2> >(bl_log crit) > "$TMPDIR/secret.paper.txt"
+#printf "\n# Initial passphrase: ${passphrase[*]}\n" >> "$TMPDIR/secret.paper.txt"
+#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase[*]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! 2> >(bl_log crit) > "$TMPDIR/secret.E.asc"
+#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase[*]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[2]}\! 2> >(bl_log crit) > "$TMPDIR/secret.A.asc"
 #bl_log info "export secret sub-keys to be use in thunderbird, delta chat, etc..."
-#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[3]}\! 2> >(bl_log crit) > "$TMPDIR/secret.S1.asc"
-#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! ${FPRS[4]}\! 2> >(bl_log crit) > "$TMPDIR/secret.S2+E.asc"
-#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! ${FPRS[5]}\! 2> >(bl_log crit) > "$TMPDIR/secret.S3+E.asc"
+#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase[*]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[3]}\! 2> >(bl_log crit) > "$TMPDIR/secret.S1.asc"
+#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase[*]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! ${FPRS[4]}\! 2> >(bl_log crit) > "$TMPDIR/secret.S2+E.asc"
+#gpg --homedir "$TMPDIR/gnupg" --batch --passphrase "${passphrase[*]}" --pinentry-mode loopback --armor --export-secret-keys ${FPRS[1]}\! ${FPRS[5]}\! 2> >(bl_log crit) > "$TMPDIR/secret.S3+E.asc"
 
 # log some info
 gpg --quiet --homedir "$TMPDIR/gnupg" --list-keys > >(bl_log info) 2> >(bl_log warning)
@@ -266,9 +266,9 @@ quit" | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --with-colons --pin
 
 bl_log notice "Unfortunately, we can't automatize moving key to card, then you should move keys master 1 and 2 manualy..."
 bl_log notice "Note: password is now set to 'm' to ease this manual operation."
-printf "${passphrase}\nm\n" | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --pinentry-mode loopback --change-passphrase ${FPRS[0]} 1> >(bl_log notice) 2>&1 || true
+printf "${passphrase[*]}\nm\n" | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --pinentry-mode loopback --change-passphrase ${FPRS[0]} 1> >(bl_log notice) 2>&1 || true
 gpg --homedir "$TMPDIR/gnupg" --edit-key "${FPRS[0]}" || bl_log warning "Moving OpenPGP keys to card returns $?"
-#printf "m\n${passphrase}\n" | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --pinentry-mode loopback --change-passphrase ${FPRS[0]} 1> >(bl_log crit) 2>&1
+#printf "m\n${passphrase[*]}\n" | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --pinentry-mode loopback --change-passphrase ${FPRS[0]} 1> >(bl_log crit) 2>&1
 
 #declare -A OPGPCARD=()
 #while IFS=':' read key value ; do
