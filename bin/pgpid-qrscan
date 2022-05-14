@@ -158,14 +158,8 @@ for ((i=0;i<=${max:-3};i++)) ; do
 	v4ldevices=($(ls /dev/v4l/by-id/*index0)) || bl_log crit "No video input (eg. webcam) detected"
 	v4ldevice=$(bl_radiolist --output-value --num-per-line 1 --default -1 --text "Missing part $((i+1)), device to scan qrcode ?" "${v4ldevices[@]}")
 	v4ldevice="$(readlink -f "${v4ldevice}")"
-	ffplay -loglevel warning -video_size 1024x768 -i "$v4ldevice" 2> >(bl_log warning) & sleep 5 ; kill $! 2> >(bl_log crit)
-	bl_log notice "Taking picture, please don't move (2 seconds) !"
-	ffmpeg -loglevel error -y -ss 00:02 -video_size 1024x768 -i "$v4ldevice" -frames:v 1 -q:v 2 "$TMPDIR/v4l.jpg" 2> >(bl_log error)
-	while ! part="$(zbarimg -Sdisable -Sqrcode.enable "$TMPDIR/v4l.jpg" 2> >(bl_log debug) | tr -d '\n' | sed 's,QR-Code:,\n,g' | grep "^~[1-9]")" ; do
+	while ! part="$(zbarcam -Sdisable -Sqrcode.enable --oneshot --prescale=640x480 $v4ldevice 2> >(bl_log debug) | tr -d '\n' | sed 's,QR-Code:,\n,g' | grep "^~[1-9]")" ; do
 		bl_log notice "No QR code with expected data detected..."
-		ffplay -loglevel warning -video_size 1024x768 -i "$v4ldevice" 2> >(bl_log warning) & sleep 3 ; kill $! 2> >(bl_log crit)
-		bl_log notice "Taking picture, please don't move (2 seconds) !"
-		ffmpeg -loglevel error -y -ss 00:02 -video_size 1024x768 -i "$v4ldevice" -frames:v 1 -q:v 2 "$TMPDIR/v4l.jpg" 2> >(bl_log error)
 	done
 	[[ "${part:1:1}" == "${pgpi_qrversion:=${part:1:1}}" ]] || bl_log crit "QR codes doesn't share the same version ($pgpi_qrversion != ${part:1:1})"
 	[[ "${part:2:1}" == "${max:=${part:2:1}}" ]] || bl_log crit "QR codes doesn't share the same division ($max != ${part:2:1})"
