@@ -432,7 +432,7 @@ fi
 
 #scanimage -l 2 -t 2 -x 120 -y 170 --mode Color --resolution 200 --format=tiff > tmpimg.tiff
 
-printers=($(LANG= lpstat -p 2> >(bl_log crit) | sed -n 's,printer \([^ ]*\).*,\1,p')) || bl_log crit "No printer detected"
+printers=($(LANG= lpstat -p 2> >(bl_log crit) | sed -n 's,^printer \([^ ]*\).*,\1,p')) || bl_log crit "No printer detected"
 printer="$(bl_radiolist --output-value --default-value "$(lpstat -d | sed 's,.* ,,')" --num-per-line 1 --text "Where to print the 4 QRcodes ?" "${printers[@]}")"
 lpstat -p "${printer}" 2> >(bl_log crit) | bl_log info
 
