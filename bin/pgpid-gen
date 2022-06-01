@@ -56,8 +56,8 @@ ONLYUDID=false
 
 ### Default option values ###
 
-PGPI_SPLITN=4
-PGPI_QRVERSION=1
+PGPI_SPLITN=3
+PGPI_QRVERSION=2
 
 if [[ "$BASH_SOURCE" == "$0" ]] ; then
 	# run as a program
@@ -79,10 +79,11 @@ If no IMAGE is given, $PGPI_NAME will try to use webcam."
 	soptions="
     -o, --output-path PATH   location for generated subdirs and files (current: $PGPI_OUTPATH )
     -s, --split NUM          number of split (current: $PGPI_SPLITN)
-    -w, --with-secret-words  Increase security, but worsen User eXperience.
+    -n, --no-secret-words    Increase User eXperience, but worsen security
+    -w, --with-secret-words  Increase security, but worsen User eXperience (default)
     -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (current: $LOGLEVEL)
     -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (current: $LOGLEVEL)
-    -u, --udid               calculate and output udid string, whithout generating PGPID QRcodes.
+    -u, --udid               calculate and output udid string, whithout generating PGPID QRcodes
     -h, --help               show this help and exit
     -V, --version            show version and exit"
 else
@@ -113,6 +114,7 @@ case "$1" in
 	-o|--output*) shift ; PGPI_OUTPATH="$1" ; ( cd "$PGPI_OUTPATH" && touch . ) ;; # cd and touch to verify outpath exist and is writable
 	-s|--split) shift ; PGPI_SPLITN="$1" ;;
 	-w|--with-secret-words) PGPI_QRVERSION=2 ;;
+	-n|--no-secret-words) PGPI_QRVERSION=1 ;;
 	-l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; $_exit 2 ; } ;;
 	-L|--log-e*) shift ; LOGEXITPRIO="$1"
 		grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$LOGEXITPRIO\" is none of: ${!loglevels[@]}" >&2 ; $_exit 2 ; } ;;
