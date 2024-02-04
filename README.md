@@ -29,7 +29,7 @@ Returns zero on normal operation, non-zero on errors.
 For Debian:
 
 ```
-apt install facedetect graphicsmagick tesseract-ocr qrencode cups-client zbar-img scdaemon
+apt install facedetect graphicsmagick tesseract-ocr qrencode cups-client zbar-tools scdaemon pandoc texlive-extra-utils xxd
 ```
 
 # EXAMPLES
