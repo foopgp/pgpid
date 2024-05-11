@@ -8,7 +8,9 @@ date: May 2021
 
 # NAME
 
-pgpid-gen - generate OpenPGP certificates and keys from passports or ID cards.
+pgpid-gen - generate OpenPGP certifcates and secrets on multiple QR codes (physical secret sharing scheme)
+
+pgpid-qrscan - transfers OpenPGP secrets from pgpid QR codes to OpenPGP smartcard (eg: yubikey, nitrokey, ...)
 
 # SYNOPSIS
 
@@ -24,15 +26,27 @@ pgpid-gen - generate OpenPGP certificates and keys from passports or ID cards.
 
 Returns zero on normal operation, non-zero on errors.
 
-# DEPENDENCIES
+# TRY IT
 
-For Debian:
+On Debian (or some derivated) :
 
 ```
-apt install facedetect graphicsmagick tesseract-ocr qrencode cups-client zbar-tools scdaemon pandoc texlive-extra-utils xxd
+$ git clone --recurse-submodules https://codeberg.org/foopgp/pgpid.git
+$ sudo apt install facedetect graphicsmagick tesseract-ocr qrencode cups-client zbar-tools scdaemon pandoc texlive-extra-utils xxd
+$ cd pgpid
+$ ./bin/pgpid-gen
 ```
 
 # EXAMPLES
+
+# CONTRIBUTE
+
+
+To push over ssh (and use the YubiKey or NitroKey you have configured with
+pgpid-gen and pgpid-qrscan) :
+```
+$ git config url.git@codeberg.org:.pushInsteadOf https://codeberg.org/
+```
 
 # SEE ALSO
 
