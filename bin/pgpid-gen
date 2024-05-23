@@ -486,7 +486,7 @@ while true ; do
 Surname at birth:     ${PGPID[birth_surname]:=${DOCUMENT[surname]}}
 Given names at birth: ${PGPID[birth_names]:=${DOCUMENT[names]}}
 Date of birth:        ${PGPID[birth_date]}
-Country of birth:     ${PGPID[birth_country]:=${DOCUMENT[nationality]}}
+Country of birth:     ${PGPID[birth_country]:=${DOCUMENT[nationality]:=FRA}}
 " \
 		"Is that correct" || break
 
