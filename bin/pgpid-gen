@@ -535,6 +535,13 @@ Public email adress:        ${PGPID[email]}
 		"Is that correct" || break
 done
 
+if bl_yesno "Would you like to add an second public email adress" ; then
+	while true ; do
+		PGPID[email2]=$(bl_input --default "${PGPID[email2]}" "Public email adress (2)")
+		grep -q "^[^@[:space:]]\+@[^.[:space:]]\+\.[^[:space:]]\+$" <<<"${PGPID[email2]}" && break
+	done
+fi
+
 PGPID[wkd_uri]=$($(gpgconf --list-dirs libexecdir)/gpg-wks-client --print-wkd-url "${PGPID[email]}" 2> >(bl_log warning) )
 PGPID[wks_support]=$(timeout --verbose 5s $(gpgconf --list-dirs libexecdir)/gpg-wks-client --supported --with-colons "${PGPID[email]}" 2> >(bl_log notice) || true )
 
@@ -614,6 +621,8 @@ for f in "$outdir/temp/SECRET-"* ; do
 
 ${PGPID[pseudonym]} \<${PGPID[email]}\>
 
+$([[ -z "${PGPID[email2]}" ]] || echo "${PGPID[pseudonym]} \<${PGPID[email2]}\>")
+
 ![qrcode $i]($f.png)
 
 *udid4=${PGPID[udid4]}*
@@ -622,6 +631,18 @@ $([[ -z "${PASSPHRASE[$i]}" ]] || echo "Secret word - ${i}/${PGPI_SPLITN} -> **$
 EOF
 	lpr -# "$printcopies" -P "$printer" "$f.pdf" 2> >(bl_log crit) | bl_log notice
 done
+
+# Add second email (if set)
+if [ "${PGPID[email2]}" ] ; then
+	if ! gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --allow-freeform-uid --edit-key ${FPRS[0]} 1> >(bl_log debug) 2>&1  <<<"adduid
+${PGPID[pseudonym]}
+${PGPID[email2]}
+udid4=${PGPID[udid4]}
+save
+" ; then
+		bl_log crit "Adding uid (email 2) to OpenPGP certificate FAIL ($?)"
+	fi
+fi
 
 # Add photo
 if ! gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --edit-key ${FPRS[0]} 1> >(bl_log debug) 2>&1 <<<"addphoto
