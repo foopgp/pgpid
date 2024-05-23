@@ -617,6 +617,8 @@ for f in "$outdir/temp/SECRET-"* ; do
 	cat <<EOF | pandoc --from markdown --to pdf -fmarkdown-implicit_figures | pdfcrop --margins "4" - "$f.pdf" > >(bl_log debug)
 \pagenumbering{gobble}
 
+*$(hostname) - $(date --iso-8601)*
+
 ## PGPID SECRET - ${i}/${PGPI_SPLITN}
 
 ${PGPID[pseudonym]} \<${PGPID[email]}\>
