@@ -42,10 +42,11 @@ $ ./bin/pgpid-gen
 # CONTRIBUTE
 
 
-To push over ssh (and use the YubiKey or NitroKey you have configured with
-pgpid-gen and pgpid-qrscan) :
+To sign your commits and push over ssh (and use the YubiKey or NitroKey
+you have configured with pgpid-gen and pgpid-qrscan) :
 ```
 $ git config url.git@codeberg.org:.pushInsteadOf https://codeberg.org/
+$ git config --global commit.gpgsign true
 ```
 
 # SEE ALSO
