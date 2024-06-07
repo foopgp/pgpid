@@ -84,6 +84,7 @@ If no IMAGE is given, $PGPI_NAME will try to use webcam."
     -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (current: $LOGLEVEL)
     -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (current: $LOGLEVEL)
     -u, --udid               calculate and output udid string, whithout generating PGPID QRcodes
+    -f, --free-comment STR   free form comment, imply also no image face detection
     -h, --help               show this help and exit
     -V, --version            show version and exit"
 else
@@ -121,6 +122,7 @@ case "$1" in
 	-v|--verb*) ((LOGLEVEL++)) ;;
 	-q|--quiet) ((LOGLEVEL--)) ;;
 	-u|--udid) ONLYUDID=true ;;
+	-f|--free-comment) shift ; PGPI_COMMENT="$1" ;;
 	-h|--h*) echo "$helpmsg" ; $_exit ;;
 	-V|--vers*) echo "$PGPI_NAME $PGPI_VERSION" ; $_exit ;;
 	--) shift ; break ;;
@@ -422,7 +424,7 @@ Country of birth:     ${PGPID[birth_country]}
 		ffmpeg -loglevel error -y -ss 00:02 -video_size 1024x768 -i "$v4ldevice" -frames:v 1 -q:v 2 "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log error)
 		#fswebcam --no-banner --resolution 1024x768 --skip 40 --frame 3 --set lights=on --device "$v4ldevice" "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log notice)
 		#gm display -immutable "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log info) & sleep 1 ; kill $!
-		while ! facedetect -q "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log notice) ; do
+		while ! [[ -v PGPI_COMMENT ]] && ! facedetect -q "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log notice) ; do
 			bl_log notice "No face detected..."
 			ffplay -loglevel warning -video_size 1024x768 -i "$v4ldevice" 2> >(bl_log warning) & sleep 3 ; kill $! 2> >(bl_log crit)
 			bl_log notice "Taking picture, please don't move (2 seconds) !"
@@ -438,84 +440,96 @@ printers=($(LANG= lpstat -p 2> >(bl_log crit) | sed -n 's,^printer \([^ ]*\).*,\
 printer="$(bl_radiolist --output-value --default-value "$(lpstat -d | sed 's,.* ,,')" --num-per-line 1 --text "Where to print the 4 QRcodes ?" "${printers[@]}")"
 lpstat -p "${printer}" 2> >(bl_log crit) | bl_log info
 
-facep=$(facedetect --best -- "$imgfile" 2> >(bl_log notice) || true )
-[[ "$facep" ]] || bl_log crit "No face detected in $imgfile"
-
-read px py sx sy etc <<<"$facep"
-mx=$((sx*$FACE_MARGIN_WIDTH))
-my=$((sy*$FACE_MARGIN_HEIGHT))
-bl_log info "$imgfile face -> position: +$px+$py  size: ${sx}x$sy  marges: +${mx}+$my"
-
-declare -A DOCUMENT=()
-# OCR only on zone below the image, converted to PNG because tesseract work better whith this format.
-if mrz=($(gm convert -crop +0+$((py+sy)) "$imgfile" png:- 2> >(bl_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(bl_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
-	if icao9303_mrz_analyse DOCUMENT "${mrz[@]}" ; then
-		#WARNING: mrz data may be irrelevant to generate udid4. eg:
-		#         * Surname or given names may be incomplete (cut bc exceed mrz size)
-		#         * Surname or given names may differs from those given at birth (marriage, gender change, etc.)
-		#         * Surname or given names transliteration may have change over time
-		#         * Year of birth date is not written with 4 digit (and people may live longer than 100 years)
-		#         * Humans may have done error on birth date, surname or given names.
-		if ! DOCUMENT[udid4_auto]=$(pgpi_gen_udid4 --iso7501-mrz-names "${DOCUMENT[all_names]}" --birth-date "${DOCUMENT[date_of_birth]}" --birth-country "${DOCUMENT[nationality]}") ; then
-			bl_log warning "can't generate an udid4 from mrz data"
-			unset DOCUMENT[udid4_auto]
-		fi
-	else
-		bl_log warning "$imgfile: Invalid or unsupported machine-readable zone"
-	fi
-else
-	bl_log warning "$imgfile: No machine-readable zone detected"
-fi
-
-DOCUMENT[filename]=$imgfile
-DOCUMENT[face_scan_64url]=$(gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$imgfile" jpeg:- 2> >(bl_log warning) | basenc --base64url )
-if ((${#DOCUMENT[face_scan_64url]} < 2048 )) ; then
-	bl_log error "face image: too small (${#DOCUMENT[face_scan_64url]} < 2048)"
-elif ((${#DOCUMENT[face_scan_64url]} > (1<<16) )) ; then
-	bl_log error "face image: too big (${#DOCUMENT[face_scan_64url]} > $((1<<16)))"
-fi
-
 declare -A PGPID=()
 
-PGPID[document0]="$(declare -p DOCUMENT)"
-
-PGPID[birth_date]=$(date --date "$(($(date +"%y%m%d") < DOCUMENT[date_of_birth] ? 19 : 20))${DOCUMENT[date_of_birth]}" +"%Y-%m-%d")
-while true ; do
-	! bl_yesno --default=no --text \
-"
-Surname at birth:     ${PGPID[birth_surname]:=${DOCUMENT[surname]}}
-Given names at birth: ${PGPID[birth_names]:=${DOCUMENT[names]}}
-Date of birth:        ${PGPID[birth_date]}
-Country of birth:     ${PGPID[birth_country]:=${DOCUMENT[nationality]:=FRA}}
-" \
-		"Is that correct" || break
-
-	PGPID[birth_surname]=$(bl_input --default "${PGPID[birth_surname]^^}" "Birth surname")
-	PGPID[birth_names]=$(bl_input --default "${PGPID[birth_names]}" "Birth names")
-	PGPID[birth_date]=$(bl_input --default "${PGPID[birth_date]}" "Birth date")
-	PGPID[birth_country]=$(bl_input --default "${PGPID[birth_country]}" "Birth country")
-done
-
-if PGPID[udid4]=$(pgpi_gen_udid4 --surname "${PGPID[birth_surname]}" --given-names "${PGPID[birth_names]}" --birth-date "${PGPID[birth_date]}" --birth-country "${PGPID[birth_country]}") ; then
-	bl_log info "udid4=${PGPID[udid4]}"
+if [[ -v PGPI_COMMENT ]] ; then
+	DOCUMENT[filename]=$imgfile
+	DOCUMENT[face_scan_64url]=$(gm convert "$imgfile" jpeg:- 2> >(bl_log warning) | basenc --base64url )
+	PGPID[comment]="${PGPI_COMMENT}"
+	# default birthdate is assuming PGP_COMMENT is an nhud2 string (cf OpenUDC authentication mechanism)
+	PGPID[birth_date]=$(bl_input --default "${PGPI_COMMENT:6:4}-${PGPI_COMMENT:10:2}-${PGPI_COMMENT:12:2}" "Birth date (YYYY-mm-dd)")
 else
-	bl_log crit "can't generate an udid4 from data you have validated"
+	facep=$(facedetect --best -- "$imgfile" 2> >(bl_log notice) || true )
+	[[ "$facep" ]] || bl_log crit "No face detected in $imgfile"
+
+	read px py sx sy etc <<<"$facep"
+	mx=$((sx*$FACE_MARGIN_WIDTH))
+	my=$((sy*$FACE_MARGIN_HEIGHT))
+	bl_log info "$imgfile face -> position: +$px+$py  size: ${sx}x$sy  marges: +${mx}+$my"
+
+	declare -A DOCUMENT=()
+	# OCR only on zone below the image, converted to PNG because tesseract work better whith this format.
+	if mrz=($(gm convert -crop +0+$((py+sy)) "$imgfile" png:- 2> >(bl_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(bl_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
+		if icao9303_mrz_analyse DOCUMENT "${mrz[@]}" ; then
+			#WARNING: mrz data may be irrelevant to generate udid4. eg:
+			#         * Surname or given names may be incomplete (cut bc exceed mrz size)
+			#         * Surname or given names may differs from those given at birth (marriage, gender change, etc.)
+			#         * Surname or given names transliteration may have change over time
+			#         * Year of birth date is not written with 4 digit (and people may live longer than 100 years)
+			#         * Humans may have done error on birth date, surname or given names.
+			if ! DOCUMENT[udid4_auto]=$(pgpi_gen_udid4 --iso7501-mrz-names "${DOCUMENT[all_names]}" --birth-date "${DOCUMENT[date_of_birth]}" --birth-country "${DOCUMENT[nationality]}") ; then
+				bl_log warning "can't generate an udid4 from mrz data"
+				unset DOCUMENT[udid4_auto]
+			fi
+		else
+			bl_log warning "$imgfile: Invalid or unsupported machine-readable zone"
+		fi
+	else
+		bl_log warning "$imgfile: No machine-readable zone detected"
+	fi
+
+	DOCUMENT[filename]=$imgfile
+	DOCUMENT[face_scan_64url]=$(gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$imgfile" jpeg:- 2> >(bl_log warning) | basenc --base64url )
+
+	if ((${#DOCUMENT[face_scan_64url]} < 2048 )) ; then
+		bl_log error "face image: too small (${#DOCUMENT[face_scan_64url]} < 2048)"
+	elif ((${#DOCUMENT[face_scan_64url]} > (1<<16) )) ; then
+		bl_log error "face image: too big (${#DOCUMENT[face_scan_64url]} > $((1<<16)))"
+	fi
+
+	PGPID[document0]="$(declare -p DOCUMENT)"
+
+	PGPID[birth_date]=$(date --date "$(($(date +"%y%m%d") < DOCUMENT[date_of_birth] ? 19 : 20))${DOCUMENT[date_of_birth]}" +"%Y-%m-%d")
+
+
+	while true ; do
+		! bl_yesno --default=no --text \
+	"
+	Surname at birth:     ${PGPID[birth_surname]:=${DOCUMENT[surname]}}
+	Given names at birth: ${PGPID[birth_names]:=${DOCUMENT[names]}}
+	Date of birth:        ${PGPID[birth_date]}
+	Country of birth:     ${PGPID[birth_country]:=${DOCUMENT[nationality]:=FRA}}
+	" \
+			"Is that correct" || break
+
+		PGPID[birth_surname]=$(bl_input --default "${PGPID[birth_surname]^^}" "Birth surname")
+		PGPID[birth_names]=$(bl_input --default "${PGPID[birth_names]}" "Birth names")
+		PGPID[birth_date]=$(bl_input --default "${PGPID[birth_date]}" "Birth date")
+		PGPID[birth_country]=$(bl_input --default "${PGPID[birth_country]}" "Birth country")
+	done
+
+	if PGPID[udid4]=$(pgpi_gen_udid4 --surname "${PGPID[birth_surname]}" --given-names "${PGPID[birth_names]}" --birth-date "${PGPID[birth_date]}" --birth-country "${PGPID[birth_country]}") ; then
+		PGPID[comment]="udid4=${PGPID[udid4]}"
+		bl_log info "${PGPID[comment]}"
+	else
+		bl_log crit "can't generate an udid4 from data you have validated"
+	fi
 fi
 
-outdir="${PGPI_OUTPATH%/}/${PGPID[udid4]}"
+outdir="${PGPI_OUTPATH%/}/PUB_${PGPID[comment]}"
 mkdir -p "$outdir"/{gnupg,temp}
 cp -bvf "$imgfile" "$outdir/document.orig" 2> >(bl_log warning) | bl_log info
 
-# Resize and display scanned face
+# Resize and display image
 (exec 2> >(bl_log error) ; basenc --base64url --decode <<<"${DOCUMENT[face_scan_64url]}" | gm convert -geometry x180 - "$outdir/temp/face.jpg" )
 bl_log notice "Displaying face... close it to continue !"
 gm display -immutable "$outdir/temp/face.jpg" 2> >(bl_log error)
 
-bl_yesno "Did the image correspond to ${PGPID[birth_names],,} ${PGPID[birth_surname]^^}"
+bl_yesno "Did the image correspond to ${PGPID[birth_names],,} ${PGPID[birth_surname]^^} (${PGPID[comment]})"
 PGPID[face1_64url]=$(basenc --base64url < "$outdir/temp/face.jpg")
 
 if $ONLYUDID ; then
-	echo "udid4=${PGPID[udid4]}"
+	echo "${PGPID[comment]}"
 	pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(bl_log crit)
 	exit
 fi
@@ -556,6 +570,7 @@ PASSPHRASE=("$(sed 's/[^0-9]//g' <<<"${PGPID[birth_date]}" )")
 PGPID[passphrase]="${PASSPHRASE[@]}"
 
 PGPID[hkp_server]="foopgp.org:11371"
+#PGPID[hkp_server]="keys.openpgp.org"
 
 #TODO: check gpg version, because we use some recent feature, and compatibility may change (tested with gpg (GnuPG) 2.2.27 libgcrypt 1.8.8)
 # Start using "$outdir/gnupg" which need to be rwx only for user... then we may also remove rwx for all $outdir.
@@ -571,7 +586,7 @@ Subkey-Type: ecdh
 Subkey-Curve: Curve25519
 Subkey-Usage: encrypt
 Name-Real: ${PGPID[pseudonym]}
-Name-Comment: udid4=${PGPID[udid4]}
+Name-Comment: ${PGPID[comment]}
 Name-Email: ${PGPID[email]}
 Expire-Date: $(date -I -d "+11 years")
 Passphrase: ${PGPID[passphrase]}
@@ -628,7 +643,7 @@ $([[ -z "${PGPID[email2]}" ]] || echo "${PGPID[pseudonym]} \<${PGPID[email2]}\>"
 
 ![qrcode $i]($f.png)
 
-*udid4=${PGPID[udid4]}*
+*${PGPID[comment]}*
 
 $([[ -z "${PASSPHRASE[$i]}" ]] || echo "Secret word - ${i}/${PGPI_SPLITN} -> **${PASSPHRASE[$i]}**")
 EOF
@@ -640,7 +655,7 @@ if [ "${PGPID[email2]}" ] ; then
 	if ! gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --allow-freeform-uid --edit-key ${FPRS[0]} 1> >(bl_log debug) 2>&1  <<<"adduid
 ${PGPID[pseudonym]}
 ${PGPID[email2]}
-udid4=${PGPID[udid4]}
+${PGPID[comment]}
 save
 " ; then
 		bl_log crit "Adding uid (email 2) to OpenPGP certificate FAIL ($?)"

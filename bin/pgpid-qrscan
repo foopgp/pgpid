@@ -145,7 +145,7 @@ for file in "$@" ; do
 	fi
 done
 
-# Expected QRdata begin with "~[1-9]" followed by the maximum number of part-1 (default: 4-1=3) then by the index of the part (O to 9).
+# Expected QRdata begin with a version number "~[1-9]" followed by the maximum number of part-1 (default: 4-1=3) then by the index of the part (O to 9).
 while read -r part ; do
 	[[ "${part:1:1}" == "${pgpi_qrversion:=${part:1:1}}" ]] || bl_log crit "QR codes doesn't share the same version ($pgpi_qrversion != ${part:1:1})"
 	[[ "${part:2:1}" == "${max:=${part:2:1}}" ]] || bl_log crit "QR codes doesn't share the same division ($max != ${part:2:1})"
