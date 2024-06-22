@@ -138,6 +138,7 @@ done
 . "$(dirname "$BASH_SOURCE")"/bl-log --no-act --log-level "$LOGLEVEL" --log-exit "$LOGEXITPRIO"
 . "$(dirname "$BASH_SOURCE")"/bl-interactive --
 . "$(dirname "$BASH_SOURCE")"/bl-security --
+. "$(dirname "$BASH_SOURCE")"/bl-json --
 
 # Implementation of ICAO doc 9303 part 3 (Specifications Common to all MRTDs - 4.9)
 icao9303_mrz_checkdigit() {
@@ -306,70 +307,6 @@ If COUNTRY_CODE is given, COORDINATES is ignored
 	echo "$(printf "$tohash1$tohash2" | md5sum | xxd -r -p | basenc --base64url | sed 's/==$//')$c"
 }
 
-pgpi_json_from_str() {
-	local helpmsg="Usage: $FUNCNAME [--] [STRING]...
-"'Escape "\" and [/"\b\f\n\r\t] characters as required by JSON format.
-If there is no STRING in command line, read it from stdin.
-'
-
-	for ((;$#;)) ; do
-		case "$1" in
-			-h|--h*) echo "$helpmsg" ; return ;;
-			-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
-			--) shift ; break ;;
-			-*) echo -e "$FUNCNAME: Error: Unrecognized option/parameters $1\n$helpmsg" >&2 ; return 2 ;;
-			*) break ;;
-		esac
-	done
-
-	local from='cat'
-	! (($#)) || from='eval echo "$@"'
-	$from | sed 's,\\,\\\\,g; s,/,\\/,g; s,",\\",g; s,\x08,\\b,g; s,\x0c,\\f,g; s,\r,\\r,g; s,\t,\\t,g;' | sed ':a;N;$!ba; s,\n,\\n,g;'
-}
-
-pgpi_json_from_var() {
-	local nested=false shft=0
-	local helpmsg="Usage: $FUNCNAME [OPTIONS] VARNAME
-Output content of VARNAME in a JSON format.
-
-Options:
-    -n, --nested        Assume any value beginning with \"declare -[aA]\" are nested data to be translate to JSON format
-    -s, --shift NUMBER  Number of tabs shifting of each line (default $shft)
-"
-#TODO: one more options to display non-associative array as json array, and to manage arrays with non-contiguous indices.
-#TODO: ... Maybe a selector <on|auto|off>, whith 'auto' to detect if array indices are non-contiguous.
-	for ((;$#;)) ; do
-		case "$1" in
-			-n|--nest*) nested=true ;;
-			-s|--shift) shift ; shft=$(($1)) ;;
-			-h|--h*) echo "$helpmsg" ; return ;;
-			-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
-			--) shift ; break ;;
-			-*) echo -e "$FUNCNAME: Error: Unrecognized option/parameters $1\n$helpmsg" >&2 ; return 2 ;;
-			*) break ;;
-		esac
-		shift
-	done
-
-	local lb notstarted=true
-	local -n aa=$1
-	! ((shft)) || lb=$(eval printf '\\t%.0s' {1..$shft})
-	printf "$lb{\n"
-	for i in "${!aa[@]}"; do
-		$notstarted || printf ",\n"
-		notstarted=false
-		#TODO: Maybe use and depend on "jq". cf. https://stackoverflow.com/questions/44792241/constructing-a-json-hash-from-a-bash-associative-array
-		if $nested && [[ "${aa[$i]}" =~ ^declare" "-[Aa][a-zA-Z]*" "([a-zA-Z_][a-zA-Z0-9_]*)= ]] ; then
-			local "${BASH_REMATCH[1]}"
-			eval "${aa[$i]}"
-			echo -n "$lb	\"$(pgpi_json_from_str -- "$i")\":"$'\n'"$(pgpi_json_from_var --nested --shift $((shft+2)) "${BASH_REMATCH[1]}")"
-		else
-			echo -n "$lb	\"$(pgpi_json_from_str -- "$i")\": \"$(pgpi_json_from_str -- "${aa[$i]}")\""
-		fi
-	done
-	printf "\n$lb}\n"
-}
-
 # Do nothing else if sourced
 [[ "$BASH_SOURCE" == "$0" ]] || return 0
 
@@ -530,7 +467,7 @@ PGPID[face1_64url]=$(basenc --base64url < "$outdir/temp/face.jpg")
 
 if $ONLYUDID ; then
 	echo "${PGPID[comment]}"
-	pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(bl_log crit)
+	bl_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(bl_log crit)
 	exit
 fi
 
@@ -676,7 +613,7 @@ gpg --homedir "$outdir/gnupg" --armor --export 2> >(bl_log crit) > "$outdir/PGPc
 gpg --homedir "$outdir/gnupg" --export-ssh-key ${FPRS[0]} 2> >(bl_log crit) > "$outdir/ssh_${PGPID[udid4]}.pub"
 
 bl_log info "Generate JSON file, for eventual futur use..."
-pgpi_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(bl_log crit)
+bl_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(bl_log crit)
 bl_log info "All Done :-)"
 
 exit 0
