@@ -14,6 +14,8 @@ pgpid-qrscan - transfers OpenPGP secrets from pgpid QR codes to OpenPGP smartcar
 
 # SYNOPSIS
 
+
+
 # DESCRIPTION
 
 # OPTIONS
