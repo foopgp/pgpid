@@ -183,6 +183,10 @@ while true ; do
 		for ((i=1;i<=max+1;i++)) ; do
 			passphrase[$i]="$(bl_input --default "${passphrase[$i]}" "Secret word $i/$((max+1))")"
 		done
+	elif [[ "$pgpi_qrversion" == "3" ]] ; then
+		bl_log crit "This version ($PGPI_NAME $PGPI_VERSION) doesn't support Shamir's secret sharing algorithm"
+	elif [[ "$pgpi_qrversion" != "1" ]] ; then
+		bl_log crit "This version ($PGPI_NAME $PGPI_VERSION) doesn't support such qrcode version ($pgpi_qrversion)"
 	fi
 	if printf "%s" ${parts[@]} | basenc --decode --base64url | gpg --decrypt --batch --pinentry-mode loopback --passphrase "${passphrase[*]}" 2> >(bl_log notice) | gpg --homedir "$TMPDIR/gnupg" --batch --pinentry-mode loopback --passphrase "${passphrase[*]}" --import 2> >(bl_log notice) ; then
 		break
