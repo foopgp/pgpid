@@ -40,7 +40,7 @@ if [[ "$1" == --bash-completion ]] ; then
 fi
 
 PGPI_NAME="$(basename $(readlink -f "$BASH_SOURCE") )"
-PGPI_VERSION="0.0.1"
+PGPI_VERSION="0.0.2"
 
 ### Default option values ###
 
@@ -153,6 +153,7 @@ while read -r part ; do
 done <"$TMPDIR/qrcontent"
 
 for ((i=0;i<=${max:-3};i++)) ; do
+	((${#parts[@]} <= ${max:-3})) || break
 	[[ -z "${parts[$i]}" ]] || continue
 
 	v4ldevices=($(ls /dev/v4l/by-id/*index0)) || bl_log crit "No video input (eg. webcam) detected"
@@ -183,12 +184,22 @@ while true ; do
 		for ((i=1;i<=max+1;i++)) ; do
 			passphrase[$i]="$(bl_input --default "${passphrase[$i]}" "Secret word $i/$((max+1))")"
 		done
-	elif [[ "$pgpi_qrversion" == "3" ]] ; then
-		bl_log crit "This version ($PGPI_NAME $PGPI_VERSION) doesn't support Shamir's secret sharing algorithm"
-	elif [[ "$pgpi_qrversion" != "1" ]] ; then
+	elif [[ "$pgpi_qrversion" == "0" ]] ; then
+		bl_log crit "Invalid qrcode version ($pgpi_qrversion)"
+	elif [[ "$pgpi_qrversion" -gt "3" ]] ; then
 		bl_log crit "This version ($PGPI_NAME $PGPI_VERSION) doesn't support such qrcode version ($pgpi_qrversion)"
 	fi
-	if printf "%s" ${parts[@]} | basenc --decode --base64url | gpg --decrypt --batch --pinentry-mode loopback --passphrase "${passphrase[*]}" 2> >(bl_log notice) | gpg --homedir "$TMPDIR/gnupg" --batch --pinentry-mode loopback --passphrase "${passphrase[*]}" --import 2> >(bl_log notice) ; then
+	if [[ "$pgpi_qrversion" == "3" ]] ; then
+		# Shamir Secret Sharing
+		for i in ${!parts[@]} ; do
+			printf "%s" ${parts[$i]:3} | basenc --decode --base64url > "$TMPDIR/SECRET.${parts[$i]:0:3}"
+		done
+		gfcombine "$TMPDIR/SECRET."*
+	else
+		# Simple split
+		printf "%s" ${parts[@]} | basenc --decode --base64url > "$TMPDIR/SECRET"
+	fi
+	if cat "$TMPDIR/SECRET" | gpg --decrypt --batch --pinentry-mode loopback --passphrase "${passphrase[*]}" 2> >(bl_log notice) | gpg --homedir "$TMPDIR/gnupg" --batch --pinentry-mode loopback --passphrase "${passphrase[*]}" --import 2> >(bl_log notice) ; then
 		break
 	fi
 done

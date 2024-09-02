@@ -43,7 +43,7 @@ if [[ "$1" == --bash-completion ]] ; then
 fi
 
 PGPI_NAME="$(basename $(readlink -f "$BASH_SOURCE") )"
-PGPI_VERSION="0.0.1"
+PGPI_VERSION="0.0.2"
 
 
 ### Constants ###
@@ -56,8 +56,9 @@ ONLYUDID=false
 
 ### Default option values ###
 
-PGPI_SPLITN=3
-PGPI_QRVERSION=2
+PGPI_SPLITN=4
+PGPI_THRESN=3
+PGPI_QRVERSION=3
 
 if [[ "$BASH_SOURCE" == "$0" ]] ; then
 	# run as a program
@@ -78,9 +79,8 @@ If no IMAGE is given, $PGPI_NAME will try to use webcam."
 
 	soptions="
     -o, --output-path PATH   location for generated subdirs and files (current: $PGPI_OUTPATH )
-    -s, --split NUM          number of split (current: $PGPI_SPLITN)
-    -n, --no-secret-words    Increase User eXperience, but worsen security
-    -w, --with-secret-words  Increase security, but worsen User eXperience (default)
+    -s, --split NUM          number of shares to be generated (current: $PGPI_SPLITN)
+    -t, --threshold NUM      number of shares necessary to reconstruct the secret (current: $PGPI_THRESN)
     -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (current: $LOGLEVEL)
     -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (current: $LOGLEVEL)
     -u, --udid               calculate and output udid string, whithout generating PGPID QRcodes
@@ -114,8 +114,7 @@ for ((i=0;$#;)) ; do
 case "$1" in
 	-o|--output*) shift ; PGPI_OUTPATH="$1" ; ( cd "$PGPI_OUTPATH" && touch . ) ;; # cd and touch to verify outpath exist and is writable
 	-s|--split) shift ; PGPI_SPLITN="$1" ;;
-	-w|--with-secret-words) PGPI_QRVERSION=2 ;;
-	-n|--no-secret-words) PGPI_QRVERSION=1 ;;
+	-t|--thres*) shift ; PGPI_THRESN="$1" ;;
 	-l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; $_exit 2 ; } ;;
 	-L|--log-e*) shift ; LOGEXITPRIO="$1"
 		grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$LOGEXITPRIO\" is none of: ${!loglevels[@]}" >&2 ; $_exit 2 ; } ;;
@@ -132,6 +131,8 @@ esac
 shift
 done
 
+# If number of shares equal number of threshold, don't use shamir's secret sharing
+((PGPI_SPLITN!=PGPI_THRESN)) || PGPI_QRVERSION=1
 
 ### functions ###
 
@@ -502,7 +503,10 @@ if ! [[ "${PGPID[wks_support]}" =~ :1: ]] ; then
 fi
 
 PASSPHRASE=("$(sed 's/[^0-9]//g' <<<"${PGPID[birth_date]}" )")
-((PGPI_QRVERSION<2)) || PASSPHRASE+=($(bl_gen_passphrase --dict en --num "$PGPI_SPLITN" --delimiter " ")) # PGPI_QRVERSION == 2 : improve security but worsen User Experience
+
+if ((PGPI_QRVERSION==2)) ; then
+	PASSPHRASE+=($(bl_gen_passphrase --dict en --num "$PGPI_SPLITN" --delimiter " ")) # PGPI_QRVERSION == 2 added a complex passphrase, but is now deprecated.
+fi
 
 PGPID[passphrase]="${PASSPHRASE[@]}"
 
@@ -555,24 +559,39 @@ PGPID[frps]="$(declare -p FPRS)"
 #
 # We use a symmetric encryption after to export, to force retrieving all secret words and QRCodes to reconstruct all keys.
 
-gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --export-secret-key ${FPRS[0]} | gpg --batch --symmetric --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback | basenc --base64url --wrap 0 > "$outdir/temp/s.gpg.gpg.b64url"
-
+	gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --export-secret-key ${FPRS[0]} | gpg --batch --symmetric --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback > "$outdir/temp/s.gpg"
+if ((PGPI_QRVERSION<3 )) ; then
+	basenc --base64url --wrap 0 < "$outdir/temp/s.gpg" > "$outdir/temp/s.gpg.b64url"
+	split "$outdir/temp/s.gpg.b64url" -d -n "$PGPI_SPLITN" "$outdir/temp/SECRET-"
+else
+	gfsplit -n ${PGPI_THRESN} -m ${PGPI_SPLITN} "$outdir/temp/s.gpg" "$outdir/temp/SECRET"
+	cd "$outdir/temp/"
+	for f in "SECRET."* ; do
+		basenc --base64url --wrap 0 < "$f" > "${f/./-}"
+	done
+	cd -
+fi
 printcopies=$(bl_radiolist --num-per-line 3 --default 1 --text "Number of copies ?" "" "" "")
-
-split "$outdir/temp/s.gpg.gpg.b64url" -d -n "$PGPI_SPLITN" "$outdir/temp/SECRET-"
 i=0
 for f in "$outdir/temp/SECRET-"* ; do
 
 	#TODO: manage stdouts and stderrs on next lines
-	# 4 chars QR Code Header : one magic char '~', one version char, one char for split number, one char for index of split part.
-	( printf "~$((PGPI_QRVERSION))$((PGPI_SPLITN-1))$i" ; cat "$f" ) | qrencode --level=M --output "$f.png"
+	if ((PGPI_QRVERSION==3)) ; then
+		# 7 chars QR Code Header : one magic char '~', one version char, one char for threshold number, one char for index of split part, 3 chars for the share number (cf man gfcombine)
+		( printf "~$((PGPI_QRVERSION))$((PGPI_THRESN-1))$i"${f##*-} ; cat "$f" ) | qrencode --level=L --dpi=50 --output "$f.png"
+	else
+		# 4 chars QR Code Header : one magic char '~', one version char, one char for split number, one char for index of split part.
+		( printf "~$((PGPI_QRVERSION))$((PGPI_THRESN-1))$i" ; cat "$f" ) | qrencode --level=M --dpi=50 --output "$f.png"
+	fi
 	((++i)) # Not i++ because i start from 0 and set -e ;-)
 	cat <<EOF | pandoc --from markdown --to pdf -fmarkdown-implicit_figures | pdfcrop --margins "4" - "$f.pdf" > >(bl_log debug)
 \pagenumbering{gobble}
 
 *$(hostname) - $(date --iso-8601)*
 
-## PGPID SECRET - ${i}/${PGPI_SPLITN}
+*${PGPI_NAME} ${PGPI_VERSION} - QR version: ${PGPI_QRVERSION}*
+
+## PGPID SECRET - ${i}/${PGPI_THRESN}
 
 ${PGPID[pseudonym]} \<${PGPID[email]}\>
 
@@ -582,7 +601,7 @@ $([[ -z "${PGPID[email2]}" ]] || echo "${PGPID[pseudonym]} \<${PGPID[email2]}\>"
 
 *${PGPID[comment]}*
 
-$([[ -z "${PASSPHRASE[$i]}" ]] || echo "Secret word - ${i}/${PGPI_SPLITN} -> **${PASSPHRASE[$i]}**")
+$([[ -z "${PASSPHRASE[$i]}" ]] || echo "Secret word - ${i}/${PGPI_THRESN} -> **${PASSPHRASE[$i]}**")
 EOF
 	lpr -# "$printcopies" -P "$printer" "$f.pdf" 2> >(bl_log crit) | bl_log notice
 done
