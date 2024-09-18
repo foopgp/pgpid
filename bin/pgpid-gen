@@ -597,11 +597,12 @@ ${PGPID[pseudonym]} \<${PGPID[email]}\>
 
 $([[ -z "${PGPID[email2]}" ]] || echo "${PGPID[pseudonym]} \<${PGPID[email2]}\>")
 
-![qrcode $i]($f.png)
-
 *${PGPID[comment]}*
 
+![qrcode $i]($f.png)
+
 $([[ -z "${PASSPHRASE[$i]}" ]] || echo "Secret word - ${i}/${PGPI_THRESN} -> **${PASSPHRASE[$i]}**")
+
 EOF
 	lpr -# "$printcopies" -P "$printer" "$f.pdf" 2> >(bl_log crit) | bl_log notice
 done
