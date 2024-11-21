@@ -43,7 +43,7 @@ if [[ "$1" == --bash-completion ]] ; then
 fi
 
 PGPI_NAME="$(basename $(readlink -f "$BASH_SOURCE") )"
-PGPI_VERSION="0.0.2"
+PGPI_VERSION="0.0.3"
 
 
 ### Constants ###
@@ -56,7 +56,7 @@ ONLYUDID=false
 
 ### Default option values ###
 
-PGPI_SPLITN=4
+PGPI_SPLITN=5
 PGPI_THRESN=3
 PGPI_QRVERSION=3
 
@@ -569,9 +569,10 @@ else
 	for f in "SECRET."* ; do
 		basenc --base64url --wrap 0 < "$f" > "${f/./-}"
 	done
-	cd -
+	cd - 2> >(bl_log crit) | bl_log debug
 fi
-printcopies=$(bl_radiolist --num-per-line 3 --default 1 --text "Number of copies ?" "" "" "")
+
+bl_log notice "Printing secret splitted into ${PGPI_SPLITN} fragments on ${printer} ..."
 i=0
 for f in "$outdir/temp/SECRET-"* ; do
 
@@ -591,7 +592,7 @@ for f in "$outdir/temp/SECRET-"* ; do
 
 *${PGPI_NAME} ${PGPI_VERSION} - QR version: ${PGPI_QRVERSION}*
 
-## PGPID SECRET - ${i}/${PGPI_THRESN}
+## PGPID SECRET (/${PGPI_THRESN}) - FRAGMENT ${i}/${PGPI_SPLITN}
 
 ${PGPID[pseudonym]} \<${PGPID[email]}\>
 
@@ -604,7 +605,7 @@ $([[ -z "${PGPID[email2]}" ]] || echo "${PGPID[pseudonym]} \<${PGPID[email2]}\>"
 $([[ -z "${PASSPHRASE[$i]}" ]] || echo "Secret word - ${i}/${PGPI_THRESN} -> **${PASSPHRASE[$i]}**")
 
 EOF
-	lpr -# "$printcopies" -P "$printer" "$f.pdf" 2> >(bl_log crit) | bl_log notice
+	lpr -# 1 -P "${printer}" "${f}.pdf" 2> >(bl_log crit) | bl_log notice
 done
 
 # Add second email (if set)

@@ -34,7 +34,7 @@ On Debian (or some derivated) :
 
 ```
 $ git clone --recurse-submodules https://codeberg.org/foopgp/pgpid.git
-$ sudo apt install facedetect graphicsmagick tesseract-ocr qrencode gpg-wks-client cups-client zbar-tools scdaemon pandoc texlive-extra-utils xxd libgfshare-bin
+$ sudo apt install facedetect graphicsmagick tesseract-ocr qrencode gpg-wks-client cups-client zbar-tools scdaemon pandoc texlive-extra-utils xxd libgfshare-bin cups-bsd
 $ cd pgpid
 $ ./bin/pgpid-gen
 ```
