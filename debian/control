@@ -1,0 +1,15 @@
+Source: pgpid
+Section: utils
+Priority: optional
+Maintainer: Sébastien Picardeau <piseb@mailo.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.5.1
+Homepage: https://foopgp.org
+Rules-Requires-Root: no
+Vcs-Git: https://codeberg.org/foopgp/pgpid.git
+Vcs-Browser: https://codeberg.org/foopgp/pgpid
+
+Package: pgpid
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}, bash-libs, facedetect, graphicsmagick, tesseract-ocr, qrencode, gpg-wks-client, cups-client, zbar-tools, scdaemon, pandoc, texlive-extra-utils, xxd, libgfshare-bin, cups-bsd
+Description: TODO

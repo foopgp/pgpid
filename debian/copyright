@@ -1,0 +1,121 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: pgpid
+Upstream-Contact: <preferred name and address to reach the upstream project>
+Source: <url://example.com>
+#
+# Please double check copyright with the licensecheck(1) command.
+
+Files:     .gitignore
+           .gitmodules
+           NOTES.md
+           README.md
+           data/country_centroids_az8.csv
+           data/geolist_centroid.txt
+           data/tesseract.parameters.ref
+           doc/9303_p10_cons_en.pdf
+           doc/ISO14443_Overview-v5.pdf
+           doc/key_overwriting_attack.pdf
+           doc/Říha2009_Chapter_AnOverviewOfElectronicPassport.pdf
+           imgsamples/101737.jpg
+           imgsamples/109508.JPG
+           imgsamples/119603.jpg
+           imgsamples/121146.JPG
+           imgsamples/184493.JPG
+           imgsamples/211185.jpg
+           imgsamples/235115.JPG
+           imgsamples/244972.jpg
+           imgsamples/261923.jpg
+           imgsamples/298203.jpg
+           imgsamples/310668.jpg
+           imgsamples/325927.jpg
+           imgsamples/329012.jpg
+           imgsamples/89114.JPG
+           imgsamples/96605.JPG
+           imgsamples/97060.JPG
+           imgsamples/PTURKMUHAMMAD__ALI.png
+           imgsamples/P_BELSPECIMEN__EMMA.png
+           imgsamples/P_CHNCHUNG__KWOK_SUM.jpg
+           imgsamples/P_CUBRODRIGUEZ_MELIAN__MERCEDES.JPG
+           imgsamples/P_CYPANONYMOS__AGAMEMNONAS.JPG
+           imgsamples/P_EGYABDELNASER__AHMED_SAMIR_NASR.JPG
+           imgsamples/P_ESPESPANOLA_ESPANOLA__CARMEN.jpg
+           imgsamples/P_FRAHOLLANDE__FRANCOIS.jpg
+           imgsamples/P_FRASPECIMEN_ABB__NATACHA.jpg
+           imgsamples/P_INDSHAH__RIYA.jpg
+           imgsamples/P_ITAROSSINI_DEL_MONTE_PIU_LUNGO_DI_QUARA__F.jpg
+           imgsamples/P_PAKRAHIM__SABA.JPG
+           imgsamples/P_PRTGARCAO_DE_MAGALHAES__INES.jpg
+           imgsamples/P_PRTGARCAO_MAGALHAES__INES.jpg
+           imgsamples/P_TUNSPECIMEN__MAHMOUD.JPG
+           imgsamples/P_UKRTKACHENKO__MARIANA.jpg
+           imgsamples/friends.jpg
+           imgsamples/prado/consilium.europa.eu_hoover.sh
+           pgpid-cert
+           test/pgpi_var_to_json.sh
+Copyright: __NO_COPYRIGHT_NOR_LICENSE__
+License:   __NO_COPYRIGHT_NOR_LICENSE__
+
+Files:     LICENSE.md
+Copyright: 2021 Friends Of OpenPGP organization <info@foopgp.org>.
+           2021 Jean-Jacques Brucker <jjbrucker@free.fr>
+License:   __UNKNOWN__
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+ .
+ Notes
+
+Files:     bin/pgpid-qrscan
+Copyright: 2021-2022 Friends Of OpenPGP organization <info@foopgp.org>.
+License:   __UNKNOWN__
+ Scan QRcodes containing parts of OpenPGP secrets from IMAGES or webcam,
+ and import this secrets into a factory reseted OpenPGP secured device (eg yubikey).
+
+Files:     bin/pgpid-gen
+Copyright: 2021-2022 Friends Of OpenPGP organization <info@foopgp.org>.
+License:   __UNKNOWN__
+ Generate OpenPGP certificates and keys to be imported for multiple applications (mail, chat, vote, etc.)
+ 3 important keys (SC, E and A) are only printed, to be imported into OpenPGP Security hardware (nitrokeys, yubikeys, etc.)
+ .
+ It may and should read identification data from ID documents (eg: International Passeports)
+
+#----------------------------------------------------------------------------
+# huge files   (skipped):
+#         doc/9303_p4_cons_en.pdf
+#         doc/9303_p3_cons_en.pdf
+#         doc/bh_us_08_van_Beek_ePassports_Reloaded_Slides.pdf
+#         doc/9303_p10_cons_fr.pdf
+#         data/mrz_best.traineddata
+#         data/mrz.traineddata
+
+#----------------------------------------------------------------------------
+# Files marked as NO_LICENSE_TEXT_FOUND may be covered by the following
+# license/copyright files.
+
+#----------------------------------------------------------------------------
+# License file: LICENSE.md
+ LICENSE
+ =======
+     pgpid
+     Copyright © 2021 by Friends Of OpenPGP organization <info@foopgp.org>.
+     Copyright © 2021 by Jean-Jacques Brucker <jjbrucker@free.fr>
+     All rights reserved.
+ .
+     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+     AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+     THE SOFTWARE.
+ .
+ Notes
+ -----
+ * This software is not free or open source, but only source-available.
+ * It is not permissively licensed, it is not even free to use!
+ * I would like to open the license up to something like GPL-3, as soon as there
+   is a lasting solution to (financially) support its maintenance.

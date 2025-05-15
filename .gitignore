@@ -1,1 +1,10 @@
 *_samples/
+
+debian/*.debhelper
+debian/debhelper-build-stamp
+debian/pgpid.debhelper.log
+debian/pgpid.substvars
+debian/pgpid/
+debian/files
+.pc
+
