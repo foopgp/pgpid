@@ -1,6 +1,6 @@
 Index: pgpid/bin/pgpid-gen
 ===================================================================
---- pgpid.orig/bin/pgpid-gen
+--- pgpid/bin/pgpid-gen
 +++ pgpid/bin/pgpid-gen
 @@ -50,8 +50,8 @@ PGPI_VERSION="0.0.3"
  
@@ -8,8 +8,8 @@ Index: pgpid/bin/pgpid-gen
  FACE_MARGIN_HEIGHT="50/100"
 -TESSDATADIR="$(dirname "$0")/data/"
 -GEOLIST_CENTROID="$(dirname "$0")/data/geolist_centroid.txt"
-+TESSDATADIR="$(dirname "$0")/usr/share/data/"
-+GEOLIST_CENTROID="$(dirname "$0")/usr/share/data/geolist_centroid.txt"
++TESSDATADIR="/usr/share/pgpid/data/
++GEOLIST_CENTROID="/usr/share/pgpid/data/geolist_centroid.txt"
  ONLYUDID=false
  
  ### Default option values ###
