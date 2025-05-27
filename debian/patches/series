@@ -1,1 +1,2 @@
+fix-bash-libs-paths.patch
 fix-pgpid-gen-data-path.patch
