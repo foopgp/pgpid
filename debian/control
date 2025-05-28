@@ -11,5 +11,5 @@ Vcs-Browser: https://codeberg.org/foopgp/pgpid
 
 Package: pgpid
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, bash-libs, facedetect, graphicsmagick, tesseract-ocr, qrencode, gpg-wks-client, cups-client, zbar-tools, scdaemon, pandoc, texlive-extra-utils, xxd, libgfshare-bin, cups-bsd
+Depends: ${misc:Depends}, ${shlibs:Depends}, bash-libs, facedetect, graphicsmagick, tesseract-ocr, qrencode, gpg-wks-client, cups-client, zbar-tools, scdaemon, pandoc, texlive-extra-utils, xxd, libgfshare-bin, cups-bsd, ffmpeg
 Description: TODO
