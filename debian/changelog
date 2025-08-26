@@ -1,3 +1,9 @@
+pgpid (0.0.3-1) UNRELEASED; urgency=low
+
+  * release v0.0.3
+
+ -- Sébastien Picardeau <piseb@mailo.com>  Tue, 26 Aug 2025 11:13:08 +0200
+
 pgpid (0.0.1-2) UNRELEASED; urgency=low
 
   * add ffmpeg dependency
