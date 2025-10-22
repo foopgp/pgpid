@@ -51,8 +51,6 @@ PGPI_VERSION="0.0.3"
 FACE_MARGIN_WIDTH="25/100"
 FACE_MARGIN_HEIGHT="50/100"
 TESSDATADIR="$(dirname "$0")/data/"
-GEOLIST_CENTROID="$(dirname "$0")/data/geolist_centroid.txt"
-ONLYUDID=false
 
 ### Default option values ###
 
@@ -64,7 +62,7 @@ if [[ "$BASH_SOURCE" == "$0" ]] ; then
 	# run as a program
 	set -e
 	# set global constants real constant (read only)
-	declare -r FACE_MARGIN_WIDTH FACE_MARGIN_HEIGHT TESSDATADIR GEOLIST_CENTROID
+	declare -r FACE_MARGIN_WIDTH FACE_MARGIN_HEIGHT TESSDATADIR
 	_exit="exit"
 	LOGEXITPRIO=crit
 	LOGLEVEL=5
@@ -83,7 +81,6 @@ If no IMAGE is given, $PGPI_NAME will try to use webcam."
     -t, --threshold NUM      number of shares necessary to reconstruct the secret (current: $PGPI_THRESN)
     -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (current: $LOGLEVEL)
     -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (current: $LOGLEVEL)
-    -u, --udid               calculate and output udid string, whithout generating PGPID QRcodes
     -f, --free-comment STR   free form comment, imply also no image face detection
     -h, --help               show this help and exit
     -V, --version            show version and exit"
@@ -120,7 +117,6 @@ case "$1" in
 		grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$LOGEXITPRIO\" is none of: ${!loglevels[@]}" >&2 ; $_exit 2 ; } ;;
 	-v|--verb*) ((LOGLEVEL++)) ;;
 	-q|--quiet) ((LOGLEVEL--)) ;;
-	-u|--udid) ONLYUDID=true ;;
 	-f|--free-comment) shift ; PGPI_COMMENT="$1" ;;
 	-h|--h*) echo "$helpmsg" ; $_exit ;;
 	-V|--vers*) echo "$PGPI_NAME $PGPI_VERSION" ; $_exit ;;
@@ -140,173 +136,7 @@ done
 . "$(dirname "$BASH_SOURCE")"/bl-interactive --
 . "$(dirname "$BASH_SOURCE")"/bl-security --
 . "$(dirname "$BASH_SOURCE")"/bl-json --
-
-# Implementation of ICAO doc 9303 part 3 (Specifications Common to all MRTDs - 4.9)
-icao9303_mrz_checkdigit() {
-	local helpmsg="Usage: $FUNCNAME STRING [EXPECTED_RESULT]
-If there is no second arg: output calculated check digit from [0-9A-Z<]* string
-else return non-zero if EXPECTED_RESULT differs from calculated check digit.
-"
-	for ((;$#;)) ; do
-		case "$1" in
-			-h|--h*) echo "$helpmsg" ; return ;;
-			-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
-			--) shift ; break ;;
-			-*) echo -e "$FUNCNAME: Error: Unrecognized option/parameters $1\n$helpmsg" >&2 ; return 2 ;;
-			*) break ;;
-		esac
-	done
-
-	local char sum=0 weight=(7 3 1)
-	for ((i=0;i<${#1};i++)) ; do
-		char=${1:$i:1}
-		case $char in
-			[0-9]) ((sum+=char*${weight[$((i%3))]})) ;;
-			[A-Z]) ((sum+=($(printf "%d" "'$char'")-55)*${weight[$((i%3))]})) ;;
-		esac
-	done
-
-	if ! [[ "$2" ]] ; then
-		echo $((sum%10))
-	else
-		[[ "$2" == $((sum%10)) ]]
-		return $?
-	fi
-}
-
-icao9303_mrz_analyse() {
-	local helpmsg="Usage: $FUNCNAME AANAME MRZ
-Analyse a Machine Readable Zone and fill the associative array named AANAME
-"
-
-	for ((;$#;)) ; do
-		case "$1" in
-			-h|--h*) echo "$helpmsg" ; return ;;
-			-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
-			--) shift ; break ;;
-			-*) echo -e "$FUNCNAME: Error: Unrecognized option/parameters $1\n$helpmsg" >&2 ; return 2 ;;
-			*) break ;;
-		esac
-	done
-
-	local -n doc=$1
-	shift
-	local ch mrz=("$@")
-
-	bl_log debug "mrz[0]= \"${mrz[0]}\""
-	if [[ ${mrz[0]:0:1} != P ]] ; then
-		bl_log debug "mrz[0]= \"${mrz[0]}\""
-		bl_log warning "$FUNCNAME: Not an ICAO-9303 (ISO/IEC-7501-1) passport."
-		return 1
-	fi
-	bl_log debug "mrz[1]= \"${mrz[1]}\""
-	if [[ ${#mrz[0]} != 44 ]] || [[ ${#mrz[1]} != 44 ]] ; then
-		bl_log warning "$FUNCNAME: Invalid MRZ lenght ${#mrz[0]} ${#mrz[1]}"
-		return 2
-	fi
-
-	doc=(
-		[type]=${mrz[0]:0:2}
-		[country]=${mrz[0]:2:3}
-		[all_names]=${mrz[0]:5}
-		[number]=${mrz[1]:0:9}
-		[check_number]=${mrz[1]:9:1}
-		[nationality]=${mrz[1]:10:3}
-		[date_of_birth]=${mrz[1]:13:6}
-		[check_date_of_birth]=${mrz[1]:19:1}
-		[sex]=${mrz[1]:20:1}
-		[expiration_date]=${mrz[1]:21:6}
-		[check_expiration_date]=${mrz[1]:27:1}
-		[personal_number]=${mrz[1]:28:14}
-		[check_personal_number]=${mrz[1]:42:1}
-		[composite]="${mrz[1]:0:10}${mrz[1]:13:7}${mrz[1]:21:20}"
-		[check_composite]=${mrz[1]:43:1}
-	)
-
-	for ch in number date_of_birth expiration_date personal_number composite ; do
-		doc[checked_$ch]=$(icao9303_mrz_checkdigit "${doc[$ch]}")
-		doc[valid_$ch]=$( [[ ${doc[checked_$ch]} == ${doc[check_$ch]} ]] && echo true || echo false )
-		${doc[valid_$ch]} || bl_log warning "$ch checksum -> ${doc[check_$ch]}. Should be ${doc[checked_$ch]}."
-	done
-
-	doc[names]=$(echo $(echo "${doc[all_names]#*<<}" | tr '<' ' ') )
-	doc[surname]=$(echo $(echo "${doc[all_names]%%<<*}" | tr '<' ' ') )
-}
-
-pgpi_gen_udid4() {
-	local mrzn sname gname bdate bcountry c iso cname tohash1 tohash2
-	local helpmsg="Usage: $FUNCNAME PARAMETERS...
-Parameters:
-    -s, --surname SURNAME            Surname/family name at birth
-    -g, --given-names GIVEN_NAMES    Given names at birth
-    -d, --birth-date BIRTH_DATE      Birth date
-    -c, --birth-country COUNTRY_CODE Country code of birth place
-    -p, --birth-place COORDINATES    Geographic coordinate of birth place
-    -m, --iso7501-mrz-names NAMES_IN_MRZ     SURNAME<<GIVEN<NAMES< as written in a ISO/IEC 7501-1 or ICAO-9303 Passport
-If NAMES_IN_MRZ is given, SURNAME and GIVEN_NAMES are ignored.
-If COUNTRY_CODE is given, COORDINATES is ignored
-"
-	for ((;$#;)) ; do
-	case "$1" in
-		-h|--h*) echo "$helpmsg" ; return ;;
-		-V|--vers*) echo "$FUNCNAME $PGPI_VERSION" ; return ;;
-		-m|-*-mrz-name*)
-			shift
-			mrzn=$1 ;;
-		-s|--s*)
-			shift
-			sname=$(sed 's,[ ;,<-]\+,<,g'<<<"$1" )
-			sname="${sname^^}"
-			if ! (LC_CTYPE=C ; [[ "$sname" =~ ^[A-Z\<]+$ ]]) ; then
-				bl_log error "$FUNCNAME: only [A-Z] characters allowed in $1"
-				return 1
-			fi ;;
-		-g|--g*)
-			shift
-			gname=$(sed 's,[ ;,<-]\+,<,g'<<<"$1" )
-			gname="${gname^^}<<"
-			if ! (LC_CTYPE=C ; [[ "$gname" =~ ^[A-Z\<]+$ ]]) ; then
-				bl_log error "$FUNCNAME: only [A-Z] characters allowed in $1"
-				return 1
-			fi ;;
-		-d|--birth-d*)
-			shift
-			bdate=$1
-			if ((${#1}<8)) ; then
-				bdate="$(($(date +"%y%m%d") < bdate ? 19 : 20))$bdate"
-				bl_log notice "$FUNCNAME: birth date '$1' is too short, assuming $bdate."
-			fi
-			if ! tohash2=$(date --date "$bdate" +"%Y-%m-%d" ) ; then
-				bl_log error "$FUNCNAME: can't reformart birthdate $date"
-				return 2
-			fi ;;
-		-c|--birth-c*)
-			shift
-			bcountry=$1 ;;
-		-p|--birth-p*)
-			shift
-			#TODO: check if coordinate is valid (cf. Specifications)
-			c="$1" ;;
-		*) echo -e "$FUNCNAME: Error: Unrecognized option/parameters $1\n$helpmsg" >&2 ; return 2 ;;
-	esac
-	shift
-	done
-	[[ "$mrzn" ]] || mrzn="${sname}<<$gname"
-	if ! tohash1=$(grep -o "[A-Z]\{1,32\}<<[A-Z]\{1,32\}<[A-Z]\{0,32\}<" <<<"$mrzn" ) ; then
-		bl_log error "$FUNCNAME: no complete surname and given names extracted from $mrzn"
-		return 1
-	fi
-
-	if [[ "$bcountry" ]] && read c iso cname < <(grep "	${bcountry^^}	" "$GEOLIST_CENTROID") ; then
-		bl_log debug "$FUNCNAME: $c $iso $cname"
-	else
-		bl_log error "$FUNCNAME: no \"${bcountry}\" in $GEOLIST_CENTROID"
-		return 3
-	fi
-	bl_log debug "$FUNCNAME: names: $tohash1"
-	bl_log debug "$FUNCNAME: birthdate: $tohash2"
-	echo "$(printf "$tohash1$tohash2" | md5sum | xxd -r -p | basenc --base64url | sed 's/==$//')$c"
-}
+. "$(dirname "$BASH_SOURCE")"/bl-pgpid --
 
 # Do nothing else if sourced
 [[ "$BASH_SOURCE" == "$0" ]] || return 0
@@ -332,44 +162,21 @@ if [[ "$2" ]] ; then
 fi
 
 if ! [[ "$imgfile" ]] ; then
-	if $ONLYUDID ; then
-		declare -A PGPID
-		while true ; do
-			PGPID[birth_surname]=$(bl_input --default "${PGPID[birth_surname]^^}" "Birth surname")
-			PGPID[birth_names]=$(bl_input --default "${PGPID[birth_names]}" "Birth names")
-			PGPID[birth_date]=$(bl_input --default "${PGPID[birth_date]}" "Birth date (YYYY-mm-dd)")
-			PGPID[birth_country]=$(bl_input --default "${PGPID[birth_country]}" "Birth country")
-
-			! bl_yesno --default=no --text \
-"
-Surname at birth:     ${PGPID[birth_surname]^^}
-Given names at birth: ${PGPID[birth_names]}
-Date of birth:        ${PGPID[birth_date]}
-Country of birth:     ${PGPID[birth_country]}
-" \
-				"Is that correct" || break
-		done
-
-		printf "udid4="
-		pgpi_gen_udid4 --surname "${PGPID[birth_surname]}" --given-names "${PGPID[birth_names]}" --birth-date "${PGPID[birth_date]}" --birth-country "${PGPID[birth_country]}"
-		exit $?
-	else
-		v4ldevices=($(ls /dev/v4l/by-id/*index0)) || bl_log crit "No image file given and no video input (eg. webcam) detected"
-		v4ldevice=$(bl_radiolist --output-value --num-per-line 1 --default -1 --text "No Image file given, device to take picture of a face or an ID card ?" "${v4ldevices[@]}")
-		v4ldevice="$(readlink -f "${v4ldevice}")"
-		ffplay -loglevel warning -video_size 1024x768 -i "$v4ldevice" 2> >(bl_log warning) & sleep 5 ; kill $! 2> >(bl_log crit)
+	v4ldevices=($(ls /dev/v4l/by-id/*index0)) || bl_log crit "No image file given and no video input (eg. webcam) detected"
+	v4ldevice=$(bl_radiolist --output-value --num-per-line 1 --default -1 --text "No Image file given, device to take picture of a face or an ID card ?" "${v4ldevices[@]}")
+	v4ldevice="$(readlink -f "${v4ldevice}")"
+	ffplay -loglevel warning -video_size 1024x768 -i "$v4ldevice" 2> >(bl_log warning) & sleep 5 ; kill $! 2> >(bl_log crit)
+	bl_log notice "Taking picture, please don't move (2 seconds) !"
+	ffmpeg -loglevel error -y -ss 00:02 -video_size 1024x768 -i "$v4ldevice" -frames:v 1 -q:v 2 "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log error)
+	#fswebcam --no-banner --resolution 1024x768 --skip 40 --frame 3 --set lights=on --device "$v4ldevice" "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log notice)
+	#gm display -immutable "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log info) & sleep 1 ; kill $!
+	while ! [[ -v PGPI_COMMENT ]] && ! facedetect -q "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log notice) ; do
+		bl_log notice "No face detected..."
+		ffplay -loglevel warning -video_size 1024x768 -i "$v4ldevice" 2> >(bl_log warning) & sleep 3 ; kill $! 2> >(bl_log crit)
 		bl_log notice "Taking picture, please don't move (2 seconds) !"
 		ffmpeg -loglevel error -y -ss 00:02 -video_size 1024x768 -i "$v4ldevice" -frames:v 1 -q:v 2 "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log error)
-		#fswebcam --no-banner --resolution 1024x768 --skip 40 --frame 3 --set lights=on --device "$v4ldevice" "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log notice)
-		#gm display -immutable "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log info) & sleep 1 ; kill $!
-		while ! [[ -v PGPI_COMMENT ]] && ! facedetect -q "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log notice) ; do
-			bl_log notice "No face detected..."
-			ffplay -loglevel warning -video_size 1024x768 -i "$v4ldevice" 2> >(bl_log warning) & sleep 3 ; kill $! 2> >(bl_log crit)
-			bl_log notice "Taking picture, please don't move (2 seconds) !"
-			ffmpeg -loglevel error -y -ss 00:02 -video_size 1024x768 -i "$v4ldevice" -frames:v 1 -q:v 2 "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log error)
-		done
-		imgfile="${PGPI_OUTPATH}/v4l.jpg"
-	fi
+	done
+	imgfile="${PGPI_OUTPATH}/v4l.jpg"
 fi
 
 #scanimage -l 2 -t 2 -x 120 -y 170 --mode Color --resolution 200 --format=tiff > tmpimg.tiff
@@ -397,22 +204,7 @@ else
 
 	declare -A DOCUMENT=()
 	# OCR only on zone below the image, converted to PNG because tesseract work better whith this format.
-	if mrz=($(gm convert -crop +0+$((py+sy)) "$imgfile" png:- 2> >(bl_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(bl_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
-		if icao9303_mrz_analyse DOCUMENT "${mrz[@]}" ; then
-			#WARNING: mrz data may be irrelevant to generate udid4. eg:
-			#         * Surname or given names may be incomplete (cut bc exceed mrz size)
-			#         * Surname or given names may differs from those given at birth (marriage, gender change, etc.)
-			#         * Surname or given names transliteration may have change over time
-			#         * Year of birth date is not written with 4 digit (and people may live longer than 100 years)
-			#         * Humans may have done error on birth date, surname or given names.
-			if ! DOCUMENT[udid4_auto]=$(pgpi_gen_udid4 --iso7501-mrz-names "${DOCUMENT[all_names]}" --birth-date "${DOCUMENT[date_of_birth]}" --birth-country "${DOCUMENT[nationality]}") ; then
-				bl_log warning "can't generate an udid4 from mrz data"
-				unset DOCUMENT[udid4_auto]
-			fi
-		else
-			bl_log warning "$imgfile: Invalid or unsupported machine-readable zone"
-		fi
-	else
+	if ! mrz=($(gm convert -crop +0+$((py+sy)) "$imgfile" png:- 2> >(bl_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(bl_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
 		bl_log warning "$imgfile: No machine-readable zone detected"
 	fi
 
@@ -427,26 +219,8 @@ else
 
 	PGPID[document0]="$(declare -p DOCUMENT)"
 
-	PGPID[birth_date]=$(date --date "$(($(date +"%y%m%d") < DOCUMENT[date_of_birth] ? 19 : 20))${DOCUMENT[date_of_birth]}" +"%Y-%m-%d")
-
-
-	while true ; do
-		! bl_yesno --default=no --text \
-	"
-	Surname at birth:     ${PGPID[birth_surname]:=${DOCUMENT[surname]}}
-	Given names at birth: ${PGPID[birth_names]:=${DOCUMENT[names]}}
-	Date of birth:        ${PGPID[birth_date]}
-	Country of birth:     ${PGPID[birth_country]:=${DOCUMENT[nationality]:=FRA}}
-	" \
-			"Is that correct" || break
-
-		PGPID[birth_surname]=$(bl_input --default "${PGPID[birth_surname]^^}" "Birth surname")
-		PGPID[birth_names]=$(bl_input --default "${PGPID[birth_names]}" "Birth names")
-		PGPID[birth_date]=$(bl_input --default "${PGPID[birth_date]}" "Birth date")
-		PGPID[birth_country]=$(bl_input --default "${PGPID[birth_country]}" "Birth country")
-	done
-
-	if PGPID[udid4]=$(pgpi_gen_udid4 --surname "${PGPID[birth_surname]}" --given-names "${PGPID[birth_names]}" --birth-date "${PGPID[birth_date]}" --birth-country "${PGPID[birth_country]}") ; then
+	PGPID[birth_date]=$(bl_input "Birth date (YYYY-mm-dd)") # also used as a default passphrase
+	if PGPID[udid4]=$(bl_pgpid_gen_u4 --verify --birth-date "${PGPID[birth_date]}" "${mrz[@]}") ; then
 		PGPID[comment]="udid4=${PGPID[udid4]}"
 		bl_log info "${PGPID[comment]}"
 	else
@@ -465,12 +239,6 @@ gm display -immutable "$outdir/temp/face.jpg" 2> >(bl_log error)
 
 bl_yesno "Did the image correspond to ${PGPID[birth_names],,} ${PGPID[birth_surname]^^} (${PGPID[comment]})"
 PGPID[face1_64url]=$(basenc --base64url < "$outdir/temp/face.jpg")
-
-if $ONLYUDID ; then
-	echo "${PGPID[comment]}"
-	bl_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(bl_log crit)
-	exit
-fi
 
 while true ; do
 	while true ; do
@@ -535,6 +303,10 @@ Keyserver: hkp://${PGPID[hkp_server]}
 # Do a commit here, so that we can later print "done" :-)
 %commit
 EOF
+
+read
+
+
 if ! gpg --homedir "$outdir/gnupg" --batch --generate-key --allow-freeform-uid "$outdir/temp/gpg.genkey.batch" 2> >(bl_log notice) ; then
 	bl_log crit "gpg --generate-key FAIL ($?)"
 fi

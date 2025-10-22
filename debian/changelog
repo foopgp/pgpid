@@ -1,8 +1,12 @@
-pgpid (0.0.3-1) UNRELEASED; urgency=low
+pgpid (0.0.3-1) unstable; urgency=medium
 
+  [ Sébastien Picardeau ]
   * release v0.0.3
 
- -- Sébastien Picardeau <piseb@mailo.com>  Tue, 26 Aug 2025 11:13:08 +0200
+  [ Jbar ]
+  * clean code, using new bash-lib: bl-pgpid
+
+ -- piseb <piseb@mailo.com>  Wed, 22 Oct 2025 16:45:59 +0200
 
 pgpid (0.0.1-2) UNRELEASED; urgency=low
 
