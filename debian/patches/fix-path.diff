@@ -1,0 +1,55 @@
+Description: fix path
+fix patch
+Author: piseb
+Origin: <upstream|backport|vendor|other>, <URL, required except if Author is present>
+Bug: <URL to the upstream bug report if any, implies patch has been forwarded, optional>
+Bug-<Vendor>: <URL to the vendor bug report if any, optional>
+Forwarded: <URL|no|not-needed, useless if you have a Bug field, optional>
+Applied-Upstream: <version|URL|commit, identifies patches merged upstream, optional>
+Reviewed-by: <name and email of a reviewer, optional>
+Last-Update: 2025-10-23 <YYYY-MM-DD, last update of the meta-information, optional>
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+--- a/bin/pgpid-gen
++++ b/bin/pgpid-gen
+@@ -50,7 +50,7 @@
+ 
+ FACE_MARGIN_WIDTH="25/100"
+ FACE_MARGIN_HEIGHT="50/100"
+-TESSDATADIR="$(dirname "$0")/data/"
++TESSDATADIR="/usr/share/pgpid/data/"
+ 
+ ### Default option values ###
+ 
+@@ -132,11 +132,11 @@
+ 
+ ### functions ###
+ 
+-. "$(dirname "$BASH_SOURCE")"/bl-log --no-act --log-level "$LOGLEVEL" --log-exit "$LOGEXITPRIO"
+-. "$(dirname "$BASH_SOURCE")"/bl-interactive --
+-. "$(dirname "$BASH_SOURCE")"/bl-security --
+-. "$(dirname "$BASH_SOURCE")"/bl-json --
+-. "$(dirname "$BASH_SOURCE")"/bl-pgpid --
++. /usr/bin/bl-log --no-act --log-level "$LOGLEVEL" --log-exit "$LOGEXITPRIO"
++. /usr/bin/bl-interactive --
++. /usr/bin/bl-security --
++. /usr/bin/bl-json --
++. /usr/bin/bl-pgpid --
+ 
+ # Do nothing else if sourced
+ [[ "$BASH_SOURCE" == "$0" ]] || return 0
+--- a/bin/pgpid-qrscan
++++ b/bin/pgpid-qrscan
+@@ -107,9 +107,9 @@
+ 
+ ### functions ###
+ 
+-. "$(dirname "$BASH_SOURCE")"/bl-log --no-act --log-level "$LOGLEVEL" --log-exit "$LOGEXITPRIO"
+-. "$(dirname "$BASH_SOURCE")"/bl-interactive --
+-. "$(dirname "$BASH_SOURCE")"/bl-security --
++. /usr/bin/bl-log --no-act --log-level "$LOGLEVEL" --log-exit "$LOGEXITPRIO"
++. /usr/bin/bl-interactive --
++. /usr/bin/bl-security --
+ 
+ # Do nothing else if sourced
+ [[ "$BASH_SOURCE" == "$0" ]] || return 0
