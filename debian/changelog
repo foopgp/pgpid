@@ -1,3 +1,9 @@
+pgpid (0.0.4-1) unstable; urgency=medium
+
+  * refactor: restore ln s files and remove ugly clean file
+
+ -- piseb <piseb@mailo.com>  Mon, 27 Oct 2025 13:31:57 +0100
+
 pgpid (0.0.3-1) unstable; urgency=medium
 
   [ Sébastien Picardeau ]
