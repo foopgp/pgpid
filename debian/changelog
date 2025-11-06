@@ -1,3 +1,10 @@
+pgpid (0.0.4-2) unstable; urgency=medium
+
+  [ JJ ]
+  * fix bin install
+
+ -- piseb <piseb@mailo.com>  Thu, 06 Nov 2025 23:12:59 +0100
+
 pgpid (0.0.4-1) unstable; urgency=medium
 
   * refactor: restore ln s files and remove ugly clean file
