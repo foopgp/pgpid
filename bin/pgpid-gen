@@ -304,9 +304,6 @@ Keyserver: hkp://${PGPID[hkp_server]}
 %commit
 EOF
 
-read
-
-
 if ! gpg --homedir "$outdir/gnupg" --batch --generate-key --allow-freeform-uid "$outdir/temp/gpg.genkey.batch" 2> >(bl_log notice) ; then
 	bl_log crit "gpg --generate-key FAIL ($?)"
 fi
