@@ -184,9 +184,9 @@ while true ; do
 	elif [[ "$pgpi_qrversion" == "1" ]] || [[ "$pgpi_qrversion" == "2" ]] || [[ "$pgpi_qrversion" == "3" ]] ; then
 		birth_date=$(bl_input --default "${birth_date}" "Birth date (YYYY-mm-dd)")
 		passphrase[0]="$(sed 's/[^0-9]//g' <<<"${birth_date}" )"
-	elif [[ "$pgpi_qrversion" == "4" ]] || [[ "$pgpi_qrversion" == "5" ]] ; then
+	elif [[ "$pgpi_qrversion" == "4" ]] ; then
 		passphrase[0]=$(bl_input --default "${passphrase[0]}" "Passphrase")
-	else
+	elif [[ "$pgpi_qrversion" != "5" ]] ; then
 		bl_log crit "This version ($PGPI_NAME $PGPI_VERSION) doesn't support such qrcode version ($pgpi_qrversion)"
 	fi
 
@@ -199,7 +199,6 @@ while true ; do
 		fi
 		printf "%s" ${parts[@]} | basenc --decode --base64url > "$TMPDIR/SECRET"
 	elif [[ "$pgpi_qrversion" == "3" ]] || [[ "$pgpi_qrversion" == "5" ]] ; then
-			set -x
 		# Shamir Secret Sharing
 		for i in ${!parts[@]} ; do
 			printf "%s" ${parts[$i]:3} | basenc --decode --base64url > "$TMPDIR/SECRET.${parts[$i]:0:3}"
@@ -207,12 +206,12 @@ while true ; do
 		gfcombine "$TMPDIR/SECRET."*
 	fi
 
-	if [[ "$pgpi_qrversion" == "1" ]] || [[ "$pgpi_qrversion" == "2" ]] || [[ "$pgpi_qrversion" == "3" ]] ; then
+	if [[ "$pgpi_qrversion" == "1" ]] || [[ "$pgpi_qrversion" == "2" ]] || [[ "$pgpi_qrversion" == "3" ]] || [[ "$pgpi_qrversion" == "4" ]] ; then
 		if cat "$TMPDIR/SECRET" | gpg --decrypt --batch --pinentry-mode loopback --passphrase "${passphrase[*]}" 2> >(bl_log notice) | gpg --homedir "$TMPDIR/gnupg" --batch --pinentry-mode loopback --passphrase "${passphrase[*]}" --import 2> >(bl_log notice) ; then
 			break
 		fi
-	elif [[ "$pgpi_qrversion" == "4" ]] || [[ "$pgpi_qrversion" == "5" ]] ; then
-		if cat "$TMPDIR/SECRET" | gpg --homedir "$TMPDIR/gnupg" --batch --pinentry-mode loopback --passphrase "${passphrase[*]}" --import 2> >(bl_log notice) ; then
+	elif [[ "$pgpi_qrversion" == "5" ]] ; then
+		if cat "$TMPDIR/SECRET" | gpg --homedir "$TMPDIR/gnupg" --batch --pinentry-mode loopback --import 2> >(bl_log notice) ; then
 			break
 		fi
 	fi
