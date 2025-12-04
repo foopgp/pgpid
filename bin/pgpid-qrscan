@@ -7,38 +7,6 @@
 # and import this secrets into a factory reseted OpenPGP secured device (eg yubikey).
 #
 
-
-if [[ "$1" == --bash-completion ]] ; then
-	_pgpi_completion()
-	{
-		local cur prev options
-		local IFS=$'\n'
-
-		COMPREPLY=()
-		cur=${COMP_WORDS[COMP_CWORD]}
-
-		if [[ "$cur" == -* ]]; then
-			options="--verbose --quiet --help --version"
-
-			COMPREPLY=( $(IFS=" " compgen -W "$options" -- $cur ) )
-		else
-			prev=${COMP_WORDS[COMP_CWORD-1]}
-			case $prev in
-				-o|--output-path)
-					COMPREPLY=( $(compgen  -d -- $cur ) )
-					return ;;
-				# some options will exit without executing any actions, so don't complete anything
-				-h|--help|-V|--version)
-					return ;;
-			esac
-
-			COMPREPLY=( $(compgen -o plusdirs -f -X '!*.@(gif|GIF|jp?(e)g|JP?(E)G|miff|tif?(f)|pn[gm]|PN[GM]|p[bgp]m|bmp|BMP|xpm|ico|xwd|tga|pcx)' -- $cur ) )
-		fi
-	}
-	complete -o filenames -F _pgpi_completion "$BASH_SOURCE"
-	return 0
-fi
-
 PGPI_NAME="$(basename $(readlink -f "$BASH_SOURCE") )"
 PGPI_VERSION="0.0.2"
 
@@ -46,38 +14,21 @@ PGPI_VERSION="0.0.2"
 
 HKPSSERVER="keys.foopgp.org"
 
-if [[ "$BASH_SOURCE" == "$0" ]] ; then
-	# run as a program
-	set -e
-	_exit="exit"
-	LOGEXITPRIO=crit
-	LOGLEVEL=5
+set -e
+LOGEXITPRIO=crit
+LOGLEVEL=6
 
-	usage="Usage: $BASH_SOURCE [OPTIONS]... [--] [IMAGES]...
+usage="Usage: $BASH_SOURCE [OPTIONS]... [--] [IMAGES]...
 $PGPI_NAME scan QRcodes containing parts of OpenPGP secrets from IMAGES or webcam,
 and import this secrets into a factory reseted OpenPGP secured device (eg yubikey)."
 
-	soptions="
-    -k, --no-send            don't send public key (certificate) to HKPS keyserver ($HKPSSERVER)
-    -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (current: $LOGLEVEL)
-    -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (current: $LOGLEVEL)
-    -h, --help               show this help and exit
-    -V, --version            show version and exit"
-else
-	# run as a library (source $0)
-	_exit="true"
-	LOGEXITPRIO=emerg
-	LOGLEVEL=6
+soptions="
+  -k, --no-send            don't send public key (certificate) to HKPS keyserver ($HKPSSERVER)
+  -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (current: $LOGLEVEL)
+  -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (current: $LOGLEVEL)
+  -h, --help               show this help and exit
+  -V, --version            show version and exit"
 
-	usage="Usage: source $BASH_SOURCE [OPTIONS]..."
-
-	soptions="
-        --bash-completion    set completion for $BASH_SOURCE program and return (without loading anything else)
-    -l, --log-level LEVEL    log level: emerg<1=alert<crit<3=err<warning<5=notice<info<7=debug (current: $LOGLEVEL)
-    -L, --log-exit PRIORITY  log exit priority: emerg|alert|crit|err|warning|... (current: $LOGEXITPRIO )
-    -h, --help               show this help
-    -V, --version            show version"
-fi
 
 ### Handling options ###
 
@@ -91,20 +42,19 @@ nosend=""
 for ((i=0;$#;)) ; do
 case "$1" in
     -k|--no-send) nosend="true" ;;
-	-l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; $_exit 2 ; } ;;
+	-l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; exit 2 ; } ;;
 	-L|--log-e*) shift ; LOGEXITPRIO="$1"
-		grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$LOGEXITPRIO\" is none of: ${!loglevels[@]}" >&2 ; $_exit 2 ; } ;;
+		grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$LOGEXITPRIO\" is none of: ${!loglevels[@]}" >&2 ; exit 2 ; } ;;
 	-v|--verb*) ((LOGLEVEL++)) ;;
 	-q|--quiet) ((LOGLEVEL--)) ;;
-	-h|--h*) echo "$helpmsg" ; $_exit ;;
-	-V|--vers*) echo "$PGPI_NAME $PGPI_VERSION" ; $_exit ;;
+	-h|--h*) echo "$helpmsg" ; exit ;;
+	-V|--vers*) echo "$PGPI_NAME $PGPI_VERSION" ; exit ;;
 	--) shift ; break ;;
-	-*) echo -e "Error: Unrecognized option $1\n$helpmsg" >&2 ; $_exit 2 ;;
+	-*) echo -e "Error: Unrecognized option $1\n$helpmsg" >&2 ; exit 2 ;;
 	*) break ;;
 esac
 shift
 done
-
 
 ### functions ###
 
@@ -141,12 +91,12 @@ if ! gpg --homedir "$TMPDIR/gnupg" --batch --pinentry-mode loopback --passphrase
 	else
 		for ((i=1;i<=3;i++)) ; do
 			passphrase=$(bl_input --password --text "(To put secret keys on security tocken)" "Passphrase")
-			if echo "$passphrase" | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --pinentry-mode loopback --dry-run --change-passphrase "$FPR" 2> >(grep -i -m1 pass | bl_log notice) ; then
+			if echo "$passphrase" | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --pinentry-mode loopback --dry-run --change-passphrase "$FPR" 2> >(grep -i -m1 pass | bl_log debug) ; then
 				break
 			fi
 		done
 	fi
-	bl_qrkey_change_passphrase --homedir "$TMPDIR/gnupg" --passfrom /dev/stdin --newpassphrase "" "$FPR" <<<"$passphrase" > >(bl_log notice) 2>&1
+	bl_qrkey_change_passphrase --homedir "$TMPDIR/gnupg" --passfrom /dev/stdin --newpassphrase "" "$FPR" <<<"$passphrase" > >(bl_log info) 2>&1
 fi
 
 # get some info
@@ -154,11 +104,13 @@ uids=$(gpg --quiet --homedir "$TMPDIR/gnupg" --list-keys "$FPR" 2> >(bl_log warn
 email=($(grep --only-matching --extended-regexp "${BL_INTERACTIVE_EMAIL_REGEX}" <<<"${uids}"))
 udid4=($(sed --silent --regexp-extended "s,.*4.?(${BL_PGPID_U4_REGEX}).*,\1,p" <<<"${uids}"))
 
-while ! gpg --homedir "$TMPDIR/gnupg" --card-status > >(bl_log info) 2> >(bl_log notice) ; do
+while ! gpg --homedir "$TMPDIR/gnupg" --card-status > >(bl_log debug) 2> >(bl_log notice) ; do
 	sleep 1
 	bl_msgstop "Please plug an OpenPGP card or dongle..."
 done
-bl_yesno "Factory reset OpenPGP card (This will destroys all OpenPGP keys stored on the card!)" || exit 42
+bl_yesno "Factory reset OpenPGP security tocken (This will destroys all OpenPGP keys stored on the card!)" || exit 42
+
+bl_log notice "Configuring OpenPGP security tocken..."
 
 echo "admin
 factory-reset
@@ -187,27 +139,20 @@ key-attr
 quit" | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "12345678" --card-edit 1> >(bl_log debug) 2>&1 || bl_log crit "Setting OpenPGP card keys attributes FAIL ($?)"
 
 #TODO WKS address calculated from email
-#	echo "admin
-#url
-#${PGPID[pubkey_uri]}
-#quit" | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "12345678" --card-edit 1> >(bl_log debug) 2>&1 || bl_log crit "Setting Pubkey URL in OpenPGP card FAIL ($?)"
 
-bl_log notice "Unfortunately, we can't automatize moving key to card, then you should move keys master 1 and 2 manualy..."
-bl_log notice "Note: passphrase has been removed to ease this manual operation, but admin PIN can't and is the default '12345678'."
-#printf "${passphrase[*]}\nm\n" | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --pinentry-mode loopback --change-passphrase ${FPRS[0]} 1> >(bl_log notice) 2>&1 || true
-gpg --homedir "$TMPDIR/gnupg" --edit-key "${FPR}" || bl_log warning "Moving OpenPGP keys to card returns $?"
-#printf "m\n${passphrase[*]}\n" | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --pinentry-mode loopback --change-passphrase ${FPRS[0]} 1> >(bl_log crit) 2>&1
+echo "keytocard
+y
+1
+key 1
+keytocard
+2
+key 1
+key 2
+keytocard
+3
+save " | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "12345678" --edit-key "${FPR}" 1> >(bl_log debug) 2>&1 || bl_log crit "Moving OpenPGP keys to card FAIL ($?)"
 
-#declare -A OPGPCARD=()
-#while IFS=':' read key value ; do
-#	case "$key" in
-#		[Rr]eader|version|vendor|serial)
-#			OPGPCARD[${key,,}]="$value" ;;
-#	esac
-#done < <(gpg --homedir "$TMPDIR/gnupg" --card-status --with-colons)
-#PGPID[card$i]="$(declare -p OPGPCARD)"
-
-if [[ "$nosend" ]] || ! gpg --homedir "$TMPDIR/gnupg" --keyserver "${HKPSSERVER}" --send-keys "$FPR" ; then
+if [[ "$nosend" ]] || ! gpg --homedir "$TMPDIR/gnupg" --keyserver "${HKPSSERVER}" --send-keys "$FPR" 2> >(bl_log notice) ; then
 	gpg --homedir "$TMPDIR/gnupg" --export --armor "$FPR"
 	bl_log warning "Please send, as soon as possible, this PGP public key to the hkp keyserver '${HKPSSERVER}'."
 fi

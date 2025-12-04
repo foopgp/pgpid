@@ -222,7 +222,7 @@ else
 
 	PGPID[birth_date]=$(bl_input "Birth date (YYYY-mm-dd)") # also used as a default passphrase
 	if PGPID[udid4]=$(bl_pgpid_gen_u4 --verify --birth-date "${PGPID[birth_date]}" "${mrz[@]}") ; then
-		PGPID[comment]="udid4=${PGPID[udid4]}"
+		PGPID[comment]="u4=${PGPID[udid4]}"
 		bl_log info "${PGPID[comment]}"
 	else
 		bl_log crit "can't generate an udid4 from data you have validated"
@@ -286,38 +286,8 @@ PGPID[hkp_server]="foopgp.org:11371"
 # Start using "$outdir/gnupg" which need to be rwx only for user... then we may also remove rwx for all $outdir.
 chmod -R go-rwx "$outdir"
 
-#TODO MAYBE: do NOT hardcode expire-date (add an option to change it)
-cat >"$outdir/temp/gpg.genkey.batch" <<EOF
-%echo Generating OpenPGP key for ${PGPID[pseudonym]}
-Key-Type: eddsa
-Key-Curve: Ed25519
-Key-Usage: cert sign
-Subkey-Type: ecdh
-Subkey-Curve: Curve25519
-Subkey-Usage: encrypt
-Name-Real: ${PGPID[pseudonym]}
-Name-Comment: ${PGPID[comment]}
-Name-Email: ${PGPID[email]}
-Expire-Date: $(date -I -d "+11 years")
-Passphrase: ${PGPID[passphrase]}
-Keyserver: hkp://${PGPID[hkp_server]}
-# Do a commit here, so that we can later print "done" :-)
-%commit
-EOF
-
-if ! gpg --homedir "$outdir/gnupg" --batch --generate-key --allow-freeform-uid "$outdir/temp/gpg.genkey.batch" 2> >(bl_log notice) ; then
-	bl_log crit "gpg --generate-key FAIL ($?)"
-fi
-
-# get first 2 fprs
-FPRS=($(gpg --homedir "$outdir/gnupg" --list-secret-keys --with-colons 2> >(bl_log notice) | sed -n 's,^fpr:.*:\([[:xdigit:]]\{40\}\):,\1,p'))
-PGPID[pubkey_uri]="http://${PGPID[hkp_server]}/pks/lookup?search=${FPRS[0]}&op=get"
-
-bl_log info "Generate auth key to be put in OpenPGP card..."
-gpg --homedir "$outdir/gnupg" --batch --passphrase "${PGPID[passphrase]}" --pinentry-mode loopback --quick-add-key ${FPRS[0]} ed25519 auth 11y 2> >(bl_log notice)
-
-# updates array of fingerprints
-FPRS=($(gpg --homedir "$outdir/gnupg" --list-secret-keys --with-colons 2> >(bl_log notice) | sed -n 's,^fpr:.*:\([[:xdigit:]]\{40\}\):,\1,p'))
+# generate keys
+FPRS=($(bl_pgpid_gen_key --homedir "$outdir/gnupg" --passphrase "${PGPID[passphrase]}" --name "${PGPID[pseudonym]}" --comment "${PGPID[comment]}" "${PGPID[email]}"))
 PGPID[frps]="$(declare -p FPRS)"
 
 # print QR codes
