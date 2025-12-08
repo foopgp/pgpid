@@ -12,8 +12,6 @@ PGPI_VERSION="0.0.2"
 
 ### Default option values ###
 
-HKPSSERVER="keys.foopgp.org"
-
 set -e
 LOGEXITPRIO=crit
 LOGLEVEL=6
@@ -41,7 +39,7 @@ nosend=""
 
 for ((i=0;$#;)) ; do
 case "$1" in
-    -k|--no-send) nosend="true" ;;
+    -k|--no-send) nosend="--no-send" ;;
 	-l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; exit 2 ; } ;;
 	-L|--log-e*) shift ; LOGEXITPRIO="$1"
 		grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$LOGEXITPRIO\" is none of: ${!loglevels[@]}" >&2 ; exit 2 ; } ;;
@@ -62,10 +60,6 @@ done
 . "$(dirname "$BASH_SOURCE")"/bl-interactive --
 . "$(dirname "$BASH_SOURCE")"/bl-security --
 . "$(dirname "$BASH_SOURCE")"/bl-qrkey --
-. "$(dirname "$BASH_SOURCE")"/bl-pgpid --
-
-# Do nothing else if sourced
-[[ "$BASH_SOURCE" == "$0" ]] || return 0
 
 ### Init ###
 
@@ -82,79 +76,19 @@ chmod -R go-rwx "$TMPDIR"
 
 ### Run ###
 
+# Force restart gpg-agent
+gpgconf --kill gpg-agent
+
 FPR=$(bl_qrkey_scan --workdir "$TMPDIR" --homedir "$TMPDIR/gnupg" "$@")
-
-# If we fail testing no passphrase, there is one. Then we will remove it, because it is just a pain in the ass for the last operations
-if ! gpg --homedir "$TMPDIR/gnupg" --batch --pinentry-mode loopback --passphrase "" --dry-run --change-passphrase "$FPR" 2> >(bl_log debug) ; then
-	if [[ -f "$TMPDIR/passphrase" ]] ; then
-		read passphrase < "$TMPDIR/passphrase"
-	else
-		for ((i=1;i<=3;i++)) ; do
-			passphrase=$(bl_input --password --text "(To put secret keys on security tocken)" "Passphrase")
-			if echo "$passphrase" | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --pinentry-mode loopback --dry-run --change-passphrase "$FPR" 2> >(grep -i -m1 pass | bl_log debug) ; then
-				break
-			fi
-		done
-	fi
-	bl_qrkey_change_passphrase --homedir "$TMPDIR/gnupg" --passfrom /dev/stdin --newpassphrase "" "$FPR" <<<"$passphrase" > >(bl_log info) 2>&1
-fi
-
-# get some info
-uids=$(gpg --quiet --homedir "$TMPDIR/gnupg" --list-keys "$FPR" 2> >(bl_log warning) | grep "^uid")
-email=($(grep --only-matching --extended-regexp "${BL_INTERACTIVE_EMAIL_REGEX}" <<<"${uids}"))
-udid4=($(sed --silent --regexp-extended "s,.*4.?(${BL_PGPID_U4_REGEX}).*,\1,p" <<<"${uids}"))
 
 while ! gpg --homedir "$TMPDIR/gnupg" --card-status > >(bl_log debug) 2> >(bl_log notice) ; do
 	sleep 1
 	bl_msgstop "Please plug an OpenPGP card or dongle..."
 done
-bl_yesno "Factory reset OpenPGP security tocken (This will destroys all OpenPGP keys stored on the card!)" || exit 42
 
-bl_log notice "Configuring OpenPGP security tocken..."
-
-echo "admin
-factory-reset
-y
-yes
-quit" | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --with-colons --card-edit 1> >(bl_log debug) 2>&1 || bl_log crit "Factory Reset OpenPGP card FAIL ($?)"
-
-echo "admin
-login
-u4=${udid4[0]}
-url
-https://${HKPSSERVER}/pks/lookup?op=get&search=0x${FPR}
-name
-${email[0]}
-
-quit" | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "12345678" --card-edit 1> >(bl_log debug) 2>&1 || bl_log crit "Setting OpenPGP card holder FAIL ($?)"
-
-echo "admin
-key-attr
-2
-1
-2
-1
-2
-1
-quit" | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "12345678" --card-edit 1> >(bl_log debug) 2>&1 || bl_log crit "Setting OpenPGP card keys attributes FAIL ($?)"
-
-#TODO WKS address calculated from email
-
-echo "keytocard
-y
-1
-key 1
-keytocard
-2
-key 1
-key 2
-keytocard
-3
-save " | gpg --homedir "$TMPDIR/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "12345678" --edit-key "${FPR}" 1> >(bl_log debug) 2>&1 || bl_log crit "Moving OpenPGP keys to card FAIL ($?)"
-
-if [[ "$nosend" ]] || ! gpg --homedir "$TMPDIR/gnupg" --keyserver "${HKPSSERVER}" --send-keys "$FPR" 2> >(bl_log notice) ; then
-	gpg --homedir "$TMPDIR/gnupg" --export --armor "$FPR"
-	bl_log warning "Please send, as soon as possible, this PGP public key to the hkp keyserver '${HKPSSERVER}'."
+if [[ -f "$TMPDIR/passphrase" ]] ; then
+	bl_qrkey_totoken --homedir "$TMPDIR/gnupg" $nosend --passfrom "$TMPDIR/passphrase" "$FPR"
+else
+	bl_qrkey_totoken --homedir "$TMPDIR/gnupg" $nosend "$FPR"
 fi
 
-exit 0
