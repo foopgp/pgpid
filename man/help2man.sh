@@ -60,9 +60,9 @@ Returns zero on normal operation, non-zero on errors.
 
 # SEE ALSO
 
-[**bash-libs**](https://codeberg.org/foopgp/bash-libs/src/branch/main/man/bash-libs.7.md)(7),
-[**bl-pgpid**](https://codeberg.org/foopgp/bash-libs/src/branch/main/man/bl-pgpid.1.md)(1),
-[**bl-qrkey**](https://codeberg.org/foopgp/bash-libs/src/branch/main/man/bl-qrkey.1.md)(1).
+[**bash-libs**](//codeberg.org/foopgp/bash-libs/src/branch/main/man/bash-libs.7.md)(7),
+[**bl-pgpid**](//codeberg.org/foopgp/bash-libs/src/branch/main/man/bl-pgpid.1.md)(1),
+[**bl-qrkey**](//codeberg.org/foopgp/bash-libs/src/branch/main/man/bl-qrkey.1.md)(1).
 
 # AUTHORS
 
