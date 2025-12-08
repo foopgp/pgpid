@@ -21,35 +21,4 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
  
  ### Default option values ###
  
-@@ -132,11 +132,11 @@
- 
- ### functions ###
- 
--. "$(dirname "$BASH_SOURCE")"/bl-log --no-act --log-level "$LOGLEVEL" --log-exit "$LOGEXITPRIO"
--. "$(dirname "$BASH_SOURCE")"/bl-interactive --
--. "$(dirname "$BASH_SOURCE")"/bl-security --
--. "$(dirname "$BASH_SOURCE")"/bl-json --
--. "$(dirname "$BASH_SOURCE")"/bl-pgpid --
-+. /usr/bin/bl-log --no-act --log-level "$LOGLEVEL" --log-exit "$LOGEXITPRIO"
-+. /usr/bin/bl-interactive --
-+. /usr/bin/bl-security --
-+. /usr/bin/bl-json --
-+. /usr/bin/bl-pgpid --
- 
- # Do nothing else if sourced
- [[ "$BASH_SOURCE" == "$0" ]] || return 0
---- a/bin/pgpid-qrscan
-+++ b/bin/pgpid-qrscan
-@@ -107,9 +107,9 @@
- 
- ### functions ###
- 
--. "$(dirname "$BASH_SOURCE")"/bl-log --no-act --log-level "$LOGLEVEL" --log-exit "$LOGEXITPRIO"
--. "$(dirname "$BASH_SOURCE")"/bl-interactive --
--. "$(dirname "$BASH_SOURCE")"/bl-security --
-+. /usr/bin/bl-log --no-act --log-level "$LOGLEVEL" --log-exit "$LOGEXITPRIO"
-+. /usr/bin/bl-interactive --
-+. /usr/bin/bl-security --
- 
- # Do nothing else if sourced
- [[ "$BASH_SOURCE" == "$0" ]] || return 0
+
