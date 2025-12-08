@@ -8,7 +8,7 @@
 #
 
 PGPI_NAME="$(basename $(readlink -f "$BASH_SOURCE") )"
-PGPI_VERSION="0.0.2"
+PGPI_VERSION="0.0.5"
 
 ### Default option values ###
 
@@ -17,6 +17,7 @@ LOGEXITPRIO=crit
 LOGLEVEL=6
 
 usage="Usage: $BASH_SOURCE [OPTIONS]... [--] [IMAGES]...
+
 $PGPI_NAME scan QRcodes containing parts of OpenPGP secrets from IMAGES or webcam,
 and import this secrets into a factory reseted OpenPGP secured device (eg yubikey)."
 
