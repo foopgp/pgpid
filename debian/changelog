@@ -1,8 +1,12 @@
-pgpid (0.0.5-1) UNRELEASED; urgency=medium
+pgpid (0.0.5-1) unstable; urgency=medium
 
+  [ jjbrucker ]
   * Non-maintainer upload.
 
- -- jjbrucker <jjbrucker@foopgp.org>  Mon, 08 Dec 2025 12:58:32 +0100
+  [ JJ ]
+  * update dependencies
+
+ -- piseb <piseb@mailo.com>  Mon, 08 Dec 2025 16:25:46 +0100
 
 pgpid (0.0.4-2) unstable; urgency=medium
 
