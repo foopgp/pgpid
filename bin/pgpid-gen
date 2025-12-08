@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright © 2021-2022 by Friends Of OpenPGP organization <info@foopgp.org>.
+# Copyright © 2021-2025 by Friends Of OpenPGP organization <info@foopgp.org>.
 #          All Right Reserved
 #
 # Generate OpenPGP certificates and keys to be imported for multiple applications (mail, chat, vote, etc.)
@@ -18,7 +18,7 @@ if [[ "$1" == --bash-completion ]] ; then
 		cur=${COMP_WORDS[COMP_CWORD]}
 
 		if [[ "$cur" == -* ]]; then
-			options="--output-path --split --with-secret-words --verbose --quiet --udid --help --version"
+			options="--output-path --split --threshold --verbose --quiet --free-comment --help --version"
 
 			COMPREPLY=( $(IFS=" " compgen -W "$options" -- $cur ) )
 		else
@@ -27,7 +27,7 @@ if [[ "$1" == --bash-completion ]] ; then
 				-o|--output-path)
 					COMPREPLY=( $(compgen  -d -- $cur ) )
 					return 0 ;;
-				-s|--split)
+				-s|--split|-t|--threshold)
 					COMPREPLY=( $(IFS=" " compgen -W "3 4 5 6 7 8 9 10" -- $cur ) )
 					return 0 ;;
 				# some options will exit without executing any actions, so don't complete anything
@@ -43,8 +43,7 @@ if [[ "$1" == --bash-completion ]] ; then
 fi
 
 PGPI_NAME="$(basename $(readlink -f "$BASH_SOURCE") )"
-PGPI_VERSION="0.0.3"
-
+PGPI_VERSION="0.0.5"
 
 ### Constants ###
 
@@ -70,17 +69,18 @@ if [[ "$BASH_SOURCE" == "$0" ]] ; then
 	PGPI_OUTPATH="$PWD"
 
 	usage="Usage: $BASH_SOURCE [OPTIONS]... [--] [IMAGE]
+
 If $PGPI_NAME succeed, it will :
   * create a subdirectory containing the public certificate and the pubkey to be use for ssh.
   * print the secret keys on multiple QRcodes. To be put on a OpenPGP card (eg. yubikey) using pgpid-qrscan.
 If no IMAGE is given, $PGPI_NAME will try to use webcam."
 
 	soptions="
-    -o, --output-path PATH   location for generated subdirs and files (current: $PGPI_OUTPATH )
-    -s, --split NUM          number of shares to be generated (current: $PGPI_SPLITN)
-    -t, --threshold NUM      number of shares necessary to reconstruct the secret (current: $PGPI_THRESN)
-    -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (current: $LOGLEVEL)
-    -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (current: $LOGLEVEL)
+    -o, --output-path PATH   location for generated subdirs and files (default: current dir \$PWD )
+    -s, --split NUM          number of shares to be generated (default: $PGPI_SPLITN)
+    -t, --threshold NUM      number of shares necessary to reconstruct the secret (default: $PGPI_THRESN)
+    -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (default: $LOGLEVEL)
+    -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (default: $LOGLEVEL)
     -f, --free-comment STR   free form comment, imply also no image face detection
     -h, --help               show this help and exit
     -V, --version            show version and exit"
@@ -279,7 +279,7 @@ fi
 
 PGPID[passphrase]="${PASSPHRASE[@]}"
 
-PGPID[hkp_server]="foopgp.org:11371"
+PGPID[hkp_server]="keys.foopgp.org"
 #PGPID[hkp_server]="keys.openpgp.org"
 
 #TODO: check gpg version, because we use some recent feature, and compatibility may change (tested with gpg (GnuPG) 2.2.27 libgcrypt 1.8.8)

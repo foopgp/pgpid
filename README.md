@@ -3,7 +3,7 @@ title: PGPID
 section: 1
 header: User Commands
 footer: pgpid
-date: May 2021
+date: Dec 2025
 ---
 
 # NAME
@@ -43,7 +43,6 @@ $ ./bin/pgpid-gen
 
 # CONTRIBUTE
 
-
 To sign your commits and push over ssh (and use the YubiKey or NitroKey
 you have configured with pgpid-gen and pgpid-qrscan) :
 ```
@@ -53,8 +52,10 @@ $ git config --global commit.gpgsign true
 
 # SEE ALSO
 
-**pgpid-note**(7), **mrtdreader**(1).
-
+[**bash-libs**](https://codeberg.org/foopgp/bash-libs/src/branch/main/man/bash-libs.7.md)(7),
+[**pgpid-gen**](man/pgpid-gen.1.md)(1),
+[**pgpid-qrscan**](man/pgpid-qrscan.1.md)(1),
+[**mrtdreader**](https://github.com/rubund/mrtdreader)(1).
 
 # AUTHOR
 
