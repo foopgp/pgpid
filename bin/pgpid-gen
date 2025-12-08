@@ -8,37 +8,40 @@
 #
 # It may and should read identification data from ID documents (eg: International Passeports)
 
-if [[ "$1" == --bash-completion ]] ; then
-	_pgpi_completion()
+if [[ "$BASH_SOURCE" != "$0" ]] ; then
+	# If we are sourced, just load completion.
+	[[ "$1" == --bash-completion ]] || printf "%s: Loading completion...\n" "$BASH_SOURCE" >&2
+
+	_pgpid_gen_options=$("${BASH_SOURCE[0]}" --help | sed -n 's,^  ... \(--[a-z_-]\+[^ ]*\).*,\1,p' | sed 's_<_{_ ; s_|_,_g ; s_>_}_ ')
+	_pgpid_gen_completion()
 	{
-		local cur prev options
-		local IFS=$'\n'
+		local cur
 
 		COMPREPLY=()
 		cur=${COMP_WORDS[COMP_CWORD]}
 
+		case ${COMP_WORDS[COMP_CWORD-1]} in
+			-o|--output-path)
+				compopt -o plusdirs
+				COMPREPLY=( $(compgen -A directory -- $cur) )
+				return 0 ;;
+			-s|--split|-t|--threshold)
+				COMPREPLY=( $(IFS=" " compgen -W "3 4 5 6 7 8 9" -- $cur ) )
+				return 0 ;;
+			# some options will exit without executing any actions, so don't complete anything
+			-h|--help|-V|--version)
+				return 0 ;;
+		esac
+
 		if [[ "$cur" == -* ]]; then
-			options="--output-path --split --threshold --verbose --quiet --free-comment --help --version"
-
-			COMPREPLY=( $(IFS=" " compgen -W "$options" -- $cur ) )
+			COMPREPLY=( $(IFS=$'\n' compgen -W "$_pgpid_gen_options" -- $cur ) )
 		else
-			prev=${COMP_WORDS[COMP_CWORD-1]}
-			case $prev in
-				-o|--output-path)
-					COMPREPLY=( $(compgen  -d -- $cur ) )
-					return 0 ;;
-				-s|--split|-t|--threshold)
-					COMPREPLY=( $(IFS=" " compgen -W "3 4 5 6 7 8 9 10" -- $cur ) )
-					return 0 ;;
-				# some options will exit without executing any actions, so don't complete anything
-				-h|--help|-V|--version)
-					return 0 ;;
-			esac
-
-			COMPREPLY=( $(compgen -o plusdirs -f -X '!*.@(gif|GIF|jp?(e)g|JP?(E)G|miff|tif?(f)|pn[gm]|PN[GM]|p[bgp]m|bmp|BMP|xpm|ico|xwd|tga|pcx)' -- $cur ) )
+			compopt -o plusdirs
+			COMPREPLY=( $(compgen -A file -X '!*.@(gif|GIF|jp?(e)g|JP?(E)G|miff|tif?(f)|pn[gm]|PN[GM]|p[bgp]m|bmp|BMP|xpm|ico|xwd|tga|pcx)' -- $cur ) )
 		fi
+		return 0
 	}
-	complete -o filenames -F _pgpi_completion "$BASH_SOURCE"
+	complete -F _pgpid_gen_completion "$(basename "$BASH_SOURCE")" "$BASH_SOURCE"
 	return 0
 fi
 
@@ -49,56 +52,41 @@ PGPI_VERSION="0.0.5"
 
 FACE_MARGIN_WIDTH="25/100"
 FACE_MARGIN_HEIGHT="50/100"
-TESSDATADIR="$(dirname "$0")/data/"
+TESSDATADIR="$(dirname "$BASH_SOURCE")/../share/pgpid/data/"
 
 ### Default option values ###
 
 PGPI_SPLITN=5
 PGPI_THRESN=3
-PGPI_QRVERSION=3
 
-if [[ "$BASH_SOURCE" == "$0" ]] ; then
-	# run as a program
-	set -e
-	# set global constants real constant (read only)
-	declare -r FACE_MARGIN_WIDTH FACE_MARGIN_HEIGHT TESSDATADIR
-	_exit="exit"
-	LOGEXITPRIO=crit
-	LOGLEVEL=5
+# run as a program
+set -e
+# set global constants real constant (read only)
+declare -r FACE_MARGIN_WIDTH FACE_MARGIN_HEIGHT TESSDATADIR
+_exit="exit"
+LOGEXITPRIO=crit
+LOGLEVEL=5
 
-	PGPI_OUTPATH="$PWD"
+PGPI_OUTPATH="$PWD"
 
-	usage="Usage: $BASH_SOURCE [OPTIONS]... [--] [IMAGE]
+usage="Usage: $BASH_SOURCE [OPTIONS]... [--] [IMAGE]
 
+Generate OpenPGP certifcates and secrets on multiple QR codes (physical secret sharing scheme)
+It may take the main page of an international passport as input (ICAO 9303 compliant).
 If $PGPI_NAME succeed, it will :
   * create a subdirectory containing the public certificate and the pubkey to be use for ssh.
   * print the secret keys on multiple QRcodes. To be put on a OpenPGP card (eg. yubikey) using pgpid-qrscan.
 If no IMAGE is given, $PGPI_NAME will try to use webcam."
 
-	soptions="
-    -o, --output-path PATH   location for generated subdirs and files (default: current dir \$PWD )
-    -s, --split NUM          number of shares to be generated (default: $PGPI_SPLITN)
-    -t, --threshold NUM      number of shares necessary to reconstruct the secret (default: $PGPI_THRESN)
-    -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (default: $LOGLEVEL)
-    -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (default: $LOGLEVEL)
-    -f, --free-comment STR   free form comment, imply also no image face detection
-    -h, --help               show this help and exit
-    -V, --version            show version and exit"
-else
-	# run as a library (source $0)
-	_exit="true"
-	LOGEXITPRIO=emerg
-	LOGLEVEL=6
-
-	usage="Usage: source $BASH_SOURCE [OPTIONS]..."
-
-	soptions="
-        --bash-completion    set completion for $BASH_SOURCE program and return (without loading anything else)
-    -l, --log-level LEVEL    log level: emerg<1=alert<crit<3=err<warning<5=notice<info<7=debug (current: $LOGLEVEL)
-    -L, --log-exit PRIORITY  log exit priority: emerg|alert|crit|err|warning|... (current: $LOGEXITPRIO )
-    -h, --help               show this help
-    -V, --version            show version"
-fi
+soptions="
+  -o, --output-path PATH   location for generated subdirs and files (default: current dir \$PWD )
+  -s, --split NUM          number of shares to be generated (default: $PGPI_SPLITN)
+  -t, --threshold NUM      number of shares necessary to reconstruct the secret (default: $PGPI_THRESN)
+  -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (default: $LOGLEVEL)
+  -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (default: $LOGLEVEL)
+  -f, --free-comment STR   free form comment, imply also no image face detection
+  -h, --help               show this help and exit
+  -V, --version            show version and exit"
 
 ### Handling options ###
 
@@ -127,17 +115,14 @@ esac
 shift
 done
 
-# If number of shares equal number of threshold, don't use shamir's secret sharing
-((PGPI_SPLITN!=PGPI_THRESN)) || PGPI_QRVERSION=1
-
 ### functions ###
 
-. "$(dirname "$BASH_SOURCE")"/bl-log --no-act --log-level "$LOGLEVEL" --log-exit "$LOGEXITPRIO"
-. "$(dirname "$BASH_SOURCE")"/bl-interactive --
-. "$(dirname "$BASH_SOURCE")"/bl-security --
-. "$(dirname "$BASH_SOURCE")"/bl-json --
-. "$(dirname "$BASH_SOURCE")"/bl-pgpid --
-. "$(dirname "$BASH_SOURCE")"/bl-qrkey --
+source "$(dirname "$BASH_SOURCE")"/bl-log --no-act --log-level "$LOGLEVEL" --log-exit "$LOGEXITPRIO"
+source "$(dirname "$BASH_SOURCE")"/bl-interactive --
+source "$(dirname "$BASH_SOURCE")"/bl-security --
+source "$(dirname "$BASH_SOURCE")"/bl-json --
+source "$(dirname "$BASH_SOURCE")"/bl-pgpid --
+source "$(dirname "$BASH_SOURCE")"/bl-qrkey --
 
 # Do nothing else if sourced
 [[ "$BASH_SOURCE" == "$0" ]] || return 0
@@ -273,9 +258,9 @@ fi
 
 PASSPHRASE=("$(sed 's/[^0-9]//g' <<<"${PGPID[birth_date]}" )")
 
-if ((PGPI_QRVERSION==2)) ; then
-	PASSPHRASE+=($(bl_gen_passphrase --dict en --num "$PGPI_SPLITN" --delimiter " ")) # PGPI_QRVERSION == 2 added a complex passphrase, but is now deprecated.
-fi
+#if ((PGPI_QRVERSION==2)) ; then
+#	PASSPHRASE+=($(bl_gen_passphrase --dict en --num "$PGPI_SPLITN" --delimiter " ")) # PGPI_QRVERSION == 2 added a complex passphrase, but is now deprecated.
+#fi
 
 PGPID[passphrase]="${PASSPHRASE[@]}"
 
