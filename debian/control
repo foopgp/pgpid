@@ -11,13 +11,11 @@ Vcs-Browser: https://codeberg.org/foopgp/pgpid
 
 Package: pgpid
 Architecture: any
-Depends: bashlibs-all,
+Depends: bashlibs-pgpid,
   facedetect,
   graphicsmagick,
   tesseract-ocr,
-  qrencode,
   gpg-wks-client,
-  ffmpeg,
-  ${misc:Depends}, ${shlibs:Depends}
+  ${misc:Depends}
 Description: pgpid-gen - generate OpenPGP certifcates and secrets on multiple QR codes (physical secret sharing scheme)
   pgpid-qrscan - transfers OpenPGP secrets from pgpid QR codes to OpenPGP smartcard (eg: yubikey, nitrokey, ...)

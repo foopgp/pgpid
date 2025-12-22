@@ -1,7 +1,17 @@
-pgpid (0.0.5-1) unstable; urgency=medium
+pgpid (0.0.6-1) UNRELEASED; urgency=medium
 
-  [ jjbrucker ]
-  * Non-maintainer upload.
+  [ JJ ]
+  * bin/pgpid-qrscan Now support qrversion=4, qrversion=5
+  * pgpid-qrscan: big refactoring and improvements
+  * update: manpages, descriptions, bash-libs submodule
+  * code cleaning + fix pgpid-gen's completion
+  * move old stuff into new dir 'oldies/' (will save ~10 Mo at install)
+  * completly rewrite pgpid-gen to greatly improve its UX
+  * prepare packaging (gbp dch ; fix debian/control + debian/patches)
+
+ -- jjbrucker <jjbrucker@foopgp.org>  Mon, 22 Dec 2025 10:37:56 +0100
+
+pgpid (0.0.5-1) unstable; urgency=medium
 
   [ JJ ]
   * update dependencies
