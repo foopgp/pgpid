@@ -1,4 +1,4 @@
-pgpid (0.0.6-1) UNRELEASED; urgency=medium
+pgpid (0.0.6-1) unstable; urgency=medium
 
   [ JJ ]
   * bin/pgpid-qrscan Now support qrversion=4, qrversion=5
@@ -9,7 +9,7 @@ pgpid (0.0.6-1) UNRELEASED; urgency=medium
   * completly rewrite pgpid-gen to greatly improve its UX
   * prepare packaging (gbp dch ; fix debian/control + debian/patches)
 
- -- jjbrucker <jjbrucker@foopgp.org>  Mon, 22 Dec 2025 10:37:56 +0100
+ -- piseb <piseb@mailo.com>  Mon, 22 Dec 2025 11:06:12 +0100
 
 pgpid (0.0.5-1) unstable; urgency=medium
 
