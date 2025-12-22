@@ -8,97 +8,85 @@
 #
 # It may and should read identification data from ID documents (eg: International Passeports)
 
-if [[ "$1" == --bash-completion ]] ; then
-	_pgpi_completion()
+if [[ "$BASH_SOURCE" != "$0" ]] ; then
+	# If we are sourced, just load completion.
+	[[ "$1" == --bash-completion ]] || printf "%s: Loading completion...\n" "$BASH_SOURCE" >&2
+
+	_pgpid_gen_options=$("${BASH_SOURCE[0]}" --help | sed -n 's,^  ... \(--[a-z_-]\+[^ ]*\).*,\1,p' | sed 's_<_{_ ; s_|_,_g ; s_>_}_ ')
+	_pgpid_gen_completion()
 	{
-		local cur prev options
-		local IFS=$'\n'
+		local cur
 
 		COMPREPLY=()
 		cur=${COMP_WORDS[COMP_CWORD]}
 
+		case ${COMP_WORDS[COMP_CWORD-1]} in
+			-o|--output-path)
+				compopt -o plusdirs
+				COMPREPLY=( $(compgen -A directory -- $cur) )
+				return 0 ;;
+			-s|--split|-t|--threshold)
+				COMPREPLY=( $(IFS=" " compgen -W "3 4 5 6 7 8 9" -- $cur ) )
+				return 0 ;;
+			# some options will exit without executing any actions, so don't complete anything
+			-h|--help|-V|--version)
+				return 0 ;;
+		esac
+
 		if [[ "$cur" == -* ]]; then
-			options="--output-path --split --threshold --verbose --quiet --free-comment --help --version"
-
-			COMPREPLY=( $(IFS=" " compgen -W "$options" -- $cur ) )
+			COMPREPLY=( $(IFS=$'\n' compgen -W "$_pgpid_gen_options" -- $cur ) )
 		else
-			prev=${COMP_WORDS[COMP_CWORD-1]}
-			case $prev in
-				-o|--output-path)
-					COMPREPLY=( $(compgen  -d -- $cur ) )
-					return 0 ;;
-				-s|--split|-t|--threshold)
-					COMPREPLY=( $(IFS=" " compgen -W "3 4 5 6 7 8 9 10" -- $cur ) )
-					return 0 ;;
-				# some options will exit without executing any actions, so don't complete anything
-				-h|--help|-V|--version)
-					return 0 ;;
-			esac
-
-			COMPREPLY=( $(compgen -o plusdirs -f -X '!*.@(gif|GIF|jp?(e)g|JP?(E)G|miff|tif?(f)|pn[gm]|PN[GM]|p[bgp]m|bmp|BMP|xpm|ico|xwd|tga|pcx)' -- $cur ) )
+			compopt -o plusdirs
+			COMPREPLY=( $(compgen -A file -X '!*.@(gif|GIF|jp?(e)g|JP?(E)G|miff|tif?(f)|pn[gm]|PN[GM]|p[bgp]m|bmp|BMP|xpm|ico|xwd|tga|pcx)' -- $cur ) )
 		fi
+		return 0
 	}
-	complete -o filenames -F _pgpi_completion "$BASH_SOURCE"
+	complete -F _pgpid_gen_completion "$(basename "$BASH_SOURCE")" "$BASH_SOURCE"
 	return 0
 fi
 
 PGPI_NAME="$(basename $(readlink -f "$BASH_SOURCE") )"
-PGPI_VERSION="0.0.5"
+PGPI_VERSION="0.0.6"
 
 ### Constants ###
 
 FACE_MARGIN_WIDTH="25/100"
 FACE_MARGIN_HEIGHT="50/100"
-TESSDATADIR="$(dirname "$0")/data/"
+TESSDATADIR="$(dirname "$BASH_SOURCE")/../share/pgpid/data/"
 
 ### Default option values ###
 
 PGPI_SPLITN=5
 PGPI_THRESN=3
-PGPI_QRVERSION=3
 
-if [[ "$BASH_SOURCE" == "$0" ]] ; then
-	# run as a program
-	set -e
-	# set global constants real constant (read only)
-	declare -r FACE_MARGIN_WIDTH FACE_MARGIN_HEIGHT TESSDATADIR
-	_exit="exit"
-	LOGEXITPRIO=crit
-	LOGLEVEL=5
+# run as a program
+set -e
+# set global constants real constant (read only)
+declare -r FACE_MARGIN_WIDTH FACE_MARGIN_HEIGHT TESSDATADIR
+_exit="exit"
+LOGEXITPRIO=crit
+LOGLEVEL=5
 
-	PGPI_OUTPATH="$PWD"
+PGPI_OUTPATH="$PWD"
 
-	usage="Usage: $BASH_SOURCE [OPTIONS]... [--] [IMAGE]
+usage="Usage: $BASH_SOURCE [OPTIONS]... [--] [PASSPORT_IMAGE]
 
+Generate OpenPGP certifcates and secrets on multiple QR codes (physical secret sharing scheme)
+It may take the main page of an international passport as input (ICAO 9303 compliant).
 If $PGPI_NAME succeed, it will :
   * create a subdirectory containing the public certificate and the pubkey to be use for ssh.
   * print the secret keys on multiple QRcodes. To be put on a OpenPGP card (eg. yubikey) using pgpid-qrscan.
-If no IMAGE is given, $PGPI_NAME will try to use webcam."
+"
 
-	soptions="
-    -o, --output-path PATH   location for generated subdirs and files (default: current dir \$PWD )
-    -s, --split NUM          number of shares to be generated (default: $PGPI_SPLITN)
-    -t, --threshold NUM      number of shares necessary to reconstruct the secret (default: $PGPI_THRESN)
-    -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (default: $LOGLEVEL)
-    -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (default: $LOGLEVEL)
-    -f, --free-comment STR   free form comment, imply also no image face detection
-    -h, --help               show this help and exit
-    -V, --version            show version and exit"
-else
-	# run as a library (source $0)
-	_exit="true"
-	LOGEXITPRIO=emerg
-	LOGLEVEL=6
-
-	usage="Usage: source $BASH_SOURCE [OPTIONS]..."
-
-	soptions="
-        --bash-completion    set completion for $BASH_SOURCE program and return (without loading anything else)
-    -l, --log-level LEVEL    log level: emerg<1=alert<crit<3=err<warning<5=notice<info<7=debug (current: $LOGLEVEL)
-    -L, --log-exit PRIORITY  log exit priority: emerg|alert|crit|err|warning|... (current: $LOGEXITPRIO )
-    -h, --help               show this help
-    -V, --version            show version"
-fi
+soptions="
+  -o, --output-path PATH   location for generated subdirs and files (default: current dir \$PWD )
+  -s, --split NUM          number of shares to be generated (default: $PGPI_SPLITN)
+  -t, --threshold NUM      number of shares necessary to reconstruct the secret (default: $PGPI_THRESN)
+  -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (default: $LOGLEVEL)
+  -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (default: $LOGLEVEL)
+  -C, --extra-comment STR  (Free to use part of) comment beside new EMAIL (default: "").
+  -h, --help               show this help and exit
+  -V, --version            show version and exit"
 
 ### Handling options ###
 
@@ -117,7 +105,7 @@ case "$1" in
 		grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$LOGEXITPRIO\" is none of: ${!loglevels[@]}" >&2 ; $_exit 2 ; } ;;
 	-v|--verb*) ((LOGLEVEL++)) ;;
 	-q|--quiet) ((LOGLEVEL--)) ;;
-	-f|--free-comment) shift ; PGPI_COMMENT="$1" ;;
+	-f|-C|--free-comment|--extra-comment) shift ; PGPI_EXTRACOMMENT="$1" ;;
 	-h|--h*) echo "$helpmsg" ; $_exit ;;
 	-V|--vers*) echo "$PGPI_NAME $PGPI_VERSION" ; $_exit ;;
 	--) shift ; break ;;
@@ -127,17 +115,14 @@ esac
 shift
 done
 
-# If number of shares equal number of threshold, don't use shamir's secret sharing
-((PGPI_SPLITN!=PGPI_THRESN)) || PGPI_QRVERSION=1
-
 ### functions ###
 
-. "$(dirname "$BASH_SOURCE")"/bl-log --no-act --log-level "$LOGLEVEL" --log-exit "$LOGEXITPRIO"
-. "$(dirname "$BASH_SOURCE")"/bl-interactive --
-. "$(dirname "$BASH_SOURCE")"/bl-security --
-. "$(dirname "$BASH_SOURCE")"/bl-json --
-. "$(dirname "$BASH_SOURCE")"/bl-pgpid --
-. "$(dirname "$BASH_SOURCE")"/bl-qrkey --
+source "$(dirname "$BASH_SOURCE")"/bl-log --no-act --log-level "$LOGLEVEL" --log-exit "$LOGEXITPRIO"
+source "$(dirname "$BASH_SOURCE")"/bl-interactive --
+source "$(dirname "$BASH_SOURCE")"/bl-security --
+source "$(dirname "$BASH_SOURCE")"/bl-json --
+source "$(dirname "$BASH_SOURCE")"/bl-pgpid --
+source "$(dirname "$BASH_SOURCE")"/bl-qrkey --
 
 # Do nothing else if sourced
 [[ "$BASH_SOURCE" == "$0" ]] || return 0
@@ -162,91 +147,57 @@ if [[ "$2" ]] ; then
 	bl_log warning "ignoring extra args $@"
 fi
 
-if ! [[ "$imgfile" ]] ; then
-	v4ldevices=($(ls /dev/v4l/by-id/*index0)) || bl_log crit "No image file given and no video input (eg. webcam) detected"
-	v4ldevice=$(bl_radiolist --output-value --num-per-line 1 --default -1 --text "No Image file given, device to take picture of a face or an ID card ?" "${v4ldevices[@]}")
-	v4ldevice="$(readlink -f "${v4ldevice}")"
-	ffplay -loglevel warning -video_size 1024x768 -i "$v4ldevice" 2> >(bl_log warning) & sleep 5 ; kill $! 2> >(bl_log crit)
-	bl_log notice "Taking picture, please don't move (2 seconds) !"
-	ffmpeg -loglevel error -y -ss 00:02 -video_size 1024x768 -i "$v4ldevice" -frames:v 1 -q:v 2 "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log error)
-	#fswebcam --no-banner --resolution 1024x768 --skip 40 --frame 3 --set lights=on --device "$v4ldevice" "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log notice)
-	#gm display -immutable "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log info) & sleep 1 ; kill $!
-	while ! [[ -v PGPI_COMMENT ]] && ! facedetect -q "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log notice) ; do
-		bl_log notice "No face detected..."
-		ffplay -loglevel warning -video_size 1024x768 -i "$v4ldevice" 2> >(bl_log warning) & sleep 3 ; kill $! 2> >(bl_log crit)
-		bl_log notice "Taking picture, please don't move (2 seconds) !"
-		ffmpeg -loglevel error -y -ss 00:02 -video_size 1024x768 -i "$v4ldevice" -frames:v 1 -q:v 2 "${PGPI_OUTPATH}/v4l.jpg" 2> >(bl_log error)
-	done
-	imgfile="${PGPI_OUTPATH}/v4l.jpg"
-fi
-
-#scanimage -l 2 -t 2 -x 120 -y 170 --mode Color --resolution 200 --format=tiff > tmpimg.tiff
-
 printers=($(LANG= lpstat -p 2> >(bl_log crit) | sed -n 's,^printer \([^ ]*\).*,\1,p')) || bl_log crit "No printer detected"
 printer="$(bl_radiolist --output-value --default-value "$(lpstat -d | sed 's,.* ,,')" --num-per-line 1 --text "Where to print the ${PGPI_SPLITN} secret fragments ?" "${printers[@]}")"
 lpstat -p "${printer}" 2> >(bl_log crit) | bl_log info
 
 declare -A PGPID=()
 
-if [[ -v PGPI_COMMENT ]] ; then
-	DOCUMENT[filename]=$imgfile
-	DOCUMENT[face_scan_64url]=$(gm convert "$imgfile" jpeg:- 2> >(bl_log warning) | basenc --base64url )
-	PGPID[comment]="${PGPI_COMMENT}"
-	# default birthdate is assuming PGP_COMMENT is an nhud2 string (cf OpenUDC authentication mechanism)
-	PGPID[birth_date]=$(bl_input --default "${PGPI_COMMENT:6:4}-${PGPI_COMMENT:10:2}-${PGPI_COMMENT:12:2}" "Birth date (YYYY-mm-dd)")
-else
+if [[ "$imgfile" ]] ; then
 	facep=$(facedetect --best -- "$imgfile" 2> >(bl_log notice) || true )
-	[[ "$facep" ]] || bl_log crit "No face detected in $imgfile"
+	if [[ "$facep" ]] ; then
+		read px py sx sy etc <<<"$facep"
+		mx=$((sx*$FACE_MARGIN_WIDTH))
+		my=$((sy*$FACE_MARGIN_HEIGHT))
+		bl_log info "$imgfile face -> position: +$px+$py  size: ${sx}x$sy  marges: +${mx}+$my"
 
-	read px py sx sy etc <<<"$facep"
-	mx=$((sx*$FACE_MARGIN_WIDTH))
-	my=$((sy*$FACE_MARGIN_HEIGHT))
-	bl_log info "$imgfile face -> position: +$px+$py  size: ${sx}x$sy  marges: +${mx}+$my"
+		declare -A DOCUMENT=()
+		# OCR only on zone below the image, converted to PNG because tesseract work better whith this format.
+		if ! mrz=($(gm convert -crop +0+$((py+sy)) "$imgfile" png:- 2> >(bl_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(bl_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
+			bl_log warning "$imgfile: No machine-readable zone detected"
+		fi
 
-	declare -A DOCUMENT=()
-	# OCR only on zone below the image, converted to PNG because tesseract work better whith this format.
-	if ! mrz=($(gm convert -crop +0+$((py+sy)) "$imgfile" png:- 2> >(bl_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(bl_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
-		bl_log warning "$imgfile: No machine-readable zone detected"
-	fi
+		DOCUMENT[filename]=$imgfile
+		DOCUMENT[face_scan_64url]=$(gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$imgfile" jpeg:- 2> >(bl_log warning) | basenc --base64url )
 
-	DOCUMENT[filename]=$imgfile
-	DOCUMENT[face_scan_64url]=$(gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$imgfile" jpeg:- 2> >(bl_log warning) | basenc --base64url )
+#		if ((${#DOCUMENT[face_scan_64url]} < 2048 )) ; then
+#			bl_log error "face image: too small (${#DOCUMENT[face_scan_64url]} < 2048)"
+#		elif ((${#DOCUMENT[face_scan_64url]} > (1<<16) )) ; then
+#			bl_log error "face image: too big (${#DOCUMENT[face_scan_64url]} > $((1<<16)))"
+#		fi
 
-	if ((${#DOCUMENT[face_scan_64url]} < 2048 )) ; then
-		bl_log error "face image: too small (${#DOCUMENT[face_scan_64url]} < 2048)"
-	elif ((${#DOCUMENT[face_scan_64url]} > (1<<16) )) ; then
-		bl_log error "face image: too big (${#DOCUMENT[face_scan_64url]} > $((1<<16)))"
-	fi
+#		# Resize image
+#		(exec 2> >(bl_log error) ; basenc --base64url --decode <<<"${DOCUMENT[face_scan_64url]}" | gm convert -geometry x180 - "$outdir/temp/face.jpg" )
 
-	PGPID[document0]="$(declare -p DOCUMENT)"
-
-	PGPID[birth_date]=$(bl_input "Birth date (YYYY-mm-dd)") # also used as a default passphrase
-	if PGPID[udid4]=$(bl_pgpid_gen_u4 --verify --birth-date "${PGPID[birth_date]}" "${mrz[@]}") ; then
-		PGPID[comment]="u4=${PGPID[udid4]}"
-		bl_log info "${PGPID[comment]}"
+		PGPID[document0]="$(declare -p DOCUMENT)"
 	else
-		bl_log crit "can't generate an udid4 from data you have validated"
+		bl_log warning "$imgfile: No face detected => this is not a passport"
 	fi
 fi
 
-outdir="${PGPI_OUTPATH%/}/PUB_${PGPID[comment]}"
+#PGPID[birth_date]=$(bl_input --iso-8601 "Birth date (YYYY-mm-dd)") # also used as a default passphrase
+if PGPID[udid4]=$(bl_pgpid_gen_u4 --verify "${mrz[@]}") ; then
+	PGPID[comment]="u4=${PGPID[udid4]}"
+	bl_log info "${PGPID[comment]}"
+else
+	bl_log crit "can't generate (foo)PGP IDentifier (from data you have validated)"
+fi
+
+outdir="${PGPI_OUTPATH%/}/PUB_u4${PGPID[udid4]}"
 mkdir -p "$outdir"/{gnupg,temp}
-cp -bvf "$imgfile" "$outdir/document.orig" 2> >(bl_log warning) | bl_log info
-
-# Resize and display image
-(exec 2> >(bl_log error) ; basenc --base64url --decode <<<"${DOCUMENT[face_scan_64url]}" | gm convert -geometry x180 - "$outdir/temp/face.jpg" )
-bl_log notice "Displaying face... close it to continue !"
-gm display -immutable "$outdir/temp/face.jpg" 2> >(bl_log error)
-
-bl_yesno "Did the image correspond to ${PGPID[birth_names],,} ${PGPID[birth_surname]^^} (${PGPID[comment]})"
-PGPID[face1_64url]=$(basenc --base64url < "$outdir/temp/face.jpg")
 
 while true ; do
-	while true ; do
-		PGPID[email]=$(bl_input --default "${PGPID[email]}" "Public email adress")
-		grep -q "^[^@[:space:]]\+@[^.[:space:]]\+\.[^[:space:]]\+$" <<<"${PGPID[email]}" && break
-	done
-
+	PGPID[email]=$(bl_input --email --default "${PGPID[email]}" "Public email adress")
 	PGPID[pseudonym]=$(bl_input --default "${PGPID[pseudonym]}" "Public name (or pseudonym)")
 	! bl_yesno --text \
 "
@@ -256,13 +207,6 @@ Public email adress:        ${PGPID[email]}
 		"Is that correct" || break
 done
 
-if bl_yesno "Would you like to add an second public email adress" ; then
-	while true ; do
-		PGPID[email2]=$(bl_input --default "${PGPID[email2]}" "Public email adress (2)")
-		grep -q "^[^@[:space:]]\+@[^.[:space:]]\+\.[^[:space:]]\+$" <<<"${PGPID[email2]}" && break
-	done
-fi
-
 PGPID[wkd_uri]=$($(gpgconf --list-dirs libexecdir)/gpg-wks-client --print-wkd-url "${PGPID[email]}" 2> >(bl_log warning) )
 PGPID[wks_support]=$(timeout --verbose 5s $(gpgconf --list-dirs libexecdir)/gpg-wks-client --supported --with-colons "${PGPID[email]}" 2> >(bl_log notice) || true )
 
@@ -271,49 +215,28 @@ if ! [[ "${PGPID[wks_support]}" =~ :1: ]] ; then
 	bl_log warning "Your email provider support neither WKD or WKS protocol :-("
 fi
 
-PASSPHRASE=("$(sed 's/[^0-9]//g' <<<"${PGPID[birth_date]}" )")
+PASSPHRASE=("$(date --date "@$SRANDOM" +"%+4Y%m%d")")
 
-if ((PGPI_QRVERSION==2)) ; then
-	PASSPHRASE+=($(bl_gen_passphrase --dict en --num "$PGPI_SPLITN" --delimiter " ")) # PGPI_QRVERSION == 2 added a complex passphrase, but is now deprecated.
-fi
+#if ((PGPI_QRVERSION==2)) ; then
+#	PASSPHRASE+=($(bl_gen_passphrase --dict en --num "$PGPI_SPLITN" --delimiter " ")) # PGPI_QRVERSION == 2 added a complex passphrase, but is now deprecated.
+#fi
 
 PGPID[passphrase]="${PASSPHRASE[@]}"
 
 PGPID[hkp_server]="keys.foopgp.org"
 #PGPID[hkp_server]="keys.openpgp.org"
 
-#TODO: check gpg version, because we use some recent feature, and compatibility may change (tested with gpg (GnuPG) 2.2.27 libgcrypt 1.8.8)
+#TODO: check gpg version, because compatibility may change (tested with gpg (GnuPG) 2.2.27 libgcrypt 1.8.8)
 # Start using "$outdir/gnupg" which need to be rwx only for user... then we may also remove rwx for all $outdir.
 chmod -R go-rwx "$outdir"
 
 # generate keys
-FPRS=($(bl_pgpid_gen_key --homedir "$outdir/gnupg" --passphrase "${PGPID[passphrase]}" --name "${PGPID[pseudonym]}" --comment "${PGPID[comment]}" "${PGPID[email]}"))
+FPRS=($(bl_pgpid_gen_key --homedir "$outdir/gnupg" --passphrase "${PGPID[passphrase]}" --name "${PGPID[pseudonym]}" --comment "${PGPID[comment]}" --extra-comment "$PGPI_EXTRACOMMENT" "${PGPID[email]}"))
 PGPID[frps]="$(declare -p FPRS)"
 
 # print QR codes
 if ! bl_qrkey_print --printer "${printer}" --split "${PGPI_SPLITN}" --threshold "$PGPI_THRESN" --homedir "$outdir/gnupg" --passphrase "${PGPID[passphrase]}" --with-passphrase --tmpdir "$outdir/temp/" "${FPRS[0]}" > >(bl_log debug) 2> >(bl_log notice) ; then
 	bl_log crit "Printing QR codes FAIL ($?)"
-fi
-
-# Add second email (if set)
-if [ "${PGPID[email2]}" ] ; then
-	if ! gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --allow-freeform-uid --edit-key ${FPRS[0]} 1> >(bl_log debug) 2>&1  <<<"adduid
-${PGPID[pseudonym]}
-${PGPID[email2]}
-${PGPID[comment]}
-save
-" ; then
-		bl_log crit "Adding uid (email 2) to OpenPGP certificate FAIL ($?)"
-	fi
-fi
-
-# Add photo
-if ! gpg --homedir "$outdir/gnupg" --command-fd 0 --batch --with-colons --pinentry-mode loopback --passphrase "${PGPID[passphrase]}" --edit-key ${FPRS[0]} 1> >(bl_log debug) 2>&1 <<<"addphoto
-$outdir/temp/face.jpg
-y
-save
-" ; then
-	bl_log crit "Adding photo ID to OpenPGP certificate FAIL ($?)"
 fi
 
 bl_log info "Export OpenPGP first certificate and public ssh key..."

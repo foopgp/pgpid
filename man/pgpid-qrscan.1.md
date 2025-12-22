@@ -8,12 +8,12 @@ SPDX-License-Identifier: GPL-3.0-only
 title: PGPID-QRSCAN
 section: 1
 header: User Commands
-footer: pgpid 0.0.5
+footer: pgpid 0.0.6
 ---
 
 # NAME
 
-pgpid-qrscan - manual page for pgpid-qrscan 0.0.5
+pgpid-qrscan - manual page for pgpid-qrscan 0.0.6
 
 # SYNOPSIS
 

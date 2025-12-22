@@ -8,26 +8,26 @@ SPDX-License-Identifier: GPL-3.0-only
 title: PGPID-GEN
 section: 1
 header: User Commands
-footer: pgpid 0.0.5
+footer: pgpid 0.0.6
 ---
 
 # NAME
 
-pgpid-gen - manual page for pgpid-gen 0.0.5
+pgpid-gen - manual page for pgpid-gen 0.0.6
 
 # SYNOPSIS
 
-**pgpid-gen** \[*OPTIONS*\]\... \[*\--*\] \[*IMAGE*\]
+**pgpid-gen** \[*OPTIONS*\]\... \[*\--*\] \[*PASSPORT_IMAGE*\]
 
 # DESCRIPTION
 
-## If pgpid-gen succeed, it will :
+Generate OpenPGP certifcates and secrets on multiple QR codes (physical
+secret sharing scheme) It may take the main page of an international
+passport as input (ICAO 9303 compliant). If pgpid-gen succeed, it will :
 
 > \* create a subdirectory containing the public certificate and the
 > pubkey to be use for ssh. \* print the secret keys on multiple
 > QRcodes. To be put on a OpenPGP card (eg. yubikey) using pgpid-qrscan.
-
-If no IMAGE is given, pgpid-gen will try to use webcam.
 
 # OPTIONS
 
@@ -54,9 +54,9 @@ If no IMAGE is given, pgpid-gen will try to use webcam.
 :   decrease log verbosity:
     \...\<err\[3\]\<warning\[4\]\<notice\[5\]\<\... (default: 5)
 
-**-f**, **\--free-comment** STR
+**-C**, **\--extra-comment** STR
 
-:   free form comment, imply also no image face detection
+:   (Free to use part of) comment beside new EMAIL (default: ).
 
 **-h**, **\--help**
 
