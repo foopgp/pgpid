@@ -147,10 +147,6 @@ if [[ "$2" ]] ; then
 	bl_log warning "ignoring extra args $@"
 fi
 
-printers=($(LANG= lpstat -p 2> >(bl_log crit) | sed -n 's,^printer \([^ ]*\).*,\1,p')) || bl_log crit "No printer detected"
-printer="$(bl_radiolist --output-value --default-value "$(lpstat -d | sed 's,.* ,,')" --num-per-line 1 --text "Where to print the ${PGPI_SPLITN} secret fragments ?" "${printers[@]}")"
-lpstat -p "${printer}" 2> >(bl_log crit) | bl_log info
-
 declare -A PGPID=()
 
 if [[ "$imgfile" ]] ; then
@@ -165,6 +161,8 @@ if [[ "$imgfile" ]] ; then
 		# OCR only on zone below the image, converted to PNG because tesseract work better whith this format.
 		if ! mrz=($(gm convert -crop +0+$((py+sy)) "$imgfile" png:- 2> >(bl_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(bl_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
 			bl_log warning "$imgfile: No machine-readable zone detected"
+		else
+			bl_log info "mrz: ${mrz[@]}"
 		fi
 
 		DOCUMENT[filename]=$imgfile
@@ -192,6 +190,10 @@ if PGPID[udid4]=$(bl_pgpid_gen_u4 --verify "${mrz[@]}") ; then
 else
 	bl_log crit "can't generate (foo)PGP IDentifier (from data you have validated)"
 fi
+
+printers=($(LANG= lpstat -p 2> >(bl_log crit) | sed -n 's,^printer \([^ ]*\).*,\1,p')) || bl_log crit "No printer detected"
+printer="$(bl_radiolist --output-value --default-value "$(lpstat -d | sed 's,.* ,,')" --num-per-line 1 --text "Where to print the ${PGPI_SPLITN} secret fragments ?" "${printers[@]}")"
+lpstat -p "${printer}" 2> >(bl_log crit) | bl_log info
 
 outdir="${PGPI_OUTPATH%/}/PUB_u4${PGPID[udid4]}"
 mkdir -p "$outdir"/{gnupg,temp}
