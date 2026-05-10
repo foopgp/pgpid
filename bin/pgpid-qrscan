@@ -8,7 +8,7 @@
 #
 
 PGPI_NAME="$(basename $(readlink -f "$BASH_SOURCE") )"
-PGPI_VERSION="0.0.6"
+PGPI_VERSION="0.0.7"
 
 ### Default option values ###
 

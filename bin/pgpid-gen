@@ -46,7 +46,7 @@ if [[ "$BASH_SOURCE" != "$0" ]] ; then
 fi
 
 PGPI_NAME="$(basename $(readlink -f "$BASH_SOURCE") )"
-PGPI_VERSION="0.0.6"
+PGPI_VERSION="0.0.7"
 
 ### Constants ###
 
@@ -68,6 +68,7 @@ LOGEXITPRIO=crit
 LOGLEVEL=5
 
 PGPI_OUTPATH="$PWD"
+PGPI_U5ID=""
 
 usage="Usage: $BASH_SOURCE [OPTIONS]... [--] [PASSPORT_IMAGE]
 
@@ -82,6 +83,7 @@ soptions="
   -o, --output-path PATH   location for generated subdirs and files (default: current dir \$PWD )
   -s, --split NUM          number of shares to be generated (default: $PGPI_SPLITN)
   -t, --threshold NUM      number of shares necessary to reconstruct the secret (default: $PGPI_THRESN)
+  -5, --u5 U5ID            use a pre-computed u5 identifier instead of deriving u4 from passport
   -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (default: $LOGLEVEL)
   -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (default: $LOGLEVEL)
   -C, --extra-comment STR  (Free to use part of) comment beside new EMAIL (default: "").
@@ -100,6 +102,7 @@ case "$1" in
 	-o|--output*) shift ; PGPI_OUTPATH="$1" ; ( cd "$PGPI_OUTPATH" && touch . ) ;; # cd and touch to verify outpath exist and is writable
 	-s|--split) shift ; PGPI_SPLITN="$1" ;;
 	-t|--thres*) shift ; PGPI_THRESN="$1" ;;
+	-5|--u5) shift ; PGPI_U5ID="$1" ;;
 	-l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; $_exit 2 ; } ;;
 	-L|--log-e*) shift ; LOGEXITPRIO="$1"
 		grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$LOGEXITPRIO\" is none of: ${!loglevels[@]}" >&2 ; $_exit 2 ; } ;;
@@ -147,10 +150,6 @@ if [[ "$2" ]] ; then
 	bl_log warning "ignoring extra args $@"
 fi
 
-printers=($(LANG= lpstat -p 2> >(bl_log crit) | sed -n 's,^printer \([^ ]*\).*,\1,p')) || bl_log crit "No printer detected"
-printer="$(bl_radiolist --output-value --default-value "$(lpstat -d | sed 's,.* ,,')" --num-per-line 1 --text "Where to print the ${PGPI_SPLITN} secret fragments ?" "${printers[@]}")"
-lpstat -p "${printer}" 2> >(bl_log crit) | bl_log info
-
 declare -A PGPID=()
 
 if [[ "$imgfile" ]] ; then
@@ -165,6 +164,8 @@ if [[ "$imgfile" ]] ; then
 		# OCR only on zone below the image, converted to PNG because tesseract work better whith this format.
 		if ! mrz=($(gm convert -crop +0+$((py+sy)) "$imgfile" png:- 2> >(bl_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(bl_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
 			bl_log warning "$imgfile: No machine-readable zone detected"
+		else
+			bl_log info "mrz: ${mrz[@]}"
 		fi
 
 		DOCUMENT[filename]=$imgfile
@@ -186,14 +187,24 @@ if [[ "$imgfile" ]] ; then
 fi
 
 #PGPID[birth_date]=$(bl_input --iso-8601 "Birth date (YYYY-mm-dd)") # also used as a default passphrase
-if PGPID[udid4]=$(bl_pgpid_gen_u4 --verify "${mrz[@]}") ; then
+if [[ -n "$PGPI_U5ID" ]] ; then
+	if [[ ! "$PGPI_U5ID" =~ ${BL_PGPID_U5_REGEX} ]] ; then
+		bl_log crit "Invalid u5 identifier: '$PGPI_U5ID'"
+	fi
+	PGPID[comment]="u5=${BASH_REMATCH[0]}"
+	bl_log info "${PGPID[comment]}"
+elif PGPID[udid4]=$(bl_pgpid_gen_u4 --verify "${mrz[@]}") ; then
 	PGPID[comment]="u4=${PGPID[udid4]}"
 	bl_log info "${PGPID[comment]}"
 else
 	bl_log crit "can't generate (foo)PGP IDentifier (from data you have validated)"
 fi
 
-outdir="${PGPI_OUTPATH%/}/PUB_u4${PGPID[udid4]}"
+printers=($(LANG= lpstat -p 2> >(bl_log crit) | sed -n 's,^printer \([^ ]*\).*,\1,p')) || bl_log crit "No printer detected"
+printer="$(bl_radiolist --output-value --default-value "$(lpstat -d | sed 's,.* ,,')" --num-per-line 1 --text "Where to print the ${PGPI_SPLITN} secret fragments ?" "${printers[@]}")"
+lpstat -p "${printer}" 2> >(bl_log crit) | bl_log info
+
+outdir="${PGPI_OUTPATH%/}/PUB_${PGPID[comment]//=*/}${PGPID[comment]#*=}"
 mkdir -p "$outdir"/{gnupg,temp}
 
 while true ; do
@@ -241,7 +252,7 @@ fi
 
 bl_log info "Export OpenPGP first certificate and public ssh key..."
 gpg --homedir "$outdir/gnupg" --armor --export 2> >(bl_log crit) > "$outdir/PGPcert.gpg.asc"
-gpg --homedir "$outdir/gnupg" --export-ssh-key ${FPRS[0]} 2> >(bl_log crit) > "$outdir/ssh_${PGPID[udid4]}.pub"
+gpg --homedir "$outdir/gnupg" --export-ssh-key ${FPRS[0]} 2> >(bl_log crit) > "$outdir/ssh_${PGPID[comment]#*=}.pub"
 
 bl_log info "Generate JSON file, for eventual futur use..."
 bl_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(bl_log crit)
