@@ -1,3 +1,12 @@
+pgpid (0.0.7-1) unstable; urgency=medium
+
+  [ jjbrucker ]
+  * move all nok sample to scan_nok/ (using mrz.traineddata data model)
+  * update bash-libs submodule + new testpassport.sh + move printer question
+  * allow pgpid-gen to generate u5 OpenPGP IDentifier
+
+ -- jjbrucker <jjbrucker@foopgp.org>  Sun, 10 May 2026 18:11:35 +0200
+
 pgpid (0.0.6-1) unstable; urgency=medium
 
   [ JJ ]
