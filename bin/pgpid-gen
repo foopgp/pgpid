@@ -250,6 +250,8 @@ if ! bl_qrkey_print --printer "${printer}" --split "${PGPI_SPLITN}" --threshold 
 	bl_log crit "Printing QR codes FAIL ($?)"
 fi
 
+bl_pgpid_print --homedir "$outdir/gnupg" --printer "${printer}" --no-color "${FPRS[0]}" > >(bl_log debug) 2> >(bl_log notice)
+
 bl_log info "Export OpenPGP first certificate and public ssh key..."
 gpg --homedir "$outdir/gnupg" --armor --export 2> >(bl_log crit) > "$outdir/PGPcert.gpg.asc"
 gpg --homedir "$outdir/gnupg" --export-ssh-key ${FPRS[0]} 2> >(bl_log crit) > "$outdir/ssh_${PGPID[comment]#*=}.pub"
