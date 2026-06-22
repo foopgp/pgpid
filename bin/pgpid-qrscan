@@ -87,9 +87,17 @@ while ! gpg --homedir "$TMPDIR/gnupg" --card-status > >(bl_log debug) 2> >(bl_lo
 	bl_msgstop "Please plug an OpenPGP card or dongle..."
 done
 
+# Pull the name of the first UID of the freshly-imported cert, so the
+# common name pgpid-gen baked into the OpenPGP uid lands in the token's
+# DO 5E « Login data » via bl-qrkey totoken --name (cf. c3a8dd2 on bash-libs).
+PNAME=$(gpg --homedir "$TMPDIR/gnupg" --with-colons --list-keys "$FPR" 2>/dev/null |
+	awk -F: '/^uid:/ { n = $10
+		sub(/ *\([^)]*\) *<[^>]+>$/, "", n); sub(/ *<[^>]+>$/, "", n)
+		print n ; exit }')
+
 if [[ -f "$TMPDIR/passphrase" ]] ; then
-	bl_qrkey_totoken --homedir "$TMPDIR/gnupg" $nosend --passfrom "$TMPDIR/passphrase" "$FPR"
+	bl_qrkey_totoken --homedir "$TMPDIR/gnupg" $nosend --passfrom "$TMPDIR/passphrase" ${PNAME:+--name "$PNAME"} "$FPR"
 else
-	bl_qrkey_totoken --homedir "$TMPDIR/gnupg" $nosend "$FPR"
+	bl_qrkey_totoken --homedir "$TMPDIR/gnupg" $nosend ${PNAME:+--name "$PNAME"} "$FPR"
 fi
 
