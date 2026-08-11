@@ -178,7 +178,7 @@ int pgpid_action_list(int argc, char **argv)
             char *eid = eid_of_key(key);
             const char *mbox = first_mbox(key);
             char validity = pgpid_validity_letter(best_uid_validity(key));
-            const char *trust = pgpid_validity_word(pgpid_ownertrust_of(fpr));
+            const char *trust = pgpid_validity_word(key->owner_trust);
 
             if (info) {
                 printf("fpr=%s\teid=%s\tmbox=%s\tvalidity=%c\townertrust=%s",

@@ -48,15 +48,19 @@ int pgpid_validity_from_word(const char *word);
  * Caller frees. Both shapes are recognised — see eid.c. */
 char *pgpid_eid_of_uid(const char *uid);
 
-/* The ownertrust gpg actually recorded for that fingerprint.
- * Read from the trustdb rather than from gpgme, which cannot tell "undefined"
- * from "never decided" — see trustdb.c. */
-gpgme_validity_t pgpid_ownertrust_of(const char *fpr);
-/* Drop the cached table, so a write is seen by the next read. */
-void pgpid_ownertrust_forget(void);
+/* Run the engine with these arguments, wait, and give back its exit status.
+ * No shell: the arguments go to execv as they are. -1 if it could not run. */
+int pgpid_run_engine(const char *const *argv);
+
+/* Is this a fingerprint and nothing else? 40 or 64 hexadecimal characters.
+ * What the destructive actions accept, so that a search pattern can never
+ * become a target. */
+bool pgpid_is_fingerprint(const char *s);
 
 /* Actions. argv[0] is the action name, as main leaves it. */
 int pgpid_action_list(int argc, char **argv);
 int pgpid_action_ownertrust(int argc, char **argv);
+int pgpid_action_sigs(int argc, char **argv);
+int pgpid_action_del(int argc, char **argv);
 
 #endif /* PGPID_MIP_H */

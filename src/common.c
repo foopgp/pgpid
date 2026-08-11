@@ -7,9 +7,13 @@
  */
 #include "pgpid.h"
 
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 const char *pgpid_homedir = NULL;
 
@@ -95,4 +99,69 @@ int pgpid_validity_from_word(const char *word)
         if (!strcmp(word, words[i].word))
             return (int)words[i].v;
     return -1;
+}
+
+/* The engine gpgme resolved, so that the two agree on which gpg they mean. */
+static const char *engine_path(void)
+{
+    gpgme_engine_info_t info;
+    if (gpgme_get_engine_info(&info))
+        return "gpg";
+    for (; info; info = info->next)
+        if (info->protocol == GPGME_PROTOCOL_OpenPGP && info->file_name)
+            return info->file_name;
+    return "gpg";
+}
+
+/* For the one thing gpgme has no call for. execv, not a shell: --homedir and
+ * the fingerprints go through as they are, with nothing to quote and nothing
+ * to get wrong. argv is NULL-terminated and starts after the program name;
+ * --homedir is prepended here when one was given. */
+int pgpid_run_engine(const char *const *argv)
+{
+    size_t n = 0;
+    while (argv[n])
+        n++;
+
+    const char **full = calloc(n + 4, sizeof *full);
+    if (!full)
+        return -1;
+    size_t at = 0;
+    full[at++] = engine_path();
+    if (pgpid_homedir) {
+        full[at++] = "--homedir";
+        full[at++] = pgpid_homedir;
+    }
+    for (size_t i = 0; i < n; i++)
+        full[at++] = argv[i];
+    full[at] = NULL;
+
+    pid_t pid = fork();
+    if (pid < 0) {
+        free(full);
+        return -1;
+    }
+    if (pid == 0) {
+        execv(full[0], (char *const *)full);
+        _exit(127);
+    }
+    free(full);
+    int status = 0;
+    if (waitpid(pid, &status, 0) < 0)
+        return -1;
+    return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+}
+
+bool pgpid_is_fingerprint(const char *s)
+{
+    if (!s)
+        return false;
+    size_t n = strlen(s);
+    /* v4 is 40, v6 is 64. Nothing else is a fingerprint. */
+    if (n != 40 && n != 64)
+        return false;
+    for (size_t i = 0; i < n; i++)
+        if (!isxdigit((unsigned char)s[i]))
+            return false;
+    return true;
 }

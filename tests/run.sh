@@ -49,13 +49,14 @@ is "says nothing found with 141"  "$?" "141"
 printf '\nownertrust\n'
 # A freshly generated key is ultimate: gpg trusts what it holds the secret of.
 is "reads the generated key"      "$("$BIN" ownertrust "$FPR")" "ultimate"
-# undefined is in the loop on purpose: gpgme reads it back as unknown, so
-# this is the check that pgpid-mip goes to the trustdb rather than believing
-# gpgme — see trustdb.c.
-for value in undefined never marginal full ultimate ; do
+for value in never marginal full ultimate ; do
     got=$("$BIN" ownertrust --replace-to "$value" "$FPR")
     is "--replace-to $value"      "$got" "$value"
 done
+# One rung, two spellings: undefined is what gets written, unknown is what
+# comes back, and the engine keeps no third state between them.
+got=$("$BIN" ownertrust --replace-to undefined "$FPR")
+is "--replace-to undefined reads back as unknown" "$got" "unknown"
 "$BIN" ownertrust --replace-to nonsense "$FPR" >/dev/null 2>&1
 is "refuses a value it does not know" "$?" "2"
 "$BIN" ownertrust --replace-to unknown "$FPR" >/dev/null 2>&1
@@ -64,6 +65,42 @@ is "refuses to set unknown, which is an absence" "$?" "2"
 is "refuses to run without a target"  "$?" "2"
 "$BIN" ownertrust 0000000000000000000000000000000000000000 >/dev/null 2>&1
 is "says 141 for a certificate it has not" "$?" "141"
+
+printf '\nsigs\n'
+# A second certificate, which certifies the first: the smallest web of trust
+# that has an edge in it.
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-generate-key "witness <witness@example.invalid>" ed25519 cert never 2>/dev/null
+WFPR=$(gpg --with-colons --list-keys witness@example.invalid 2>/dev/null | awk --field-separator=: '$1=="fpr"{print $10; exit}')
+WKEYID=${WFPR: -16}
+gpg --batch --yes --quiet --passphrase '' --pinentry-mode loopback \
+    --default-key "$WFPR" --quick-sign-key "$FPR" >/dev/null 2>&1
+
+out=$("$BIN" sigs "$FPR")
+is "finds the one certifier"      "$(wc --lines <<<"$out")" "1"
+is "names it by key identifier"   "$(awk '{print $2}' <<<"$out")" "$WKEYID"
+is "dates it"                     "$(awk '{print $1}' <<<"$out" | grep --count --extended-regexp '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')" "1"
+out=$("$BIN" sigs --info "$FPR")
+is "--info gives key=value"       "$(grep --only-matching "keyid=${WKEYID}" <<<"$out")" "keyid=${WKEYID}"
+is "merging every uid says the same" "$("$BIN" sigs --all-uids "$FPR" | wc --lines)" "1"
+# The witness signed nobody, and its own self-signature must not count.
+"$BIN" sigs "$WFPR" >/dev/null 2>&1
+is "leaves self-signatures out"   "$?" "141"
+
+printf '\ndel\n'
+"$BIN" del "not-a-fingerprint" >/dev/null 2>&1
+is "refuses anything but a fingerprint" "$?" "2"
+"$BIN" del "$FPR" "not-a-fingerprint" >/dev/null 2>&1
+is "checks every target before deleting any" "$?" "2"
+is "and deleted nothing"          "$("$BIN" list "$FPR" | wc --lines)" "1"
+"$BIN" del --secret "$FPR" >/dev/null 2>&1
+is "--secret keeps the certificate"  "$("$BIN" list "$FPR" | wc --lines)" "1"
+is "and drops the secret part"    "$(gpg --list-secret-keys "$FPR" 2>/dev/null | wc --lines)" "0"
+"$BIN" del "$FPR" >/dev/null 2>&1
+is "deletes the certificate"      "$?" "0"
+is "and it is gone"               "$("$BIN" list "$FPR" 2>/dev/null | wc --lines)" "0"
+"$BIN" del "$FPR" >/dev/null 2>&1
+is "says 141 for one it has not"  "$?" "141"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [[ $fail -eq 0 ]]

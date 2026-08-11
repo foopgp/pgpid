@@ -26,7 +26,11 @@ static void usage(FILE *out)
         "Usage: " PGPID_MIP_NAME " ownertrust [OPTIONS]... FINGERPRINT\n"
         "\n"
         "Print how far that certificate is trusted to certify others: one of\n"
-        "unknown, undefined, never, marginal, full, ultimate.\n"
+        "unknown, never, marginal, full, ultimate.\n"
+        "\n"
+        "'undefined' can be set and reads back as 'unknown': the engine does not\n"
+        "keep them apart, and neither does anyone who has had to explain the\n"
+        "difference. One rung, two spellings.\n"
         "\n"
         "OPTIONS:\n"
         "  -r, --replace-to VALUE      Set it to VALUE instead of printing it\n"
@@ -144,7 +148,6 @@ int pgpid_action_ownertrust(int argc, char **argv)
         /* Read it back rather than echo what was asked: the engine is what
          * decides, and a write that did not take should not look like one
          * that did. */
-        pgpid_ownertrust_forget();
         gpgme_key_unref(key);
         rc = one_key(ctx, pattern, &key);
         if (rc != PGPID_OK) {
@@ -153,8 +156,7 @@ int pgpid_action_ownertrust(int argc, char **argv)
         }
     }
 
-    const char *fpr = key->subkeys ? key->subkeys->fpr : NULL;
-    const char *word = pgpid_validity_word(pgpid_ownertrust_of(fpr));
+    const char *word = pgpid_validity_word(key->owner_trust);
     if (info)
         printf("ownertrust=%s\n", word);
     else

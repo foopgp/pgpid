@@ -15,12 +15,30 @@ binary gets its real name.
 
 ```
 pgpid-mip list [--certs] [--info] [SEARCH]
+pgpid-mip sigs [--all-uids] [--info] FINGERPRINT
 pgpid-mip ownertrust [--replace-to VALUE] [--info] FINGERPRINT
+pgpid-mip del [--secret] FINGERPRINT...
 ```
 
 `list` prints one row per certificate: fingerprint, entity identifier, first
-address, validity, ownertrust. `ownertrust` reads or sets how far one
-certificate is trusted to certify others — one word in, one word out.
+address, validity, ownertrust.
+
+`sigs` prints who has certified one certificate — date, key identifier,
+address, oldest first. Only the identity uid is read, because a certification
+is about the entity and not about one of its addresses; `--all-uids` merges
+every uid, which on our certificates gives the same answer and on older ones
+gives the right one. Self-signatures are left out: they make a uid stand, they
+do not certify anyone. The key identifier is what goes back into a search to
+walk one step further, and it is the identifier and not the fingerprint
+because a signature packet only carries the former.
+
+`ownertrust` reads or sets how far one certificate is trusted to certify
+others — one word in, one word out.
+
+`del` removes certificates. It takes fingerprints and nothing else: every
+other action here accepts a search pattern because being shown too much costs
+nothing, but this one deletes. `--secret` drops only the secret part, which is
+what one does after moving a key onto a security token.
 
 Conventions follow `bl-*`: an action then its options, human output by default
 and `key=value` under `--info`, long options everywhere, and `0` fine, `1`
@@ -33,7 +51,8 @@ On a keyring of 128 certificates (2026-08-11, gpgme 1.24.2, GnuPG 2.4.7):
 | | time | what it answers |
 |---|---|---|
 | `gpg --list-options show-only-fpr-mbox -k` | 71 ms | fingerprint and address |
-| `pgpid-mip list` | 409 ms | + identifier, validity, ownertrust |
+| `pgpid-mip list` | 140 ms | + identifier, validity, ownertrust |
+| `pgpid-mip sigs` | 84 ms | who certified one certificate |
 | `pgpid-mip list --certs` | 6.0 s | + certifier count |
 | `bl-pgpid cert_check --certs-count` | 28.4 s | identifier and certifier count |
 
@@ -46,19 +65,20 @@ walk. Whether a certificate is certified is its validity reaching `f` or `u`,
 and that comes out of the fast pass. The certifier count is a number to show,
 not a verdict to compute.
 
-## Two things gpgme cannot do, and what is done about them
+**And the count the application needs is not the slow one.** Whether a
+certificate is certified is its validity reaching `f` or `u`, which the fast
+pass already says. How many people certified it is `sigs`, 84 ms, run when
+someone opens that certificate rather than for all 128 at once.
 
-**It loses `undefined`.** gpgme's colon parser switches on `n`, `m`, `f`, `u`
-and lets everything else fall to unknown, so a certificate set to *undefined*
-and one nobody has ruled on arrive indistinguishable. They are not the same
-thing, and a control offering five rungs cannot show which one it sits on. So
-the ownertrust is read from `gpg --export-ownertrust` — once, for the whole
-keyring, which is what the extra 270 ms above buys. Everything else still comes
-from gpgme.
+## One rung, two spellings
 
-**`unknown` cannot be set.** The engine answers *Invalid argument*, and it is
-right to: unknown is the absence of a decision, not one more decision to take.
-`--replace-to unknown` is refused up front, with that as the reason.
+gpgme reads *undefined* back as *unknown*: its colon parser switches on `n`,
+`m`, `f`, `u` and lets the rest fall through. That is fine, and GnuPG's own
+documentation says to treat the two alike. So there are five rungs — never,
+unknown, marginal, full, ultimate — and *undefined* is simply the word written
+when the second one is chosen, since it is the settable spelling of it.
+`unknown` itself cannot be set: the engine answers *Invalid argument*, which
+is right, an absence of decision not being a decision.
 
 ## Building
 
