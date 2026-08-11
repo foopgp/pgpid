@@ -62,13 +62,9 @@ exactly — the identifier patterns are a character-for-character port.
 
 **The useful consequence for the application**: it never needs the 28-second
 walk. Whether a certificate is certified is its validity reaching `f` or `u`,
-and that comes out of the fast pass. The certifier count is a number to show,
-not a verdict to compute.
-
-**And the count the application needs is not the slow one.** Whether a
-certificate is certified is its validity reaching `f` or `u`, which the fast
-pass already says. How many people certified it is `sigs`, 84 ms, run when
-someone opens that certificate rather than for all 128 at once.
+which the fast pass already says — that is a verdict, not a count. How many
+people certified it is `sigs`, 84 ms, run when someone opens that certificate
+rather than for all 128 at once.
 
 ## One rung, two spellings
 
