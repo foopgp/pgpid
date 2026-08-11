@@ -30,6 +30,7 @@ static void usage(FILE *out)
         "\n"
         "ACTIONS:\n"
         "  list                        List the certificates of the keyring\n"
+        "  property                    Print a vCard property of one certificate\n"
         "  sigs                        List who has certified one certificate\n"
         "  ownertrust                  Print or set how far one is trusted to certify\n"
         "  del                         Delete certificates, by fingerprint only\n"
@@ -89,6 +90,8 @@ int main(int argc, char **argv)
 
     if (!strcmp(action, "list"))
         return pgpid_action_list(sub_argc, sub_argv);
+    if (!strcmp(action, "property"))
+        return pgpid_action_property(sub_argc, sub_argv);
     if (!strcmp(action, "sigs"))
         return pgpid_action_sigs(sub_argc, sub_argv);
     if (!strcmp(action, "ownertrust"))

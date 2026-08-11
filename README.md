@@ -15,6 +15,7 @@ binary gets its real name.
 
 ```
 pgpid-mip list [--certs] [--info] [SEARCH]
+pgpid-mip property [--info] NAME [SEARCH]
 pgpid-mip sigs [--all-uids] [--info] FINGERPRINT
 pgpid-mip ownertrust [--replace-to VALUE] [--info] FINGERPRINT
 pgpid-mip del [--secret] FINGERPRINT...
@@ -22,6 +23,13 @@ pgpid-mip del [--secret] FINGERPRINT...
 
 `list` prints one row per certificate: fingerprint, entity identifier, first
 address, validity, ownertrust.
+
+`property` prints the values of one vCard property a certificate carries on
+uids of its own — `name`, `note`, `phone`, `address`, `url`, `lang`, `geo`.
+Reading only: writing revokes a uid and adds another, needs the card and its
+PIN, and stays with `bl-pgpid` for now. Without SEARCH the certificate is the
+one whose secret key is at hand, the card-held one winning when several
+answer.
 
 `sigs` prints who has certified one certificate — date, key identifier,
 address, oldest first. Only the identity uid is read, because a certification
@@ -53,6 +61,8 @@ On a keyring of 128 certificates (2026-08-11, gpgme 1.24.2, GnuPG 2.4.7):
 | `gpg --list-options show-only-fpr-mbox -k` | 71 ms | fingerprint and address |
 | `pgpid-mip list` | 140 ms | + identifier, validity, ownertrust |
 | `pgpid-mip sigs` | 84 ms | who certified one certificate |
+| `pgpid-mip property url` | 31 ms | one property of one certificate |
+| `bl-pgpid property url` | 252 ms | the same |
 | `pgpid-mip list --certs` | 6.0 s | + certifier count |
 | `bl-pgpid cert_check --certs-count` | 28.4 s | identifier and certifier count |
 
@@ -65,6 +75,14 @@ walk. Whether a certificate is certified is its validity reaching `f` or `u`,
 which the fast pass already says — that is a verdict, not a count. How many
 people certified it is `sigs`, 84 ms, run when someone opens that certificate
 rather than for all 128 at once.
+
+**And one of them was not only slow.** `bl-pgpid property` went through an
+interactive helper that, run with no terminal, could not stop asking its
+question: `read` returns at once at EOF, the answer is rejected, the loop
+starts again. Six of those per card refresh is how a workstation ends up with
+35 orphaned processes at 40% CPU, the oldest two days old (measured
+2026-08-11). The shell fix exists; moving the read here removes the trigger
+rather than waiting for it to be packaged.
 
 ## One rung, two spellings
 

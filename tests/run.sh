@@ -66,6 +66,26 @@ is "refuses to run without a target"  "$?" "2"
 "$BIN" ownertrust 0000000000000000000000000000000000000000 >/dev/null 2>&1
 is "says 141 for a certificate it has not" "$?" "141"
 
+printf '\nproperty\n'
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-add-uid "$FPR" 'FN:Ada Lovelace' 2>/dev/null
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-add-uid "$FPR" 'URL:https://example.invalid/a' 2>/dev/null
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-add-uid "$FPR" 'URL:https://example.invalid/b' 2>/dev/null
+# The comma is escaped in the uid, as RFC 6350 asks, and must come back plain.
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-add-uid "$FPR" 'NOTE:one\, two' 2>/dev/null
+
+is "reads a singular property"    "$("$BIN" property name "$FPR")" "Ada Lovelace"
+is "reads every value of a repeatable one" "$("$BIN" property url "$FPR" | wc --lines)" "2"
+is "unescapes what vCard escaped" "$("$BIN" property note "$FPR")" "one, two"
+is "--info names the property"    "$("$BIN" property name --info "$FPR" 2>/dev/null || "$BIN" property --info name "$FPR")" "name=Ada Lovelace"
+"$BIN" property phone "$FPR" >/dev/null 2>&1
+is "says 141 for one it does not carry" "$?" "141"
+"$BIN" property nonsense "$FPR" >/dev/null 2>&1
+is "refuses a property it does not know" "$?" "2"
+
 printf '\nsigs\n'
 # A second certificate, which certifies the first: the smallest web of trust
 # that has an edge in it.
