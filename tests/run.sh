@@ -41,10 +41,35 @@ out=$("$BIN" list)
 is "finds the certificate"        "$(wc --lines <<<"$out")" "1"
 is "prints its fingerprint"       "$(awk '{print $1}' <<<"$out")" "$FPR"
 is "reads the eid off its uid"    "$(awk '{print $2}' <<<"$out")" "$EID"
-out=$("$BIN" list --info)
-is "--info gives key=value"       "$(grep --only-matching "eid=${EID}" <<<"$out")" "eid=${EID}"
+out=$("$BIN" --output-format=info list)
+is "info format gives key=value"  "$(grep --only-matching "eid=${EID}" <<<"$out")" "eid=${EID}"
 "$BIN" list "no-such-certificate" >/dev/null 2>&1
 is "says nothing found with 141"  "$?" "141"
+
+out=$("$BIN" list "$FPR")
+is "says it is certified: we hold its secret" "$(awk '{print $5}' <<<"$out")" "certified"
+is "says the credibility in words"            "$(awk '{print $6}' <<<"$out")" "ultimate"
+is "dates its creation"       "$(awk '{print $7}' <<<"$out" | grep --count --extended-regexp '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')" "1"
+is "leaves no expiry as a dash"               "$(awk '{print $8}' <<<"$out")" "-"
+is "leaves no revocation as a dash"           "$(awk '{print $9}' <<<"$out")" "-"
+is "--hide-trust says nothing of it"          "$("$BIN" list --hide-trust "$FPR" | awk '{print $6}')" "-"
+is "--machine-readable gives seconds"         "$("$BIN" list --machine-readable "$FPR" | awk '{print $7}' | grep --count --extended-regexp '^[0-9]+$')" "1"
+is "--machine-readable gives a flag"          "$("$BIN" list --machine-readable "$FPR" | awk '{print $5}')" "u"
+
+# A certificate with no entity identifier is broken, and only -L says otherwise.
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-generate-key 'Nobody <nobody@example.invalid>' ed25519 cert never 2>/dev/null
+NFPR=$(gpg --with-colons --list-keys nobody@example.invalid 2>/dev/null | awk --field-separator=: '$1=="fpr"{print $10; exit}')
+is "calls a certificate with no eid broken"   "$("$BIN" list "$NFPR" | awk '{print $5}')" "broken"
+is "-L stops calling it broken"               "$("$BIN" list -L "$NFPR" | awk '{print $5}')" "certified"
+
+printf '\noutput formats\n'
+is "info gives key=value"     "$("$BIN" --output-format=info list "$FPR" | grep --only-matching 'validity=certified')" "validity=certified"
+is "md opens a table"         "$("$BIN" --output-format=md list "$FPR" | head --lines=1 | cut --characters=1-15)" "| fingerprint  "
+is "md rules its header"      "$("$BIN" --output-format=md list "$FPR" | sed --quiet '2p' | cut --characters=1-3)" "| -"
+is "md closes every row"      "$("$BIN" --output-format=md list "$FPR" | tail --lines=1 | rev | cut --characters=1)" "|"
+"$BIN" --output-format=nonsense list >/dev/null 2>&1
+is "refuses a format it does not know" "$?" "2"
 
 printf '\nownertrust\n'
 # A freshly generated key is ultimate: gpg trusts what it holds the secret of.
@@ -80,7 +105,7 @@ gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
 is "reads a singular property"    "$("$BIN" property name "$FPR")" "Ada Lovelace"
 is "reads every value of a repeatable one" "$("$BIN" property url "$FPR" | wc --lines)" "2"
 is "unescapes what vCard escaped" "$("$BIN" property note "$FPR")" "one, two"
-is "--info names the property"    "$("$BIN" property name --info "$FPR" 2>/dev/null || "$BIN" property --info name "$FPR")" "name=Ada Lovelace"
+is "info format names the property" "$("$BIN" --output-format=info property name "$FPR")" "name=Ada Lovelace"
 "$BIN" property phone "$FPR" >/dev/null 2>&1
 is "says 141 for one it does not carry" "$?" "141"
 "$BIN" property nonsense "$FPR" >/dev/null 2>&1
@@ -100,8 +125,8 @@ out=$("$BIN" sigs "$FPR")
 is "finds the one certifier"      "$(wc --lines <<<"$out")" "1"
 is "names it by key identifier"   "$(awk '{print $2}' <<<"$out")" "$WKEYID"
 is "dates it"                     "$(awk '{print $1}' <<<"$out" | grep --count --extended-regexp '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')" "1"
-out=$("$BIN" sigs --info "$FPR")
-is "--info gives key=value"       "$(grep --only-matching "keyid=${WKEYID}" <<<"$out")" "keyid=${WKEYID}"
+out=$("$BIN" --output-format=info sigs "$FPR")
+is "info format gives key=value"  "$(grep --only-matching "keyid=${WKEYID}" <<<"$out")" "keyid=${WKEYID}"
 is "merging every uid says the same" "$("$BIN" sigs --all-uids "$FPR" | wc --lines)" "1"
 # The witness signed nobody, and its own self-signature must not count.
 "$BIN" sigs "$WFPR" >/dev/null 2>&1

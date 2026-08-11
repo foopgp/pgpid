@@ -41,23 +41,29 @@ static const struct {
     { "geo",     "GEO",  false },
 };
 
-/* RFC 6350 §3.4 in reverse: the escapes a value may carry. */
-static void print_unescaped(const char *v)
+/* RFC 6350 §3.4 in reverse: the escapes a value may carry. Caller frees. */
+static char *unescape(const char *v)
 {
+    char *out = malloc(strlen(v) + 1);
+    if (!out)
+        return NULL;
+    char *w = out;
     for (; *v; v++) {
         if (*v != '\\') {
-            putchar(*v);
+            *w++ = *v;
             continue;
         }
         switch (*++v) {
-        case 'n': case 'N': putchar('\n'); break;
-        case '\\': putchar('\\'); break;
-        case ',': putchar(','); break;
-        case ';': putchar(';'); break;
-        case '\0': putchar('\\'); return;   /* trailing backslash, kept */
-        default: putchar('\\'); putchar(*v); break;
+        case 'n': case 'N': *w++ = '\n'; break;
+        case '\\': *w++ = '\\'; break;
+        case ',': *w++ = ','; break;
+        case ';': *w++ = ';'; break;
+        case '\0': *w++ = '\\'; *w = '\0'; return out;
+        default: *w++ = '\\'; *w++ = *v; break;
         }
     }
+    *w = '\0';
+    return out;
 }
 
 /* The value of `uid` if it is a line of that property, else NULL.
@@ -93,20 +99,16 @@ static void usage(FILE *out)
         "is then printed whole.\n"
         "\n"
         "OPTIONS:\n"
-        "  -i, --info                  Prefix each value with 'NAME='\n"
         "  -h, --help                  Print this help and exit\n");
 }
 
 int pgpid_action_property(int argc, char **argv)
 {
-    bool info = false;
     const char *name = NULL, *pattern = NULL;
 
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
-        if (!strcmp(a, "-i") || !strcmp(a, "--info")) {
-            info = true;
-        } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
+        if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             usage(stdout);
             return PGPID_OK;
         } else if (!strcmp(a, "--")) {
@@ -214,6 +216,10 @@ int pgpid_action_property(int argc, char **argv)
     }
     key = candidate;
 
+    /* A property is one column, and a single column is a value: nothing is
+     * padded, so the caller reads exactly what the certificate carries. */
+    const char *const columns[] = { name };
+    pgpid_table_start(columns, 1);
     unsigned found = 0;
     for (gpgme_user_id_t u = key->uids; u; u = u->next) {
         if (u->revoked || u->invalid)
@@ -221,14 +227,15 @@ int pgpid_action_property(int argc, char **argv)
         const char *v = value_of(u->uid, vcard);
         if (!v)
             continue;
-        if (info)
-            printf("%s=", name);
-        print_unescaped(v);
-        putchar('\n');
+        char *plain = unescape(v);
+        const char *values[] = { plain ? plain : v };
+        pgpid_table_row(values);
+        free(plain);
         found++;
         if (singular)
             break;
     }
+    pgpid_table_end();
 
     gpgme_key_unref(key);
     gpgme_release(ctx);

@@ -37,6 +37,7 @@ static void usage(FILE *out)
         "\n"
         "OPTIONS:\n"
         "  -H, --homedir DIR           GnuPG home directory - Environment variable: GNUPGHOME\n"
+        "      --output-format=FORMAT  Specify output format between {raw, info, md} - Default: 'raw'\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"
         "\n"
@@ -60,6 +61,19 @@ int main(int argc, char **argv)
                 return PGPID_USAGE;
             }
             pgpid_homedir = argv[i];
+        } else if (!strncmp(a, "--output-format=", 16)) {
+            const char *f = a + 16;
+            if (!strcmp(f, "raw")) {
+                pgpid_format = PGPID_FMT_RAW;
+            } else if (!strcmp(f, "info")) {
+                pgpid_format = PGPID_FMT_INFO;
+            } else if (!strcmp(f, "md")) {
+                pgpid_format = PGPID_FMT_MD;
+            } else {
+                pgpid_error("Error: Unknown output format '%s'.", f);
+                pgpid_error("Notice: One of raw, info, md.");
+                return PGPID_USAGE;
+            }
         } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             usage(stdout);
             return PGPID_OK;

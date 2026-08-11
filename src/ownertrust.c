@@ -34,7 +34,6 @@ static void usage(FILE *out)
         "\n"
         "OPTIONS:\n"
         "  -r, --replace-to VALUE      Set it to VALUE instead of printing it\n"
-        "  -i, --info                  Output key=value rather than the bare word\n"
         "  -h, --help                  Print this help and exit\n");
 }
 
@@ -74,7 +73,6 @@ static int one_key(gpgme_ctx_t ctx, const char *pattern, gpgme_key_t *out)
 
 int pgpid_action_ownertrust(int argc, char **argv)
 {
-    bool info = false;
     const char *value = NULL, *pattern = NULL;
 
     for (int i = 1; i < argc; i++) {
@@ -85,8 +83,6 @@ int pgpid_action_ownertrust(int argc, char **argv)
                 return PGPID_USAGE;
             }
             value = argv[i];
-        } else if (!strcmp(a, "-i") || !strcmp(a, "--info")) {
-            info = true;
         } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             usage(stdout);
             return PGPID_OK;
@@ -156,11 +152,11 @@ int pgpid_action_ownertrust(int argc, char **argv)
         }
     }
 
-    const char *word = pgpid_validity_word(key->owner_trust);
-    if (info)
-        printf("ownertrust=%s\n", word);
-    else
-        printf("%s\n", word);
+    static const char *const COLUMNS[] = { "credibility" };
+    const char *values[] = { pgpid_validity_word(key->owner_trust) };
+    pgpid_table_start(COLUMNS, 1);
+    pgpid_table_row(values);
+    pgpid_table_end();
 
     gpgme_key_unref(key);
     gpgme_release(ctx);

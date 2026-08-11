@@ -99,21 +99,18 @@ static void usage(FILE *out)
         "\n"
         "OPTIONS:\n"
         "  -a, --all-uids              Merge the signatures of every uid\n"
-        "  -i, --info                  Output key=value pairs rather than columns\n"
         "  -h, --help                  Print this help and exit\n");
 }
 
 int pgpid_action_sigs(int argc, char **argv)
 {
-    bool info = false, all_uids = false;
+    bool all_uids = false;
     const char *pattern = NULL;
 
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
         if (!strcmp(a, "-a") || !strcmp(a, "--all-uids")) {
             all_uids = true;
-        } else if (!strcmp(a, "-i") || !strcmp(a, "--info")) {
-            info = true;
         } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             usage(stdout);
             return PGPID_OK;
@@ -196,6 +193,8 @@ int pgpid_action_sigs(int argc, char **argv)
 
     qsort(rows, n, sizeof *rows, by_date);
 
+    static const char *const COLUMNS[] = { "date", "keyid", "email" };
+    pgpid_table_start(COLUMNS, 3);
     for (size_t i = 0; i < n; i++) {
         char date[11] = "-";
         if (rows[i].timestamp > 0) {
@@ -204,14 +203,12 @@ int pgpid_action_sigs(int argc, char **argv)
             if (gmtime_r(&t, &tm))
                 strftime(date, sizeof date, "%Y-%m-%d", &tm);
         }
-        if (info)
-            printf("date=%s\tkeyid=%s\tmbox=%s\n", date, rows[i].keyid,
-                   rows[i].email ? rows[i].email : "");
-        else
-            printf("%s  %-16s  %s\n", date, rows[i].keyid,
-                   rows[i].email ? rows[i].email : "");
+        const char *values[] = { date, rows[i].keyid,
+                                 rows[i].email ? rows[i].email : "-" };
+        pgpid_table_row(values);
         row_free(&rows[i]);
     }
+    pgpid_table_end();
     free(rows);
     gpgme_key_unref(key);
     gpgme_release(ctx);

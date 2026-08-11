@@ -113,6 +113,29 @@ static const char *engine_path(void)
     return "gpg";
 }
 
+/* The child side of a pipe: replace this process with the engine. Never
+ * returns on success. Used where the output has to be read back. */
+void pgpid_exec_engine(const char *const *argv)
+{
+    size_t n = 0;
+    while (argv[n])
+        n++;
+    const char **full = calloc(n + 4, sizeof *full);
+    if (!full)
+        return;
+    size_t at = 0;
+    full[at++] = engine_path();
+    if (pgpid_homedir) {
+        full[at++] = "--homedir";
+        full[at++] = pgpid_homedir;
+    }
+    for (size_t i = 0; i < n; i++)
+        full[at++] = argv[i];
+    full[at] = NULL;
+    execv(full[0], (char *const *)full);
+    free(full);
+}
+
 /* For the one thing gpgme has no call for. execv, not a shell: --homedir and
  * the fingerprints go through as they are, with nothing to quote and nothing
  * to get wrong. argv is NULL-terminated and starts after the program name;

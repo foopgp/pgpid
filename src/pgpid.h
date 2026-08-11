@@ -10,6 +10,7 @@
 
 #include <gpgme.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #define PGPID_MIP_NAME    "pgpid-mip"
 #define PGPID_MIP_VERSION "0.1.0"
@@ -24,6 +25,17 @@
 
 /* Set once from the global --homedir, NULL for the user's own. */
 extern const char *pgpid_homedir;
+
+/* How every action answers. Said once, globally, next to --homedir: an
+ * action's business is what it says, not the shape it says it in. */
+typedef enum { PGPID_FMT_RAW, PGPID_FMT_INFO, PGPID_FMT_MD } pgpid_format_t;
+extern pgpid_format_t pgpid_format;
+
+/* Rows of named values. Held until the end, because column widths are not
+ * known before the last row is in — see output.c. */
+void pgpid_table_start(const char *const *keys, size_t ncols);
+void pgpid_table_row(const char *const *values);
+void pgpid_table_end(void);
 
 /* An engine bound to pgpid_homedir. Callers release it with gpgme_release. */
 gpgme_error_t pgpid_ctx_new(gpgme_ctx_t *ctx, gpgme_keylist_mode_t mode);
@@ -51,6 +63,11 @@ char *pgpid_eid_of_uid(const char *uid);
 /* Run the engine with these arguments, wait, and give back its exit status.
  * No shell: the arguments go to execv as they are. -1 if it could not run. */
 int pgpid_run_engine(const char *const *argv);
+/* Same, but replacing this process — the child side of a pipe. */
+void pgpid_exec_engine(const char *const *argv);
+/* When that certificate was revoked, 0 when it was not or is not known.
+ * PATTERN is the listing's own, so the lookup costs what the listing does. */
+long pgpid_revocation_time(const char *fpr, const char *pattern);
 
 /* Is this a fingerprint and nothing else? 40 or 64 hexadecimal characters.
  * What the destructive actions accept, so that a search pattern can never
