@@ -28,7 +28,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 /* Packet tags, RFC 9580 §5.  */
@@ -49,12 +51,17 @@
  */
 #define MAX_IMAGES        64
 
+/* How many certificates one search may act on at once. A pattern that finds
+ * more than this is a pattern, not a target. */
+#define MAX_KEYS          64
+
 struct image {
     const unsigned char *data;   /* into the exported buffer, never freed */
     size_t len;
     unsigned long created;       /* newest certification that stands it up */
     bool revoked;
-    unsigned index;              /* packet order, 1-based, as a keyserver counts */
+    unsigned index;              /* packet order among attributes, as a keyserver counts */
+    unsigned uidno;              /* the number gpg gives it, uids and attributes together */
 };
 
 struct packet {
@@ -262,25 +269,31 @@ static size_t walk_images(const unsigned char *buf, size_t buflen,
     unsigned long newest = 0;
     unsigned newest_type = 0;
     size_t n = 0;
-    unsigned index = 0;
+    unsigned index = 0, uidno = 0;
 
     while (packet_next(p, end, &pkt)) {
         p = pkt.next;
         switch (pkt.tag) {
         case TAG_USER_ATTR: {
+            /* gpg numbers uids and attributes in one sequence, which is what
+             * `uid N` selects; the keyserver counts attributes alone. Both
+             * are needed, so both are kept. */
             index++;
+            uidno++;
             target = NULL;
             const unsigned char *data;
             size_t len;
             if (n >= max || !attribute_image(&pkt, &data, &len))
                 break;
-            imgs[n] = (struct image){ .data = data, .len = len, .index = index };
+            imgs[n] = (struct image){ .data = data, .len = len,
+                                      .index = index, .uidno = uidno };
             target = &imgs[n++];
             newest = 0;
             newest_type = 0;
             break;
         }
         case TAG_USER_ID:
+            uidno++;
             target = NULL;            /* what follows certifies text, not us */
             break;
         case TAG_SIGNATURE: {
@@ -367,6 +380,240 @@ static bool write_image(const char *dir, const char *fpr,
     return true;
 }
 
+/* ---- writing ---------------------------------------------------------- *
+ *
+ * Two warnings earned the hard way, both on 2026-08-20.
+ *
+ * The number `uid N` selects is **not** the packet order this file walks for
+ * reading. gpg numbers what it displays, and it displays the primary uid
+ * first — on the certificate that started all this, its two addresses come
+ * out reversed. Revoking is permanent, so the numbering used here is read
+ * back from gpg's own listing and never derived from the packets.
+ *
+ * And gpgme is no help: it does not merely hide the image, it does not list
+ * attribute packets at all. Its user id chain held two entries for a
+ * certificate wearing five images.
+ */
+
+/* Run a program with these arguments and give back its exit status, or -1.
+ * No shell: what is passed is what is executed. */
+static int run_program(const char *const *argv)
+{
+    pid_t pid = fork();
+    if (pid < 0)
+        return -1;
+    if (pid == 0) {
+        execvp(argv[0], (char *const *)argv);
+        _exit(127);
+    }
+    int st;
+    if (waitpid(pid, &st, 0) != pid)
+        return -1;
+    return WIFEXITED(st) ? WEXITSTATUS(st) : -1;
+}
+
+/* The image, brought to the 180×180 an attribute packet is meant to carry.
+ * Resizing lives in graphicsmagick rather than in here: the operation is
+ * worth no library of our own, it happens once when someone changes a
+ * picture, and it is the one step that parses a file we were handed — which
+ * is a reason to keep it in a process of its own rather than beside the key
+ * material. Returns the path to use, or NULL. */
+static const char *resized(const char *image, const char *dir, char *buf,
+                           size_t buflen)
+{
+    snprintf(buf, buflen, "%s/new.jpg", dir);
+    const char *geometry[] = { "gm", "convert", "-geometry", "180^",
+                               "-gravity", "center", "-extent", "180",
+                               "-strip", image, NULL, NULL };
+    /* Room for the prefix on top of any path the buffer can hold. */
+    char target[sizeof "jpeg:" + 4096];
+    snprintf(target, sizeof target, "jpeg:%s", buf);
+    geometry[10] = target;
+    int rc = run_program(geometry);
+    if (rc == 127) {
+        pgpid_error("Error: graphicsmagick is needed to resize an image - install 'graphicsmagick'.");
+        return NULL;
+    }
+    if (rc) {
+        pgpid_error("Error: Cannot read '%s' as an image.", image);
+        return NULL;
+    }
+    return buf;
+}
+
+/* The numbers gpg gives the attribute packets that still stand, in the order
+ * gpg itself lists them — the only numbering `uid N` agrees with. */
+static size_t standing_uidnos(const char *fpr, unsigned *out, size_t max)
+{
+    int fds[2];
+    if (pipe(fds))
+        return 0;
+    pid_t pid = fork();
+    if (pid < 0) {
+        close(fds[0]);
+        close(fds[1]);
+        return 0;
+    }
+    if (pid == 0) {
+        close(fds[0]);
+        dup2(fds[1], STDOUT_FILENO);
+        close(fds[1]);
+        int null = open("/dev/null", O_WRONLY);
+        if (null >= 0) {
+            dup2(null, STDERR_FILENO);
+            close(null);
+        }
+        const char *argv[] = { "--with-colons", "--list-key", fpr, NULL };
+        pgpid_exec_engine(argv);
+        _exit(127);
+    }
+    close(fds[1]);
+    FILE *f = fdopen(fds[0], "r");
+    size_t n = 0;
+    unsigned uidno = 0;
+    char line[8192];
+    while (f && fgets(line, sizeof line, f)) {
+        bool uid = !strncmp(line, "uid:", 4);
+        bool uat = !strncmp(line, "uat:", 4);
+        if (!uid && !uat)
+            continue;
+        uidno++;
+        if (uat && line[4] != 'r' && n < max)
+            out[n++] = uidno;
+    }
+    if (f)
+        fclose(f);
+    int st;
+    waitpid(pid, &st, 0);
+    return n;
+}
+
+/* The conversation gpg holds while editing a certificate. Answers are keyed
+ * by the prompt that asks for them rather than fed in order, so a gpg that
+ * asks one question more — or one fewer — does not silently shift every
+ * later answer onto the wrong question. */
+struct edit {
+    const unsigned *revoke;   /* attribute numbers to take back, gpg's own */
+    size_t nrevoke, at;
+    const char *addfile;      /* the image to put on, or NULL */
+    bool selected, asked, added, saved;
+};
+
+static gpgme_error_t edit_cb(void *opaque, const char *keyword,
+                             const char *args, int fd)
+{
+    struct edit *e = opaque;
+    const char *answer = NULL;
+    char sel[32];
+
+    if (fd < 0 || !keyword)
+        return 0;                          /* a status line, not a question */
+
+    /* gpgme hands the status word in `keyword` and the name of the question
+     * in `args` — GET_LINE / keyedit.prompt, not the other way round. Anything
+     * else reaching here with a writable fd would leave gpg waiting on an
+     * answer that never comes, so the default below says something. */
+    if (strcmp(keyword, "GET_LINE") && strcmp(keyword, "GET_BOOL")
+        && strcmp(keyword, "GET_HIDDEN"))
+        return 0;
+    const char *ask = args ? args : "";
+
+    if (!strcmp(ask, "keyedit.prompt")) {
+        if (e->at < e->nrevoke) {
+            snprintf(sel, sizeof sel, "uid %u", e->revoke[e->at]);
+            if (!e->selected) {
+                e->selected = true;
+            } else if (!e->asked) {
+                e->asked = true;
+                answer = "revuid";
+            } else {
+                /* deselect, and on to the next */
+                e->selected = false;
+                e->asked = false;
+                e->at++;
+            }
+            if (!answer)
+                answer = sel;
+        } else if (e->addfile && !e->added) {
+            e->added = true;
+            answer = "addphoto";
+        } else if (!e->saved) {
+            e->saved = true;
+            answer = "save";
+        } else {
+            answer = "quit";
+        }
+    } else if (!strcmp(ask, "keyedit.revoke.uid.okay")
+            || !strcmp(ask, "ask_revocation_reason.okay")
+            || !strcmp(ask, "photoid.jpeg.size")
+            || !strcmp(ask, "keyedit.save.okay")) {
+        answer = "y";
+    } else if (!strcmp(ask, "ask_revocation_reason.code")) {
+        answer = "4";                      /* 4: the user id is no longer valid */
+    } else if (!strcmp(ask, "ask_revocation_reason.text")) {
+        answer = "";
+    } else if (!strcmp(ask, "photoid.jpeg.add")) {
+        answer = e->addfile ? e->addfile : "";
+    } else {
+        /* An unknown question still needs an answer, or gpg stops here.
+         * An empty line is the mildest thing to say. */
+        answer = "";
+    }
+
+    if (write(fd, answer, strlen(answer)) < 0 || write(fd, "\n", 1) < 0)
+        return gpgme_error_from_errno(errno);
+    return 0;
+}
+
+/* Take back every image that stands, then put this one on. Either half may
+ * be asked for alone. */
+static int replace_avatar(gpgme_ctx_t ctx, gpgme_key_t key, const char *image,
+                          const char *dir, bool revoke_only)
+{
+    const char *fpr = key->fpr ? key->fpr : "";
+    char newpath[4096];
+    const char *addfile = NULL;
+
+    if (image && !(addfile = resized(image, dir, newpath, sizeof newpath)))
+        return PGPID_FAIL;
+
+    unsigned nos[MAX_IMAGES];
+    size_t n = standing_uidnos(fpr, nos, MAX_IMAGES);
+    if (!n && !addfile) {
+        pgpid_error("Notice: No image to take back.");
+        return PGPID_NOTHING;
+    }
+    /* Revoking runs from the last to the first: gpg renumbers nothing during
+     * a session, but a reader of this list should not have to know that. */
+    for (size_t i = 0; i < n / 2; i++) {
+        unsigned t = nos[i];
+        nos[i] = nos[n - 1 - i];
+        nos[n - 1 - i] = t;
+    }
+
+    struct edit e = { .revoke = nos, .nrevoke = n,
+                      .addfile = revoke_only ? NULL : addfile };
+    gpgme_data_t out;
+    gpgme_error_t err = gpgme_data_new(&out);
+    if (err) {
+        pgpid_gpgme_error("gpgme_data_new", err);
+        return PGPID_FAIL;
+    }
+    if (n)
+        pgpid_error("Info: Taking back %zu image(s) on %s…", n, fpr);
+    if (e.addfile)
+        pgpid_error("Info: Putting %s on %s…", image, fpr);
+
+    err = gpgme_op_interact(ctx, key, 0, edit_cb, &e, out);
+    gpgme_data_release(out);
+    if (err) {
+        pgpid_gpgme_error("gpgme_op_interact", err);
+        pgpid_error("Notice: A certificate is edited with its secret key - is the right one at hand?");
+        return PGPID_FAIL;
+    }
+    return PGPID_OK;
+}
+
 static void usage(FILE *out)
 {
     fprintf(out,
@@ -376,8 +623,14 @@ static void usage(FILE *out)
         "The image that stands today comes first, so the first line is the\n"
         "avatar. Missing selector means the first secret certificate.\n"
         "\n"
+        "Writing needs the certificate\'s secret key, and takes a fingerprint\n"
+        "only: revoking cannot be undone, so a search must never become a\n"
+        "target. A new image is brought to 180x180 first.\n"
+        "\n"
         "OPTIONS:\n"
         "  -E, --extract-all           Print every image, revoked ones included\n"
+        "  -A, --replace-to IMAGE      Take back every image that stands and put IMAGE on\n"
+        "  -R, --revoke                Just take back every image that stands\n"
         "  -W, --workdir DIRECTORY     Where the images are written\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n");
@@ -439,15 +692,25 @@ static int one_key(gpgme_ctx_t ctx, gpgme_key_t key, const char *dir, bool all)
 
 int pgpid_action_avatar(int argc, char **argv)
 {
-    bool all = false;
+    bool all = false, revoke = false;
     const char *workdir = NULL;
     const char *selector = NULL;
+    const char *image = NULL;
     char defdir[64];
 
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
         if (!strcmp(a, "-E") || !strcmp(a, "--extract-all")) {
             all = true;
+        } else if (!strcmp(a, "-A") || !strcmp(a, "--replace-to")
+                   || !strcmp(a, "--add")) {
+            if (++i >= argc) {
+                pgpid_error("Error: '%s' wants an image.", a);
+                return PGPID_USAGE;
+            }
+            image = argv[i];
+        } else if (!strcmp(a, "-R") || !strcmp(a, "--revoke")) {
+            revoke = true;
         } else if (!strcmp(a, "-W") || !strcmp(a, "--workdir")
                    || !strcmp(a, "--tmpdir")) {
             if (++i >= argc) {
@@ -485,6 +748,18 @@ int pgpid_action_avatar(int argc, char **argv)
     if (!workdir_ready(workdir))
         return PGPID_FAIL;
 
+    /* Writing takes a fingerprint and nothing else. `del` holds the same
+     * line for the same reason: being shown too much costs nothing, being
+     * revoked by accident cannot be undone. */
+    if ((image || revoke) && (!selector || !pgpid_is_fingerprint(selector))) {
+        pgpid_error("Error: Changing an image wants a fingerprint, not a search.");
+        return PGPID_USAGE;
+    }
+    if (image && revoke) {
+        pgpid_error("Error: '--revoke' takes every image back; '--replace-to' already does.");
+        return PGPID_USAGE;
+    }
+
     gpgme_ctx_t ctx;
     gpgme_error_t err = pgpid_ctx_new(&ctx, 0);
     if (err) {
@@ -496,21 +771,32 @@ int pgpid_action_avatar(int argc, char **argv)
     gpgme_key_t key = NULL;
 
     if (selector) {
+        /* The listing is closed before anything else is asked of this
+         * context: gpgme carries one operation at a time, and starting an
+         * edit while the enumeration is still open leaves both waiting on
+         * each other with nothing said. */
+        gpgme_key_t found[MAX_KEYS];
+        size_t nfound = 0;
         err = gpgme_op_keylist_start(ctx, selector, 0);
         if (err) {
             gpgme_release(ctx);
             pgpid_gpgme_error("gpgme_op_keylist_start", err);
             return PGPID_FAIL;
         }
-        while (!gpgme_op_keylist_next(ctx, &key)) {
-            int r = one_key(ctx, key, workdir, all);
-            gpgme_key_unref(key);
+        while (nfound < MAX_KEYS && !gpgme_op_keylist_next(ctx, &key))
+            found[nfound++] = key;
+        gpgme_op_keylist_end(ctx);
+
+        for (size_t k = 0; k < nfound; k++) {
+            int r = (image || revoke)
+                  ? replace_avatar(ctx, found[k], image, workdir, revoke)
+                  : one_key(ctx, found[k], workdir, all);
+            gpgme_key_unref(found[k]);
             if (r == PGPID_FAIL)
                 ret = PGPID_FAIL;
             else if (r == PGPID_OK && ret != PGPID_FAIL)
                 ret = PGPID_OK;
         }
-        gpgme_op_keylist_end(ctx);
     } else if (!(err = first_secret(ctx, &key))) {
         ret = one_key(ctx, key, workdir, all);
         gpgme_key_unref(key);

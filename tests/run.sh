@@ -142,21 +142,41 @@ if command -v gm >/dev/null 2>&1 ; then
     gm convert -size 180x180 'xc:#c04020' jpeg:"$GNUPGHOME/new.jpg"
     pixels() { gm convert "$1" -depth 8 rgb:- | md5sum | cut --characters=1-32 ; }
     is "says 141 before there is one" \
-       "$("$BIN" avatar "$FPR" >/dev/null 2>&1 ; echo $?)" "141"
+       "$("$BIN" avatar --workdir "$GNUPGHOME" "$FPR" >/dev/null 2>&1 ; echo $?)" "141"
     for f in old new ; do
         gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
             --command-fd 0 --edit-key "$FPR" >/dev/null 2>&1 \
             <<<$'addphoto\n'"$GNUPGHOME/$f.jpg"$'\ny\nsave\n'
         sleep 1
     done
-    out=$("$BIN" avatar "$FPR")
+    out=$("$BIN" avatar --workdir "$GNUPGHOME" "$FPR")
     is "prints one path"              "$(wc --lines <<<"$out")" "1"
     is "and it is the newest image"   "$(pixels "$out")" "$(pixels "$GNUPGHOME/new.jpg")"
-    out=$("$BIN" avatar --extract-all "$FPR")
+    out=$("$BIN" avatar --workdir "$GNUPGHOME" --extract-all "$FPR")
     is "--extract-all gives both"     "$(wc --lines <<<"$out")" "2"
     is "newest still first"           "$(pixels "$(sed 1q <<<"$out")")" "$(pixels "$GNUPGHOME/new.jpg")"
     is "then the older one"           "$(pixels "$(sed 2q <<<"$out" | tail --lines=1)")" "$(pixels "$GNUPGHOME/old.jpg")"
     is "names the file by packet order" "$(basename "$(sed 1q <<<"$out")")" "$FPR-2.jpg"
+
+    # Writing. A fingerprint is required because revoking cannot be undone,
+    # and a 400x300 image proves the resize happens on the way in.
+    is "refuses a search as a target" \
+       "$("$BIN" avatar --workdir "$GNUPGHOME" --replace-to "$GNUPGHOME/new.jpg" alice >/dev/null 2>&1 ; echo $?)" "2"
+    gm convert -size 400x300 'xc:#7f5f2a' jpeg:"$GNUPGHOME/wide.jpg"
+    "$BIN" avatar --workdir "$GNUPGHOME" --replace-to "$GNUPGHOME/wide.jpg" "$FPR" >/dev/null 2>&1
+    is "replace-to succeeds"          "$?" "0"
+    out=$("$BIN" avatar --workdir "$GNUPGHOME" "$FPR")
+    # Resized the same way here, so the assertion is about the image that
+    # reached the certificate and not about where a temporary file landed.
+    gm convert -geometry '180^' -gravity center -extent 180 -strip \
+       "$GNUPGHOME/wide.jpg" jpeg:"$GNUPGHOME/wide-180.jpg"
+    is "and it is the new image now"  "$(pixels "$out")" "$(pixels "$GNUPGHOME/wide-180.jpg")"
+    is "brought to 180x180"           "$(gm identify -format '%wx%h' "$out")" "180x180"
+    is "the two others were taken back" \
+       "$(gpg --with-colons --list-key "$FPR" 2>/dev/null | grep --count '^uat:r')" "2"
+    "$BIN" avatar --workdir "$GNUPGHOME" --revoke "$FPR" >/dev/null 2>&1
+    is "--revoke takes the last one back" \
+       "$("$BIN" avatar --workdir "$GNUPGHOME" "$FPR" >/dev/null 2>&1 ; echo $?)" "141"
 else
     printf '  skip  no graphicsmagick to make test images with\n'
 fi

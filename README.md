@@ -20,6 +20,7 @@ pgpid-mip sigs [--all-uids] [--info] FINGERPRINT
 pgpid-mip ownertrust [--replace-to VALUE] [--info] FINGERPRINT
 pgpid-mip del [--secret] FINGERPRINT...
 pgpid-mip avatar [--extract-all] [--workdir DIR] [SEARCH]
+pgpid-mip avatar --replace-to IMAGE | --revoke [--workdir DIR] FINGERPRINT
 ```
 
 `list` prints one row per certificate: fingerprint, entity identifier, first
@@ -62,8 +63,27 @@ which is also what lets every image arrive knowing when it was certified and
 whether a later signature took it back. `bl-pgpid avatar` gets the files by
 pointing gpg's `--photo-viewer` at a shell that copies them aside, and that
 yields pictures with no dates attached; on 2026-08-20 a certificate carrying
-two standing images showed the wrong one for want of them. Reading only —
-adding an image needs the card and stays with `bl-pgpid`.
+two standing images showed the wrong one for want of them.
+
+`--replace-to` takes back every image that stands and puts a new one on;
+`--revoke` does the first half alone. Both want a fingerprint and nothing
+else, as `del` does, because a revocation cannot be undone and a search must
+never become a target. Two things are worth knowing about how it works:
+
+The number `uid N` selects is **not** the packet order the reading side
+walks. gpg numbers what it displays, and it displays the primary uid first —
+on the certificate that started all this, its two addresses come out
+reversed. So the numbering used for writing is read back from gpg's own
+listing, never derived from the packets.
+
+Resizing to 180×180 runs `gm` in a process of its own rather than linking a
+library. The operation happens once when someone changes a picture, so the
+process costs nothing next to the card operation that follows — and it is the
+one step that parses a file we were handed, which is a reason to keep it away
+from the address space holding key material.
+
+Unlike `bl-pgpid avatar`, this does **not** send the certificate to a
+keyserver afterwards. Publishing stays something one asks for.
 
 Conventions follow `bl-*`: an action then its options, human output by default
 and `key=value` under `--info`, long options everywhere, and `0` fine, `1`
