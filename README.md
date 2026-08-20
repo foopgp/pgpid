@@ -19,6 +19,7 @@ pgpid-mip property [--info] NAME [SEARCH]
 pgpid-mip sigs [--all-uids] [--info] FINGERPRINT
 pgpid-mip ownertrust [--replace-to VALUE] [--info] FINGERPRINT
 pgpid-mip del [--secret] FINGERPRINT...
+pgpid-mip avatar [--extract-all] [--workdir DIR] [SEARCH]
 ```
 
 `list` prints one row per certificate: fingerprint, entity identifier, first
@@ -47,6 +48,22 @@ others — one word in, one word out.
 other action here accepts a search pattern because being shown too much costs
 nothing, but this one deletes. `--secret` drops only the secret part, which is
 what one does after moving a key onto a security token.
+
+`avatar` writes out the image a certificate wears and prints its path. The
+one that stands today comes first, so the first line is the avatar;
+`--extract-all` adds the ones that were taken back, newest first. Files are
+named by certificate and packet order, the same number a keyserver asks for
+under `idx=`.
+
+This is the one action gpgme cannot help with at all: a user id carries its
+text, its validity and its signatures, and nothing of the attribute packet an
+image lives in. So the certificate is exported and its packets are read here —
+which is also what lets every image arrive knowing when it was certified and
+whether a later signature took it back. `bl-pgpid avatar` gets the files by
+pointing gpg's `--photo-viewer` at a shell that copies them aside, and that
+yields pictures with no dates attached; on 2026-08-20 a certificate carrying
+two standing images showed the wrong one for want of them. Reading only —
+adding an image needs the card and stays with `bl-pgpid`.
 
 Conventions follow `bl-*`: an action then its options, human output by default
 and `key=value` under `--info`, long options everywhere, and `0` fine, `1`

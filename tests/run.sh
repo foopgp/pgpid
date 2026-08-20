@@ -132,6 +132,35 @@ is "merging every uid says the same" "$("$BIN" sigs --all-uids "$FPR" | wc --lin
 "$BIN" sigs "$WFPR" >/dev/null 2>&1
 is "leaves self-signatures out"   "$?" "141"
 
+printf '\navatar\n'
+# A certificate wearing two standing images is out of spec and it happened:
+# one arrived on 2026-08-20, and the reader that took whichever packet came
+# first showed a scan of an identity card instead of the portrait its owner
+# had set a week later. addphoto rather than a replace, so that both stand.
+if command -v gm >/dev/null 2>&1 ; then
+    gm convert -size 180x180 'xc:#204080' jpeg:"$GNUPGHOME/old.jpg"
+    gm convert -size 180x180 'xc:#c04020' jpeg:"$GNUPGHOME/new.jpg"
+    pixels() { gm convert "$1" -depth 8 rgb:- | md5sum | cut --characters=1-32 ; }
+    is "says 141 before there is one" \
+       "$("$BIN" avatar "$FPR" >/dev/null 2>&1 ; echo $?)" "141"
+    for f in old new ; do
+        gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+            --command-fd 0 --edit-key "$FPR" >/dev/null 2>&1 \
+            <<<$'addphoto\n'"$GNUPGHOME/$f.jpg"$'\ny\nsave\n'
+        sleep 1
+    done
+    out=$("$BIN" avatar "$FPR")
+    is "prints one path"              "$(wc --lines <<<"$out")" "1"
+    is "and it is the newest image"   "$(pixels "$out")" "$(pixels "$GNUPGHOME/new.jpg")"
+    out=$("$BIN" avatar --extract-all "$FPR")
+    is "--extract-all gives both"     "$(wc --lines <<<"$out")" "2"
+    is "newest still first"           "$(pixels "$(sed 1q <<<"$out")")" "$(pixels "$GNUPGHOME/new.jpg")"
+    is "then the older one"           "$(pixels "$(sed 2q <<<"$out" | tail --lines=1)")" "$(pixels "$GNUPGHOME/old.jpg")"
+    is "names the file by packet order" "$(basename "$(sed 1q <<<"$out")")" "$FPR-2.jpg"
+else
+    printf '  skip  no graphicsmagick to make test images with\n'
+fi
+
 printf '\ndel\n'
 "$BIN" del "not-a-fingerprint" >/dev/null 2>&1
 is "refuses anything but a fingerprint" "$?" "2"

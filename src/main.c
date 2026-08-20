@@ -34,6 +34,7 @@ static void usage(FILE *out)
         "  sigs                        List who has certified one certificate\n"
         "  ownertrust                  Print or set how far one is trusted to certify\n"
         "  del                         Delete certificates, by fingerprint only\n"
+        "  avatar                      Extract the image a certificate wears\n"
         "\n"
         "OPTIONS:\n"
         "  -H, --homedir DIR           GnuPG home directory - Environment variable: GNUPGHOME\n"
@@ -112,6 +113,8 @@ int main(int argc, char **argv)
         return pgpid_action_ownertrust(sub_argc, sub_argv);
     if (!strcmp(action, "del"))
         return pgpid_action_del(sub_argc, sub_argv);
+    if (!strcmp(action, "avatar"))
+        return pgpid_action_avatar(sub_argc, sub_argv);
 
     pgpid_error("Error: Unknown action '%s'.", action);
     pgpid_error("Try '" PGPID_MIP_NAME " --help' for more information.");

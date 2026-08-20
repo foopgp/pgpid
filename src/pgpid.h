@@ -80,5 +80,6 @@ int pgpid_action_ownertrust(int argc, char **argv);
 int pgpid_action_sigs(int argc, char **argv);
 int pgpid_action_del(int argc, char **argv);
 int pgpid_action_property(int argc, char **argv);
+int pgpid_action_avatar(int argc, char **argv);
 
 #endif /* PGPID_MIP_H */
