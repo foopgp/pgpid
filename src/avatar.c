@@ -488,6 +488,29 @@ static size_t standing_uidnos(const char *fpr, unsigned *out, size_t max)
     return n;
 }
 
+/* Hand the changed certificate to each keyserver named, and say which ones
+ * refused. Never called unless asked for: unlike the shell action, a change
+ * here stays on the machine until someone says otherwise — publishing an
+ * identity is a decision, and a photograph is not a small one. */
+static int send_to_keyservers(const char *fpr, const char *list)
+{
+    char *copy = strdup(list);
+    if (!copy)
+        return PGPID_FAIL;
+    int ret = PGPID_OK;
+    for (char *save = NULL, *ks = strtok_r(copy, " \t,", &save); ks;
+         ks = strtok_r(NULL, " \t,", &save)) {
+        const char *argv[] = { "--keyserver", ks, "--send-keys", fpr, NULL };
+        pgpid_error("Info: Sending %s to %s…", fpr, ks);
+        if (pgpid_run_engine(argv)) {
+            pgpid_error("Warning: %s would not take it.", ks);
+            ret = PGPID_FAIL;
+        }
+    }
+    free(copy);
+    return ret;
+}
+
 /* The conversation gpg holds while editing a certificate. Answers are keyed
  * by the prompt that asks for them rather than fed in order, so a gpg that
  * asks one question more — or one fewer — does not silently shift every
@@ -568,7 +591,8 @@ static gpgme_error_t edit_cb(void *opaque, const char *keyword,
 /* Take back every image that stands, then put this one on. Either half may
  * be asked for alone. */
 static int replace_avatar(gpgme_ctx_t ctx, gpgme_key_t key, const char *image,
-                          const char *dir, bool revoke_only)
+                          const char *dir, bool revoke_only,
+                          const char *keyservers)
 {
     const char *fpr = key->fpr ? key->fpr : "";
     char newpath[4096];
@@ -611,6 +635,8 @@ static int replace_avatar(gpgme_ctx_t ctx, gpgme_key_t key, const char *image,
         pgpid_error("Notice: A certificate is edited with its secret key - is the right one at hand?");
         return PGPID_FAIL;
     }
+    if (keyservers && *keyservers)
+        return send_to_keyservers(fpr, keyservers);
     return PGPID_OK;
 }
 
@@ -631,6 +657,8 @@ static void usage(FILE *out)
         "  -E, --extract-all           Print every image, revoked ones included\n"
         "  -A, --replace-to IMAGE      Take back every image that stands and put IMAGE on\n"
         "  -R, --revoke                Just take back every image that stands\n"
+        "  -K, --keyservers SERVERS    Send the changed certificate to these, space separated\n"
+        "                              Nothing is published unless this is given\n"
         "  -W, --workdir DIRECTORY     Where the images are written\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n");
@@ -696,6 +724,7 @@ int pgpid_action_avatar(int argc, char **argv)
     const char *workdir = NULL;
     const char *selector = NULL;
     const char *image = NULL;
+    const char *keyservers = NULL;
     char defdir[64];
 
     for (int i = 1; i < argc; i++) {
@@ -711,6 +740,12 @@ int pgpid_action_avatar(int argc, char **argv)
             image = argv[i];
         } else if (!strcmp(a, "-R") || !strcmp(a, "--revoke")) {
             revoke = true;
+        } else if (!strcmp(a, "-K") || !strcmp(a, "--keyservers")) {
+            if (++i >= argc) {
+                pgpid_error("Error: '%s' wants a list of servers, empty for none.", a);
+                return PGPID_USAGE;
+            }
+            keyservers = argv[i];
         } else if (!strcmp(a, "-W") || !strcmp(a, "--workdir")
                    || !strcmp(a, "--tmpdir")) {
             if (++i >= argc) {
@@ -755,6 +790,10 @@ int pgpid_action_avatar(int argc, char **argv)
         pgpid_error("Error: Changing an image wants a fingerprint, not a search.");
         return PGPID_USAGE;
     }
+    if (keyservers && !image && !revoke) {
+        pgpid_error("Error: '--keyservers' publishes a change; there is none to make.");
+        return PGPID_USAGE;
+    }
     if (image && revoke) {
         pgpid_error("Error: '--revoke' takes every image back; '--replace-to' already does.");
         return PGPID_USAGE;
@@ -789,7 +828,8 @@ int pgpid_action_avatar(int argc, char **argv)
 
         for (size_t k = 0; k < nfound; k++) {
             int r = (image || revoke)
-                  ? replace_avatar(ctx, found[k], image, workdir, revoke)
+                  ? replace_avatar(ctx, found[k], image, workdir, revoke,
+                                   keyservers)
                   : one_key(ctx, found[k], workdir, all);
             gpgme_key_unref(found[k]);
             if (r == PGPID_FAIL)

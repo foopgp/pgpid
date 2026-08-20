@@ -20,7 +20,7 @@ pgpid-mip sigs [--all-uids] [--info] FINGERPRINT
 pgpid-mip ownertrust [--replace-to VALUE] [--info] FINGERPRINT
 pgpid-mip del [--secret] FINGERPRINT...
 pgpid-mip avatar [--extract-all] [--workdir DIR] [SEARCH]
-pgpid-mip avatar --replace-to IMAGE | --revoke [--workdir DIR] FINGERPRINT
+pgpid-mip avatar --replace-to IMAGE | --revoke [--keyservers SERVERS] FINGERPRINT
 ```
 
 `list` prints one row per certificate: fingerprint, entity identifier, first
@@ -83,7 +83,10 @@ one step that parses a file we were handed, which is a reason to keep it away
 from the address space holding key material.
 
 Unlike `bl-pgpid avatar`, this does **not** send the certificate to a
-keyserver afterwards. Publishing stays something one asks for.
+keyserver on its own: `--keyservers` names where it should go, and without
+it the change stays on the machine. Publishing an identity is a decision,
+and a photograph is not a small one — but it is one command away, and the
+servers that refuse are named.
 
 Conventions follow `bl-*`: an action then its options, human output by default
 and `key=value` under `--info`, long options everywhere, and `0` fine, `1`

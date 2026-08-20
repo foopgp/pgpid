@@ -174,6 +174,13 @@ if command -v gm >/dev/null 2>&1 ; then
     is "brought to 180x180"           "$(gm identify -format '%wx%h' "$out")" "180x180"
     is "the two others were taken back" \
        "$(gpg --with-colons --list-key "$FPR" 2>/dev/null | grep --count '^uat:r')" "2"
+    # Publishing is asked for or it does not happen. The address is a closed
+    # port, so the attempt is proven without a test key reaching a real
+    # keyserver.
+    is "refuses --keyservers with no change to publish" \
+       "$("$BIN" avatar --workdir "$GNUPGHOME" --keyservers 'hkp://127.0.0.1:1' "$FPR" >/dev/null 2>&1 ; echo $?)" "2"
+    out=$("$BIN" avatar --workdir "$GNUPGHOME" --revoke --keyservers 'hkp://127.0.0.1:1' "$FPR" 2>&1)
+    is "says which server refused"    "$(grep --count 'would not take it' <<<"$out")" "1"
     "$BIN" avatar --workdir "$GNUPGHOME" --revoke "$FPR" >/dev/null 2>&1
     is "--revoke takes the last one back" \
        "$("$BIN" avatar --workdir "$GNUPGHOME" "$FPR" >/dev/null 2>&1 ; echo $?)" "141"
