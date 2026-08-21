@@ -7,6 +7,8 @@ that API was settled in the shell libraries — `bl-pgpid`, `bl-pgpkey` — and 
 moves here is what the shell cannot do well: the calls it never had, and the
 ones that pay a process per certificate.
 
+The order the rest moves in, and why, is in [MIGRATION.md](MIGRATION.md).
+
 foodjis will straddle the two for a while. As an action lands here, the
 application stops calling `bl-*` for it. When the last one has moved,
 `bl-pgpid` and `bl-pgpkey` are obsolete, this leaves for a repository and a
