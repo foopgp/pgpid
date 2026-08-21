@@ -188,3 +188,26 @@ bool pgpid_is_fingerprint(const char *s)
             return false;
     return true;
 }
+
+/* Hand a certificate to each server named, and say which ones refused.
+ * An empty list is a deliberate "nowhere" and not a failure. */
+int pgpid_send_to_keyservers(const char *fpr, const char *list)
+{
+    if (!list || !*list)
+        return PGPID_OK;
+    char *copy = strdup(list);
+    if (!copy)
+        return PGPID_FAIL;
+    int ret = PGPID_OK;
+    for (char *save = NULL, *ks = strtok_r(copy, " \t,", &save); ks;
+         ks = strtok_r(NULL, " \t,", &save)) {
+        const char *argv[] = { "--keyserver", ks, "--send-keys", fpr, NULL };
+        pgpid_error("Info: Sending %s to %s…", fpr, ks);
+        if (pgpid_run_engine(argv)) {
+            pgpid_error("Warning: %s would not take it.", ks);
+            ret = PGPID_FAIL;
+        }
+    }
+    free(copy);
+    return ret;
+}

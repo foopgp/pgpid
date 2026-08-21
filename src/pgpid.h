@@ -23,6 +23,15 @@
  * search is an answer. bl-pgpid says 141 here and so do we. */
 #define PGPID_NOTHING 141
 
+/* Where a certificate goes when nobody says otherwise, first one hkp(s).
+ *
+ * Compiled in, as bl-pgpid and bl-pgpkey carry theirs: this tool answers
+ * about certificates and does not read a configuration file. Whoever needs
+ * to configure — a different server, a delayed publication, none at all —
+ * does it above, by passing --keyservers, and an empty list means nothing
+ * is sent. */
+#define PGPID_KEYSERVERS "hkps://keys.foopgp.org hkps://keys.openpgp.org"
+
 /* Set once from the global --homedir, NULL for the user's own. */
 extern const char *pgpid_homedir;
 
@@ -69,6 +78,11 @@ void pgpid_exec_engine(const char *const *argv);
  * PATTERN is the listing's own, so the lookup costs what the listing does. */
 long pgpid_revocation_time(const char *fpr, const char *pattern);
 
+/* Hand a certificate to each server in LIST, space or comma separated, and
+ * name the ones that refuse. An empty list sends nothing and says so by
+ * returning PGPID_OK: asking for nowhere is not a failure. */
+int pgpid_send_to_keyservers(const char *fpr, const char *list);
+
 /* Is this a fingerprint and nothing else? 40 or 64 hexadecimal characters.
  * What the destructive actions accept, so that a search pattern can never
  * become a target. */
@@ -81,5 +95,6 @@ int pgpid_action_sigs(int argc, char **argv);
 int pgpid_action_del(int argc, char **argv);
 int pgpid_action_property(int argc, char **argv);
 int pgpid_action_avatar(int argc, char **argv);
+int pgpid_action_push(int argc, char **argv);
 
 #endif /* PGPID_MIP_H */

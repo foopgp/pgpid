@@ -163,7 +163,7 @@ if command -v gm >/dev/null 2>&1 ; then
     is "refuses a search as a target" \
        "$("$BIN" avatar --workdir "$GNUPGHOME" --replace-to "$GNUPGHOME/new.jpg" alice >/dev/null 2>&1 ; echo $?)" "2"
     gm convert -size 400x300 'xc:#7f5f2a' jpeg:"$GNUPGHOME/wide.jpg"
-    "$BIN" avatar --workdir "$GNUPGHOME" --replace-to "$GNUPGHOME/wide.jpg" "$FPR" >/dev/null 2>&1
+    "$BIN" avatar --workdir "$GNUPGHOME" --keyservers '' --replace-to "$GNUPGHOME/wide.jpg" "$FPR" >/dev/null 2>&1
     is "replace-to succeeds"          "$?" "0"
     out=$("$BIN" avatar --workdir "$GNUPGHOME" "$FPR")
     # Resized the same way here, so the assertion is about the image that
@@ -174,19 +174,34 @@ if command -v gm >/dev/null 2>&1 ; then
     is "brought to 180x180"           "$(gm identify -format '%wx%h' "$out")" "180x180"
     is "the two others were taken back" \
        "$(gpg --with-colons --list-key "$FPR" 2>/dev/null | grep --count '^uat:r')" "2"
-    # Publishing is asked for or it does not happen. The address is a closed
-    # port, so the attempt is proven without a test key reaching a real
-    # keyserver.
+    # Publishing is what happens unless told otherwise, so every write above
+    # names nowhere. Here the address is a closed port: the attempt is proven
+    # without a throwaway key reaching a real keyserver.
     is "refuses --keyservers with no change to publish" \
        "$("$BIN" avatar --workdir "$GNUPGHOME" --keyservers 'hkp://127.0.0.1:1' "$FPR" >/dev/null 2>&1 ; echo $?)" "2"
     out=$("$BIN" avatar --workdir "$GNUPGHOME" --revoke --keyservers 'hkp://127.0.0.1:1' "$FPR" 2>&1)
     is "says which server refused"    "$(grep --count 'would not take it' <<<"$out")" "1"
-    "$BIN" avatar --workdir "$GNUPGHOME" --revoke "$FPR" >/dev/null 2>&1
+    "$BIN" avatar --workdir "$GNUPGHOME" --keyservers '' --revoke "$FPR" >/dev/null 2>&1
     is "--revoke takes the last one back" \
        "$("$BIN" avatar --workdir "$GNUPGHOME" "$FPR" >/dev/null 2>&1 ; echo $?)" "141"
 else
     printf '  skip  no graphicsmagick to make test images with\n'
 fi
+
+printf '\npush\n'
+# Nowhere is named everywhere below: a key made for a test has no business
+# reaching a real keyserver, and the one closed port proves the attempt.
+is "wants a certificate"          "$("$BIN" push >/dev/null 2>&1 ; echo $?)" "2"
+is "takes fingerprints, not searches" \
+   "$("$BIN" push alice >/dev/null 2>&1 ; echo $?)" "2"
+is "an empty list sends nothing, and says so" \
+   "$("$BIN" push --keyservers '' "$FPR" >/dev/null 2>&1 ; echo $?)" "0"
+out=$("$BIN" push --keyservers 'hkp://127.0.0.1:1' "$FPR" 2>&1)
+is "names the server that refused" "$(grep --count 'would not take it' <<<"$out")" "1"
+# One bad target among good ones stops the lot: half a broadcast cannot be
+# taken back any more than a whole one.
+out=$("$BIN" push --keyservers 'hkp://127.0.0.1:1' "$FPR" notafingerprint 2>&1)
+is "checks every target before sending any" "$(grep --count 'Sending' <<<"$out")" "0"
 
 printf '\ndel\n'
 "$BIN" del "not-a-fingerprint" >/dev/null 2>&1

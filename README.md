@@ -21,6 +21,7 @@ pgpid-mip ownertrust [--replace-to VALUE] [--info] FINGERPRINT
 pgpid-mip del [--secret] FINGERPRINT...
 pgpid-mip avatar [--extract-all] [--workdir DIR] [SEARCH]
 pgpid-mip avatar --replace-to IMAGE | --revoke [--keyservers SERVERS] FINGERPRINT
+pgpid-mip push [--keyservers SERVERS] FINGERPRINT...
 ```
 
 `list` prints one row per certificate: fingerprint, entity identifier, first
@@ -82,11 +83,25 @@ process costs nothing next to the card operation that follows — and it is the
 one step that parses a file we were handed, which is a reason to keep it away
 from the address space holding key material.
 
-Unlike `bl-pgpid avatar`, this does **not** send the certificate to a
-keyserver on its own: `--keyservers` names where it should go, and without
-it the change stays on the machine. Publishing an identity is a decision,
-and a photograph is not a small one — but it is one command away, and the
-servers that refuse are named.
+A changed certificate is sent to the keyservers afterwards, because a
+change nobody can fetch is a change nobody can check. The default list is
+compiled in — this tool reads no configuration file, as `bl-pgpid` and
+`bl-pgpkey` read none — and `--keyservers` overrides it, empty for nowhere.
+Configuring belongs above: whoever knows which servers matter, or that
+publication should wait, passes the list.
+
+`push` sends a certificate as it stands, changing nothing. It exists
+because publishing and changing are not the same act, and until now there
+was no way to do the one without the other — not here, not in `bl-pgpid`,
+not in `bl-pgpkey`. An application that wants to let somebody try three
+avatars before showing the world any of them writes with `--keyservers ""`
+and pushes when the dust settles.
+
+It takes fingerprints only, as `del` does. The reasons differ — one cannot
+be undone, the other cannot be recalled — but they come to the same rule:
+an act with no way back does not guess which certificate was meant. Every
+target is checked before any is sent, because half a broadcast cannot be
+taken back any more than a whole one.
 
 Conventions follow `bl-*`: an action then its options, human output by default
 and `key=value` under `--info`, long options everywhere, and `0` fine, `1`

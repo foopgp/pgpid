@@ -488,29 +488,6 @@ static size_t standing_uidnos(const char *fpr, unsigned *out, size_t max)
     return n;
 }
 
-/* Hand the changed certificate to each keyserver named, and say which ones
- * refused. Never called unless asked for: unlike the shell action, a change
- * here stays on the machine until someone says otherwise — publishing an
- * identity is a decision, and a photograph is not a small one. */
-static int send_to_keyservers(const char *fpr, const char *list)
-{
-    char *copy = strdup(list);
-    if (!copy)
-        return PGPID_FAIL;
-    int ret = PGPID_OK;
-    for (char *save = NULL, *ks = strtok_r(copy, " \t,", &save); ks;
-         ks = strtok_r(NULL, " \t,", &save)) {
-        const char *argv[] = { "--keyserver", ks, "--send-keys", fpr, NULL };
-        pgpid_error("Info: Sending %s to %s…", fpr, ks);
-        if (pgpid_run_engine(argv)) {
-            pgpid_error("Warning: %s would not take it.", ks);
-            ret = PGPID_FAIL;
-        }
-    }
-    free(copy);
-    return ret;
-}
-
 /* The conversation gpg holds while editing a certificate. Answers are keyed
  * by the prompt that asks for them rather than fed in order, so a gpg that
  * asks one question more — or one fewer — does not silently shift every
@@ -635,9 +612,11 @@ static int replace_avatar(gpgme_ctx_t ctx, gpgme_key_t key, const char *image,
         pgpid_error("Notice: A certificate is edited with its secret key - is the right one at hand?");
         return PGPID_FAIL;
     }
-    if (keyservers && *keyservers)
-        return send_to_keyservers(fpr, keyservers);
-    return PGPID_OK;
+    /* A changed certificate that stays home is a certificate nobody can
+     * check. Publishing is therefore what happens unless somebody says
+     * otherwise, and `--keyservers ""` is how they say it. */
+    return pgpid_send_to_keyservers(fpr, keyservers ? keyservers
+                                                    : PGPID_KEYSERVERS);
 }
 
 static void usage(FILE *out)
@@ -651,14 +630,15 @@ static void usage(FILE *out)
         "\n"
         "Writing needs the certificate\'s secret key, and takes a fingerprint\n"
         "only: revoking cannot be undone, so a search must never become a\n"
-        "target. A new image is brought to 180x180 first.\n"
+        "target. A new image is brought to 180x180 first, and the changed\n"
+        "certificate is sent to the default keyservers unless told otherwise.\n"
         "\n"
         "OPTIONS:\n"
         "  -E, --extract-all           Print every image, revoked ones included\n"
         "  -A, --replace-to IMAGE      Take back every image that stands and put IMAGE on\n"
         "  -R, --revoke                Just take back every image that stands\n"
         "  -K, --keyservers SERVERS    Send the changed certificate to these, space separated\n"
-        "                              Nothing is published unless this is given\n"
+        "                              Empty for none. Default: " PGPID_KEYSERVERS "\n"
         "  -W, --workdir DIRECTORY     Where the images are written\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n");
@@ -792,6 +772,7 @@ int pgpid_action_avatar(int argc, char **argv)
     }
     if (keyservers && !image && !revoke) {
         pgpid_error("Error: '--keyservers' publishes a change; there is none to make.");
+        pgpid_error("Notice: To publish a certificate as it stands, see '" PGPID_MIP_NAME " push'.");
         return PGPID_USAGE;
     }
     if (image && revoke) {
