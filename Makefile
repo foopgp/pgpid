@@ -42,7 +42,13 @@ LDLIBS  += $(GPGME_LIBS)
 PREFIX  ?= /usr/local
 BINDIR  ?= $(PREFIX)/bin
 
-.PHONY: all clean install check
+# Tauri picks its sidecars up by target triple, so the bundle looks for
+# build/pgpid-mip-<triple> and not build/pgpid-mip. The same binary is left
+# under both names rather than built twice: one to run from here during
+# development, one for the bundle to carry.
+TRIPLE := $(shell rustc -vV 2>/dev/null | sed -n 's/^host: //p')
+
+.PHONY: all clean install check sidecar
 
 all: $(BUILDDIR)/$(BIN)
 
@@ -59,6 +65,11 @@ $(BUILDDIR):
 # caller's own certificates is a test nobody else can run.
 check: all
 	./tests/run.sh ./$(BUILDDIR)/$(BIN)
+
+sidecar: all
+	@test -n "$(TRIPLE)" || { \
+		echo "$(BIN): no rustc to ask for the target triple" >&2 ; exit 1 ; }
+	cp -f $(BUILDDIR)/$(BIN) $(BUILDDIR)/$(BIN)-$(TRIPLE)
 
 install: all
 	install -D -m 0755 $(BUILDDIR)/$(BIN) $(DESTDIR)$(BINDIR)/$(BIN)
