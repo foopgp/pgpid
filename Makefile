@@ -9,6 +9,23 @@ BIN      = pgpid-mip
 SRCDIR   = src
 BUILDDIR = build
 
+# The version is the application's: this ships inside the foodjis package
+# (djibian-onboarding), which installs it as /usr/bin/pgpid-mip, and a tool
+# that travels inside a package has no version of its own to give. Read from
+# package.json rather than written twice, because two numbers meant to be
+# equal drift the day someone bumps one of them.
+#
+# mip is migration in progress. When bl-pgpid and bl-pgpkey have finished
+# moving here, this leaves for a repository and a package of its own under
+# the name pgpid — and on that day package.json is gone, the fallback below
+# becomes the real number, and this comment is the note explaining why it was
+# ever borrowed.
+VERSION := $(shell sed -n 's/^[[:space:]]*"version":[[:space:]]*"\([^"]*\)".*/\1/p' \
+                       ../package.json 2>/dev/null | head -n 1)
+ifeq ($(VERSION),)
+VERSION := 0.0.0-standalone
+endif
+
 SOURCES  = $(wildcard $(SRCDIR)/*.c)
 OBJECTS  = $(patsubst $(SRCDIR)/%.c,$(BUILDDIR)/%.o,$(SOURCES))
 
@@ -19,7 +36,7 @@ GPGME_LIBS   := $(shell pkg-config --libs   gpgme 2>/dev/null || gpgme-config --
 
 CFLAGS  ?= -O2 -g
 CFLAGS  += -std=c11 -Wall -Wextra -Wpedantic -Wshadow -Wstrict-prototypes \
-           -D_GNU_SOURCE $(GPGME_CFLAGS)
+           -D_GNU_SOURCE -DPGPID_MIP_VERSION='"$(VERSION)"' $(GPGME_CFLAGS)
 LDLIBS  += $(GPGME_LIBS)
 
 PREFIX  ?= /usr/local

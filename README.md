@@ -8,8 +8,17 @@ moves here is what the shell cannot do well: the calls it never had, and the
 ones that pay a process per certificate.
 
 foodjis will straddle the two for a while. As an action lands here, the
-application stops calling `bl-*` for it. When the last one has moved, the
-binary gets its real name.
+application stops calling `bl-*` for it. When the last one has moved,
+`bl-pgpid` and `bl-pgpkey` are obsolete, this leaves for a repository and a
+package of its own, and the binary gets its real name: `pgpid`.
+
+Until then it is not a project, it is a part. It ships inside the foodjis
+package — `djibian-onboarding`, which installs it as `/usr/bin/pgpid-mip` —
+and it wears that package's version, read from `package.json` by the Makefile
+rather than written down a second time. Two numbers meant to be equal drift
+the day somebody bumps one of them. Built outside the repository it falls
+back to `0.0.0-standalone`, which is the honest thing for a part with no
+whole around it.
 
 ## What it does today
 

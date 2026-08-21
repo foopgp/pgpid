@@ -13,7 +13,12 @@
 #include <stddef.h>
 
 #define PGPID_MIP_NAME    "pgpid-mip"
-#define PGPID_MIP_VERSION "0.1.0"
+
+/* Given by the Makefile, which reads it from the application this ships
+ * inside. Defined here only so the file compiles on its own. */
+#ifndef PGPID_MIP_VERSION
+#define PGPID_MIP_VERSION "0.0.0-standalone"
+#endif
 
 /* Return codes, as bl-* uses them: 0 fine, 1 failed, 2 the caller is wrong. */
 #define PGPID_OK      0
