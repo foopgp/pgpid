@@ -97,15 +97,14 @@ void pgpid_base64url(const unsigned char *in, size_t len, char *out);
 int pgpid_base64url_decode(const char *in, unsigned char *out, size_t max);
 
 /* A name, reduced to the letters an identifier is derived from: separators
- * become '<', diacritics go, what is left is A-Z uppercase.
+ * become '<', everything else goes through the reference transliteration —
+ * `iconv //TRANSLIT` under C.utf8 — and comes out uppercased.
  *
- * `dropped` collects the Latin letters that do not decompose — Ø, Æ, ß and
- * their kin — which this maps to a conventional ASCII form where the draft's
- * rule would simply lose them. Empty when there were none. Returns the
- * length written, or -1 on input that is not valid UTF-8.
+ * What survives as a non-letter stays: it has to break a run of letters, as
+ * it does in the shell, or two name components would silently become one.
+ * Returns the length written, or -1 on input that is not valid UTF-8.
  */
-int pgpid_transliterate(const char *in, char *out, size_t max,
-                        char *dropped, size_t dropped_max);
+int pgpid_transliterate(const char *in, char *out, size_t max);
 
 /* Where a country is, as the last fourteen characters of an identifier.
  * NULL for a code that is not one of the 231 — refused rather than guessed. */

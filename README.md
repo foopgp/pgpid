@@ -84,19 +84,26 @@ the surname, the first two given names, the date of birth, the country. Not
 a secret and not a key — a name two strangers can compute the same way,
 which is the whole point.
 
-Its transliteration is the **draft's rule** and not `iconv --to-code
-ascii//TRANSLIT`, which is what the shell uses. That matters more than it
-sounds: iconv's output depends on the locales installed on the machine.
-Measured on 2026-08-22, on a system carrying only C, C.utf8, fr_FR.utf8 and
-POSIX, the same civil status gives an identifier under `fr_FR.UTF-8` and an
-outright **error** under `LC_ALL=C`. An identifier that depends on where it
-was computed is not an identifier — and a Djibian installed with a minimal
-locale set cannot currently mint one for an accented name, which is to say
-for most of continental Europe.
+Its transliteration is the reference one, decided on 2026-08-22:
+`iconv --to-code ascii//TRANSLIT` under **`LC_ALL=C.utf8`**. The locale is
+the point — under one merely absent from the machine, the same civil status
+yields an outright error instead of an identifier, and an identifier that
+depends on where it was computed is not one. C.utf8 exists everywhere.
 
-The two agree on every case tried, accents and hyphens included, because
-this machine has the locale that makes the shell work. That agreement is a
-property of this machine, not of the two implementations.
+The table is **generated** from that reference by `tools/gen-translit.sh`,
+not written. Writing it by hand produced twenty wrong entries out of 192 and
+none of them looked wrong: the parity of upper/lower pairs flips halfway
+through Latin Extended-A, `ÿ` has its capital far from its neighbours, and
+the reference sometimes answers with something that is not a letter — `÷`
+becomes `/`. Checked codepoint by codepoint against the shell across
+Latin-1, Latin Extended-A, -B and Additional: 288 characters, no divergence.
+
+The name components are **matched, not composed**: the shell builds
+`SURNAME<<GIVEN<<` and takes the first match of its pattern, which is not
+the same as taking the last surname component and the first two given names.
+A character surviving as a non-letter breaks a run, so two components stay
+two; and one given name matches through the trailing pair, giving
+`NIETO<<ENRIQUE<<`.
 
 `gen_uid` prints the Unix account number an entity identifier gives — not
 an OpenPGP uid, a Unix one. Opening an account for somebody from their

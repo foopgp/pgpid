@@ -62,51 +62,64 @@ static bool date_is_sound(const char *d)
 }
 
 /**
- * The names as the format wants them: LAST<<FIRST<SECOND<
+ * The names, extracted as the shell extracts them.
  *
- * Only the last component of the surname, and at most two given names —
- * whatever else was given is dropped, deliberately, because a passport does
- * the same and the identifier must match one.
+ * Not composed from parts: matched. The shell builds `SURNAME<<GIVEN<<` and
+ * runs `grep -o "[A-Z]\{1,32\}<<[A-Z]\{1,32\}<[A-Z]\{0,32\}<"` over it,
+ * taking the first match — and that is not the same thing as taking the last
+ * surname component and the first two given names.
+ *
+ * It differs in two ways that matter. A character which survives
+ * transliteration as a non-letter — '÷' becomes '/' — breaks a run, so two
+ * components stay two rather than silently joining. And a person with one
+ * given name matches through the trailing pair, giving NIETO<<ENRIQUE<<
+ * with two brackets rather than one.
  */
-static bool compose(const char *surname, const char *given, char *out, size_t max)
+static bool run_of_capitals(const char *s, size_t *len, size_t max)
 {
-    char s[256], g[256], warned[64];
-    if (pgpid_transliterate(surname, s, sizeof s, warned, sizeof warned) < 0) {
-        pgpid_error("Error: The surname is not valid UTF-8.");
-        return false;
-    }
-    if (*warned)
-        pgpid_error("Warning: '%s' has no accent to remove; written as it is read here. Check it.", warned);
-    if (pgpid_transliterate(given, g, sizeof g, warned, sizeof warned) < 0) {
-        pgpid_error("Error: The given names are not valid UTF-8.");
-        return false;
-    }
-    if (*warned)
-        pgpid_error("Warning: '%s' has no accent to remove; written as it is read here. Check it.", warned);
-
-    const char *last = strrchr(s, '<');
-    last = last ? last + 1 : s;
-    if (!*last) {
-        pgpid_error("Error: No surname left once reduced to letters.");
-        return false;
-    }
-
-    char *first = g, *second = NULL;
-    char *cut = strchr(g, '<');
-    if (cut) {
-        *cut = '\0';
-        second = cut + 1;
-        char *third = strchr(second, '<');
-        if (third)
-            *third = '\0';   /* a third given name is not part of the name */
-    }
-    if (!*first) {
-        pgpid_error("Error: No given name left once reduced to letters.");
-        return false;
-    }
-
-    snprintf(out, max, "%s<<%s<%s<", last, first, second ? second : "");
+    size_t n = 0;
+    while (n < max && s[n] >= 'A' && s[n] <= 'Z')
+        n++;
+    *len = n;
     return true;
+}
+
+static bool extract_names(const char *composed, char *out, size_t max)
+{
+    for (const char *at = composed; *at; at++) {
+        const char *p = at;
+        size_t n;
+
+        run_of_capitals(p, &n, 32);
+        if (n < 1)
+            continue;
+        p += n;
+        if (p[0] != '<' || p[1] != '<')
+            continue;
+        p += 2;
+
+        run_of_capitals(p, &n, 32);
+        if (n < 1)
+            continue;
+        p += n;
+        if (*p != '<')
+            continue;
+        p += 1;
+
+        run_of_capitals(p, &n, 32);
+        p += n;
+        if (*p != '<')
+            continue;
+        p += 1;
+
+        size_t len = (size_t)(p - at);
+        if (len >= max)
+            return false;
+        memcpy(out, at, len);
+        out[len] = '\0';
+        return true;
+    }
+    return false;
 }
 
 int pgpid_action_gen_u4(int argc, char **argv)
@@ -153,9 +166,20 @@ int pgpid_action_gen_u4(int argc, char **argv)
         return PGPID_USAGE;
     }
 
-    char names[600];
-    if (!compose(surname, given, names, sizeof names))
+    /* Separators first, then transliteration, then the match — the shell's
+     * order, and it is the order that makes a hyphen a boundary. */
+    char s[300], g[300], composed[640], names[640];
+    if (pgpid_transliterate(surname, s, sizeof s) < 0
+        || pgpid_transliterate(given, g, sizeof g) < 0) {
+        pgpid_error("Error: The name is not valid UTF-8.");
         return PGPID_USAGE;
+    }
+    snprintf(composed, sizeof composed, "%s<<%s<<", s, g);
+    if (!extract_names(composed, names, sizeof names)) {
+        pgpid_error("Error: No surname and given names could be read from '%s'.", composed);
+        pgpid_error("Notice: Both need at least one letter once reduced to A-Z.");
+        return PGPID_USAGE;
+    }
 
     /* Hashed without a trailing newline — the shell uses printf here, where
      * gen_uid uses echo. The difference is invisible and decides everything. */
