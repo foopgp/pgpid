@@ -31,7 +31,7 @@ GPGME_LIBS   := $(shell pkg-config --libs   gpgme 2>/dev/null || gpgme-config --
 
 CFLAGS  ?= -O2 -g
 CFLAGS  += -std=c11 -Wall -Wextra -Wpedantic -Wshadow -Wstrict-prototypes \
-           -D_GNU_SOURCE -DPGPID_VERSION='"$(VERSION)"' $(GPGME_CFLAGS)
+           -D_GNU_SOURCE $(GPGME_CFLAGS) -I$(BUILDDIR)
 LDLIBS  += $(GPGME_LIBS)
 
 PREFIX  ?= /usr/local
@@ -54,8 +54,19 @@ man:
 $(BUILDDIR)/$(BIN): $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-$(BUILDDIR)/%.o: $(SRCDIR)/%.c $(SRCDIR)/pgpid.h | $(BUILDDIR)
+$(BUILDDIR)/%.o: $(SRCDIR)/%.c $(SRCDIR)/pgpid.h $(BUILDDIR)/version.h | $(BUILDDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
+
+# The version through a header rather than a -D, and rewritten only when it
+# actually changes. Passed on the command line it never triggers a rebuild:
+# the binary keeps saying which commit it was first built from, which is worse
+# than saying nothing at all in a bug report.
+.PHONY: $(BUILDDIR)/version.h.new
+$(BUILDDIR)/version.h.new: | $(BUILDDIR)
+	@printf '#define PGPID_VERSION "%s"\n' '$(VERSION)' > $@
+
+$(BUILDDIR)/version.h: $(BUILDDIR)/version.h.new
+	@cmp -s $@ $< 2>/dev/null || { cp $< $@ ; echo "  version $(VERSION)" ; }
 
 $(BUILDDIR):
 	mkdir -p $(BUILDDIR)

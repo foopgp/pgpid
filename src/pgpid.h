@@ -15,9 +15,12 @@
 
 #define PGPID_NAME    "pgpid"
 
-/* Given by the Makefile, from `git describe` — the same answer bl-pgpid and
- * bl-pgpkey give, so that a bug report names a commit rather than a release
- * nobody can place. Defined here only so the file compiles on its own. */
+/* From `git describe`, through a header the Makefile writes — the same answer
+ * bl-pgpid and bl-pgpkey give, so that a bug report names a commit rather than
+ * a release nobody can place. The fallback is for building without it. */
+#if __has_include("version.h")
+#include "version.h"
+#endif
 #ifndef PGPID_VERSION
 #define PGPID_VERSION "unknown"
 #endif
