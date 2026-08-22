@@ -135,10 +135,21 @@ there, since our certificates carry their name, note and telephone on uids
 shaped like vCard lines; what is built is the address from an ordinary
 `Name <addr>` uid, the key, and the photograph.
 
-Checked against the shell on 123 certificates: 118 cards identical once
-unfolded. The five that differ, and why:
+**Every card carries `FN`, or there is no card.** RFC 6350 makes it required
+and singular, so a file without one is not a vCard whatever else it holds.
+Ours carry it as a uid of its own; a certificate from anywhere else does
+not, and the shell emitted cards without it for **117 of the 122** it
+produced — files no reader should accept, several of them holding nothing
+but a key between BEGIN and END. Here the name comes from the certificate's
+own `FN:` uid when there is one, is read off the name a `Name <address>` uid
+carries when there is not, and when there is neither the answer is that
+there is no card to write.
 
-Line folding. The shell folds at 75 *characters*, so its lines can exceed
+That is the difference from the shell, and it is deliberate: on 123
+certificates, 108 cards are produced and every one is valid, 15 are refused.
+The five certificates that already carried `FN` — ours — come out unchanged.
+
+Line folding is the other difference. The shell folds at 75 *characters*, so its lines can exceed
 75 octets on anything accented; this folds at 75 octets and never inside a
 UTF-8 sequence, which is what RFC 6350 §3.2 asks for both of. The cards say
 the same thing — folding is removed on parse — but the fold points differ.

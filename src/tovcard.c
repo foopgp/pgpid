@@ -293,6 +293,52 @@ static size_t strip_attributes(const unsigned char *in, size_t len,
     return o;
 }
 
+/**
+ * The display name a uid carries, for certificates that have no FN uid.
+ *
+ * RFC 6350 makes FN required: a card without one is not a card. Ours carry
+ * it as a uid of its own, but a certificate from anywhere else does not —
+ * measured 2026-08-22, 117 of the 122 cards the shell produces have no FN
+ * at all, which means it has been emitting files no reader should accept.
+ *
+ * The name is there all the same: `Name <address>` has a name in front. A
+ * trailing parenthesis is dropped — an identifier in a comment is not what
+ * somebody is called — and what is left is escaped as a vCard value.
+ */
+static bool display_name(const char *uid, char *out, size_t max)
+{
+    const char *open = strrchr(uid, '<');
+    size_t n = open ? (size_t)(open - uid) : strlen(uid);
+    while (n && (uid[n - 1] == ' ' || uid[n - 1] == '\t'))
+        n--;
+    /* A comment at the end carries the entity identifier, not the name. */
+    if (n && uid[n - 1] == ')') {
+        const char *paren = memrchr(uid, '(', n);
+        if (paren && paren > uid) {
+            n = (size_t)(paren - uid);
+            while (n && (uid[n - 1] == ' ' || uid[n - 1] == '\t'))
+                n--;
+        }
+    }
+    if (!n)
+        return false;
+
+    size_t o = 0;
+    for (size_t i = 0; i < n && o + 2 < max; i++) {
+        /* RFC 6350 §3.4: these four have to be escaped in a value. */
+        if (uid[i] == '\\' || uid[i] == ',' || uid[i] == ';')
+            out[o++] = '\\';
+        if (uid[i] == '\n') {
+            out[o++] = '\\';
+            out[o++] = 'n';
+            continue;
+        }
+        out[o++] = uid[i];
+    }
+    out[o] = '\0';
+    return o > 0;
+}
+
 static void usage(FILE *out)
 {
     fprintf(out,
@@ -382,13 +428,60 @@ int pgpid_action_to_vcard(int argc, char **argv)
     /* Which uids count: the shell keeps validities [ounmfqws-] and drops
      * revoked, expired, invalid and disabled. gpgme cannot report expiry, so
      * the letters come from the engine and are read in step. */
+    char line[4096];
     char validity[256];
     size_t nvalid = pgpid_uid_validities(fpr, validity, sizeof validity);
 
+    /* FN is required and singular (RFC 6350 §6.2.1), so it is settled before
+     * a single byte is written: either a uid provides one, or one is read off
+     * the name a uid carries, or there is no card to write and saying so is
+     * the only honest answer. */
+    char fn[512] = "";
+    {
+        unsigned k = 0;
+        char nm[64];
+        for (gpgme_user_id_t u = key->uids; u; u = u->next, k++) {
+            char l = (k < nvalid) ? validity[k] : '-';
+            if (!u->uid || !strchr("ounmfqws-", l))
+                continue;
+            const char *v = vcard_property(u->uid, nm, sizeof nm);
+            if (v && !strcmp(nm, "FN")) {
+                fn[0] = '\0';   /* the certificate says it itself */
+                break;
+            }
+            if (!v && !*fn)
+                display_name(u->uid, fn, sizeof fn);
+        }
+        if (*fn) {
+            /* Nothing to derive it from either: no name, no card. */
+        } else {
+            bool has_own_fn = false;
+            k = 0;
+            for (gpgme_user_id_t u = key->uids; u; u = u->next, k++) {
+                char l = (k < nvalid) ? validity[k] : '-';
+                if (!u->uid || !strchr("ounmfqws-", l))
+                    continue;
+                if (vcard_property(u->uid, nm, sizeof nm) && !strcmp(nm, "FN"))
+                    has_own_fn = true;
+            }
+            if (!has_own_fn) {
+                pgpid_error("Error: This certificate carries no name.");
+                pgpid_error("Notice: A vCard needs FN; there is no card to write.");
+                gpgme_key_unref(key);
+                gpgme_release(ctx);
+                return PGPID_NOTHING;
+            }
+        }
+    }
+
     printf("BEGIN:VCARD\r\nVERSION:4.0\r\n");
+    if (*fn) {
+        snprintf(line, sizeof line, "FN:%s", fn);
+        fold(line);
+    }
 
     unsigned pref = 0, at = 0;
-    char line[4096], name[64], value[512];
+    char name[64], value[512];
     for (gpgme_user_id_t u = key->uids; u; u = u->next, at++) {
         char letter = (at < nvalid) ? validity[at] : '-';
         if (!u->uid || !strchr("ounmfqws-", letter))

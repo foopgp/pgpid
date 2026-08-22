@@ -268,6 +268,23 @@ is "and the photograph"            "$(grep --count '^PHOTO:data:image/jpeg;base6
 # a UTF-8 character — a reader given half a character shows a broken glyph.
 is "no line beyond 75 octets"      "$(awk '{ sub(/\r$/,"") ; if (length($0) > 75) n++ } END { print n+0 }' <<<"$card")" "0"
 is "--raw prints the uids instead" "$(grep --count 'BEGIN:VCARD' <<<"$("$BIN" to_vcard --raw "$FPR")")" "0"
+# FN is required and singular (RFC 6350 §6.2.1). Ours carry it as a uid;
+# certificates from elsewhere do not, and the shell emitted cards without it
+# for 117 of the 122 it produced — files no reader should accept. So: the
+# certificate's own FN, or one read off the name a uid carries, or no card.
+is "always carries FN"             "$(grep --count '^FN[;:]' <<<"$card")" "1"
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-generate-key 'Grace Hopper <grace@example.invalid>' ed25519 cert never 2>/dev/null
+GFPR=$(gpg --with-colons --list-keys grace@example.invalid 2>/dev/null | awk --field-separator=: '$1=="fpr"{print $10; exit}')
+is "derives FN from the uid name"  "$("$BIN" to_vcard "$GFPR" | grep --only-matching '^FN:.*' | tr -d '\r')" "FN:Grace Hopper"
+is "and still carries the address" "$("$BIN" to_vcard "$GFPR" | grep --count 'EMAIL;PREF=1:grace@example.invalid')" "1"
+is "a bare 'Nobody' is a name"     "$("$BIN" to_vcard "$NFPR" | grep --only-matching '^FN:.*' | tr -d '\r')" "FN:Nobody"
+# A uid holding nothing but an address has no name to show, and a card that
+# would say who this is cannot be written.
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback --allow-freeform-uid \
+    --quick-generate-key '<anon@example.invalid>' ed25519 cert never 2>/dev/null
+AFPR=$(gpg --with-colons --list-keys anon@example.invalid 2>/dev/null | awk --field-separator=: '$1=="fpr"{print $10; exit}')
+is "no name at all means no card"  "$("$BIN" to_vcard "$AFPR" >/dev/null 2>&1 ; echo $?)" "141"
 is "--output writes a file"        "$("$BIN" to_vcard --output "$GNUPGHOME/c.vcf" "$FPR" >/dev/null 2>&1 ; grep --count 'BEGIN:VCARD' "$GNUPGHOME/c.vcf")" "1"
 # The card and the avatar must show the same face: the photograph is chosen
 # by the rule `avatar` uses, not by packet order.
