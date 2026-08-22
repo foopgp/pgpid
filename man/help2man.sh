@@ -30,13 +30,17 @@ done
 
 cd "$(dirname "$0")"
 
-PATH="../bin:$PATH"
+PATH="../bin:../_build:$PATH"
 
-for bl in $(find ../bin/ -maxdepth 1 -type f) ; do
+# The compiled tool lives in _build, not bin, and is the reason this script
+# exists at all now. It is listed first so that its page leads.
+for bl in ../_build/pgpid $(find ../bin/ -maxdepth 1 -type f) ; do
+	[[ -x "$bl" ]] || { echo "$bl: not built, skipped" >&2 ; continue ; }
 	binname="$(basename "$bl")"
 	cat <<EOF > "${binname}.1.md.draft"
 <!--
 © 2025 Jean-Jacques Brucker <jjbrucker@foopgp.org>
+Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
 
 SPDX-License-Identifier: GPL-3.0-only
 -->
@@ -49,8 +53,18 @@ footer: pgpid $versionstring
 ---
 
 EOF
+	# Without --name, help2man writes "manual page for pgpid 0.1.0" into NAME,
+	# which is what whatis and apropos then show. One line each, here, so a
+	# regeneration keeps them.
+	case "$binname" in
+		pgpid)         oneline="OpenPGP certificates that say whose they are" ;;
+		pgpid-gen)     oneline="generate an OpenPGP certificate and its secrets on QR codes" ;;
+		pgpid-qrscan)  oneline="move OpenPGP secrets from QR codes onto a smartcard" ;;
+		*)             oneline="" ;;
+	esac
 	echo "help2man --no-info $binname --locale C.UTF-8 | pandoc -f man -t markdown >> ${binname}.1.md.draft" >&2
-	help2man --no-info "$binname" --locale "C.UTF-8" --version-string "$versionstring" | pandoc -f man -t markdown >> "${binname}.1.md.draft"
+	help2man --no-info "$binname" --locale "C.UTF-8" --version-string "$versionstring" \
+		${oneline:+--name="$oneline"} | pandoc -f man -t markdown >> "${binname}.1.md.draft"
 
 	cat <<EOF >> "${binname}.1.md.draft"
 
@@ -60,9 +74,12 @@ Returns zero on normal operation, non-zero on errors.
 
 # SEE ALSO
 
-[**bash-libs**](//codeberg.org/foopgp/bash-libs/src/branch/main/man/bash-libs.7.md)(7),
-[**bl-pgpid**](//codeberg.org/foopgp/bash-libs/src/branch/main/man/bl-pgpid.1.md)(1),
-[**bl-qrkey**](//codeberg.org/foopgp/bash-libs/src/branch/main/man/bl-qrkey.1.md)(1).
+**pgpid**(1), **pgpid-gen**(1), **pgpid-qrscan**(1),
+[**bash-libs**](//codeberg.org/foopgp/bash-libs/src/branch/main/man/bash-libs.7.md)(7).
+
+Each action takes a **--help** of its own, which says more than this page:
+
+    pgpid certify --help
 
 # AUTHORS
 
