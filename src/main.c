@@ -150,6 +150,8 @@ int main(int argc, char **argv)
         return pgpid_action_print_secret(sub_argc, sub_argv);
     if (!strcmp(action, "scan"))
         return pgpid_action_scan(sub_argc, sub_argv);
+    if (!strcmp(action, "print_card"))
+        return pgpid_action_print_card(sub_argc, sub_argv);
 
     pgpid_error("Error: Unknown action '%s'.", action);
     pgpid_error("Try '" PGPID_MIP_NAME " --help' for more information.");

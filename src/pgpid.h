@@ -269,6 +269,7 @@ int pgpid_action_gen_key(int argc, char **argv);
 int pgpid_action_change_passphrase(int argc, char **argv);
 int pgpid_action_print_secret(int argc, char **argv);
 int pgpid_action_scan(int argc, char **argv);
+int pgpid_action_print_card(int argc, char **argv);
 
 /* The short listing — one line per address — shared by `list --short` and
  * `get`, so that the two cannot drift apart. */
