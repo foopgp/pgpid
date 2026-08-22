@@ -26,6 +26,7 @@ whole around it.
 
 ```
 pgpid-mip list [--short] [--certs] [--info] [SEARCH]
+pgpid-mip get [--no-fetch] [--fingerprint|--email] NAME|EMAIL|KEYID|'*'
 pgpid-mip property [--info] NAME [SEARCH]
 pgpid-mip sigs [--all-uids] [--info] FINGERPRINT
 pgpid-mip ownertrust [--replace-to VALUE] [--info] FINGERPRINT
@@ -56,6 +57,25 @@ all. And the identifier is read from every uid whatever its validity, where
 the long form reads only from those that still stand: replacing one's
 identifier must not make the certificate read as broken ever after. The
 shell's own helper takes that same distinction as a parameter.
+
+`get` prints what `list --short` prints, and differs in what it is *for*.
+`list` shows what is at hand, so no pattern means the whole keyring; `get`
+looks something up, so it insists on being told what — a search with no term
+is almost always a caller that lost its variable, and `'*'` is there for the
+rare occasion when everything really is meant. It also refreshes before
+answering, unless told not to: a certificate is a claim other people update,
+and answering from a stale copy is how one certifies a key whose owner
+revoked it last week.
+
+Refreshing goes through the engine — an address by Web Key Directory then
+keyservers, a fingerprint or key identifier by `--recv-keys`. **A free-text
+name is not searched**, and says so rather than failing quietly: the shell
+searches keyservers by name over HTTP, and carrying an HTTP client here for a
+case that is both rare and ambiguous — a name matches whoever else chose it —
+is not worth it yet.
+
+There is no `cert_check` and there will not be: `list` answers what it
+answered, for less.
 
 `property` prints the values of one vCard property a certificate carries on
 uids of its own — `name`, `note`, `phone`, `address`, `url`, `lang`, `geo`.

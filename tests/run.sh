@@ -206,6 +206,22 @@ is "no identifier prints a dash"   "$("$BIN" list --short "$NFPR" | awk '{print 
 is "a uid without an address is not one" \
    "$("$BIN" list --short "$FPR" | grep --count 'FN:')" "0"
 
+printf '\nget\n'
+# get and list --short print the same thing; what differs is that get insists
+# on being told what to look for, and refreshes before answering.
+is "insists on a search term"      "$("$BIN" get >/dev/null 2>&1 ; echo $?)" "2"
+is "'*' means the whole keyring"   "$("$BIN" get --no-fetch '*' | grep --count .)" "$("$BIN" list --short | grep --count .)"
+is "same answer as list --short"   "$("$BIN" get --no-fetch "$FPR")" "$("$BIN" list --short "$FPR")"
+is "--fingerprint keeps one column" \
+   "$("$BIN" get --no-fetch --fingerprint "$FPR")" "$FPR"
+is "--email keeps the other"       "$("$BIN" get --no-fetch --email "$FPR")" "ada@example.invalid"
+is "says 141 for what it has not"  "$("$BIN" get --no-fetch nobody@example.test >/dev/null 2>&1 ; echo $?)" "141"
+is "--errexit-g=1 accepts one"     "$("$BIN" get --no-fetch --errexit-g=1 "$FPR" >/dev/null 2>&1 ; echo $?)" "0"
+is "--errexit-g=1 refuses two"     "$("$BIN" get --no-fetch --errexit-g=1 '*' >/dev/null 2>&1 ; echo $?)" "1"
+# Nowhere is named, so no test key reaches a real keyserver.
+is "an empty keyserver list asks nobody" \
+   "$("$BIN" get --keyservers '' "$FPR" >/dev/null 2>&1 ; echo $?)" "0"
+
 printf '\npush\n'
 # Nowhere is named everywhere below: a key made for a test has no business
 # reaching a real keyserver, and the one closed port proves the attempt.

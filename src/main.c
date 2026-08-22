@@ -30,6 +30,7 @@ static void usage(FILE *out)
         "\n"
         "ACTIONS:\n"
         "  list                        List the certificates of the keyring\n"
+        "  get                         Look a certificate up, refreshing it first\n"
         "  property                    Print a vCard property of one certificate\n"
         "  sigs                        List who has certified one certificate\n"
         "  ownertrust                  Print or set how far one is trusted to certify\n"
@@ -118,6 +119,8 @@ int main(int argc, char **argv)
         return pgpid_action_avatar(sub_argc, sub_argv);
     if (!strcmp(action, "push"))
         return pgpid_action_push(sub_argc, sub_argv);
+    if (!strcmp(action, "get"))
+        return pgpid_action_get(sub_argc, sub_argv);
 
     pgpid_error("Error: Unknown action '%s'.", action);
     pgpid_error("Try '" PGPID_MIP_NAME " --help' for more information.");

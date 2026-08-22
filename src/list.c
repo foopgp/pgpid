@@ -151,18 +151,29 @@ static void put_date(char *out, size_t n, long t, bool machine)
 }
 
 /* --short collects before it prints, because the shell it must match pipes
- * its lines through `sort -u`: without the same sort, any pattern touching
- * more than one certificate comes out in a different order, and without the
- * same dedup a certificate carrying an address twice prints it twice. */
+ * its lines through `sort -u`.
+ *
+ * What is sorted and deduplicated is the pair "fingerprint address", *before*
+ * any column is dropped — so `--email` comes out in fingerprint order rather
+ * than alphabetical order, and the same address on two certificates appears
+ * twice. Sorting what is displayed instead would be right-looking and wrong.
+ */
+struct short_row {
+    char *key;      /* "fingerprint address", what the shell sorts on */
+    char *fpr;
+    char *email;
+    char *eid;      /* borrowed from the caller for the length of the walk */
+};
+
 struct short_lines {
-    char **line;
+    struct short_row *row;
     size_t n, cap;
 };
 
 static void short_add(struct short_lines *s, const char *fpr,
                       const char *email, const char *eid)
 {
-    char buf[640], left[512], lowered[320];
+    char lowered[320], key[512];
     /* gpg lowercases the address it reports, and the shell prints what gpg
      * reports. Strictly an address's local part is case-sensitive, but the
      * question here is what the certificate can be found by, and that is the
@@ -171,24 +182,22 @@ static void short_add(struct short_lines *s, const char *fpr,
     for (; email[i] && i + 1 < sizeof lowered; i++)
         lowered[i] = (char)tolower((unsigned char)email[i]);
     lowered[i] = '\0';
-    snprintf(left, sizeof left, "%s %s", fpr, lowered);
-    /* The identifier follows a field of eighty columns, preceded by one
-     * space — a certificate without one leaves the field padded and nothing
-     * after it, which is what the shell writes. */
-    if (eid)
-        snprintf(buf, sizeof buf, "%-80s %s", left, eid);
-    else
-        snprintf(buf, sizeof buf, "%-80s", left);
+    snprintf(key, sizeof key, "%s %s", fpr, lowered);
+
     if (s->n == s->cap) {
         size_t cap = s->cap ? s->cap * 2 : 64;
-        char **grown = realloc(s->line, cap * sizeof *grown);
+        struct short_row *grown = realloc(s->row, cap * sizeof *grown);
         if (!grown)
             return;
-        s->line = grown;
+        s->row = grown;
         s->cap = cap;
     }
-    s->line[s->n] = strdup(buf);
-    if (s->line[s->n])
+    struct short_row *r = &s->row[s->n];
+    r->key = strdup(key);
+    r->fpr = strdup(fpr);
+    r->email = strdup(lowered);
+    r->eid = eid ? strdup(eid) : NULL;
+    if (r->key && r->fpr && r->email)
         s->n++;
 }
 
@@ -196,25 +205,117 @@ static void short_add(struct short_lines *s, const char *fpr,
  * caller's locale. Byte order and French collation disagree on case and on
  * punctuation, and the disagreement is visible on any keyring holding more
  * than a handful of certificates. */
-static int by_text(const void *a, const void *b)
+static int by_key(const void *a, const void *b)
 {
-    return strcoll(*(char *const *)a, *(char *const *)b);
+    return strcoll(((const struct short_row *)a)->key,
+                   ((const struct short_row *)b)->key);
 }
 
-static void short_flush(struct short_lines *s)
+static void short_flush(struct short_lines *s, bool only_fpr, bool only_mbox)
 {
-    qsort(s->line, s->n, sizeof *s->line, by_text);
-    /* Printed in one pass and freed in another: comparing against the
-     * previous line means reading it, and a line freed at the end of its own
-     * iteration is not there to be read on the next. */
-    for (size_t i = 0; i < s->n; i++)
-        if (i == 0 || strcmp(s->line[i], s->line[i - 1]))
-            puts(s->line[i]);
-    for (size_t i = 0; i < s->n; i++)
-        free(s->line[i]);
-    free(s->line);
-    s->line = NULL;
+    qsort(s->row, s->n, sizeof *s->row, by_key);
+    const char *previous = NULL;
+    for (size_t i = 0; i < s->n; i++) {
+        const struct short_row *r = &s->row[i];
+        /* Deduplicated on the pair, as the shell does. Dropping a column
+         * afterwards may therefore leave what looks like a repeat — and it
+         * is one, on purpose: two certificates can carry one address. */
+        bool same = previous && !strcmp(r->key, previous);
+        previous = r->key;
+        if (same && !only_fpr)
+            continue;
+        if (only_fpr) {
+            /* Fingerprints repeat once per address, so this column alone is
+             * deduplicated in its own right — which is what the shell does
+             * with a second `sort -u`. */
+            if (i > 0 && !strcmp(r->fpr, s->row[i - 1].fpr))
+                continue;
+            puts(r->fpr);
+        } else if (only_mbox) {
+            puts(r->email);
+        } else {
+            char left[512];
+            snprintf(left, sizeof left, "%s %s", r->fpr, r->email);
+            if (r->eid)
+                printf("%-80s %s\n", left, r->eid);
+            else
+                printf("%-80s\n", left);
+        }
+    }
+    for (size_t i = 0; i < s->n; i++) {
+        free(s->row[i].key);
+        free(s->row[i].fpr);
+        free(s->row[i].email);
+        free(s->row[i].eid);
+    }
+    free(s->row);
+    s->row = NULL;
     s->n = s->cap = 0;
+}
+
+/* The short listing, shared with `get`.
+ *
+ * Its own walk of the keyring rather than a branch inside the long one: the
+ * two answer different questions — one address per line against one
+ * certificate per line — and the only thing they have in common is where the
+ * data comes from. Sharing the loop would mean a function that is half
+ * disabled whichever way it is called.
+ */
+int pgpid_list_short(const char *pattern, bool only_fpr, bool only_mbox,
+                     size_t *certificates)
+{
+    gpgme_ctx_t ctx;
+    gpgme_error_t err = pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL);
+    if (err) {
+        pgpid_gpgme_error("gpgme_new", err);
+        return PGPID_FAIL;
+    }
+    err = gpgme_op_keylist_start(ctx, pattern, 0);
+    if (err) {
+        gpgme_release(ctx);
+        pgpid_gpgme_error("gpgme_op_keylist_start", err);
+        return PGPID_FAIL;
+    }
+
+    struct short_lines lines = { NULL, 0, 0 };
+    size_t rows = 0;
+    for (;;) {
+        gpgme_key_t key = NULL;
+        err = gpgme_op_keylist_next(ctx, &key);
+        if (gpg_err_code(err) == GPG_ERR_EOF)
+            break;
+        if (err) {
+            pgpid_gpgme_error("reading a certificate", err);
+            gpgme_op_keylist_end(ctx);
+            gpgme_release(ctx);
+            return PGPID_FAIL;
+        }
+        const char *fpr = key->subkeys ? key->subkeys->fpr : NULL;
+        if (!fpr) {
+            gpgme_key_unref(key);
+            continue;
+        }
+        unsigned neids = 0;
+        char *eid = eid_of_key(key, &neids, false);
+        if (neids > 1)
+            pgpid_error("Warning: Certificate %s carries more than one identifier.", fpr);
+        for (gpgme_user_id_t u = key->uids; u; u = u->next) {
+            if (!u->email || !*u->email || !strchr(u->email, '@'))
+                continue;
+            if ((u->revoked || u->invalid) && !key->revoked)
+                continue;
+            short_add(&lines, fpr, u->email, neids == 1 ? eid : "-");
+        }
+        free(eid);
+        gpgme_key_unref(key);
+        rows++;
+    }
+    gpgme_op_keylist_end(ctx);
+    gpgme_release(ctx);
+    short_flush(&lines, only_fpr, only_mbox);
+    if (certificates)
+        *certificates = rows;
+    return rows ? PGPID_OK : PGPID_NOTHING;
 }
 
 static void usage(FILE *out)
@@ -253,7 +354,6 @@ int pgpid_action_list(int argc, char **argv)
 {
     bool check_eid = true, count_certs = false, hide_trust = false, machine = false;
     bool short_form = false;
-    struct short_lines lines = { NULL, 0, 0 };
     const char *pattern = NULL;
 
     for (int i = 1; i < argc; i++) {
@@ -285,6 +385,9 @@ int pgpid_action_list(int argc, char **argv)
         }
     }
 
+    if (short_form)
+        return pgpid_list_short(pattern, false, false, NULL);
+
     gpgme_keylist_mode_t mode = GPGME_KEYLIST_MODE_LOCAL | GPGME_KEYLIST_MODE_VALIDATE;
     /* Signatures are what a certifier count and a revocation date are made
      * of, and they are what makes a listing slow — 6 s against 140 ms on a
@@ -311,8 +414,7 @@ int pgpid_action_list(int argc, char **argv)
         "validity", "credibility",
         "creation_date", "expiration_date", "revocation_date",
     };
-    if (!short_form)
-        pgpid_table_start(COLUMNS, sizeof COLUMNS / sizeof *COLUMNS);
+    pgpid_table_start(COLUMNS, sizeof COLUMNS / sizeof *COLUMNS);
 
     unsigned rows = 0;
     for (;;) {
@@ -333,39 +435,13 @@ int pgpid_action_list(int argc, char **argv)
         }
 
         unsigned neids = 0;
-        char *eid = eid_of_key(key, &neids, !short_form);
-        /* Neither none nor several is an identifier: both print as a dash,
-         * and several is worth saying out loud because it means the
-         * certificate asserts two things about whose it is. */
-        if (short_form && neids > 1)
-            pgpid_error("Warning: Certificate %s carries more than one identifier.", fpr);
+        char *eid = eid_of_key(key, &neids, true);
 
         /* --short answers what `bl-pgpid get --no-fetch` answers: one line
          * per address rather than per certificate, fingerprint and address
          * inside eighty columns, then the identifier. The shell pads exactly
          * so, and callers have been reading those columns for a year — the
          * point of this option is to be indistinguishable, not similar. */
-        if (short_form) {
-            for (gpgme_user_id_t u = key->uids; u; u = u->next) {
-                /* A mailbox, not any string between angle brackets: gpg
-                 * reports none for a uid like `Frre U4 <a.com>`, and neither
-                 * do we. */
-                if (!u->email || !*u->email || !strchr(u->email, '@'))
-                    continue;
-                /* A revoked address is not an address any more — except on a
-                 * certificate that is itself revoked, where hiding them would
-                 * leave it with no identity at all. Both behaviours were read
-                 * off gpg rather than assumed. */
-                if ((u->revoked || u->invalid) && !key->revoked)
-                    continue;
-                short_add(&lines, fpr, u->email, neids == 1 ? eid : "-");
-            }
-            free(eid);
-            gpgme_key_unref(key);
-            rows++;
-            continue;
-        }
-
         const char *mbox = first_mbox(key);
         gpgme_validity_t uidv = best_uid_validity(key);
 
@@ -414,10 +490,7 @@ int pgpid_action_list(int argc, char **argv)
         gpgme_key_unref(key);
     }
 
-    if (short_form)
-        short_flush(&lines);
-    else
-        pgpid_table_end();
+    pgpid_table_end();
     gpgme_release(ctx);
     return rows ? PGPID_OK : PGPID_NOTHING;
 }

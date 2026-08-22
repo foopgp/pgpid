@@ -101,5 +101,11 @@ int pgpid_action_del(int argc, char **argv);
 int pgpid_action_property(int argc, char **argv);
 int pgpid_action_avatar(int argc, char **argv);
 int pgpid_action_push(int argc, char **argv);
+int pgpid_action_get(int argc, char **argv);
+
+/* The short listing — one line per address — shared by `list --short` and
+ * `get`, so that the two cannot drift apart. */
+int pgpid_list_short(const char *pattern, bool only_fpr, bool only_mbox,
+                     size_t *certificates);
 
 #endif /* PGPID_MIP_H */
