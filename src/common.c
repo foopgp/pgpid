@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -493,4 +494,72 @@ size_t pgpid_list_uids(const char *user, bool secret,
         n++;
     }
     return n;
+}
+
+/**
+ * Run the engine with something to say to it.
+ *
+ * `--quick-*` covers most of what gpg can be told; the preferred keyserver is
+ * one of the things it does not, and that one is reached by holding an
+ * edit-key conversation. The answers are written to the engine's standard
+ * input, in order, and the pipe is closed so gpg knows the conversation ended
+ * rather than waiting for a line that never comes.
+ */
+int pgpid_run_engine_input(const char *const *argv, const char *text)
+{
+    size_t n = 0;
+    while (argv[n])
+        n++;
+
+    const char **full = calloc(n + 4, sizeof *full);
+    if (!full)
+        return -1;
+    size_t at = 0;
+    full[at++] = engine_path();
+    if (pgpid_homedir) {
+        full[at++] = "--homedir";
+        full[at++] = pgpid_homedir;
+    }
+    for (size_t i = 0; i < n; i++)
+        full[at++] = argv[i];
+    full[at] = NULL;
+
+    int fds[2];
+    if (pipe(fds)) {
+        free(full);
+        return -1;
+    }
+    pid_t pid = fork();
+    if (pid < 0) {
+        close(fds[0]);
+        close(fds[1]);
+        free(full);
+        return -1;
+    }
+    if (pid == 0) {
+        close(fds[1]);
+        dup2(fds[0], STDIN_FILENO);
+        close(fds[0]);
+        execv(full[0], (char *const *)full);
+        _exit(127);
+    }
+    close(fds[0]);
+    free(full);
+
+    /* A closed pipe means gpg gave up before reading everything, which its
+     * own exit status will say about far better than a signal would. */
+    signal(SIGPIPE, SIG_IGN);
+    size_t len = strlen(text), written = 0;
+    while (written < len) {
+        ssize_t got = write(fds[1], text + written, len - written);
+        if (got <= 0)
+            break;
+        written += (size_t)got;
+    }
+    close(fds[1]);
+
+    int status = 0;
+    if (waitpid(pid, &status, 0) < 0)
+        return -1;
+    return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
 }

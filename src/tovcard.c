@@ -166,8 +166,8 @@ static bool key_url(const char *keyserver, const char *fpr, char *out, size_t ma
  * the last. A certificate saying two different things is worth a word,
  * because it means somebody set it twice and one of the two is stale.
  */
-static char *preferred_keyserver(const unsigned char *buf, size_t len,
-                                 const char *fpr)
+char *pgpid_preferred_keyserver(const unsigned char *buf, size_t len,
+                                const char *fpr)
 {
     static char chosen[256];
     char from_primary[256] = "", from_last[256] = "", seen_other[256] = "";
@@ -531,7 +531,7 @@ int pgpid_action_to_vcard(int argc, char **argv)
     }
 
     char url[512];
-    const char *ks = raw_key ? preferred_keyserver(raw_key, raw_len, fpr) : NULL;
+    const char *ks = raw_key ? pgpid_preferred_keyserver(raw_key, raw_len, fpr) : NULL;
     if (key_url(ks ? ks : PGPID_FIRST_KEYSERVER, fpr, url, sizeof url)) {
         snprintf(line, sizeof line, "KEY;MEDIATYPE=application/pgp-keys:%s", url);
         fold(line);

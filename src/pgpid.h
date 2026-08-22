@@ -84,6 +84,10 @@ bool pgpid_eid_body_is_sound(const char *at);
 /* Run the engine with these arguments, wait, and give back its exit status.
  * No shell: the arguments go to execv as they are. -1 if it could not run. */
 int pgpid_run_engine(const char *const *argv);
+
+/* The same, with TEXT handed to the engine on its standard input — for the
+ * edit-key conversation, which has no --quick- equivalent. */
+int pgpid_run_engine_input(const char *const *argv, const char *text);
 /* Same, but replacing this process — the child side of a pipe. */
 void pgpid_exec_engine(const char *const *argv);
 /* When that certificate was revoked, 0 when it was not or is not known.
@@ -215,6 +219,12 @@ bool pgpid_fix_primary(const char *user);
 
 /* Mint the identity uid of a certificate made before the shape existed. */
 bool pgpid_upgrade_uids(const char *user);
+
+/* The keyserver a certificate names as its own — subpacket 24, taken from
+ * the uid flagged primary, failing that the last one that still stands.
+ * Points at static storage. */
+char *pgpid_preferred_keyserver(const unsigned char *buf, size_t len,
+                                const char *fpr);
 
 /* The validity letter gpg gives each uid, in listing order — because gpgme
  * cannot say "expired": such a uid arrives as unknown, indistinguishable
