@@ -1,5 +1,7 @@
 *_samples/
 man/*.1.gz
+_build/
+po/*.mo
 
 debian/*.debhelper
 debian/debhelper-build-stamp
@@ -8,4 +10,3 @@ debian/pgpid.substvars
 debian/pgpid/
 debian/files
 .pc
-
