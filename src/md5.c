@@ -170,3 +170,24 @@ int pgpid_base64url_decode(const char *in, unsigned char *out, size_t max)
     }
     return (int)n;
 }
+
+/* Standard base64, the one a vCard carries — '+' and '/' where an identifier
+ * would use '-' and '_', and the padding kept, because a data: URI is read by
+ * things that expect it. */
+static const char B64[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+void pgpid_base64(const unsigned char *in, size_t len, char *out)
+{
+    size_t o = 0;
+    for (size_t i = 0; i < len; i += 3) {
+        unsigned v = (unsigned)in[i] << 16;
+        if (i + 1 < len) v |= (unsigned)in[i + 1] << 8;
+        if (i + 2 < len) v |= in[i + 2];
+        out[o++] = B64[(v >> 18) & 63];
+        out[o++] = B64[(v >> 12) & 63];
+        out[o++] = (i + 1 < len) ? B64[(v >> 6) & 63] : '=';
+        out[o++] = (i + 2 < len) ? B64[v & 63] : '=';
+    }
+    out[o] = '\0';
+}

@@ -130,6 +130,8 @@ int main(int argc, char **argv)
         return pgpid_action_gen_u4(sub_argc, sub_argv);
     if (!strcmp(action, "mrz_to_u4"))
         return pgpid_action_mrz_to_u4(sub_argc, sub_argv);
+    if (!strcmp(action, "to_vcard"))
+        return pgpid_action_to_vcard(sub_argc, sub_argv);
 
     pgpid_error("Error: Unknown action '%s'.", action);
     pgpid_error("Try '" PGPID_MIP_NAME " --help' for more information.");

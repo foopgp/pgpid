@@ -37,6 +37,8 @@
  * does it above, by passing --keyservers, and an empty list means nothing
  * is sent. */
 #define PGPID_KEYSERVERS "hkps://keys.foopgp.org hkps://keys.openpgp.org"
+/* The first of them, which is the one a card points at. */
+#define PGPID_FIRST_KEYSERVER "hkps://keys.foopgp.org"
 
 /* Set once from the global --homedir, NULL for the user's own. */
 extern const char *pgpid_homedir;
@@ -94,6 +96,7 @@ int pgpid_send_to_keyservers(const char *fpr, const char *list);
  * "don't write your own crypto" mistake. */
 void pgpid_md5(const void *data, size_t len, unsigned char out[16]);
 void pgpid_base64url(const unsigned char *in, size_t len, char *out);
+void pgpid_base64(const unsigned char *in, size_t len, char *out);
 int pgpid_base64url_decode(const char *in, unsigned char *out, size_t max);
 
 /* A name, reduced to the letters an identifier is derived from: separators
@@ -105,6 +108,40 @@ int pgpid_base64url_decode(const char *in, unsigned char *out, size_t max);
  * Returns the length written, or -1 on input that is not valid UTF-8.
  */
 int pgpid_transliterate(const char *in, char *out, size_t max);
+
+/* Packet tags, RFC 9580 §5.  */
+#define TAG_SIGNATURE      2
+#define TAG_USER_ID       13
+#define TAG_USER_ATTR     17
+/* Signature types, §5.2.1: certifying a user id, and taking it back. */
+#define SIG_CERT_LOWEST   0x10
+#define SIG_CERT_HIGHEST  0x13
+#define SIG_CERT_REVOKE   0x30
+/* Attribute subpacket types, §5.12: one is defined, and it is the image. */
+#define ATTR_IMAGE         1
+/* How many images one certificate may carry before we stop reading. Ours
+ * revoke as they replace, so a long history is normal and a thousand is not.
+ */
+
+/* Walking an OpenPGP packet stream — what gpgme does not surface.
+ * See packets.c: the image a certificate wears and the keyserver it names
+ * both live in packets its user id chain never mentions. */
+struct pgpid_packet {
+    unsigned tag;
+    const unsigned char *body;
+    size_t len;
+    const unsigned char *next;
+};
+bool pgpid_packet_next(const unsigned char *p, const unsigned char *end,
+                       struct pgpid_packet *out);
+bool pgpid_sub_length(const unsigned char **p, const unsigned char *end,
+                      size_t *len);
+bool pgpid_attribute_image(const struct pgpid_packet *pkt,
+                           const unsigned char **data, size_t *len);
+bool pgpid_signature_read(const struct pgpid_packet *pkt, unsigned *type,
+                          unsigned long *created, const char **issuer_hex);
+bool pgpid_signature_subpacket(const struct pgpid_packet *pkt, unsigned want,
+                               const unsigned char **data, size_t *len);
 
 /* The surname and given names, matched out of a string already reduced to
  * the format's alphabet: the first run that satisfies
@@ -126,6 +163,17 @@ int pgpid_mrz_check_digit(const char *s, size_t len);
  * NULL for a code that is not one of the 231 — refused rather than guessed. */
 const char *pgpid_country_coordinates(const char *code);
 
+/* The image a certificate wears today, out of its exported packets — the
+ * standing one, newest when several stand. Shared so that a card and an
+ * avatar cannot show two different faces. */
+bool pgpid_current_image(const unsigned char *buf, size_t len, const char *keyid,
+                         const unsigned char **data, size_t *ilen);
+
+/* The validity letter gpg gives each uid, in listing order — because gpgme
+ * cannot say "expired": such a uid arrives as unknown, indistinguishable
+ * from one nobody vouched for. Returns how many were written. */
+size_t pgpid_uid_validities(const char *fpr, char *out, size_t max);
+
 /* Is this a fingerprint and nothing else? 40 or 64 hexadecimal characters.
  * What the destructive actions accept, so that a search pattern can never
  * become a target. */
@@ -143,6 +191,7 @@ int pgpid_action_get(int argc, char **argv);
 int pgpid_action_gen_uid(int argc, char **argv);
 int pgpid_action_gen_u4(int argc, char **argv);
 int pgpid_action_mrz_to_u4(int argc, char **argv);
+int pgpid_action_to_vcard(int argc, char **argv);
 
 /* The short listing — one line per address — shared by `list --short` and
  * `get`, so that the two cannot drift apart. */

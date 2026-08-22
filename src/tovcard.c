@@ -1,0 +1,495 @@
+/* A certificate, written as a contact card.
+ *
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
+ *
+ * vCard 4.0, RFC 6350. The point is that an address book already knows how to
+ * read one — so a certificate stops being something only a cryptography tool
+ * can open, and becomes a contact with a face, a telephone and a key.
+ *
+ * Most of the card is already there: our certificates carry their name, note,
+ * telephone and the rest on uids shaped like vCard lines, so those pass
+ * through as they stand. What has to be built is the rest — the address from
+ * an ordinary `Name <addr>` uid, the key itself, and the photograph, which
+ * gpgme cannot see and packets.c reads.
+ */
+#include "pgpid.h"
+
+#include <ctype.h>
+#include <strings.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/**
+ * One content line, folded as RFC 6350 §3.2 wants it.
+ *
+ * Seventy-five octets, then CRLF and a single space starting each
+ * continuation. Not a nicety: a key or a photograph inlined as base64 makes a
+ * line thousands of characters long, and readers do reject those.
+ */
+static size_t fold_point(const char *line, size_t from, size_t budget)
+{
+    size_t n = strlen(line);
+    if (n - from <= budget)
+        return n;
+    size_t at = from + budget;
+    /* Never inside a multi-octet sequence — RFC 6350 §3.2 asks for both
+     * "at most 75 octets" and "not in the middle of a UTF-8 character", and
+     * a reader given half a character shows a broken glyph rather than a
+     * name. Continuation bytes are 10xxxxxx; step back off them. */
+    while (at > from && ((unsigned char)line[at] & 0xC0) == 0x80)
+        at--;
+    return at > from ? at : from + budget;
+}
+
+static void fold(const char *line)
+{
+    size_t n = strlen(line);
+    size_t cut = fold_point(line, 0, 75);
+    printf("%.*s\r\n", (int)cut, line);
+    for (size_t at = cut; at < n; ) {
+        size_t next = fold_point(line, at, 74);
+        printf(" %.*s\r\n", (int)(next - at), line + at);
+        at = next;
+    }
+}
+
+/** Is this uid one of ours, `PROPERTY:value` or `PROPERTY;PARAM:value`? */
+static const char *vcard_property(const char *uid, char *name, size_t max)
+{
+    size_t i = 0;
+    while (uid[i] >= 'A' && uid[i] <= 'Z' && i < max - 1)
+        i++;
+    if (!i)
+        return NULL;
+    const char *p = uid + i;
+    if (*p == ';')
+        p = strchr(p, ':');
+    if (!p || *p != ':')
+        return NULL;
+    memcpy(name, uid, i);
+    name[i] = '\0';
+    /* One optional space after the colon, which the vCard-uid experiment
+     * used and which is not part of the value. */
+    return p[1] == ' ' ? p + 2 : p + 1;
+}
+
+/** The address inside the angle brackets of a `Name <addr>` uid, or NULL. */
+static const char *bracketed_address(const char *uid, char *out, size_t max)
+{
+    const char *close = strrchr(uid, '>');
+    if (!close)
+        return NULL;
+    const char *open = strrchr(uid, '<');
+    if (!open || open > close)
+        return NULL;
+    /* Nothing but spaces may follow, or it is a name that happens to
+     * contain brackets rather than an address at the end. */
+    for (const char *p = close + 1; *p; p++)
+        if (*p != ' ' && *p != '\t')
+            return NULL;
+    size_t n = (size_t)(close - open - 1);
+    if (!n || n >= max)
+        return NULL;
+    /* A mailbox, not any string between brackets: 'Frre U4 <a.com>' names
+     * nowhere, and a card carrying it as EMAIL would be lying quietly. */
+    bool has_at = false;
+    for (const char *q = open + 1; q < close; q++)
+        has_at = has_at || *q == '@';
+    if (!has_at)
+        return NULL;
+    memcpy(out, open + 1, n);
+    out[n] = '\0';
+    return out;
+}
+
+/**
+ * The URL a keyserver would answer with for this certificate.
+ *
+ * Built rather than stored, from the keyserver the certificate names as its
+ * own when it names one, and from ours when it does not.
+ */
+static bool key_url(const char *keyserver, const char *fpr, char *out, size_t max)
+{
+    const char *host = strstr(keyserver, "://");
+    if (!host)
+        return false;
+    size_t scheme_len = (size_t)(host - keyserver);
+    char scheme[8];
+    if (scheme_len >= sizeof scheme)
+        return false;
+    for (size_t i = 0; i < scheme_len; i++)
+        scheme[i] = (char)tolower((unsigned char)keyserver[i]);
+    scheme[scheme_len] = '\0';
+    host += 3;
+
+    char hostport[256];
+    size_t n = 0;
+    for (; host[n] && host[n] != '/' && n < sizeof hostport - 8; n++)
+        hostport[n] = host[n];
+    hostport[n] = '\0';
+    if (!n)
+        return false;
+
+    bool secure = !strcmp(scheme, "hkps") || !strcmp(scheme, "https");
+    if (!secure && !strcmp(scheme, "hkp") && !strchr(hostport, ':'))
+        strcat(hostport, ":11371");
+    else if (!secure && strcmp(scheme, "hkp") && strcmp(scheme, "http"))
+        return false;
+
+    /* Lowercase fingerprint, matching what the web page of the same name
+     * produces — two tools writing the same card must write it the same. */
+    char lower[80];
+    size_t f = 0;
+    for (; fpr[f] && f < sizeof lower - 1; f++)
+        lower[f] = (char)tolower((unsigned char)fpr[f]);
+    lower[f] = '\0';
+
+    snprintf(out, max, "%s://%s/pks/lookup?op=get&search=0x%s",
+             secure ? "https" : "http", hostport, lower);
+    return true;
+}
+
+/**
+ * The keyserver the certificate names as its own — subpacket 24.
+ *
+ * Not simply the first one found: that picks up a value from any signature,
+ * including one a subkey binding carries or one an old uid still holds, and
+ * it demonstrably answers with a different server than the shell.
+ *
+ * The rule, which is the shell's: for each user id, take its newest binding
+ * self-signature; ignore it if a revocation on that uid is newer still; and
+ * among the uids that survive, prefer the one flagged primary, failing that
+ * the last. A certificate saying two different things is worth a word,
+ * because it means somebody set it twice and one of the two is stale.
+ */
+static char *preferred_keyserver(const unsigned char *buf, size_t len,
+                                 const char *fpr)
+{
+    static char chosen[256];
+    char from_primary[256] = "", from_last[256] = "", seen_other[256] = "";
+    const char *keyid = strlen(fpr) >= 16 ? fpr + strlen(fpr) - 16 : fpr;
+
+    const unsigned char *p = buf, *end = buf + len;
+    struct pgpid_packet pkt;
+    bool in_uid = false;
+    unsigned long newest_binding = 0, newest_revocation = 0;
+    char uid_keyserver[256] = "";
+    bool uid_primary = false;
+
+    /* Closes the uid just walked past, keeping what it said. */
+    #define FLUSH()                                                          \
+        do {                                                                 \
+            if (in_uid && newest_binding && newest_binding > newest_revocation \
+                && *uid_keyserver) {                                         \
+                if (uid_primary)                                             \
+                    snprintf(from_primary, sizeof from_primary, "%s", uid_keyserver); \
+                if (*from_last && strcmp(from_last, uid_keyserver))          \
+                    snprintf(seen_other, sizeof seen_other, "%s", from_last); \
+                snprintf(from_last, sizeof from_last, "%s", uid_keyserver);  \
+            }                                                                \
+        } while (0)
+
+    while (pgpid_packet_next(p, end, &pkt)) {
+        p = pkt.next;
+        if (pkt.tag == TAG_USER_ID) {
+            FLUSH();
+            in_uid = true;
+            newest_binding = newest_revocation = 0;
+            uid_keyserver[0] = '\0';
+            uid_primary = false;
+            continue;
+        }
+        if (pkt.tag != TAG_SIGNATURE) {
+            /* A key or subkey packet ends the run of certifications. */
+            FLUSH();
+            in_uid = false;
+            continue;
+        }
+        if (!in_uid)
+            continue;
+
+        unsigned type;
+        unsigned long created;
+        const char *issuer;
+        if (!pgpid_signature_read(&pkt, &type, &created, &issuer))
+            continue;
+        /* Only what the certificate says about itself: a third party may
+         * suggest a keyserver, and it is not theirs to say. */
+        if (!issuer || strcasecmp(issuer, keyid))
+            continue;
+
+        if (type == SIG_CERT_REVOKE) {
+            if (created > newest_revocation)
+                newest_revocation = created;
+            continue;
+        }
+        if (type < SIG_CERT_LOWEST || type > SIG_CERT_HIGHEST)
+            continue;
+        if (created <= newest_binding)
+            continue;
+
+        newest_binding = created;
+        uid_keyserver[0] = '\0';
+        uid_primary = false;
+        const unsigned char *value;
+        size_t vlen;
+        if (pgpid_signature_subpacket(&pkt, 24, &value, &vlen)
+            && vlen && vlen < sizeof uid_keyserver) {
+            memcpy(uid_keyserver, value, vlen);
+            uid_keyserver[vlen] = '\0';
+        }
+        if (pgpid_signature_subpacket(&pkt, 25, &value, &vlen) && vlen && value[0])
+            uid_primary = true;
+    }
+    FLUSH();
+    #undef FLUSH
+
+    const char *pick = *from_primary ? from_primary : from_last;
+    if (!*pick)
+        return NULL;
+    if (*seen_other && strcmp(seen_other, pick))
+        pgpid_error("Warning: Several preferred keyservers across uids — kept '%s'.", pick);
+    snprintf(chosen, sizeof chosen, "%s", pick);
+    return chosen;
+}
+
+/**
+ * The certificate without its attribute packets.
+ *
+ * A card already carries the photograph as PHOTO; carrying it a second time
+ * inside the inlined key doubles the size of the file for nothing — nine
+ * kilobytes of the fourteen, measured. gpg has `no-export-attributes` for
+ * this and gpgme has no flag for it, so the packets are dropped here.
+ *
+ * An attribute's certifications go with it: a signature over a packet that is
+ * no longer there is not a signature, and leaving it would make the key look
+ * damaged to anything that checks.
+ */
+static size_t strip_attributes(const unsigned char *in, size_t len,
+                               unsigned char *out)
+{
+    const unsigned char *p = in, *end = in + len;
+    struct pgpid_packet pkt;
+    size_t o = 0;
+    bool dropping = false;
+
+    while (pgpid_packet_next(p, end, &pkt)) {
+        size_t whole = (size_t)(pkt.next - p);
+        if (pkt.tag == TAG_USER_ATTR) {
+            dropping = true;
+        } else if (pkt.tag == TAG_SIGNATURE && dropping) {
+            /* still the dropped attribute's certifications */
+        } else {
+            dropping = false;
+            memcpy(out + o, p, whole);
+            o += whole;
+        }
+        p = pkt.next;
+    }
+    return o;
+}
+
+static void usage(FILE *out)
+{
+    fprintf(out,
+        "Usage: " PGPID_MIP_NAME " to_vcard [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
+        "\n"
+        "Write a certificate as a vCard 4.0, which an address book can read.\n"
+        "Without a selector, the certificate whose secret key is at hand.\n"
+        "\n"
+        "OPTIONS:\n"
+        "  -o, --output FILE           Write there rather than to standard output\n"
+        "      --raw                   Print every uid instead, one per paragraph\n"
+        "  -h, --help                  Print this help and exit\n"
+        "  -V, --version               Print the version and exit\n");
+}
+
+int pgpid_action_to_vcard(int argc, char **argv)
+{
+    const char *selector = NULL, *output = NULL;
+    bool raw = false;
+
+    for (int i = 1; i < argc; i++) {
+        const char *a = argv[i];
+        if (!strcmp(a, "-o") || !strcmp(a, "--output")) {
+            if (++i >= argc) {
+                pgpid_error("Error: '%s' wants a file.", a);
+                return PGPID_USAGE;
+            }
+            output = argv[i];
+        } else if (!strcmp(a, "--raw")) {
+            raw = true;
+        } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
+            usage(stdout);
+            return PGPID_OK;
+        } else if (!strcmp(a, "-V") || !strcmp(a, "--version")) {
+            printf("%s %s\n", argv[0], PGPID_MIP_VERSION);
+            return PGPID_OK;
+        } else if (!strcmp(a, "--")) {
+            if (++i < argc)
+                selector = argv[i];
+            break;
+        } else if (a[0] == '-' && a[1]) {
+            pgpid_error("Error: Unrecognized option '%s'.", a);
+            pgpid_error("Try '" PGPID_MIP_NAME " to_vcard --help' for more information.");
+            return PGPID_USAGE;
+        } else {
+            selector = a;
+            break;
+        }
+    }
+
+    gpgme_ctx_t ctx;
+    gpgme_error_t err = pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL);
+    if (err) {
+        pgpid_gpgme_error("gpgme_new", err);
+        return PGPID_FAIL;
+    }
+
+    gpgme_key_t key = NULL;
+    err = gpgme_op_keylist_start(ctx, selector, selector ? 0 : 1);
+    if (!err)
+        err = gpgme_op_keylist_next(ctx, &key);
+    gpgme_op_keylist_end(ctx);
+    if (err || !key) {
+        gpgme_release(ctx);
+        pgpid_error("Error: No certificate for what was asked.");
+        return PGPID_NOTHING;
+    }
+    const char *fpr = key->subkeys ? key->subkeys->fpr : "";
+
+    FILE *out = stdout;
+    if (output && !(out = freopen(output, "w", stdout))) {
+        pgpid_error("Error: Cannot write '%s'.", output);
+        gpgme_key_unref(key);
+        gpgme_release(ctx);
+        return PGPID_FAIL;
+    }
+
+    if (raw) {
+        for (gpgme_user_id_t u = key->uids; u; u = u->next)
+            if (u->uid)
+                printf("%s\n\n", u->uid);
+        gpgme_key_unref(key);
+        gpgme_release(ctx);
+        return PGPID_OK;
+    }
+
+    /* Which uids count: the shell keeps validities [ounmfqws-] and drops
+     * revoked, expired, invalid and disabled. gpgme cannot report expiry, so
+     * the letters come from the engine and are read in step. */
+    char validity[256];
+    size_t nvalid = pgpid_uid_validities(fpr, validity, sizeof validity);
+
+    printf("BEGIN:VCARD\r\nVERSION:4.0\r\n");
+
+    unsigned pref = 0, at = 0;
+    char line[4096], name[64], value[512];
+    for (gpgme_user_id_t u = key->uids; u; u = u->next, at++) {
+        char letter = (at < nvalid) ? validity[at] : '-';
+        if (!u->uid || !strchr("ounmfqws-", letter))
+            continue;
+        const char *v = vcard_property(u->uid, name, sizeof name);
+        if (v) {
+            if (!strcmp(name, "EMAIL")) {
+                /* The 'EMAIL: <addr>' shape the vCard-uid experiment used.
+                 * Still rendered, so certificates minted then keep working. */
+                const char *a = v;
+                size_t n = strlen(a);
+                char stripped[320];
+                if (n >= 2 && a[0] == '<' && a[n - 1] == '>') {
+                    n -= 2;
+                    if (n >= sizeof stripped)
+                        continue;
+                    memcpy(stripped, a + 1, n);
+                    stripped[n] = '\0';
+                    a = stripped;
+                }
+                snprintf(line, sizeof line, "EMAIL;PREF=%u:%s", ++pref, a);
+                fold(line);
+            } else {
+                fold(u->uid);   /* already a valid, escaped vCard line */
+            }
+        } else if (bracketed_address(u->uid, value, sizeof value)) {
+            /* A plain 'Name <addr>' uid: only its address becomes a line.
+             * The name is carried by FN:, the identifier by UID:urn:eid:. */
+            snprintf(line, sizeof line, "EMAIL;PREF=%u:%s", ++pref, value);
+            fold(line);
+        }
+    }
+
+    /* The certificate itself, twice: where to fetch it, and inline. The URL
+     * is worth having because a card outlives the bytes in it — a key gains
+     * signatures, an address is revoked. */
+    gpgme_data_t exported;
+    unsigned char *raw_key = NULL;
+    size_t raw_len = 0;
+    if (!gpgme_data_new(&exported)) {
+        if (!gpgme_op_export(ctx, fpr, GPGME_EXPORT_MODE_MINIMAL, exported)) {
+            gpgme_data_seek(exported, 0, SEEK_SET);
+            raw_key = (unsigned char *)gpgme_data_release_and_get_mem(exported, &raw_len);
+        } else {
+            gpgme_data_release(exported);
+        }
+    }
+
+    char url[512];
+    const char *ks = raw_key ? preferred_keyserver(raw_key, raw_len, fpr) : NULL;
+    if (key_url(ks ? ks : PGPID_FIRST_KEYSERVER, fpr, url, sizeof url)) {
+        snprintf(line, sizeof line, "KEY;MEDIATYPE=application/pgp-keys:%s", url);
+        fold(line);
+    }
+
+    if (raw_key && raw_len) {
+        unsigned char *lean = malloc(raw_len);
+        size_t lean_len = lean ? strip_attributes(raw_key, raw_len, lean) : 0;
+        size_t need = 4 * ((lean_len + 2) / 3) + 64;
+        char *b64 = lean_len ? malloc(need) : NULL;
+        if (b64) {
+            pgpid_base64(lean, lean_len, b64);
+            char *whole = malloc(need + 64);
+            if (whole) {
+                snprintf(whole, need + 64, "KEY:data:application/pgp-keys;base64,%s", b64);
+                fold(whole);
+                free(whole);
+            }
+            free(b64);
+        }
+        free(lean);
+        /* The photograph, which gpgme does not carry — and the one that
+         * stands, not the first in packet order. The shell takes the first,
+         * which on a certificate carrying several is the oldest: the card
+         * would then show a face its owner replaced. */
+        const unsigned char *img;
+        size_t ilen;
+        const char *keyid = strlen(fpr) >= 16 ? fpr + strlen(fpr) - 16 : fpr;
+        if (pgpid_current_image(raw_key, raw_len, keyid, &img, &ilen)) {
+            size_t need2 = 4 * ((ilen + 2) / 3) + 64;
+            char *b = malloc(need2);
+            if (b) {
+                pgpid_base64(img, ilen, b);
+                char *whole = malloc(need2 + 64);
+                if (whole) {
+                    snprintf(whole, need2 + 64, "PHOTO:data:image/jpeg;base64,%s", b);
+                    fold(whole);
+                    free(whole);
+                }
+                free(b);
+            }
+        }
+        gpgme_free(raw_key);
+    }
+
+    printf("END:VCARD\r\n");
+    if (output) {
+        fflush(out);
+        pgpid_error("Notice: Written into '%s'.", output);
+    }
+    gpgme_key_unref(key);
+    gpgme_release(ctx);
+    return PGPID_OK;
+}

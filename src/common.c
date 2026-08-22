@@ -9,6 +9,7 @@
 
 #include <ctype.h>
 #include <stdarg.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -210,4 +211,57 @@ int pgpid_send_to_keyservers(const char *fpr, const char *list)
     }
     free(copy);
     return ret;
+}
+
+/**
+ * The validity letter gpg gives each uid, in the order it lists them.
+ *
+ * Needed because gpgme cannot say "expired": a uid gpg marks 'e' arrives
+ * here as revoked=0, invalid=0, validity=unknown — indistinguishable from
+ * one nobody has vouched for. Measured 2026-08-22; the third thing gpgme
+ * will not tell us, after attribute packets and their images.
+ *
+ * Zipping by position is sound here and only here: gpgme parses this very
+ * output, so the two lists are the same list.
+ */
+size_t pgpid_uid_validities(const char *fpr, char *out, size_t max)
+{
+    int fds[2];
+    if (pipe(fds))
+        return 0;
+    pid_t pid = fork();
+    if (pid < 0) {
+        close(fds[0]);
+        close(fds[1]);
+        return 0;
+    }
+    if (pid == 0) {
+        close(fds[0]);
+        dup2(fds[1], STDOUT_FILENO);
+        close(fds[1]);
+        int null = open("/dev/null", O_WRONLY);
+        if (null >= 0) {
+            dup2(null, STDERR_FILENO);
+            close(null);
+        }
+        const char *argv[] = { "--with-colons", "--list-key", fpr, NULL };
+        pgpid_exec_engine(argv);
+        _exit(127);
+    }
+    close(fds[1]);
+    FILE *f = fdopen(fds[0], "r");
+    size_t n = 0;
+    char line[8192];
+    while (f && fgets(line, sizeof line, f)) {
+        if (strncmp(line, "uid:", 4))
+            continue;
+        if (n + 1 < max)
+            out[n++] = line[4] ? line[4] : '-';
+    }
+    if (f)
+        fclose(f);
+    int st;
+    waitpid(pid, &st, 0);
+    out[n] = '\0';
+    return n;
 }

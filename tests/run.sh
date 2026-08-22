@@ -249,6 +249,31 @@ is "an impossible date is refused" \
 is "a leap day is not"           "$("$BIN" gen_u4 -s DOE -g John -d 2024-02-29 -c FRA >/dev/null 2>&1 ; echo $?)" "0"
 is "everything is required"      "$("$BIN" gen_u4 -s DOE >/dev/null 2>&1 ; echo $?)" "2"
 
+printf '\nto_vcard\n'
+# Self-sufficient: earlier blocks revoke what they add, so this one puts back
+# the address and the image it means to look for rather than depending on the
+# order the file happens to be in.
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-add-uid "$FPR" 'Ada <ada@example.invalid>' 2>/dev/null
+gm convert -size 180x180 'xc:#3a6ea5' jpeg:"$GNUPGHOME/card.jpg" 2>/dev/null
+"$BIN" avatar --workdir "$GNUPGHOME" --keyservers '' --replace-to "$GNUPGHOME/card.jpg" "$FPR" >/dev/null 2>&1
+card=$("$BIN" to_vcard "$FPR")
+is "opens and closes a vCard 4.0"  "$(printf '%s' "$card" | head --lines=2 | tr -d '\r' | tr '\n' ' ')" "BEGIN:VCARD VERSION:4.0 "
+is "carries the identifier"        "$(grep --count "UID:urn:eid:$EID" <<<"$card")" "1"
+is "carries the address"           "$(grep --count 'EMAIL;PREF=1:ada@example.invalid' <<<"$card")" "1"
+is "carries the key inline"        "$(grep --count '^KEY:data:application/pgp-keys;base64,' <<<"$card")" "1"
+is "and where to fetch it"         "$(grep --count '^KEY;MEDIATYPE=' <<<"$card")" "1"
+is "and the photograph"            "$(grep --count '^PHOTO:data:image/jpeg;base64,' <<<"$card")" "1"
+# RFC 6350 §3.2 asks for at most 75 octets per line, and never a fold inside
+# a UTF-8 character — a reader given half a character shows a broken glyph.
+is "no line beyond 75 octets"      "$(awk '{ sub(/\r$/,"") ; if (length($0) > 75) n++ } END { print n+0 }' <<<"$card")" "0"
+is "--raw prints the uids instead" "$(grep --count 'BEGIN:VCARD' <<<"$("$BIN" to_vcard --raw "$FPR")")" "0"
+is "--output writes a file"        "$("$BIN" to_vcard --output "$GNUPGHOME/c.vcf" "$FPR" >/dev/null 2>&1 ; grep --count 'BEGIN:VCARD' "$GNUPGHOME/c.vcf")" "1"
+# The card and the avatar must show the same face: the photograph is chosen
+# by the rule `avatar` uses, not by packet order.
+is "the card shows the avatar"     "$(grep --only-matching --extended-regexp '^PHOTO:data:image/jpeg;base64,.{40}' <<<"$card")" \
+                                   "PHOTO:data:image/jpeg;base64,$(base64 --wrap=0 < "$("$BIN" avatar --workdir "$GNUPGHOME" "$FPR")" | cut --characters=1-40)"
+
 printf '\nmrz_to_u4\n'
 # A specimen zone: 'Anna Maria Eriksson' is ICAO's own example and nobody's
 # real passport. The country is changed to one the table knows.

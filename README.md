@@ -36,6 +36,7 @@ pgpid-mip avatar --replace-to IMAGE | --revoke [--keyservers SERVERS] FINGERPRIN
 pgpid-mip push [--keyservers SERVERS] FINGERPRINT...
 pgpid-mip gen_u4 --surname S --given-names G --birth-date D --birth-country C
 pgpid-mip mrz_to_u4 [--uncheck] [--birth-date D] MRZ...
+pgpid-mip to_vcard [--raw] [--output FILE] [SEARCH]
 pgpid-mip gen_uid [--free-input] U4|U5|STRING
 ```
 
@@ -126,6 +127,32 @@ The name extraction is shared with `gen_u4` rather than written twice,
 because a passport and the same civil status typed by hand have to give the
 same identifier — otherwise the document is useless. That is a test, not a
 hope.
+
+`to_vcard` writes a certificate as a vCard 4.0, which an address book
+already knows how to read — the point being that a certificate stops being
+something only a cryptography tool can open. Most of the card is already
+there, since our certificates carry their name, note and telephone on uids
+shaped like vCard lines; what is built is the address from an ordinary
+`Name <addr>` uid, the key, and the photograph.
+
+Checked against the shell on 123 certificates: 118 cards identical once
+unfolded. The five that differ, and why:
+
+Line folding. The shell folds at 75 *characters*, so its lines can exceed
+75 octets on anything accented; this folds at 75 octets and never inside a
+UTF-8 sequence, which is what RFC 6350 §3.2 asks for both of. The cards say
+the same thing — folding is removed on parse — but the fold points differ.
+
+The photograph is chosen by the rule `avatar` uses, and the choosing is
+shared with it, so a certificate's card and its avatar cannot show two
+different faces.
+
+Three things gpgme could not answer and packets.c had to: the image, the
+keyserver a certificate names as its own — subpacket 24, read from each
+uid's newest binding self-signature, preferring the primary's, as the shell
+does rather than the first one found anywhere — and, through the engine, the
+validity letters, because **gpgme cannot say "expired"**: such a uid arrives
+as unknown, indistinguishable from one nobody vouched for.
 
 `gen_uid` prints the Unix account number an entity identifier gives — not
 an OpenPGP uid, a Unix one. Opening an account for somebody from their
