@@ -185,6 +185,37 @@ int pgpid_capture_engine(const char *const *argv, char *out, size_t max);
  * answered, or when its subkeys belong to no certificate we hold. */
 bool pgpid_card_certification_key(char *out, size_t max);
 
+/* One uid of a certificate, as the colon listing describes it. */
+struct pgpid_uid {
+    char text[512];    /* as its owner wrote it, escapes undone */
+    char validity;     /* field 2 — see pgpid_uid_stands */
+    long created;      /* when its self-signature was made */
+};
+
+/* The uids of a certificate. Returns how many were written. */
+size_t pgpid_list_uids(const char *user, bool secret,
+                       struct pgpid_uid *out, size_t max);
+
+/* Does this uid still stand — not revoked, not expired, not disabled? */
+bool pgpid_uid_stands(char validity);
+
+/* Does this uid end in an address, the shape every mail client reads? */
+bool pgpid_uid_has_address(const char *uid);
+
+/* The address inside such a uid, pointing into it, or NULL. */
+const char *pgpid_uid_address(const char *uid, size_t *len);
+
+/* Revoke one uid. Irreversible: OpenPGP keeps it on the certificate forever
+ * and gpg then refuses an identical one, which is what the confirmation is
+ * there to say. */
+bool pgpid_revoke_uid(const char *user, const char *uid, bool assume_yes);
+
+/* Put the primary flag back on an address after a revocation moved it. */
+bool pgpid_fix_primary(const char *user);
+
+/* Mint the identity uid of a certificate made before the shape existed. */
+bool pgpid_upgrade_uids(const char *user);
+
 /* The validity letter gpg gives each uid, in listing order — because gpgme
  * cannot say "expired": such a uid arrives as unknown, indistinguishable
  * from one nobody vouched for. Returns how many were written. */
@@ -211,6 +242,7 @@ int pgpid_action_to_vcard(int argc, char **argv);
 int pgpid_action_token_retries(int argc, char **argv);
 int pgpid_action_token_check(int argc, char **argv);
 int pgpid_action_certify(int argc, char **argv);
+int pgpid_action_email(int argc, char **argv);
 
 /* The short listing — one line per address — shared by `list --short` and
  * `get`, so that the two cannot drift apart. */

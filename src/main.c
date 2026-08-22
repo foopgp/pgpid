@@ -138,6 +138,8 @@ int main(int argc, char **argv)
         return pgpid_action_token_check(sub_argc, sub_argv);
     if (!strcmp(action, "certify"))
         return pgpid_action_certify(sub_argc, sub_argv);
+    if (!strcmp(action, "email"))
+        return pgpid_action_email(sub_argc, sub_argv);
 
     pgpid_error("Error: Unknown action '%s'.", action);
     pgpid_error("Try '" PGPID_MIP_NAME " --help' for more information.");

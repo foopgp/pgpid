@@ -399,3 +399,98 @@ bool pgpid_card_certification_key(char *out, size_t max)
     gpgme_release(ctx);
     return got;
 }
+
+/* gpg's colon listing escapes ':' and '\' and every control byte as \xNN.
+ * What the caller wants back is the uid as its owner wrote it — gpg's own
+ * --quick-*-uid will not match anything else. */
+static void colon_unescape(const char *in, char *out, size_t max)
+{
+    size_t n = 0;
+    for (; *in && n + 1 < max; in++) {
+        if (in[0] == '\\' && in[1] == 'x' && in[2] && in[3]) {
+            char hex[3] = { in[2], in[3], '\0' };
+            char *end = NULL;
+            long v = strtol(hex, &end, 16);
+            if (end && !*end) {
+                out[n++] = (char)v;
+                in += 3;
+                continue;
+            }
+        }
+        out[n++] = *in;
+    }
+    out[n] = '\0';
+}
+
+/**
+ * Does this uid still stand?
+ *
+ * Field 2 of the colon listing mixes two things: how far the web of trust
+ * vouches for the uid (o i n m f u q -) and whether it is still alive
+ * (r e d). This asks the second, as an allow list — a letter gpg has yet to
+ * invent counts as unusable, because defaulting to "usable" is the dangerous
+ * side to be wrong on.
+ *
+ * 'm' belongs in the list. Marginal says the web of trust vouches weakly, not
+ * that the address is dead; leaving it out hid a third of the addresses on a
+ * real certificate.
+ */
+bool pgpid_uid_stands(char validity)
+{
+    return strchr("ounmfqws-", validity) != NULL;
+}
+
+/**
+ * The uids of a certificate, with what gpg knows about each.
+ *
+ * From the colon listing rather than gpgme, for two things gpgme does not
+ * carry: the letter that tells an expired uid from an uncertified one, and
+ * the date the uid's self-signature was made — which is how "the newest
+ * address" gets decided when one has to be kept.
+ */
+size_t pgpid_list_uids(const char *user, bool secret,
+                       struct pgpid_uid *out, size_t max)
+{
+    char listing[262144];
+    const char *argv[] = { "--with-colons",
+                           secret ? "--list-secret-key" : "--list-key",
+                           user, NULL };
+    if (pgpid_capture_engine(argv, listing, sizeof listing) <= 0)
+        return 0;
+
+    size_t n = 0;
+    unsigned keys = 0;
+    for (char *line = listing, *save; (line = strtok_r(line, "\n", &save)); line = NULL) {
+        if (!strncmp(line, "pub:", 4) || !strncmp(line, "sec:", 4)) {
+            /* The first keyring only: a second certificate in the same
+             * listing is a different key that happens to match too. */
+            if (++keys > 1)
+                break;
+            continue;
+        }
+        if (strncmp(line, "uid:", 4) || n >= max)
+            continue;
+
+        /* Split by hand: strtok_r folds empty fields together, and a uid
+         * line with a blank validity would shift every field after it. */
+        char *field[12] = { NULL };
+        unsigned nf = 0;
+        char *start = line;
+        for (char *p = line; nf < 12; p++) {
+            if (*p == ':' || !*p) {
+                field[nf++] = start;
+                if (!*p)
+                    break;
+                *p = '\0';
+                start = p + 1;
+            }
+        }
+        if (nf < 10)
+            continue;
+        out[n].validity = field[1] && *field[1] ? field[1][0] : '-';
+        out[n].created = field[5] && *field[5] ? strtol(field[5], NULL, 10) : 0;
+        colon_unescape(field[9] ? field[9] : "", out[n].text, sizeof out[n].text);
+        n++;
+    }
+    return n;
+}
