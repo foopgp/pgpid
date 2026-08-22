@@ -26,8 +26,9 @@
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " change_token_meta [OPTIONS]... NEW_METADATA\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " change_token_meta [OPTIONS]... NEW_METADATA\n"
         "\n"
         "Write one of the three things a security key says about its holder. Which\n"
         "one is read off NEW_METADATA:\n"
@@ -44,14 +45,15 @@ static void usage(FILE *out)
         "  -A, --admincode CODE         The Admin code, usually eight digits\n"
         "  -p, --admincodefrom FILE     Read it from the first line of FILE instead\n"
         "  -h, --help                   Print this help and exit\n"
-        "  -V, --version                Print the version and exit\n");
+        "  -V, --version                Print the version and exit\n"),
+            PGPID_NAME);
 }
 
 static bool first_line_of(const char *path, char *out, size_t max)
 {
     FILE *f = fopen(path, "r");
     if (!f) {
-        pgpid_error("Error: Cannot read %s.", path);
+        pgpid_error(_("Error: Cannot read %s."), path);
         return false;
     }
     if (!fgets(out, (int)max, f))
@@ -130,12 +132,12 @@ int pgpid_action_change_token_meta(int argc, char **argv)
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
         if (!strcmp(a, "-A") || !strcmp(a, "--admincode")) {
-            if (++i >= argc) { pgpid_error("Error: '%s' wants a code.", a); return PGPID_USAGE; }
+            if (++i >= argc) { pgpid_error(_("Error: '%s' wants a code."), a); return PGPID_USAGE; }
             snprintf(admincode, sizeof admincode, "%s", argv[i]);
             admin_given = true;
         } else if (!strcmp(a, "-p") || !strcmp(a, "--admincodefrom")
                    || !strcmp(a, "--admincode-from")) {
-            if (++i >= argc) { pgpid_error("Error: '%s' wants a file.", a); return PGPID_USAGE; }
+            if (++i >= argc) { pgpid_error(_("Error: '%s' wants a file."), a); return PGPID_USAGE; }
             if (!first_line_of(argv[i], admincode, sizeof admincode))
                 return PGPID_FAIL;
             admin_given = true;
@@ -148,8 +150,8 @@ int pgpid_action_change_token_meta(int argc, char **argv)
         } else if (!strcmp(a, "--")) {
             continue;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " change_token_meta --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("change_token_meta");
             return PGPID_USAGE;
         } else if (!value) {
             value = a;
@@ -157,8 +159,8 @@ int pgpid_action_change_token_meta(int argc, char **argv)
     }
 
     if (!value) {
-        pgpid_error("Error: What should the card say? An address, an http URL, or "
-                    "a two-letter language code.");
+        pgpid_error(_("Error: What should the card say? An address, an http URL, or "
+                    "a two-letter language code."));
         usage(stderr);
         return PGPID_USAGE;
     }
@@ -176,14 +178,14 @@ int pgpid_action_change_token_meta(int argc, char **argv)
     else if (looks_like_url(lowered))
         field = "url";
     else {
-        pgpid_error("Error: '%s' is neither an email, a certurl, nor a 2-letter "
-                    "language code.", value);
+        pgpid_error(_("Error: '%s' is neither an email, a certurl, nor a 2-letter "
+                    "language code."), value);
         return PGPID_USAGE;
     }
 
     char skey[41], ekey[41], akey[41], serial[64];
     if (!card_subkeys(skey, ekey, akey, serial) || !*serial) {
-        pgpid_error("Error: No security token detected.");
+        pgpid_error(_("Error: No security token detected."));
         return PGPID_FAIL;
     }
 
@@ -191,13 +193,13 @@ int pgpid_action_change_token_meta(int argc, char **argv)
         /* GnuPG caps DO 5B at 38 characters in card-edit — the spec allows 39.
          * Saying so here beats letting card-edit fail without a reason. */
         if (strlen(value) > 38) {
-            pgpid_error("Error: Email '%s' exceeds 38 bytes (OpenPGP smartcard cap).",
+            pgpid_error(_("Error: Email '%s' exceeds 38 bytes (OpenPGP smartcard cap)."),
                         value);
             return PGPID_FAIL;
         }
         if (!*skey) {
-            pgpid_error("Error: The card names no signing key, so its certificate "
-                        "cannot be found.");
+            pgpid_error(_("Error: The card names no signing key, so its certificate "
+                        "cannot be found."));
             return PGPID_FAIL;
         }
         /* The address has to be one the certificate still stands by: a card
@@ -217,7 +219,7 @@ int pgpid_action_change_token_meta(int argc, char **argv)
             gpgme_release(ctx);
         }
         if (!*owner) {
-            pgpid_error("Error: Can't find the token's certificate here.");
+            pgpid_error(_("Error: Can't find the token's certificate here."));
             return PGPID_FAIL;
         }
         size_t n = pgpid_list_uids(owner, false, uids, 256);
@@ -231,7 +233,7 @@ int pgpid_action_change_token_meta(int argc, char **argv)
                 carried = true;
         }
         if (!carried) {
-            pgpid_error("Error: %s is not a usable email of the token's certificate.",
+            pgpid_error(_("Error: %s is not a usable email of the token's certificate."),
                         value);
             return PGPID_FAIL;
         }
@@ -242,7 +244,7 @@ int pgpid_action_change_token_meta(int argc, char **argv)
          * pointing at an archived certificate is a legitimate thing to do. */
         char ring[] = "/tmp/pgpid-url-XXXXXX";
         if (!mkdtemp(ring)) {
-            pgpid_error("Error: Cannot make a temporary keyring.");
+            pgpid_error(_("Error: Cannot make a temporary keyring."));
             return PGPID_FAIL;
         }
         char fetched[600];
@@ -250,7 +252,7 @@ int pgpid_action_change_token_meta(int argc, char **argv)
         const char *curl[] = { "curl", "--fail", "--silent", "--show-error",
                                "--location", value, NULL };
         if (pgpid_run_program(curl, NULL, fetched)) {
-            pgpid_error("Error: Can't fetch a usable certificate from %s.", value);
+            pgpid_error(_("Error: Can't fetch a usable certificate from %s."), value);
             return PGPID_FAIL;
         }
         const char *saved = pgpid_homedir;
@@ -265,7 +267,7 @@ int pgpid_action_change_token_meta(int argc, char **argv)
         }
         pgpid_homedir = saved;
         if (imported) {
-            pgpid_error("Error: Can't fetch a usable certificate from %s.", value);
+            pgpid_error(_("Error: Can't fetch a usable certificate from %s."), value);
             return PGPID_FAIL;
         }
         char missing[256] = "";
@@ -280,7 +282,7 @@ int pgpid_action_change_token_meta(int argc, char **argv)
                      "%s%s=%s", *missing ? " " : "", kinds[k], fprs[k]);
         }
         if (*missing) {
-            pgpid_error("Error: Certificate at %s doesn't hold the token's subkeys: %s.",
+            pgpid_error(_("Error: Certificate at %s doesn't hold the token's subkeys: %s."),
                         value, missing);
             return PGPID_FAIL;
         }
@@ -292,13 +294,13 @@ int pgpid_action_change_token_meta(int argc, char **argv)
     }
 
     if (!admin_given) {
-        pgpid_error("Error: The Admin code is needed to write to the card.");
-        pgpid_error("Give --admincode, or --admincodefrom to keep it off the "
-                    "process list.");
+        pgpid_error(_("Error: The Admin code is needed to write to the card."));
+        pgpid_error(_("Give --admincode, or --admincodefrom to keep it off the "
+                    "process list."));
         return PGPID_USAGE;
     }
     if (strlen(admincode) < 8)
-        pgpid_error("Warning: Admin code shorter than 8 digits.");
+        pgpid_error(_("Warning: Admin code shorter than 8 digits."));
 
     /* card-edit, because gpg has no --quick- form for these. For the name it
      * asks for the surname and then the given names: the whole value goes in
@@ -312,9 +314,9 @@ int pgpid_action_change_token_meta(int argc, char **argv)
     const char *edit[] = { "--command-fd", "0", "--batch", "--pinentry-mode",
                            "loopback", "--passphrase", admincode, "--card-edit", NULL };
     if (pgpid_run_engine_input(edit, script)) {
-        pgpid_error("Error: gpg --card-edit failed — wrong Admin code?");
+        pgpid_error(_("Error: gpg --card-edit failed — wrong Admin code?"));
         return PGPID_FAIL;
     }
-    pgpid_error("Notice: Wrote new value '%s' into the security token.", value);
+    pgpid_error(_("Notice: Wrote new value '%s' into the security token."), value);
     return PGPID_OK;
 }

@@ -30,8 +30,9 @@
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " scan [OPTIONS]... IMAGE...\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " scan [OPTIONS]... IMAGE...\n"
         "\n"
         "Rebuild an OpenPGP secret key from the QR codes in IMAGE..., import it,\n"
         "and print the fingerprint of the certification key that came back.\n"
@@ -46,14 +47,15 @@ static void usage(FILE *out)
         "  -V, --version                 Print the version and exit\n"
         "\n"
         "Fragments missing are named rather than worked around: this reads what it\n"
-        "is given, and does not open a camera to go looking.\n");
+        "is given, and does not open a camera to go looking.\n"),
+            PGPID_NAME);
 }
 
 static bool first_line_of(const char *path, char *out, size_t max)
 {
     FILE *f = fopen(path, "r");
     if (!f) {
-        pgpid_error("Error: Cannot read %s.", path);
+        pgpid_error(_("Error: Cannot read %s."), path);
         return false;
     }
     if (!fgets(out, (int)max, f))
@@ -101,14 +103,14 @@ int pgpid_action_scan(int argc, char **argv)
         const char *a = argv[i];
         if (!strcmp(a, "-p") || !strcmp(a, "--passphrase")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a passphrase.", a);
+                pgpid_error(_("Error: '%s' wants a passphrase."), a);
                 return PGPID_USAGE;
             }
             snprintf(passphrase, sizeof passphrase, "%s", argv[i]);
         } else if (!strcmp(a, "-P") || !strcmp(a, "--passfrom")
                    || !strcmp(a, "--pass-from")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a file.", a);
+                pgpid_error(_("Error: '%s' wants a file."), a);
                 return PGPID_USAGE;
             }
             if (!first_line_of(argv[i], passphrase, sizeof passphrase))
@@ -116,12 +118,12 @@ int pgpid_action_scan(int argc, char **argv)
         } else if (!strcmp(a, "-W") || !strcmp(a, "--workdir")
                    || !strcmp(a, "-D") || !strcmp(a, "--tmpdir")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a directory.", a);
+                pgpid_error(_("Error: '%s' wants a directory."), a);
                 return PGPID_USAGE;
             }
             struct stat st;
             if (stat(argv[i], &st) || !S_ISDIR(st.st_mode)) {
-                pgpid_error("Error: Nonexistent or unattainable directory (%s).", argv[i]);
+                pgpid_error(_("Error: Nonexistent or unattainable directory (%s)."), argv[i]);
                 return PGPID_USAGE;
             }
             given_workdir = argv[i];
@@ -134,8 +136,8 @@ int pgpid_action_scan(int argc, char **argv)
         } else if (!strcmp(a, "--")) {
             continue;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " scan --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("scan");
             return PGPID_USAGE;
         } else if (nimages < 64) {
             images[nimages++] = a;
@@ -143,7 +145,7 @@ int pgpid_action_scan(int argc, char **argv)
     }
 
     if (!nimages) {
-        pgpid_error("Error: Which images? There is no camera to fall back on here.");
+        pgpid_error(_("Error: Which images? There is no camera to fall back on here."));
         usage(stderr);
         return PGPID_USAGE;
     }
@@ -154,13 +156,13 @@ int pgpid_action_scan(int argc, char **argv)
     } else {
         snprintf(workdir, sizeof workdir, "/tmp/pgpid-scan.XXXXXX");
         if (!mkdtemp(workdir)) {
-            pgpid_error("Error: Cannot make a working directory.");
+            pgpid_error(_("Error: Cannot make a working directory."));
             return PGPID_FAIL;
         }
     }
     if (workdir_is_unclean(workdir)) {
-        pgpid_error("Error: Working directory is unclean (it holds SECRET*).");
-        pgpid_error("Suggestion: bl-security shred_path --remove '%s'", workdir);
+        pgpid_error(_("Error: Working directory is unclean (it holds SECRET*)."));
+        pgpid_error(_("Suggestion: bl-security shred_path --remove '%s'"), workdir);
         return PGPID_USAGE;
     }
 
@@ -177,7 +179,7 @@ int pgpid_action_scan(int argc, char **argv)
             snprintf(from, sizeof from, "pdf:%.550s", images[i]);
             const char *conv[] = { "convert", from, converted, NULL };
             if (pgpid_run_program(conv, NULL, NULL)) {
-                pgpid_error("Error: Can't convert pdf %s.", images[i]);
+                pgpid_error(_("Error: Can't convert pdf %s."), images[i]);
                 return PGPID_FAIL;
             }
             snprintf(image, sizeof image, "%s", converted);
@@ -188,7 +190,7 @@ int pgpid_action_scan(int argc, char **argv)
         const char *zbar[] = { "zbarimg", "--quiet", "-Sdisable", "-Sqrcode.enable",
                                image, NULL };
         if (pgpid_run_program(zbar, NULL, found)) {
-            pgpid_error("Error: No QR code with expected data in '%s'.", images[i]);
+            pgpid_error(_("Error: No QR code with expected data in '%s'."), images[i]);
             return PGPID_FAIL;
         }
 
@@ -219,17 +221,17 @@ int pgpid_action_scan(int argc, char **argv)
             if (needed_less_one < 0)
                 needed_less_one = max;
             if (v != version) {
-                pgpid_error("Crit: QR codes don't share the same version (%d != %d).",
+                pgpid_error(_("Crit: QR codes don't share the same version (%d != %d)."),
                             version, v);
                 return 3;
             }
             if (max != needed_less_one) {
-                pgpid_error("Crit: QR codes don't share the same division (%d != %d).",
+                pgpid_error(_("Crit: QR codes don't share the same division (%d != %d)."),
                             needed_less_one, max);
                 return 3;
             }
             if (index < 0 || index >= MAX_PARTS) {
-                pgpid_error("Crit: Fragment number %d is out of range.", index);
+                pgpid_error(_("Crit: Fragment number %d is out of range."), index);
                 return 3;
             }
             snprintf(parts[index], sizeof parts[0], "%s", at + 4);
@@ -237,15 +239,15 @@ int pgpid_action_scan(int argc, char **argv)
             any = true;
         }
         if (!any) {
-            pgpid_error("Error: No QR code with expected data in '%s'.", images[i]);
+            pgpid_error(_("Error: No QR code with expected data in '%s'."), images[i]);
             return PGPID_FAIL;
         }
-        pgpid_error("Info: QR code(s) with expected data read from '%s'.", images[i]);
+        pgpid_error(_("Info: QR code(s) with expected data read from '%s'."), images[i]);
     }
 
     if (version != 4 && version != 5) {
-        pgpid_error("Crit: Unsupported qrcode version (%d).", version);
-        pgpid_error("Versions 1 to 3 needed an extra passphrase and are long gone.");
+        pgpid_error(_("Crit: Unsupported qrcode version (%d)."), version);
+        pgpid_error(_("Versions 1 to 3 needed an extra passphrase and are long gone."));
         return 3;
     }
 
@@ -260,7 +262,7 @@ int pgpid_action_scan(int argc, char **argv)
             if (!have[i])
                 snprintf(missing + strlen(missing), sizeof missing - strlen(missing),
                          "%s%zu", *missing ? ", " : "", i + 1);
-        pgpid_error("Error: %zu fragment(s) of the %d needed; missing: %s.",
+        pgpid_error(_("Error: %zu fragment(s) of the %d needed; missing: %s."),
                     got, needed, missing);
         return PGPID_FAIL;
     }
@@ -282,7 +284,7 @@ int pgpid_action_scan(int argc, char **argv)
         }
         const char *dec[] = { "basenc", "--decode", "--base64url", NULL };
         if (pgpid_run_program(dec, joined, secret)) {
-            pgpid_error("Error: basenc would not decode the fragments.");
+            pgpid_error(_("Error: basenc would not decode the fragments."));
             return PGPID_FAIL;
         }
     } else {
@@ -295,7 +297,7 @@ int pgpid_action_scan(int argc, char **argv)
             snprintf(share, sizeof share, "%.500s/SECRET.%.3s", workdir, parts[i]);
             const char *dec[] = { "basenc", "--decode", "--base64url", NULL };
             if (pgpid_run_program(dec, parts[i] + 3, share)) {
-                pgpid_error("Error: basenc would not decode fragment %zu.", i + 1);
+                pgpid_error(_("Error: basenc would not decode fragment %zu."), i + 1);
                 return PGPID_FAIL;
             }
         }
@@ -313,7 +315,7 @@ int pgpid_action_scan(int argc, char **argv)
         }
         comb[at] = NULL;
         if (pgpid_run_program(comb, NULL, NULL)) {
-            pgpid_error("Error: gfcombine would not put the fragments back together.");
+            pgpid_error(_("Error: gfcombine would not put the fragments back together."));
             return PGPID_FAIL;
         }
     }
@@ -323,8 +325,8 @@ int pgpid_action_scan(int argc, char **argv)
     const char *import[] = { "--batch", "--pinentry-mode", "loopback",
                              "--passphrase-fd", "0", "--import", secret, NULL };
     if (pgpid_run_engine_io(import, answer, NULL)) {
-        pgpid_error("Error: gpg would not import what came back.");
-        pgpid_error("A wrong passphrase, or fragments from two different printings.");
+        pgpid_error(_("Error: gpg would not import what came back."));
+        pgpid_error(_("A wrong passphrase, or fragments from two different printings."));
         return PGPID_FAIL;
     }
 

@@ -23,8 +23,9 @@
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " change_token_code [OPTIONS]...\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " change_token_code [OPTIONS]...\n"
         "\n"
         "Check or change the PIN, or the Admin code, of the connected security\n"
         "key. Both are needed in full: nothing here asks for what it is missing.\n"
@@ -47,14 +48,15 @@ static void usage(FILE *out)
         "- 194 Wrong code — two attempts left\n"
         "- 193 Wrong code — one attempt left\n"
         "- 192 The code is blocked\n"
-        "- other non-zero on other errors\n");
+        "- other non-zero on other errors\n"),
+            PGPID_NAME);
 }
 
 static bool first_line_of(const char *path, char *out, size_t max)
 {
     FILE *f = fopen(path, "r");
     if (!f) {
-        pgpid_error("Error: Cannot read %s.", path);
+        pgpid_error(_("Error: Cannot read %s."), path);
         return false;
     }
     if (!fgets(out, (int)max, f))
@@ -85,21 +87,21 @@ int pgpid_action_change_token_code(int argc, char **argv)
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
         if (!strcmp(a, "-p") || !strcmp(a, "--code")) {
-            if (++i >= argc) { pgpid_error("Error: '%s' wants a code.", a); return PGPID_USAGE; }
+            if (++i >= argc) { pgpid_error(_("Error: '%s' wants a code."), a); return PGPID_USAGE; }
             snprintf(current, sizeof current, "%s", argv[i]);
             current_given = true;
         } else if (!strcmp(a, "-P") || !strcmp(a, "--codefrom") || !strcmp(a, "--code-from")) {
-            if (++i >= argc) { pgpid_error("Error: '%s' wants a file.", a); return PGPID_USAGE; }
+            if (++i >= argc) { pgpid_error(_("Error: '%s' wants a file."), a); return PGPID_USAGE; }
             if (!first_line_of(argv[i], current, sizeof current))
                 return PGPID_FAIL;
             current_given = true;
         } else if (!strcmp(a, "-n") || !strcmp(a, "--newcode")) {
-            if (++i >= argc) { pgpid_error("Error: '%s' wants a code.", a); return PGPID_USAGE; }
+            if (++i >= argc) { pgpid_error(_("Error: '%s' wants a code."), a); return PGPID_USAGE; }
             snprintf(fresh, sizeof fresh, "%s", argv[i]);
             fresh_given = true;
         } else if (!strcmp(a, "-N") || !strcmp(a, "--newcodefrom")
                    || !strcmp(a, "--newcode-from")) {
-            if (++i >= argc) { pgpid_error("Error: '%s' wants a file.", a); return PGPID_USAGE; }
+            if (++i >= argc) { pgpid_error(_("Error: '%s' wants a file."), a); return PGPID_USAGE; }
             if (!first_line_of(argv[i], fresh, sizeof fresh))
                 return PGPID_FAIL;
             fresh_given = true;
@@ -121,8 +123,8 @@ int pgpid_action_change_token_code(int argc, char **argv)
         } else if (!strcmp(a, "--")) {
             continue;
         } else {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " change_token_code --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("change_token_code");
             return PGPID_USAGE;
         }
     }
@@ -132,13 +134,13 @@ int pgpid_action_change_token_code(int argc, char **argv)
     size_t length = admin ? 8 : 6;
 
     if (!current_given) {
-        pgpid_error("Error: The current %s code is needed. Give --code, or "
-                    "--codefrom to keep it off the process list.", kind);
+        pgpid_error(_("Error: The current %s code is needed. Give --code, or "
+                    "--codefrom to keep it off the process list."), kind);
         return PGPID_USAGE;
     }
     if (!only_check && !fresh_given) {
-        pgpid_error("Error: What should the code become? Give --newcode, or "
-                    "--onlycheck to only check the current one.");
+        pgpid_error(_("Error: What should the code become? Give --newcode, or "
+                    "--onlycheck to only check the current one."));
         return PGPID_USAGE;
     }
 
@@ -147,7 +149,7 @@ int pgpid_action_change_token_code(int argc, char **argv)
         return ret;
 
     if (!all_digits(current, length))
-        pgpid_error("Warning: Given %s code doesn't match %zu digits.", kind, length);
+        pgpid_error(_("Warning: Given %s code doesn't match %zu digits."), kind, length);
 
     /* Verifying is not free: a wrong code costs one of the three attempts,
      * and a right one puts the counter back to full. */
@@ -167,7 +169,7 @@ int pgpid_action_change_token_code(int argc, char **argv)
             if (pgpid_card_retries(&pin, &rc, &adm)) {
                 int left = admin ? adm : pin;
                 if (left >= 0 && left < 3) {
-                    pgpid_error("Notice: %s code: remaining retries: %d.", kind, left);
+                    pgpid_error(_("Notice: %s code: remaining retries: %d."), kind, left);
                     ret = 0xC0 + left;
                 }
             }
@@ -176,7 +178,7 @@ int pgpid_action_change_token_code(int argc, char **argv)
     }
 
     if (only_check) {
-        pgpid_error("Notice: %s code successfully verified.", kind);
+        pgpid_error(_("Notice: %s code successfully verified."), kind);
         return PGPID_OK;
     }
 
@@ -189,11 +191,11 @@ int pgpid_action_change_token_code(int argc, char **argv)
     }
 
     if (!strcmp(fresh, current)) {
-        pgpid_error("Notice: %s code unchanged.", kind);
+        pgpid_error(_("Notice: %s code unchanged."), kind);
         return PGPID_OK;
     }
     if (!all_digits(fresh, length)) {
-        pgpid_error("Error: Given %s code doesn't match %zu digits.", kind, length);
+        pgpid_error(_("Error: Given %s code doesn't match %zu digits."), kind, length);
         return PGPID_USAGE;
     }
 
@@ -212,7 +214,7 @@ int pgpid_action_change_token_code(int argc, char **argv)
     if (ret)
         return ret;
 
-    pgpid_error("Notice: %s code successfully %s.", kind,
+    pgpid_error(_("Notice: %s code successfully %s."), kind,
                 unblock ? "unblocked" : "changed");
     return PGPID_OK;
 }

@@ -170,12 +170,12 @@ static int resolve_key(const char *pattern, char *out, size_t max)
     gpgme_ctx_t ctx = NULL;
     gpgme_error_t err = pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL);
     if (err) {
-        pgpid_gpgme_error("opening the engine", err);
+        pgpid_gpgme_error(_("opening the engine"), err);
         return PGPID_FAIL;
     }
     err = gpgme_op_keylist_start(ctx, pattern, pattern ? 0 : 1);
     if (err) {
-        pgpid_gpgme_error("looking the certificate up", err);
+        pgpid_gpgme_error(_("looking the certificate up"), err);
         gpgme_release(ctx);
         return PGPID_FAIL;
     }
@@ -191,7 +191,7 @@ static int resolve_key(const char *pattern, char *out, size_t max)
             if (candidate)
                 gpgme_key_unref(candidate);
             gpgme_release(ctx);
-            pgpid_gpgme_error("reading the certificate", err);
+            pgpid_gpgme_error(_("reading the certificate"), err);
             return PGPID_FAIL;
         }
         matches++;
@@ -213,11 +213,11 @@ static int resolve_key(const char *pattern, char *out, size_t max)
 
     int ret = PGPID_OK;
     if (!matches) {
-        pgpid_error("Error: No certificate %s.",
+        pgpid_error(_("Error: No certificate %s."),
                     pattern ? "matching that search" : "with a secret key at hand");
         ret = PGPID_NOTHING;
     } else if (matches > 1 && on_card != 1) {
-        pgpid_error("Error: %u certificates match; name one.", matches);
+        pgpid_error(_("Error: %u certificates match; name one."), matches);
         ret = PGPID_USAGE;
     } else if (candidate->subkeys && candidate->subkeys->fpr) {
         snprintf(out, max, "%s", candidate->subkeys->fpr);
@@ -244,21 +244,21 @@ static int do_ksprefrd(const char *fpr, const char *add, bool revoking,
                        const char *keyservers)
 {
     if (revoking) {
-        pgpid_error("Error: 'ksprefrd' cannot be revoked — it is a subpacket of a "
-                    "signature, not a uid. Set another value instead.");
+        pgpid_error(_("Error: 'ksprefrd' cannot be revoked — it is a subpacket of a "
+                    "signature, not a uid. Set another value instead."));
         return PGPID_USAGE;
     }
 
     if (add) {
         if (strncmp(add, "hkp://", 6) && strncmp(add, "hkps://", 7)) {
-            pgpid_error("Error: 'ksprefrd' must start with hkp:// or hkps:// (%s).", add);
+            pgpid_error(_("Error: 'ksprefrd' must start with hkp:// or hkps:// (%s)."), add);
             return PGPID_USAGE;
         }
         char script[1200];
         snprintf(script, sizeof script, "uid 1\nkeyserver\n%.1023s\ny\nprimary\nsave\n", add);
         const char *argv[] = { "--batch", "--command-fd", "0", "--edit-key", fpr, NULL };
         if (pgpid_run_engine_input(argv, script)) {
-            pgpid_error("Error: Cannot set the preferred keyserver — right PIN?");
+            pgpid_error(_("Error: Cannot set the preferred keyserver — right PIN?"));
             return PGPID_FAIL;
         }
         return pgpid_send_to_keyservers(fpr, keyservers ? keyservers : PGPID_KEYSERVERS);
@@ -280,7 +280,7 @@ static int do_ksprefrd(const char *fpr, const char *add, bool revoking,
     }
     gpgme_release(ctx);
     if (!raw) {
-        pgpid_error("Error: Cannot export %s.", fpr);
+        pgpid_error(_("Error: Cannot export %s."), fpr);
         return PGPID_FAIL;
     }
     char *ks = pgpid_preferred_keyserver(raw, len, fpr);
@@ -298,8 +298,9 @@ static int do_ksprefrd(const char *fpr, const char *add, bool revoking,
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " property NAME [OPTIONS]... [SEARCH]\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " property NAME [OPTIONS]... [SEARCH]\n"
         "\n"
         "Show the values of one vCard property carried by a certificate, one per\n"
         "line, or add and revoke them. Without SEARCH, the certificate is the one\n"
@@ -310,7 +311,9 @@ static void usage(FILE *out)
         "A certificate always keeps at least one name.\n"
         "\n"
         "Addresses are not vCard properties — they keep the 'Name <addr>' shape\n"
-        "every mail client reads. Use '" PGPID_NAME " email' for those.\n"
+        "every mail client reads. Use '"
+        "%s"
+        " email' for those.\n"
         "\n"
         "'ksprefrd' is the certificate server this certificate names as its own.\n"
         "It is a signature subpacket rather than a uid, so it can be replaced but\n"
@@ -324,12 +327,15 @@ static void usage(FILE *out)
         "  -y, --yes                   Assume yes: skip the irreversibility warning\n"
         "      --show-unusable         Also show the values that no longer stand\n"
         "  -K, --keyservers SERVERS    Send the changed certificate to these\n"
-        "                              Empty for none. Default: " PGPID_KEYSERVERS "\n"
+        "                              Empty for none. Default: "
+        "%s"
+        "\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"
         "\n"
         "Revoking is irreversible: OpenPGP keeps the uid on the certificate\n"
-        "forever, marked revoked, and an identical one can never be added again.\n");
+        "forever, marked revoked, and an identical one can never be added again.\n"),
+            PGPID_NAME, PGPID_NAME, PGPID_KEYSERVERS);
 }
 
 int pgpid_action_property(int argc, char **argv)
@@ -345,11 +351,11 @@ int pgpid_action_property(int argc, char **argv)
             || !strcmp(a, "-R") || !strcmp(a, "--rev") || !strcmp(a, "--revoke")) {
             bool adding = strcmp(a, "-R") && strcmp(a, "--rev") && strcmp(a, "--revoke");
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a value.", a);
+                pgpid_error(_("Error: '%s' wants a value."), a);
                 return PGPID_USAGE;
             }
             if ((adding ? nadd : nrev) >= 16) {
-                pgpid_error("Error: Too many values at once.");
+                pgpid_error(_("Error: Too many values at once."));
                 return PGPID_USAGE;
             }
             snprintf(adding ? toadd[nadd++] : torev[nrev++], 1024, "%s", argv[i]);
@@ -361,7 +367,7 @@ int pgpid_action_property(int argc, char **argv)
             show_unusable = true;
         } else if (!strcmp(a, "-K") || !strcmp(a, "--keyservers")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a list, empty for none.", a);
+                pgpid_error(_("Error: '%s' wants a list, empty for none."), a);
                 return PGPID_USAGE;
             }
             keyservers = argv[i];
@@ -374,20 +380,20 @@ int pgpid_action_property(int argc, char **argv)
         } else if (!strcmp(a, "--")) {
             continue;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " property --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("property");
             return PGPID_USAGE;
         } else if (!name) {
             name = a;
         } else if (!pattern) {
             pattern = a;
         } else {
-            pgpid_error("Warning: Ignoring extra argument '%s'.", a);
+            pgpid_error(_("Warning: Ignoring extra argument '%s'."), a);
         }
     }
 
     if (!name) {
-        pgpid_error("Error: A property name is required.");
+        pgpid_error(_("Error: A property name is required."));
         usage(stderr);
         return PGPID_USAGE;
     }
@@ -407,16 +413,16 @@ int pgpid_action_property(int argc, char **argv)
             break;
         }
         if (!vcard) {
-            pgpid_error("Error: Unknown property '%s'.", name);
-            pgpid_error("Notice: One of name, note, phone, address, url, lang, geo, "
-                        KSPREFRD ".");
+            pgpid_error(_("Error: Unknown property '%s'."), name);
+            pgpid_error(_("Notice: One of name, note, phone, address, url, lang, geo, %s."),
+                        KSPREFRD);
             return PGPID_USAGE;
         }
     }
 
     if (singular && nadd > 1) {
-        pgpid_error("Error: Only one --add at a time for '%s' — the new value "
-                    "replaces the one before, and two would race.", name);
+        pgpid_error(_("Error: Only one --add at a time for '%s' — the new value "
+                    "replaces the one before, and two would race."), name);
         return PGPID_USAGE;
     }
 
@@ -427,7 +433,7 @@ int pgpid_action_property(int argc, char **argv)
 
     if (is_ks) {
         if (nadd > 1) {
-            pgpid_error("Error: Only one --add at a time for '" KSPREFRD "'.");
+            pgpid_error(_("Error: Only one --add at a time for '%s'."), KSPREFRD);
             return PGPID_USAGE;
         }
         return do_ksprefrd(fpr, nadd ? toadd[0] : NULL, nrev || revoke_all, keyservers);
@@ -448,7 +454,7 @@ int pgpid_action_property(int argc, char **argv)
     }
     for (size_t i = 0; i < nadd; i++) {
         if (!value_is_sound(vcard, toadd[i])) {
-            pgpid_error("Error: Invalid %s value '%s'.", vcard, toadd[i]);
+            pgpid_error(_("Error: Invalid %s value '%s'."), vcard, toadd[i]);
             return PGPID_USAGE;
         }
     }
@@ -462,7 +468,7 @@ int pgpid_action_property(int argc, char **argv)
             return PGPID_FAIL;
         nuids = pgpid_list_uids(fpr, true, uids, 256);
         if (!nuids) {
-            pgpid_error("Error: No editable certificate %s here.", fpr);
+            pgpid_error(_("Error: No editable certificate %s here."), fpr);
             return PGPID_FAIL;
         }
     }
@@ -488,19 +494,19 @@ int pgpid_action_property(int argc, char **argv)
                 struck = true;
         }
         if (here) {
-            pgpid_error("Notice: Certificate %s already carries '%s'.", fpr, want);
+            pgpid_error(_("Notice: Certificate %s already carries '%s'."), fpr, want);
             continue;
         }
         if (struck) {
-            pgpid_error("Notice: '%s' was revoked earlier and cannot be added again "
+            pgpid_error(_("Notice: '%s' was revoked earlier and cannot be added again "
                         "— OpenPGP keeps revoked User IDs on the certificate "
-                        "forever.", want);
+                        "forever."), want);
             continue;
         }
-        pgpid_error("Notice: Adding '%s' into certificate %s…", want, fpr);
+        pgpid_error(_("Notice: Adding '%s' into certificate %s…"), want, fpr);
         const char *add[] = { "--batch", "--quick-add-uid", fpr, want, NULL };
         if (pgpid_run_engine(add)) {
-            pgpid_error("Error: gpg would not add '%s'.", want);
+            pgpid_error(_("Error: gpg would not add '%s'."), want);
             return PGPID_FAIL;
         }
         modified = true;
@@ -527,12 +533,12 @@ int pgpid_action_property(int argc, char **argv)
                 snprintf(victims[matched++], sizeof victims[0], "%.511s", uids[i].text);
         }
         if (!matched) {
-            pgpid_error("Error: No revokable '%s:%s' inside certificate %s.",
+            pgpid_error(_("Error: No revokable '%s:%s' inside certificate %s."),
                         vcard, torev[r], fpr);
             return PGPID_FAIL;
         }
         if (keepone && current - matched < 1) {
-            pgpid_error("Error: At least one %s must be retained.", vcard);
+            pgpid_error(_("Error: At least one %s must be retained."), vcard);
             return PGPID_FAIL;
         }
         for (size_t i = 0; i < matched; i++)
@@ -555,7 +561,7 @@ int pgpid_action_property(int argc, char **argv)
             }
         }
         if (n - (keep != (size_t)-1 ? 1 : 0) < 1) {
-            pgpid_error("Warning: Nothing to revoke.");
+            pgpid_error(_("Warning: Nothing to revoke."));
         } else {
             for (size_t i = 0; i < nuids; i++) {
                 if (i == keep)

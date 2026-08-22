@@ -28,8 +28,9 @@
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " print_card [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " print_card [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
         "\n"
         "Produce or print a PGP ID sticker or business card. Without a target,\n"
         "the certificate the connected card belongs to.\n"
@@ -44,7 +45,8 @@ static void usage(FILE *out)
         "  -N, --name NAME               Override the displayed name\n"
         "  -g, --no-color                Grayscale instead of colour\n"
         "  -h, --help                    Print this help and exit\n"
-        "  -V, --version                 Print the version and exit\n");
+        "  -V, --version                 Print the version and exit\n"),
+            PGPID_NAME);
 }
 
 /** Replace every occurrence of KEY by VALUE. Caller frees. */
@@ -110,19 +112,19 @@ int pgpid_action_print_card(int argc, char **argv)
         const char *a = argv[i];
         if (!strcmp(a, "-P") || !strcmp(a, "--print") || !strcmp(a, "--printer")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a printer or an SVG file.", a);
+                pgpid_error(_("Error: '%s' wants a printer or an SVG file."), a);
                 return PGPID_USAGE;
             }
             printer = argv[i];
         } else if (!strcmp(a, "-t") || !strcmp(a, "--template")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a template.", a);
+                pgpid_error(_("Error: '%s' wants a template."), a);
                 return PGPID_USAGE;
             }
             template_path = argv[i];
         } else if (!strcmp(a, "-N") || !strcmp(a, "--name") || !strcmp(a, "--usename")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a name.", a);
+                pgpid_error(_("Error: '%s' wants a name."), a);
                 return PGPID_USAGE;
             }
             given_name = argv[i];
@@ -138,8 +140,8 @@ int pgpid_action_print_card(int argc, char **argv)
         } else if (!strcmp(a, "--")) {
             continue;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " print_card --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("print_card");
             return PGPID_USAGE;
         } else if (!target) {
             target = a;
@@ -161,8 +163,8 @@ int pgpid_action_print_card(int argc, char **argv)
     if (!pattern) {
         if (!pgpid_card_certification_key(card_key, sizeof card_key)) {
             gpgme_release(ctx);
-            pgpid_error("Error: No card answered, so there is no certificate to print.");
-            pgpid_error("Name one instead.");
+            pgpid_error(_("Error: No card answered, so there is no certificate to print."));
+            pgpid_error(_("Name one instead."));
             return PGPID_FAIL;
         }
         pattern = card_key;
@@ -198,22 +200,22 @@ int pgpid_action_print_card(int argc, char **argv)
             }
         }
         if (!kept) {
-            pgpid_error("Error: No usable certificate for %s.", email);
+            pgpid_error(_("Error: No usable certificate for %s."), email);
             return PGPID_FAIL;
         }
         if (kept > 1) {
-            pgpid_error("Error: Email %s matches several certificates that still "
-                        "stand by it (%zu).", email, kept);
+            pgpid_error(_("Error: Email %s matches several certificates that still "
+                        "stand by it (%zu)."), email, kept);
             return PGPID_FAIL;
         }
         snprintf(fpr, sizeof fpr, "%s", keeper);
     } else {
         if (!ncand) {
-            pgpid_error("Error: No certificate matches '%s'.", pattern);
+            pgpid_error(_("Error: No certificate matches '%s'."), pattern);
             return PGPID_FAIL;
         }
         if (ncand > 1) {
-            pgpid_error("Error: '%s' matches %zu certificates. Name one.", pattern, ncand);
+            pgpid_error(_("Error: '%s' matches %zu certificates. Name one."), pattern, ncand);
             return PGPID_FAIL;
         }
         snprintf(fpr, sizeof fpr, "%s", candidates[0]);
@@ -237,10 +239,10 @@ int pgpid_action_print_card(int argc, char **argv)
             }
         }
         if (!*email) {
-            pgpid_error("Error: No usable (non-revoked) email in certificate %s.", fpr);
+            pgpid_error(_("Error: No usable (non-revoked) email in certificate %s."), fpr);
             return PGPID_FAIL;
         }
-        pgpid_error("Notice: Picking most recent email %s.", email);
+        pgpid_error(_("Notice: Picking most recent email %s."), email);
     }
 
     /* The name: what was asked for, else the certificate's own FN:, else the
@@ -291,7 +293,7 @@ int pgpid_action_print_card(int argc, char **argv)
 
     char workdir[512] = "/tmp/pgpid-card.XXXXXX";
     if (!mkdtemp(workdir)) {
-        pgpid_error("Error: Cannot make a working directory.");
+        pgpid_error(_("Error: Cannot make a working directory."));
         return PGPID_FAIL;
     }
 
@@ -303,12 +305,12 @@ int pgpid_action_print_card(int argc, char **argv)
     snprintf(png, sizeof png, "%.500s/qr.png", workdir);
     const char *qr[] = { "qrencode", "--output", png, "--", url, NULL };
     if (pgpid_run_program(qr, NULL, NULL)) {
-        pgpid_error("Error: qrencode would not draw the code.");
+        pgpid_error(_("Error: qrencode would not draw the code."));
         return PGPID_FAIL;
     }
     FILE *f = fopen(png, "rb");
     if (!f) {
-        pgpid_error("Error: Cannot read the code back.");
+        pgpid_error(_("Error: Cannot read the code back."));
         return PGPID_FAIL;
     }
     static unsigned char raw[262144];
@@ -322,7 +324,7 @@ int pgpid_action_print_card(int argc, char **argv)
     if (template_path) {
         FILE *t = fopen(template_path, "r");
         if (!t) {
-            pgpid_error("Error: Card template '%s' is not readable.", template_path);
+            pgpid_error(_("Error: Card template '%s' is not readable."), template_path);
             return PGPID_FAIL;
         }
         static char buf[262144];
@@ -379,7 +381,7 @@ int pgpid_action_print_card(int argc, char **argv)
     FILE *out = fopen(svg, "w");
     if (!out) {
         free(body);
-        pgpid_error("Error: Cannot write the card.");
+        pgpid_error(_("Error: Cannot write the card."));
         return PGPID_FAIL;
     }
     fputs(body, out);
@@ -393,7 +395,7 @@ int pgpid_action_print_card(int argc, char **argv)
         if (!src || !dst) {
             if (src) fclose(src);
             if (dst) fclose(dst);
-            pgpid_error("Error: Cannot write %s.", printer);
+            pgpid_error(_("Error: Cannot write %s."), printer);
             return PGPID_FAIL;
         }
         char chunk[4096];
@@ -401,13 +403,13 @@ int pgpid_action_print_card(int argc, char **argv)
             fwrite(chunk, 1, n, dst);
         fclose(src);
         fclose(dst);
-        pgpid_error("Notice: Wrote SVG to %s.", printer);
+        pgpid_error(_("Notice: Wrote SVG to %s."), printer);
         return PGPID_OK;
     }
 
     if (!printer) {
-        pgpid_error("Error: Where should this go? Name a printer, or a file ending");
-        pgpid_error("in '.svg' to keep it.");
+        pgpid_error(_("Error: Where should this go? Name a printer, or a file ending"));
+        pgpid_error(_("in '.svg' to keep it."));
         return PGPID_USAGE;
     }
 
@@ -418,7 +420,7 @@ int pgpid_action_print_card(int argc, char **argv)
     const char *render[] = { "rsvg-convert", "--format=pdf",
                              "--output", single, svg, NULL };
     if (pgpid_run_program(render, NULL, NULL)) {
-        pgpid_error("Error: rsvg-convert would not render the card.");
+        pgpid_error(_("Error: rsvg-convert would not render the card."));
         return PGPID_FAIL;
     }
 
@@ -436,22 +438,22 @@ int pgpid_action_print_card(int argc, char **argv)
     unite[at++] = duped;
     unite[at] = NULL;
     if (pgpid_run_program(unite, NULL, NULL)) {
-        pgpid_error("Error: pdfunite would not repeat the card.");
+        pgpid_error(_("Error: pdfunite would not repeat the card."));
         return PGPID_FAIL;
     }
     const char *jam[] = { "pdfjam", "--quiet", "--paper", "a4paper", "--landscape",
                           "--nup", nup, "--noautoscale", "true",
                           "--outfile", page, duped, NULL };
     if (pgpid_run_program(jam, NULL, NULL)) {
-        pgpid_error("Error: pdfjam would not lay the page out.");
+        pgpid_error(_("Error: pdfjam would not lay the page out."));
         return PGPID_FAIL;
     }
 
-    pgpid_error("Notice: Printing %s %s on %s…", nup,
+    pgpid_error(_("Notice: Printing %s %s on %s…"), nup,
                 template_path ? template_path : "sticker", printer);
     const char *lpr[] = { "lpr", "-P", printer, page, NULL };
     if (pgpid_run_program(lpr, NULL, NULL)) {
-        pgpid_error("Error: lpr would not print the page.");
+        pgpid_error(_("Error: lpr would not print the page."));
         return PGPID_FAIL;
     }
     return PGPID_OK;

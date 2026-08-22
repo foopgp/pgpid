@@ -37,8 +37,9 @@
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " certify [OPTIONS]... KEYFPR [U4|U5]\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " certify [OPTIONS]... KEYFPR [U4|U5]\n"
         "\n"
         "Vouch for somebody else: state that this certificate is theirs.\n"
         "\n"
@@ -60,7 +61,9 @@ static void usage(FILE *out)
         "                                {undefined,marginal,full,never} - Default: marginal\n"
         "  -l, --local                   Certify without exporting — useful for testing\n"
         "  -K, --keyservers SERVERS      Send the result to these, space separated\n"
-        "                                Empty for none. Default: " PGPID_KEYSERVERS "\n"
+        "                                Empty for none. Default: "
+        "%s"
+        "\n"
         "  -h, --help                    Print this help and exit\n"
         "  -V, --version                 Print the version and exit\n"
         "\n"
@@ -70,8 +73,8 @@ static void usage(FILE *out)
         "- %d Nothing to certify with — say which key with --use-privkey\n"
         "- %d No certificate carries that fingerprint\n"
         "- %d Self-certification is not innovative! ;-)\n"
-        "- %d That certificate does not carry that identifier\n",
-        CERT_NO_PRIVKEY, CERT_NO_CERT, CERT_SELF, CERT_NO_MATCH);
+        "- %d That certificate does not carry that identifier\n"),
+            PGPID_NAME, PGPID_KEYSERVERS, CERT_NO_PRIVKEY, CERT_NO_CERT, CERT_SELF, CERT_NO_MATCH);
 }
 
 /**
@@ -109,8 +112,8 @@ static int signing_key(const char *given, char *out, size_t max)
     if (!given) {
         if (pgpid_card_certification_key(out, max))
             return PGPID_OK;
-        pgpid_error("Error: No card answered, so there is nothing to certify with.");
-        pgpid_error("Say which key with --use-privkey.");
+        pgpid_error(_("Error: No card answered, so there is nothing to certify with."));
+        pgpid_error(_("Say which key with --use-privkey."));
         return CERT_NO_PRIVKEY;
     }
 
@@ -118,7 +121,7 @@ static int signing_key(const char *given, char *out, size_t max)
     const char *argv[] = { "--list-options", "show-only-fpr-mbox",
                            "--list-secret-keys", given, NULL };
     if (pgpid_capture_engine(argv, listing, sizeof listing) < 0) {
-        pgpid_error("Error: Cannot list the secret keys.");
+        pgpid_error(_("Error: Cannot list the secret keys."));
         return PGPID_FAIL;
     }
 
@@ -136,7 +139,7 @@ static int signing_key(const char *given, char *out, size_t max)
         snprintf(found, sizeof found, "%s", fpr);
     }
     if (!*found || several) {
-        pgpid_error("Error: '%s' names %s secret key.", given,
+        pgpid_error(_("Error: '%s' names %s secret key."), given,
                     several ? "more than one" : "no");
         return PGPID_FAIL;
     }
@@ -279,7 +282,7 @@ int pgpid_action_certify(int argc, char **argv)
         const char *a = argv[i];
         if (!strcmp(a, "-u") || !strcmp(a, "--use-privkey")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a key.", a);
+                pgpid_error(_("Error: '%s' wants a key."), a);
                 return PGPID_USAGE;
             }
             privkey = argv[i];
@@ -292,18 +295,18 @@ int pgpid_action_certify(int argc, char **argv)
             local = true;
         } else if (!strcmp(a, "-o") || !strcmp(a, "--ownertrust")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a value.", a);
+                pgpid_error(_("Error: '%s' wants a value."), a);
                 return PGPID_USAGE;
             }
             ownertrust = argv[i];
             if (strcmp(ownertrust, "undefined") && strcmp(ownertrust, "marginal")
                 && strcmp(ownertrust, "full") && strcmp(ownertrust, "never")) {
-                pgpid_error("Error: Unknown ownertrust value '%s'.", ownertrust);
+                pgpid_error(_("Error: Unknown ownertrust value '%s'."), ownertrust);
                 return PGPID_USAGE;
             }
         } else if (!strcmp(a, "-K") || !strcmp(a, "--keyservers")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a list, empty for none.", a);
+                pgpid_error(_("Error: '%s' wants a list, empty for none."), a);
                 return PGPID_USAGE;
             }
             keyservers = argv[i];
@@ -316,8 +319,8 @@ int pgpid_action_certify(int argc, char **argv)
         } else if (!strcmp(a, "--")) {
             continue;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " certify --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("certify");
             return PGPID_USAGE;
         } else if (pgpid_is_fingerprint(a)) {
             for (size_t k = 0; a[k] && k < 40; k++)
@@ -326,14 +329,14 @@ int pgpid_action_certify(int argc, char **argv)
         } else if (pgpid_eid_body_is_sound(a)) {
             snprintf(eid, sizeof eid, "%s", a);
         } else {
-            pgpid_error("Error: '%s' is neither a fingerprint nor an identifier.", a);
+            pgpid_error(_("Error: '%s' is neither a fingerprint nor an identifier."), a);
             return PGPID_USAGE;
         }
     }
 
     if (!*target) {
-        pgpid_error("Error: Which certificate? A whole fingerprint is required —");
-        pgpid_error("a certification cannot be taken back, so it is never guessed.");
+        pgpid_error(_("Error: Which certificate? A whole fingerprint is required —"));
+        pgpid_error(_("a certification cannot be taken back, so it is never guessed."));
         usage(stderr);
         return PGPID_USAGE;
     }
@@ -364,7 +367,7 @@ int pgpid_action_certify(int argc, char **argv)
         char fprs[64][41];
         size_t n = candidates_for(head, fprs, 64);
         if (!n) {
-            pgpid_error("Error: Nobody here carries '%s'.", eid);
+            pgpid_error(_("Error: Nobody here carries '%s'."), eid);
             return CERT_NO_CERT;
         }
         bool among = false;
@@ -372,18 +375,18 @@ int pgpid_action_certify(int argc, char **argv)
             if (!strcmp(fprs[i], target))
                 among = true;
         if (!among) {
-            pgpid_error("Error: %s carries '%s', and %s does not.",
+            pgpid_error(_("Error: %s carries '%s', and %s does not."),
                         n == 1 ? "One certificate" : "Several certificates",
                         eid, target);
             return CERT_NO_MATCH;
         }
     } else if (!key_is_here(target)) {
-        pgpid_error("Error: No certificate here carries %s.", target);
+        pgpid_error(_("Error: No certificate here carries %s."), target);
         return CERT_NO_CERT;
     }
 
     if (!strcmp(target, mine)) {
-        pgpid_error("Warning: Self-certification is not innovative! ;-)");
+        pgpid_error(_("Warning: Self-certification is not innovative! ;-)"));
         return CERT_SELF;
     }
 
@@ -392,10 +395,10 @@ int pgpid_action_certify(int argc, char **argv)
                                 uids, MAX_UIDS);
     if (!nuids) {
         if (*eid) {
-            pgpid_error("Error: %s carries no usable uid for '%s'.", target, eid);
+            pgpid_error(_("Error: %s carries no usable uid for '%s'."), target, eid);
             return CERT_NO_MATCH;
         }
-        pgpid_error("Crit: %s carries no identity uid — the certificate looks broken.",
+        pgpid_error(_("Crit: %s carries no identity uid — the certificate looks broken."),
                     target);
         return PGPID_FAIL;
     }
@@ -408,7 +411,7 @@ int pgpid_action_certify(int argc, char **argv)
 
     if (revoke) {
         if (ownertrust)
-            pgpid_error("Info: --ownertrust means nothing when revoking; ignored.");
+            pgpid_error(_("Info: --ownertrust means nothing when revoking; ignored."));
         args[at++] = "--quick-revoke-sig";
         args[at++] = target;
         args[at++] = mine;
@@ -428,10 +431,10 @@ int pgpid_action_certify(int argc, char **argv)
         return PGPID_FAIL;
 
     if (revoke)
-        pgpid_error("Notice: gpg reported no error, which does not mean it found "
-                    "a certification to revoke.");
+        pgpid_error(_("Notice: gpg reported no error, which does not mean it found "
+                    "a certification to revoke."));
     else
-        pgpid_error("Notice: Signed %zu uid(s) of certificate %s.", nuids, target);
+        pgpid_error(_("Notice: Signed %zu uid(s) of certificate %s."), nuids, target);
 
     /* Ownertrust answers a different question — how well this one certifies
      * others — and is set alongside because nobody remembers to do it after. */

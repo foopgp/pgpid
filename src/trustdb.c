@@ -35,8 +35,9 @@
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " update_trustdb [OPTIONS]... [OWNERTRUST.GPG]...\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " update_trustdb [OPTIONS]... [OWNERTRUST.GPG]...\n"
         "\n"
         "Recompute GnuPG's trust database, after applying the delegations the\n"
         "given files carry.\n"
@@ -50,7 +51,8 @@ static void usage(FILE *out)
         "      --batch                 Recompute without asking about the remaining keys\n"
         "  -q, --quiet                 Only errors and warnings\n"
         "  -h, --help                  Print this help and exit\n"
-        "  -V, --version               Print the version and exit\n");
+        "  -V, --version               Print the version and exit\n"),
+            PGPID_NAME);
 }
 
 struct delegation {
@@ -117,7 +119,7 @@ static bool read_delegation(struct delegation *d, char *const own[], size_t nown
     char status_path[] = "/tmp/pgpid-status-XXXXXX";
     int fd = mkstemp(status_path);
     if (fd < 0) {
-        pgpid_error("Error: Cannot make a temporary file.");
+        pgpid_error(_("Error: Cannot make a temporary file."));
         return false;
     }
     close(fd);
@@ -136,8 +138,8 @@ static bool read_delegation(struct delegation *d, char *const own[], size_t nown
     unlink(status_path);
 
     if (got < 0) {
-        pgpid_error("Error: Cannot read or verify %s (missing, not signed, or bad "
-                    "signature?).", d->path);
+        pgpid_error(_("Error: Cannot read or verify %s (missing, not signed, or bad "
+                    "signature?)."), d->path);
         return false;
     }
 
@@ -158,7 +160,7 @@ static bool read_delegation(struct delegation *d, char *const own[], size_t nown
         break;
     }
     if (!*d->signer) {
-        pgpid_error("Error: %s carries no verifiable signature (signer key missing?).",
+        pgpid_error(_("Error: %s carries no verifiable signature (signer key missing?)."),
                     d->path);
         return false;
     }
@@ -170,15 +172,15 @@ static bool read_delegation(struct delegation *d, char *const own[], size_t nown
         time_t t = (time_t)d->signed_at;
         gmtime_r(&t, &tm);
         strftime(when, sizeof when, "%Y-%m-%d", &tm);
-        pgpid_error("Warning: %s is signed in the future (%s) — is the local clock "
-                    "right?", d->path, when);
+        pgpid_error(_("Warning: %s is signed in the future (%s) — is the local clock "
+                    "right?"), d->path, when);
     } else if (d->signed_at && d->signed_at < now - YEAR_SECONDS) {
         char when[32];
         struct tm tm;
         time_t t = (time_t)d->signed_at;
         gmtime_r(&t, &tm);
         strftime(when, sizeof when, "%Y-%m-%d", &tm);
-        pgpid_error("Warning: %s carries a delegation older than a year (%s).",
+        pgpid_error(_("Warning: %s carries a delegation older than a year (%s)."),
                     d->path, when);
     }
 
@@ -192,13 +194,13 @@ static bool read_delegation(struct delegation *d, char *const own[], size_t nown
         if (!*line || *line == '#')
             continue;
         if (!looks_like_ownertrust(line)) {
-            pgpid_error("Error: %s is not a valid ownertrust file.", d->path);
+            pgpid_error(_("Error: %s is not a valid ownertrust file."), d->path);
             return false;
         }
         any = true;
     }
     if (!any) {
-        pgpid_error("Error: %s is not a valid ownertrust file.", d->path);
+        pgpid_error(_("Error: %s is not a valid ownertrust file."), d->path);
         return false;
     }
 
@@ -241,13 +243,13 @@ static void report_change(const char *before, const char *after)
     char b[1048576], a[1048576];
     snprintf(b, sizeof b, "%s", before);
     snprintf(a, sizeof a, "%s", after);
-    pgpid_error("Info: ownertrust changes:");
+    pgpid_error(_("Info: ownertrust changes:"));
     for (char *line = b, *save; (line = strtok_r(line, "\n", &save)); line = NULL)
         if (!strstr(after, line))
-            pgpid_error("  - %s", line);
+            pgpid_error(_("  - %s"), line);
     for (char *line = a, *save; (line = strtok_r(line, "\n", &save)); line = NULL)
         if (!strstr(before, line))
-            pgpid_error("  + %s", line);
+            pgpid_error(_("  + %s"), line);
 }
 
 int pgpid_action_update_trustdb(int argc, char **argv)
@@ -271,13 +273,13 @@ int pgpid_action_update_trustdb(int argc, char **argv)
         } else if (!strcmp(a, "--")) {
             continue;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " update_trustdb --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("update_trustdb");
             return PGPID_USAGE;
         } else if (nfiles < MAX_FILES) {
             files[nfiles++] = a;
         } else {
-            pgpid_error("Error: Too many files at once.");
+            pgpid_error(_("Error: Too many files at once."));
             return PGPID_USAGE;
         }
     }
@@ -340,8 +342,8 @@ int pgpid_action_update_trustdb(int argc, char **argv)
 
         if (!differs) {
             if (!quiet)
-                pgpid_error("Info: The delegations are already applied — ownertrust "
-                            "left unchanged.");
+                pgpid_error(_("Info: The delegations are already applied — ownertrust "
+                            "left unchanged."));
         } else {
             char dir[512], path[600];
             const char *home = pgpid_homedir;
@@ -361,24 +363,24 @@ int pgpid_action_update_trustdb(int argc, char **argv)
             if (bk) {
                 fputs(before, bk);
                 fclose(bk);
-                pgpid_error("Notice: Current ownertrust backed up in %s.", path);
+                pgpid_error(_("Notice: Current ownertrust backed up in %s."), path);
             } else {
-                pgpid_error("Warning: Cannot write the backup %s — going ahead "
-                            "anyway would leave no way back. Stopping.", path);
+                pgpid_error(_("Warning: Cannot write the backup %s — going ahead "
+                            "anyway would leave no way back. Stopping."), path);
                 free(before);
                 return PGPID_FAIL;
             }
 
             for (size_t i = 0; i < nfiles; i++) {
                 if (!signer_is_valid(d[i].signer)) {
-                    pgpid_error("Error: Delegation chain broken: the signer of %s is "
-                                "not (yet) valid.", d[i].path);
+                    pgpid_error(_("Error: Delegation chain broken: the signer of %s is "
+                                "not (yet) valid."), d[i].path);
                     free(before);
                     return PGPID_FAIL;
                 }
                 const char *imp[] = { "--import-ownertrust", NULL };
                 if (pgpid_run_engine_input(imp, d[i].content)) {
-                    pgpid_error("Error: gpg would not import the delegation from %s.",
+                    pgpid_error(_("Error: gpg would not import the delegation from %s."),
                                 d[i].path);
                     free(before);
                     return PGPID_FAIL;
@@ -392,8 +394,8 @@ int pgpid_action_update_trustdb(int argc, char **argv)
                     free(after);
                 }
             }
-            pgpid_error("Notice: To restore the previous trust: "
-                        "gpg --import-ownertrust %s", path);
+            pgpid_error(_("Notice: To restore the previous trust: "
+                        "gpg --import-ownertrust %s"), path);
         }
         free(before);
     }

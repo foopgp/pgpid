@@ -31,14 +31,16 @@
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " totoken [OPTIONS]... KEY\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " totoken [OPTIONS]... KEY\n"
         "\n"
         "Move an OpenPGP secret key onto the connected security key, and print the\n"
         "certificate, the new PIN and the new Admin code.\n"
         "\n"
         "This wipes the card and takes the secret parts off this machine. Both are\n"
-        "final. Print the key first if it is not printed: " PGPID_NAME
+        "final. Print the key first if it is not printed: "
+        "%s"
         " print_secret.\n"
         "\n"
         "OPTIONS:\n"
@@ -52,14 +54,15 @@ static void usage(FILE *out)
         "  -K, --pubkey FILE            Also write the armored certificate to FILE\n"
         "      --force                  Wipe a card that is not blank\n"
         "  -h, --help                   Print this help and exit\n"
-        "  -V, --version                Print the version and exit\n");
+        "  -V, --version                Print the version and exit\n"),
+            PGPID_NAME, PGPID_NAME);
 }
 
 static bool first_line_of(const char *path, char *out, size_t max)
 {
     FILE *f = fopen(path, "r");
     if (!f) {
-        pgpid_error("Error: Cannot read %s.", path);
+        pgpid_error(_("Error: Cannot read %s."), path);
         return false;
     }
     if (!fgets(out, (int)max, f))
@@ -110,32 +113,32 @@ int pgpid_action_totoken(int argc, char **argv)
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
         if (!strcmp(a, "-p") || !strcmp(a, "--passphrase")) {
-            if (++i >= argc) { pgpid_error("Error: '%s' wants a passphrase.", a); return PGPID_USAGE; }
+            if (++i >= argc) { pgpid_error(_("Error: '%s' wants a passphrase."), a); return PGPID_USAGE; }
             snprintf(passphrase, sizeof passphrase, "%s", argv[i]);
         } else if (!strcmp(a, "-P") || !strcmp(a, "--passfrom") || !strcmp(a, "--pass-from")) {
-            if (++i >= argc) { pgpid_error("Error: '%s' wants a file.", a); return PGPID_USAGE; }
+            if (++i >= argc) { pgpid_error(_("Error: '%s' wants a file."), a); return PGPID_USAGE; }
             if (!first_line_of(argv[i], passphrase, sizeof passphrase))
                 return PGPID_FAIL;
         } else if (!strcmp(a, "-U") || !strcmp(a, "--certurl")) {
-            if (++i >= argc) { pgpid_error("Error: '%s' wants a URL.", a); return PGPID_USAGE; }
+            if (++i >= argc) { pgpid_error(_("Error: '%s' wants a URL."), a); return PGPID_USAGE; }
             certurl = argv[i];
         } else if (!strcmp(a, "-k") || !strcmp(a, "--keyserver")) {
-            if (++i >= argc) { pgpid_error("Error: '%s' wants a keyserver.", a); return PGPID_USAGE; }
+            if (++i >= argc) { pgpid_error(_("Error: '%s' wants a keyserver."), a); return PGPID_USAGE; }
             keyserver = argv[i];
         } else if (!strcmp(a, "-L") || !strcmp(a, "--lang")) {
-            if (++i >= argc) { pgpid_error("Error: '%s' wants a language.", a); return PGPID_USAGE; }
+            if (++i >= argc) { pgpid_error(_("Error: '%s' wants a language."), a); return PGPID_USAGE; }
             snprintf(lang, sizeof lang, "%.2s", argv[i]);
             for (char *p = lang; *p; p++)
                 *p = (char)tolower((unsigned char)*p);
         } else if (!strcmp(a, "-K") || !strcmp(a, "--pubkey")) {
-            if (++i >= argc) { pgpid_error("Error: '%s' wants a file.", a); return PGPID_USAGE; }
+            if (++i >= argc) { pgpid_error(_("Error: '%s' wants a file."), a); return PGPID_USAGE; }
             pubkeyfile = argv[i];
         } else if (!strcmp(a, "--force")) {
             force = true;
         } else if (!strcmp(a, "-v") || !strcmp(a, "--verbose")) {
             /* Accepted: gpg's noise goes to stderr either way. */
         } else if (!strcmp(a, "--no-send")) {
-            pgpid_error("Warning: Deprecated option %s.", a);
+            pgpid_error(_("Warning: Deprecated option %s."), a);
         } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             usage(stdout);
             return PGPID_OK;
@@ -145,8 +148,8 @@ int pgpid_action_totoken(int argc, char **argv)
         } else if (!strcmp(a, "--")) {
             continue;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " totoken --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("totoken");
             return PGPID_USAGE;
         } else if (!keyid) {
             keyid = a;
@@ -154,10 +157,10 @@ int pgpid_action_totoken(int argc, char **argv)
     }
 
     if (strlen(lang) != 2)
-        pgpid_error("Warning: Only 2 lower case ASCII letters can define a preferred "
-                    "language; leaving it out.");
+        pgpid_error(_("Warning: Only 2 lower case ASCII letters can define a preferred "
+                    "language; leaving it out."));
     if (!keyid) {
-        pgpid_error("Error: Which secret key should move onto the card?");
+        pgpid_error(_("Error: Which secret key should move onto the card?"));
         usage(stderr);
         return PGPID_USAGE;
     }
@@ -181,7 +184,7 @@ int pgpid_action_totoken(int argc, char **argv)
             break;
         }
     if (!*fpr) {
-        pgpid_error("Error: No secret for '%s' here.", keyid);
+        pgpid_error(_("Error: No secret for '%s' here."), keyid);
         return PGPID_FAIL;
     }
 
@@ -197,7 +200,7 @@ int pgpid_action_totoken(int argc, char **argv)
     if (pubkeyfile) {
         const char *ex[] = { "--export", "--armor", fpr, NULL };
         if (pgpid_run_engine_io(ex, NULL, pubkeyfile)) {
-            pgpid_error("Error: Cannot write the certificate to %s.", pubkeyfile);
+            pgpid_error(_("Error: Cannot write the certificate to %s."), pubkeyfile);
             return PGPID_FAIL;
         }
     }
@@ -226,7 +229,7 @@ int pgpid_action_totoken(int argc, char **argv)
         }
     }
     if (!*email) {
-        pgpid_error("Error: No email for OpenPGP key '%s'.", fpr);
+        pgpid_error(_("Error: No email for OpenPGP key '%s'."), fpr);
         return PGPID_FAIL;
     }
 
@@ -247,16 +250,16 @@ int pgpid_action_totoken(int argc, char **argv)
         }
     }
     if (!*serial) {
-        pgpid_error("Error: No security token detected.");
+        pgpid_error(_("Error: No security token detected."));
         return PGPID_FAIL;
     }
-    pgpid_error("Notice: Detected OpenPGP security token: %s.", serial);
+    pgpid_error(_("Notice: Detected OpenPGP security token: %s."), serial);
 
     /* Wiping the card is the point of no return for whatever is on it. */
     if (!force) {
-        pgpid_error("Error: This wipes card %s and everything on it, then takes the", serial);
-        pgpid_error("secret parts of %s off this machine. Neither can be undone.", fpr);
-        pgpid_error("Pass --force when that is what you mean.");
+        pgpid_error(_("Error: This wipes card %s and everything on it, then takes the"), serial);
+        pgpid_error(_("secret parts of %s off this machine. Neither can be undone."), fpr);
+        pgpid_error(_("Pass --force when that is what you mean."));
         return PGPID_USAGE;
     }
 
@@ -270,9 +273,9 @@ int pgpid_action_totoken(int argc, char **argv)
                           "--dry-run", "--change-passphrase", fpr, NULL };
     if (pgpid_run_engine_quiet(dry)) {
         if (!*passphrase) {
-            pgpid_error("Error: The key is protected by a passphrase, which has to "
-                        "come off before it can move to a card.");
-            pgpid_error("Give --passphrase, or --passfrom to keep it off the process list.");
+            pgpid_error(_("Error: The key is protected by a passphrase, which has to "
+                        "come off before it can move to a card."));
+            pgpid_error(_("Give --passphrase, or --passfrom to keep it off the process list."));
             return PGPID_USAGE;
         }
         char script[1200];
@@ -280,19 +283,19 @@ int pgpid_action_totoken(int argc, char **argv)
         const char *strip[] = { "--command-fd", "0", "--batch", "--pinentry-mode",
                                 "loopback", "--change-passphrase", fpr, NULL };
         if (pgpid_run_engine_input(strip, script)) {
-            pgpid_error("Error: Cannot take the passphrase off '%s' — right passphrase?", fpr);
+            pgpid_error(_("Error: Cannot take the passphrase off '%s' — right passphrase?"), fpr);
             return PGPID_FAIL;
         }
     }
 
-    pgpid_error("Notice: Resetting OpenPGP security token…");
+    pgpid_error(_("Notice: Resetting OpenPGP security token…"));
     const char *reset[] = { "--command-fd", "0", "--batch", "--card-edit", NULL };
     if (pgpid_run_engine_input(reset, "admin\nfactory-reset\ny\nyes\nquit\n")) {
-        pgpid_error("Error: Factory reset of the OpenPGP card failed.");
+        pgpid_error(_("Error: Factory reset of the OpenPGP card failed."));
         return PGPID_FAIL;
     }
 
-    pgpid_error("Notice: Configuring OpenPGP security token…");
+    pgpid_error(_("Notice: Configuring OpenPGP security token…"));
     char config[1400];
     snprintf(config, sizeof config,
              "admin\nlogin\n%.100s\nurl\n%.500s\n%s%.2s%s"
@@ -303,23 +306,23 @@ int pgpid_action_totoken(int argc, char **argv)
     const char *setup[] = { "--command-fd", "0", "--batch", "--pinentry-mode",
                             "loopback", "--passphrase", "12345678", "--card-edit", NULL };
     if (pgpid_run_engine_input(setup, config)) {
-        pgpid_error("Error: Configuring the OpenPGP card failed.");
+        pgpid_error(_("Error: Configuring the OpenPGP card failed."));
         return PGPID_FAIL;
     }
 
     /* The card is told to hold elliptic-curve keys before the keys arrive:
      * changing that afterwards would wipe them again. */
     if (pgpid_run_engine_input(setup, "admin\nkey-attr\n2\n1\n2\n1\n2\n1\nquit\n")) {
-        pgpid_error("Error: Setting the card's key attributes failed.");
+        pgpid_error(_("Error: Setting the card's key attributes failed."));
         return PGPID_FAIL;
     }
 
-    pgpid_error("Notice: Moving OpenPGP secrets to security token…");
+    pgpid_error(_("Notice: Moving OpenPGP secrets to security token…"));
     const char *move[] = { "--command-fd", "0", "--batch", "--pinentry-mode",
                            "loopback", "--passphrase", "12345678", "--edit-key", fpr, NULL };
     if (pgpid_run_engine_input(move,
             "keytocard\ny\n1\nkey 1\nkeytocard\n2\nkey 1\nkey 2\nkeytocard\n3\nsave\n")) {
-        pgpid_error("Error: Moving the secrets to the card failed.");
+        pgpid_error(_("Error: Moving the secrets to the card failed."));
         return PGPID_FAIL;
     }
 
@@ -327,14 +330,14 @@ int pgpid_action_totoken(int argc, char **argv)
      * and printed once. */
     char pin[8], admin[16];
     if (!draw_code(pin, 6) || !draw_code(admin, 8)) {
-        pgpid_error("Error: Cannot draw new codes — the card is left on its "
-                    "factory PIN 123456 and Admin 12345678. Change them now.");
+        pgpid_error(_("Error: Cannot draw new codes — the card is left on its "
+                    "factory PIN 123456 and Admin 12345678. Change them now."));
         return PGPID_FAIL;
     }
     char pinfile[] = "/tmp/pgpid-pin-XXXXXX";
     int fd = mkstemp(pinfile);
     if (fd < 0) {
-        pgpid_error("Error: Cannot make a temporary file for the new codes.");
+        pgpid_error(_("Error: Cannot make a temporary file for the new codes."));
         return PGPID_FAIL;
     }
     close(fd);
@@ -346,7 +349,7 @@ int pgpid_action_totoken(int argc, char **argv)
     for (unsigned i = 0; i < 2; i++) {
         FILE *f = fopen(pinfile, "w");
         if (!f) {
-            pgpid_error("Error: Cannot write the new %s code out.", codes[i].what);
+            pgpid_error(_("Error: Cannot write the new %s code out."), codes[i].what);
             return PGPID_FAIL;
         }
         fprintf(f, "%s\n", codes[i].fresh);
@@ -364,8 +367,8 @@ int pgpid_action_totoken(int argc, char **argv)
         int ret = pgpid_action_change_token_code(n, sub);
         if (ret) {
             unlink(pinfile);
-            pgpid_error("Error: Changing the %s code failed (%d). The card is left "
-                        "on its factory code — change it now.", codes[i].what, ret);
+            pgpid_error(_("Error: Changing the %s code failed (%d). The card is left "
+                        "on its factory code — change it now."), codes[i].what, ret);
             return ret;
         }
     }
@@ -376,11 +379,11 @@ int pgpid_action_totoken(int argc, char **argv)
     if (pgpid_run_engine(ex))
         return PGPID_FAIL;
     if (pgpid_send_to_keyservers(fpr, host))
-        pgpid_error("Warning: Please publish this certificate on the Internet "
-                    "(a keyserver will do).");
+        pgpid_error(_("Warning: Please publish this certificate on the Internet "
+                    "(a keyserver will do)."));
 
     printf("\nADMIN_CODE=%s\nPIN_CODE=%s\n", admin, pin);
-    pgpid_error("Notice: Write these down. Nothing else knows them. They can be "
-                "changed with '" PGPID_NAME " change_token_code'.");
+    pgpid_error(_("Notice: Write these down. Nothing else knows them. They can be "
+                  "changed with '%s change_token_code'."), PGPID_NAME);
     return PGPID_OK;
 }

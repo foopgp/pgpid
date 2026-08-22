@@ -22,8 +22,9 @@
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " [OPTIONS]... ACTION [ARGS]...\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " [OPTIONS]... ACTION [ARGS]...\n"
         "\n"
         "Read and act on OpenPGP certificates through the pgpid model: entity\n"
         "identifiers, validity, ownertrust.\n"
@@ -47,12 +48,15 @@ static void usage(FILE *out)
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"
         "\n"
-        "Every action takes --help of its own.\n");
+        "Every action takes --help of its own.\n"),
+            PGPID_NAME);
 }
 
 int main(int argc, char **argv)
 {
     setlocale(LC_ALL, "");
+    bindtextdomain(PGPID_TEXTDOMAIN, PGPID_LOCALEDIR);
+    textdomain(PGPID_TEXTDOMAIN);
     /* Required before anything else in gpgme, and it also selects the
      * gettext domain the engine speaks. */
     gpgme_check_version(NULL);
@@ -63,7 +67,7 @@ int main(int argc, char **argv)
         const char *a = argv[i];
         if (!strcmp(a, "-H") || !strcmp(a, "--homedir")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a directory.", a);
+                pgpid_error(_("Error: '%s' wants a directory."), a);
                 return PGPID_USAGE;
             }
             pgpid_homedir = argv[i];
@@ -76,8 +80,8 @@ int main(int argc, char **argv)
             } else if (!strcmp(f, "md")) {
                 pgpid_format = PGPID_FMT_MD;
             } else {
-                pgpid_error("Error: Unknown output format '%s'.", f);
-                pgpid_error("Notice: One of raw, info, md.");
+                pgpid_error(_("Error: Unknown output format '%s'."), f);
+                pgpid_error(_("Notice: One of raw, info, md."));
                 return PGPID_USAGE;
             }
         } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
@@ -91,8 +95,8 @@ int main(int argc, char **argv)
             i++;
             break;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help(NULL);
             return PGPID_USAGE;
         } else {
             break;
@@ -159,7 +163,7 @@ int main(int argc, char **argv)
     if (!strcmp(action, "totoken"))
         return pgpid_action_totoken(sub_argc, sub_argv);
 
-    pgpid_error("Error: Unknown action '%s'.", action);
-    pgpid_error("Try '" PGPID_NAME " --help' for more information.");
+    pgpid_error(_("Error: Unknown action '%s'."), action);
+    pgpid_try_help(NULL);
     return PGPID_USAGE;
 }

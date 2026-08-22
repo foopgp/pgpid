@@ -43,6 +43,15 @@ fail:
     return err;
 }
 
+void pgpid_try_help(const char *action)
+{
+    if (action)
+        pgpid_error(_("Try '%s %s --help' for more information."),
+                    PGPID_NAME, action);
+    else
+        pgpid_error(_("Try '%s --help' for more information."), PGPID_NAME);
+}
+
 void pgpid_error(const char *fmt, ...)
 {
     va_list ap;
@@ -55,7 +64,7 @@ void pgpid_error(const char *fmt, ...)
 
 void pgpid_gpgme_error(const char *what, gpgme_error_t err)
 {
-    pgpid_error("Error: %s: %s (%s)", what,
+    pgpid_error(_("Error: %s: %s (%s)"), what,
                 gpgme_strerror(err), gpgme_strsource(err));
 }
 
@@ -294,9 +303,9 @@ int pgpid_send_to_keyservers(const char *fpr, const char *list)
     for (char *save = NULL, *ks = strtok_r(copy, " \t,", &save); ks;
          ks = strtok_r(NULL, " \t,", &save)) {
         const char *argv[] = { "--keyserver", ks, "--send-keys", fpr, NULL };
-        pgpid_error("Info: Sending %s to %s…", fpr, ks);
+        pgpid_error(_("Info: Sending %s to %s…"), fpr, ks);
         if (pgpid_run_engine(argv)) {
-            pgpid_error("Warning: %s would not take it.", ks);
+            pgpid_error(_("Warning: %s would not take it."), ks);
             ret = PGPID_FAIL;
         }
     }

@@ -21,8 +21,9 @@
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " token_retries [OPTIONS]...\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " token_retries [OPTIONS]...\n"
         "\n"
         "Print how many attempts remain on the connected security key's codes,\n"
         "before each one locks. All three unless one is asked for.\n"
@@ -33,7 +34,8 @@ static void usage(FILE *out)
         "  -A, --admin                 The admin code, usually eight digits\n"
         "  -q, --quiet                 The numbers alone, one per line\n"
         "  -h, --help                  Print this help and exit\n"
-        "  -V, --version               Print the version and exit\n");
+        "  -V, --version               Print the version and exit\n"),
+            PGPID_NAME);
 }
 
 /**
@@ -62,7 +64,7 @@ bool pgpid_card_retries(int *pin, int *rc, int *admin)
     argv[nargs++] = "/bye";
     argv[nargs] = NULL;
     if (pgpid_capture(argv, out, sizeof out) < 0) {
-        pgpid_error("Error: Cannot run gpg-connect-agent.");
+        pgpid_error(_("Error: Cannot run gpg-connect-agent."));
         return false;
     }
 
@@ -76,7 +78,7 @@ bool pgpid_card_retries(int *pin, int *rc, int *admin)
         for (const char *p = out; *p && *p != '\n' && n < sizeof first - 1; p++)
             first[n++] = *p;
         first[n] = '\0';
-        pgpid_error("Error: No security key answered%s%s.",
+        pgpid_error(_("Error: No security key answered%s%s."),
                     n ? " — " : "", n ? first : "");
         return false;
     }
@@ -94,7 +96,7 @@ bool pgpid_card_retries(int *pin, int *rc, int *admin)
         }
     }
     if (got < 7) {
-        pgpid_error("Error: The card answered %u numbers, not seven.", got);
+        pgpid_error(_("Error: The card answered %u numbers, not seven."), got);
         return false;
     }
     *pin = v[got - 3];
@@ -124,8 +126,8 @@ int pgpid_action_token_retries(int argc, char **argv)
             printf("%s %s\n", argv[0], PGPID_VERSION);
             return PGPID_OK;
         } else {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " token_retries --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("token_retries");
             return PGPID_USAGE;
         }
     }

@@ -46,7 +46,7 @@ bool pgpid_card_apdu(const char *apdu, char *sw, size_t max)
 
     char out[4096];
     if (pgpid_capture(argv, out, sizeof out) < 0) {
-        pgpid_error("Error: Cannot run gpg-connect-agent.");
+        pgpid_error(_("Error: Cannot run gpg-connect-agent."));
         return false;
     }
     if (!strstr(out, "OK")) {
@@ -55,18 +55,18 @@ bool pgpid_card_apdu(const char *apdu, char *sw, size_t max)
         for (const char *p = out; *p && *p != '\n' && n < sizeof first - 1; p++)
             first[n++] = *p;
         first[n] = '\0';
-        pgpid_error("Error: %s …", *first ? first : "The card said nothing");
+        pgpid_error(_("Error: %s …"), *first ? first : "The card said nothing");
         return false;
     }
 
     const char *at_data = strstr(out, "D[");
     if (!at_data) {
-        pgpid_error("Error: The card answered nothing readable.");
+        pgpid_error(_("Error: The card answered nothing readable."));
         return false;
     }
     const char *p = strchr(at_data, ']');
     if (!p) {
-        pgpid_error("Error: The card answered nothing readable.");
+        pgpid_error(_("Error: The card answered nothing readable."));
         return false;
     }
     p++;
@@ -82,7 +82,7 @@ bool pgpid_card_apdu(const char *apdu, char *sw, size_t max)
         bytes[got++] = (*p >= 'a' && *p <= 'f') ? (char)(*p - 32) : *p;
     }
     if (got != 4) {
-        pgpid_error("Error: The card answered %zu hex digits, not four.", got);
+        pgpid_error(_("Error: The card answered %zu hex digits, not four."), got);
         return false;
     }
     bytes[4] = '\0';
@@ -110,7 +110,7 @@ int pgpid_sw_analyse(const char *raw)
     }
     sw[n] = '\0';
     if (n != 4) {
-        pgpid_error("Error: Invalid status word '%s'.", raw);
+        pgpid_error(_("Error: Invalid status word '%s'."), raw);
         return 2;
     }
 
@@ -121,20 +121,20 @@ int pgpid_sw_analyse(const char *raw)
     if (!strcmp(sw, "9000"))
         return PGPID_OK;
     if (!strncmp(sw, "00", 2)) {
-        pgpid_error("Error: Unknown Status Word (%s).", sw);
+        pgpid_error(_("Error: Unknown Status Word (%s)."), sw);
         return 0x90;
     }
     if (!strcmp(sw, "6300")) {
-        pgpid_error("Error: Verification/authentication failed (%s) - no retry info.", sw);
+        pgpid_error(_("Error: Verification/authentication failed (%s) - no retry info."), sw);
         return sw1;
     }
     if (!strncmp(sw, "63", 2)) {
-        pgpid_error("Error: Verification/authentication failed (%s) - remaining "
-                    "retries: %d .", sw, low);
+        pgpid_error(_("Error: Verification/authentication failed (%s) - remaining "
+                    "retries: %d ."), sw, low);
         return 0xC0 + low;
     }
     if (!strncmp(sw, "6C", 2)) {
-        pgpid_error("Error: Wrong expected length (%s) - correct lenght: %d .", sw, sw2);
+        pgpid_error(_("Error: Wrong expected length (%s) - correct lenght: %d ."), sw, sw2);
         return sw1;
     }
 
@@ -158,20 +158,20 @@ int pgpid_sw_analyse(const char *raw)
     };
     for (size_t i = 0; i < sizeof KNOWN / sizeof *KNOWN; i++)
         if (!strcmp(sw, KNOWN[i].sw)) {
-            pgpid_error("Error: %s", KNOWN[i].what);
+            pgpid_error(_("Error: %s"), KNOWN[i].what);
             return sw1;
         }
 
     if (!strncmp(sw, "61", 2)) {
-        pgpid_error("Error: More data available (%s) - bytes to retrieve: %d .", sw, sw2);
+        pgpid_error(_("Error: More data available (%s) - bytes to retrieve: %d ."), sw, sw2);
         return sw1;
     }
     if (!strncmp(sw, "62", 2) || !strncmp(sw, "64", 2)) {
-        pgpid_error("Error: Warning/non-fatal condition (%s). Check returned data "
-                    "or card documentation for details.", sw);
+        pgpid_error(_("Error: Warning/non-fatal condition (%s). Check returned data "
+                    "or card documentation for details."), sw);
         return sw1;
     }
-    pgpid_error("Error: Unhandled or unknown Status Word (%s).", sw);
+    pgpid_error(_("Error: Unhandled or unknown Status Word (%s)."), sw);
     return sw1;
 }
 

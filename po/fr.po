@@ -1,0 +1,2455 @@
+# pgpid — messages
+# Copyright (C) 2026 Jean-Jacques Brucker and Mnêmê
+# This file is distributed under the same license as the pgpid package.
+#
+# NOTES FOR TRANSLATORS
+#
+# Leave these alone, they are not language:
+#
+#   * the level prefixes — Error:, Warning:, Notice:, Info:, Crit: — which
+#     say how bad it is, not what it says, and which callers read;
+#   * anything of the shape name=value or name[0]='value', which is output
+#     meant for a program;
+#   * option names (--keyservers), action names (certify, print_secret) and
+#     property names (FN:, UID:urn:eid:), which are typed, not read;
+#   * fingerprints, and the words u4 and u5.
+#
+# Keep the columns of the OPTIONS blocks lined up: they are read as a table,
+# and a line that folds takes the alignment with it. Do not make a line wider
+# than the English one it replaces — po/check-width.py says when you have.
+#
+# Say what an irreversible thing costs. Where the English says a revocation
+# cannot be undone, or that a wrong code spends one of three attempts, that
+# sentence is the only place anybody learns it — a shorter translation that
+# drops the consequence is a worse translation.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: pgpid 0.0.7-35-g8512aa6\n"
+"Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
+"POT-Creation-Date: 2026-08-22 22:58+0200\n"
+"PO-Revision-Date: 2026-08-22 22:58+0200\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: src/avatar.c:169
+#, c-format
+msgid "Error: Cannot create '%s': %s."
+msgstr "Error: Impossible de créer « %s » : %s."
+
+#: src/avatar.c:174
+#, c-format
+msgid "Error: Cannot read '%s': %s."
+msgstr "Error: Impossible de lire « %s » : %s."
+
+#: src/avatar.c:178
+#, c-format
+msgid "Error: '%s' is not a directory of yours."
+msgstr "Error: « %s » n'est pas un répertoire à vous."
+
+#: src/avatar.c:193 src/avatar.c:198
+#, c-format
+msgid "Error: Cannot write '%s': %s."
+msgstr "Error: Impossible d'écrire « %s » : %s."
+
+#: src/avatar.c:256
+msgid ""
+"Error: graphicsmagick is needed to resize an image - install "
+"'graphicsmagick'."
+msgstr ""
+"Error: graphicsmagick est nécessaire pour redimensionner une image — "
+"installez « graphicsmagick »."
+
+#: src/avatar.c:260
+#, c-format
+msgid "Error: Cannot read '%s' as an image."
+msgstr "Error: Impossible de lire « %s » comme une image."
+
+#: src/avatar.c:406
+msgid "Notice: No image to take back."
+msgstr "Notice: Aucune image à retirer."
+
+#: src/avatar.c:422 src/avatar.c:495
+msgid "gpgme_data_new"
+msgstr "gpgme_data_new"
+
+#: src/avatar.c:426
+#, c-format
+msgid "Info: Taking back %zu image(s) on %s…"
+msgstr "Info: Retrait de %zu image(s) sur %s…"
+
+#: src/avatar.c:428
+#, c-format
+msgid "Info: Putting %s on %s…"
+msgstr "Info: Pose de %s sur %s…"
+
+#: src/avatar.c:433
+msgid "gpgme_op_interact"
+msgstr "gpgme_op_interact"
+
+#: src/avatar.c:434
+msgid ""
+"Notice: A certificate is edited with its secret key - is the right one at "
+"hand?"
+msgstr ""
+"Notice: Un certificat se modifie avec sa clé secrète — est-ce la bonne qui "
+"est à portée ?"
+
+#: src/avatar.c:446
+#, c-format
+msgid ""
+"Usage: %s avatar [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
+"\n"
+"Extract the image an OpenPGP certificate wears and print its path.\n"
+"The image that stands today comes first, so the first line is the\n"
+"avatar. Missing selector means the first secret certificate.\n"
+"\n"
+"Writing needs the certificate's secret key, and takes a fingerprint\n"
+"only: revoking cannot be undone, so a search must never become a\n"
+"target. A new image is brought to 180x180 first, and the changed\n"
+"certificate is sent to the default keyservers unless told otherwise.\n"
+"\n"
+"OPTIONS:\n"
+"  -E, --extract-all           Print every image, revoked ones included\n"
+"  -A, --replace-to IMAGE      Take back every image that stands and put IMAGE on\n"
+"  -R, --revoke                Just take back every image that stands\n"
+"  -K, --keyservers SERVERS    Send the changed certificate to these, space separated\n"
+"                              Empty for none. Default: %s\n"
+"  -W, --workdir DIRECTORY     Where the images are written\n"
+"  -h, --help                  Print this help and exit\n"
+"  -V, --version               Print the version and exit\n"
+msgstr ""
+"Usage: %s avatar [OPTIONS]... [NOM|ADRESSE|KEYID|U4|U5]\n"
+"\n"
+"Extrait l'image que porte un certificat OpenPGP et affiche son chemin.\n"
+"Celle qui vaut aujourd'hui vient en premier : la première ligne est donc\n"
+"l'avatar. Sans sélecteur, le premier certificat secret.\n"
+"\n"
+"Écrire demande la clé secrète du certificat, et n'accepte qu'une\n"
+"empreinte : une révocation ne se défait pas, une recherche ne doit donc\n"
+"jamais devenir une cible. Une nouvelle image est d'abord ramenée à\n"
+"180x180, et le certificat modifié est envoyé aux serveurs de clés par\n"
+"défaut sauf indication contraire.\n"
+"\n"
+"OPTIONS:\n"
+"  -E, --extract-all           Afficher toutes les images, révoquées comprises\n"
+"  -A, --replace-to IMAGE      Retirer les images qui valent et poser IMAGE\n"
+"  -R, --revoke                Seulement retirer toutes les images qui valent\n"
+"  -K, --keyservers SERVEURS   Envoyer le certificat modifié à ceux-ci, séparés\n"
+"                              par des espaces. Vide pour aucun. Défaut : %s\n"
+"  -W, --workdir RÉPERTOIRE    Où les images sont écrites\n"
+"  -h, --help                  Afficher cette aide et quitter\n"
+"  -V, --version               Afficher la version et quitter\n"
+
+#: src/avatar.c:501
+msgid "gpgme_op_export"
+msgstr "gpgme_op_export"
+
+#: src/avatar.c:543
+#, c-format
+msgid "Error: '%s' wants an image."
+msgstr "Error: « %s » attend une image."
+
+#: src/avatar.c:551 src/get.c:128 src/push.c:56
+#, c-format
+msgid "Error: '%s' wants a list of servers, empty for none."
+msgstr "Error: « %s » attend une liste de serveurs, vide pour aucun."
+
+#: src/avatar.c:558 src/main.c:70 src/printsecret.c:260 src/scan.c:121
+#, c-format
+msgid "Error: '%s' wants a directory."
+msgstr "Error: « %s » attend un répertoire."
+
+#: src/avatar.c:573 src/certify.c:322 src/changepass.c:110
+#: src/changetokencode.c:126 src/changetokenmeta.c:153 src/del.c:93
+#: src/email.c:372 src/genkey.c:209 src/genu4.c:82 src/genuid.c:147
+#: src/get.c:150 src/list.c:381 src/main.c:98 src/mrz.c:174
+#: src/ownertrust.c:96 src/printcard.c:143 src/printsecret.c:290
+#: src/property.c:383 src/push.c:70 src/scan.c:139 src/sigs.c:124
+#: src/token.c:129 src/tokencheck.c:268 src/totoken.c:151 src/tovcard.c:385
+#: src/trustdb.c:276
+#, c-format
+msgid "Error: Unrecognized option '%s'."
+msgstr "Error: Option inconnue « %s »."
+
+#: src/avatar.c:579
+msgid "Error: One certificate at a time."
+msgstr "Error: Un seul certificat à la fois."
+
+#: src/avatar.c:596
+msgid "Error: Changing an image wants a fingerprint, not a search."
+msgstr "Error: Changer une image demande une empreinte, pas une recherche."
+
+#: src/avatar.c:600
+msgid "Error: '--keyservers' publishes a change; there is none to make."
+msgstr ""
+"Error: « --keyservers » publie un changement ; il n'y en a aucun à faire."
+
+#: src/avatar.c:601
+#, c-format
+msgid "Notice: To publish a certificate as it stands, see '%s push'."
+msgstr "Notice: Pour publier un certificat tel quel, voyez « %s push »."
+
+#: src/avatar.c:606
+msgid "Error: '--revoke' takes every image back; '--replace-to' already does."
+msgstr ""
+"Error: « --revoke » retire toutes les images ; « --replace-to » le fait "
+"déjà."
+
+#: src/avatar.c:613 src/list.c:270 src/tovcard.c:397
+msgid "gpgme_new"
+msgstr "gpgme_new"
+
+#: src/avatar.c:630 src/list.c:276
+msgid "gpgme_op_keylist_start"
+msgstr "gpgme_op_keylist_start"
+
+#: src/avatar.c:652
+msgid "Error: No secret certificate to read - name one."
+msgstr "Error: Aucun certificat secret à lire — nommez-en un."
+
+#: src/avatar.c:657
+msgid "Notice: No image in that certificate."
+msgstr "Notice: Aucune image dans ce certificat."
+
+#: src/card.c:49 src/token.c:67
+msgid "Error: Cannot run gpg-connect-agent."
+msgstr "Error: Impossible de lancer gpg-connect-agent."
+
+#: src/card.c:58
+#, c-format
+msgid "Error: %s …"
+msgstr "Error: %s …"
+
+#: src/card.c:64 src/card.c:69
+msgid "Error: The card answered nothing readable."
+msgstr "Error: La carte n'a rien répondu de lisible."
+
+#: src/card.c:85
+#, c-format
+msgid "Error: The card answered %zu hex digits, not four."
+msgstr "Error: La carte a répondu %zu chiffres hexadécimaux, et non quatre."
+
+#: src/card.c:113
+#, c-format
+msgid "Error: Invalid status word '%s'."
+msgstr "Error: Mot d'état invalide « %s »."
+
+#: src/card.c:124
+#, c-format
+msgid "Error: Unknown Status Word (%s)."
+msgstr "Error: Mot d'état inconnu (%s)."
+
+#: src/card.c:128
+#, c-format
+msgid "Error: Verification/authentication failed (%s) - no retry info."
+msgstr ""
+"Error: Échec de la vérification ou de l'authentification (%s) — pas "
+"d'information sur les essais restants."
+
+#: src/card.c:132
+#, c-format
+msgid ""
+"Error: Verification/authentication failed (%s) - remaining retries: %d ."
+msgstr ""
+"Error: Échec de la vérification ou de l'authentification (%s) — essais "
+"restants : %d ."
+
+#: src/card.c:137
+#, c-format
+msgid "Error: Wrong expected length (%s) - correct lenght: %d ."
+msgstr "Error: Longueur attendue erronée (%s) — longueur correcte : %d ."
+
+#: src/card.c:161
+#, c-format
+msgid "Error: %s"
+msgstr "Error: %s"
+
+#: src/card.c:166
+#, c-format
+msgid "Error: More data available (%s) - bytes to retrieve: %d ."
+msgstr ""
+"Error: Données supplémentaires disponibles (%s) — octets à récupérer : %d ."
+
+#: src/card.c:170
+#, c-format
+msgid ""
+"Error: Warning/non-fatal condition (%s). Check returned data or card "
+"documentation for details."
+msgstr ""
+"Error: Condition non fatale (%s). Voyez les données renvoyées ou la "
+"documentation de la carte."
+
+#: src/card.c:174
+#, c-format
+msgid "Error: Unhandled or unknown Status Word (%s)."
+msgstr "Error: Mot d'état inconnu ou non traité (%s)."
+
+#: src/certify.c:40
+#, c-format
+msgid ""
+"Usage: %s certify [OPTIONS]... KEYFPR [U4|U5]\n"
+"\n"
+"Vouch for somebody else: state that this certificate is theirs.\n"
+"\n"
+"KEYFPR is the whole forty-character fingerprint, read off the other\n"
+"person's card and checked against it — never a search pattern, because\n"
+"a certification cannot be taken back. Giving the identifier as well\n"
+"asks that the certificate carry it, and refuses otherwise.\n"
+"\n"
+"Certifying is a commitment. It builds your standing, and spends it if\n"
+"you do it without looking.\n"
+"\n"
+"OPTIONS:\n"
+"  -u, --use-privkey NAME|KEYID  Certify with this key\n"
+"                                Default: the one the connected card belongs to\n"
+"  -E, --all-emails              Also certify every uid carrying an email,\n"
+"                                for software that expects it there\n"
+"  -R, --revoke                  Revoke your earlier certifications on it\n"
+"  -o, --ownertrust VALUE        How well they certify others, in turn\n"
+"                                {undefined,marginal,full,never} - Default: marginal\n"
+"  -l, --local                   Certify without exporting — useful for testing\n"
+"  -K, --keyservers SERVERS      Send the result to these, space separated\n"
+"                                Empty for none. Default: %s\n"
+"  -h, --help                    Print this help and exit\n"
+"  -V, --version                 Print the version and exit\n"
+"\n"
+"Return value:\n"
+"-   0 No error\n"
+"-   2 Input/Usage error\n"
+"- %d Nothing to certify with — say which key with --use-privkey\n"
+"- %d No certificate carries that fingerprint\n"
+"- %d Self-certification is not innovative! ;-)\n"
+"- %d That certificate does not carry that identifier\n"
+msgstr ""
+"Usage: %s certify [OPTIONS]... EMPREINTE [U4|U5]\n"
+"\n"
+"Se porter garant de quelqu'un : déclarer que ce certificat est le sien.\n"
+"\n"
+"EMPREINTE est l'empreinte entière, quarante caractères, lue sur la carte\n"
+"de l'autre personne et vérifiée contre elle — jamais un motif de\n"
+"recherche, car une certification ne se retire pas. Donner aussi\n"
+"l'identifiant exige que le certificat le porte, et refuse sinon.\n"
+"\n"
+"Certifier engage. Cela construit votre crédit, et le dépense si vous le\n"
+"faites sans regarder.\n"
+"\n"
+"OPTIONS:\n"
+"  -u, --use-privkey NOM|KEYID   Certifier avec cette clé\n"
+"                                Défaut : celle dont relève la carte branchée\n"
+"  -E, --all-emails              Certifier aussi tout uid portant une adresse,\n"
+"                                pour les logiciels qui l'attendent là\n"
+"  -R, --revoke                  Révoquer vos certifications antérieures\n"
+"  -o, --ownertrust VALEUR       Jusqu'où ils certifient les autres, à leur tour\n"
+"                                {undefined,marginal,full,never} — défaut : marginal\n"
+"  -l, --local                   Certifier sans exporter — utile pour essayer\n"
+"  -K, --keyservers SERVEURS     Envoyer le résultat à ceux-ci, séparés par des\n"
+"                                espaces. Vide pour aucun. Défaut : %s\n"
+"  -h, --help                    Afficher cette aide et quitter\n"
+"  -V, --version                 Afficher la version et quitter\n"
+"\n"
+"Valeur de retour :\n"
+"-   0 Aucune erreur\n"
+"-   2 Erreur d'argument ou d'usage\n"
+"- %d Rien pour certifier — dites quelle clé avec --use-privkey\n"
+"- %d Aucun certificat ne porte cette empreinte\n"
+"- %d S'auto-certifier n'a rien de neuf ! ;-)\n"
+"- %d Ce certificat ne porte pas cet identifiant\n"
+
+#: src/certify.c:115
+msgid "Error: No card answered, so there is nothing to certify with."
+msgstr "Error: Aucune carte n'a répondu, il n'y a donc rien pour certifier."
+
+#: src/certify.c:116
+msgid "Say which key with --use-privkey."
+msgstr "Dites quelle clé avec --use-privkey."
+
+#: src/certify.c:124
+msgid "Error: Cannot list the secret keys."
+msgstr "Error: Impossible de lister les clés secrètes."
+
+#: src/certify.c:142
+#, c-format
+msgid "Error: '%s' names %s secret key."
+msgstr "Error: « %s » désigne %s clé secrète."
+
+#: src/certify.c:285
+#, c-format
+msgid "Error: '%s' wants a key."
+msgstr "Error: « %s » attend une clé."
+
+#: src/certify.c:298 src/genu4.c:88 src/ownertrust.c:84 src/property.c:354
+#, c-format
+msgid "Error: '%s' wants a value."
+msgstr "Error: « %s » attend une valeur."
+
+#: src/certify.c:304 src/ownertrust.c:111
+#, c-format
+msgid "Error: Unknown ownertrust value '%s'."
+msgstr "Error: Valeur d'ownertrust inconnue « %s »."
+
+#: src/certify.c:309 src/email.c:357 src/property.c:370
+#, c-format
+msgid "Error: '%s' wants a list, empty for none."
+msgstr "Error: « %s » attend une liste, vide pour aucun."
+
+#: src/certify.c:332
+#, c-format
+msgid "Error: '%s' is neither a fingerprint nor an identifier."
+msgstr "Error: « %s » n'est ni une empreinte ni un identifiant."
+
+#: src/certify.c:338
+msgid "Error: Which certificate? A whole fingerprint is required —"
+msgstr "Error: Quel certificat ? Une empreinte entière est exigée —"
+
+#: src/certify.c:339
+msgid "a certification cannot be taken back, so it is never guessed."
+msgstr "une certification ne se retire pas, elle ne se devine donc jamais."
+
+#: src/certify.c:370
+#, c-format
+msgid "Error: Nobody here carries '%s'."
+msgstr "Error: Personne ici ne porte « %s »."
+
+#: src/certify.c:378
+#, c-format
+msgid "Error: %s carries '%s', and %s does not."
+msgstr "Error: %s porte « %s », et %s ne le porte pas."
+
+#: src/certify.c:384
+#, c-format
+msgid "Error: No certificate here carries %s."
+msgstr "Error: Aucun certificat ici ne porte %s."
+
+#: src/certify.c:389
+msgid "Warning: Self-certification is not innovative! ;-)"
+msgstr "Warning: S'auto-certifier n'a rien de neuf ! ;-)"
+
+#: src/certify.c:398
+#, c-format
+msgid "Error: %s carries no usable uid for '%s'."
+msgstr "Error: %s ne porte aucun uid utilisable pour « %s »."
+
+#: src/certify.c:401
+#, c-format
+msgid "Crit: %s carries no identity uid — the certificate looks broken."
+msgstr ""
+"Crit: %s ne porte aucun uid d'identité — le certificat semble corrompu."
+
+#: src/certify.c:414
+msgid "Info: --ownertrust means nothing when revoking; ignored."
+msgstr "Info: --ownertrust n'a pas de sens lors d'une révocation ; ignoré."
+
+#: src/certify.c:434
+msgid ""
+"Notice: gpg reported no error, which does not mean it found a certification "
+"to revoke."
+msgstr ""
+"Notice: gpg n'a signalé aucune erreur, ce qui ne veut pas dire qu'il a "
+"trouvé une certification à révoquer."
+
+#: src/certify.c:437
+#, c-format
+msgid "Notice: Signed %zu uid(s) of certificate %s."
+msgstr "Notice: %zu uid signé(s) dans le certificat %s."
+
+#: src/changepass.c:24
+#, c-format
+msgid ""
+"Usage: %s change_passphrase [OPTIONS]... KEY\n"
+"\n"
+"Change the passphrase protecting the secret parts of an OpenPGP key on\n"
+"this machine. KEY is a fingerprint, a key id, an address or a name.\n"
+"\n"
+"OPTIONS:\n"
+"  -p, --passphrase PASSPHRASE     The current one, \"\" when there is none\n"
+"  -P, --passfrom FILE             Read it from the first line of FILE instead\n"
+"  -n, --newpassphrase PASSPHRASE  The new one, \"\" for none\n"
+"  -N, --newpassfrom FILE          Read it from the first line of FILE instead\n"
+"  -h, --help                      Print this help and exit\n"
+"  -V, --version                   Print the version and exit\n"
+"\n"
+"Passing a passphrase as an argument shows it to everything that can read\n"
+"this machine's process list. The file forms exist for that reason.\n"
+msgstr ""
+"Usage: %s change_passphrase [OPTIONS]... CLÉ\n"
+"\n"
+"Changer la phrase de passe qui protège les parties secrètes d'une clé\n"
+"OpenPGP sur cette machine. CLÉ est une empreinte, un identifiant de clé,\n"
+"une adresse ou un nom.\n"
+"\n"
+"OPTIONS:\n"
+"  -p, --passphrase PHRASE         L'actuelle, \"\" s'il n'y en a pas\n"
+"  -P, --passfrom FICHIER          La lire sur la première ligne de FICHIER\n"
+"  -n, --newpassphrase PHRASE      La nouvelle, \"\" pour aucune\n"
+"  -N, --newpassfrom FICHIER       La lire sur la première ligne de FICHIER\n"
+"  -h, --help                      Afficher cette aide et quitter\n"
+"  -V, --version                   Afficher la version et quitter\n"
+"\n"
+"Passer une phrase de passe en argument la montre à tout ce qui peut lire\n"
+"la liste des processus de cette machine. Les formes par fichier sont là\n"
+"pour cette raison.\n"
+
+#: src/changepass.c:49 src/changetokencode.c:59 src/changetokenmeta.c:56
+#: src/genkey.c:166 src/printsecret.c:85 src/scan.c:58 src/totoken.c:65
+#, c-format
+msgid "Error: Cannot read %s."
+msgstr "Error: Impossible de lire %s."
+
+#: src/changepass.c:88
+#, c-format
+msgid "Error: '%s' wants a %s."
+msgstr "Error: « %s » attend %s."
+
+#: src/changepass.c:119
+msgid "Error: Which key? Naming it is not something to guess at:"
+msgstr "Error: Quelle clé ? Ce n'est pas à deviner :"
+
+#: src/changepass.c:120
+msgid "this machine may hold several secret keys."
+msgstr "cette machine peut en détenir plusieurs."
+
+#: src/changepass.c:125
+msgid ""
+"Error: Both passphrases are needed — the current one with --passphrase or "
+"--passfrom, the new one with"
+msgstr ""
+"Error: Les deux phrases de passe sont nécessaires — l'actuelle avec "
+"--passphrase ou --passfrom, la nouvelle avec"
+
+#: src/changepass.c:127
+msgid "--newpassphrase or --newpassfrom. Empty strings mean none."
+msgstr "--newpassphrase ou --newpassfrom. Une chaîne vide veut dire aucune."
+
+#: src/changepass.c:135 src/printsecret.c:362 src/totoken.c:187
+#, c-format
+msgid "Error: No secret for '%s' here."
+msgstr "Error: Aucun secret pour « %s » ici."
+
+#: src/changepass.c:147
+#, c-format
+msgid "Error: That is not the current passphrase of '%s'."
+msgstr "Error: Ce n'est pas la phrase de passe actuelle de « %s »."
+
+#: src/changepass.c:154
+msgid "Notice: Passphrase unchanged."
+msgstr "Notice: Phrase de passe inchangée."
+
+#: src/changepass.c:171
+#, c-format
+msgid "Error: gpg would not change the passphrase of '%s'."
+msgstr "Error: gpg a refusé de changer la phrase de passe de « %s »."
+
+#: src/changepass.c:174
+msgid "Notice: Passphrase successfully changed."
+msgstr "Notice: Phrase de passe changée."
+
+#: src/changetokencode.c:26
+#, c-format
+msgid ""
+"Usage: %s change_token_code [OPTIONS]...\n"
+"\n"
+"Check or change the PIN, or the Admin code, of the connected security\n"
+"key. Both are needed in full: nothing here asks for what it is missing.\n"
+"\n"
+"OPTIONS:\n"
+"  -p, --code CURRENTCODE    The code as it stands\n"
+"  -P, --codefrom FILE       Read it from the first line of FILE instead\n"
+"  -n, --newcode NEWCODE     What it should become\n"
+"  -N, --newcodefrom FILE    Read that from the first line of FILE instead\n"
+"  -C, --onlycheck           Only check the current code, change nothing\n"
+"  -A, --admin               The Admin code rather than the PIN\n"
+"  -U, --unblock             Unblock the PIN: --code is then the Admin code\n"
+"                            and --newcode the PIN to set\n"
+"  -h, --help                Print this help and exit\n"
+"  -V, --version             Print the version and exit\n"
+"\n"
+"Return value:\n"
+"-   0 No error\n"
+"-   2 Input/Usage error\n"
+"- 194 Wrong code — two attempts left\n"
+"- 193 Wrong code — one attempt left\n"
+"- 192 The code is blocked\n"
+"- other non-zero on other errors\n"
+msgstr ""
+
+#: src/changetokencode.c:90 src/changetokencode.c:99 src/changetokenmeta.c:135
+#, c-format
+msgid "Error: '%s' wants a code."
+msgstr "Error: « %s » attend un code."
+
+#: src/changetokencode.c:94 src/changetokencode.c:104
+#: src/changetokenmeta.c:140 src/genkey.c:161 src/printsecret.c:242
+#: src/scan.c:113 src/totoken.c:119 src/totoken.c:134 src/tovcard.c:368
+#, c-format
+msgid "Error: '%s' wants a file."
+msgstr "Error: « %s » attend un fichier."
+
+#: src/changetokencode.c:137
+#, c-format
+msgid ""
+"Error: The current %s code is needed. Give --code, or --codefrom to keep it "
+"off the process list."
+msgstr ""
+"Error: Le code %s actuel est nécessaire. Donnez --code, ou --codefrom pour "
+"le tenir hors de la liste des processus."
+
+#: src/changetokencode.c:142
+msgid ""
+"Error: What should the code become? Give --newcode, or --onlycheck to only "
+"check the current one."
+msgstr ""
+"Error: Que doit devenir le code ? Donnez --newcode, ou --onlycheck pour ne "
+"faire que vérifier l'actuel."
+
+#: src/changetokencode.c:152
+#, c-format
+msgid "Warning: Given %s code doesn't match %zu digits."
+msgstr "Warning: Le code %s donné ne fait pas %zu chiffres."
+
+#: src/changetokencode.c:172
+#, c-format
+msgid "Notice: %s code: remaining retries: %d."
+msgstr "Notice: Code %s : essais restants : %d."
+
+#: src/changetokencode.c:181
+#, c-format
+msgid "Notice: %s code successfully verified."
+msgstr "Notice: Code %s vérifié."
+
+#: src/changetokencode.c:194
+#, c-format
+msgid "Notice: %s code unchanged."
+msgstr "Notice: Code %s inchangé."
+
+#: src/changetokencode.c:198
+#, c-format
+msgid "Error: Given %s code doesn't match %zu digits."
+msgstr "Error: Le code %s donné ne fait pas %zu chiffres."
+
+#: src/changetokencode.c:217
+#, c-format
+msgid "Notice: %s code successfully %s."
+msgstr "Notice: Code %s : %s."
+
+#: src/changetokenmeta.c:29
+#, c-format
+msgid ""
+"Usage: %s change_token_meta [OPTIONS]... NEW_METADATA\n"
+"\n"
+"Write one of the three things a security key says about its holder. Which\n"
+"one is read off NEW_METADATA:\n"
+"\n"
+"  an address        the cardholder name (DO 5B)\n"
+"  an http(s) URL    where the public certificate lives (DO 5F50)\n"
+"  two letters       the language preference, ISO 639-1 (DO 5F2D)\n"
+"\n"
+"Each is checked before it is written: the address must be one the\n"
+"certificate still stands by, and the URL must serve a certificate\n"
+"carrying this key's three subkeys.\n"
+"\n"
+"OPTIONS:\n"
+"  -A, --admincode CODE         The Admin code, usually eight digits\n"
+"  -p, --admincodefrom FILE     Read it from the first line of FILE instead\n"
+"  -h, --help                   Print this help and exit\n"
+"  -V, --version                Print the version and exit\n"
+msgstr ""
+
+#: src/changetokenmeta.c:162
+msgid ""
+"Error: What should the card say? An address, an http URL, or a two-letter "
+"language code."
+msgstr ""
+"Error: Que doit dire la carte ? Une adresse, une URL http, ou un code de "
+"langue à deux lettres."
+
+#: src/changetokenmeta.c:181
+#, c-format
+msgid ""
+"Error: '%s' is neither an email, a certurl, nor a 2-letter language code."
+msgstr ""
+"Error: « %s » n'est ni une adresse, ni une certurl, ni un code de langue à "
+"deux lettres."
+
+#: src/changetokenmeta.c:188 src/totoken.c:253
+msgid "Error: No security token detected."
+msgstr "Error: Aucune clé de sécurité détectée."
+
+#: src/changetokenmeta.c:196
+#, c-format
+msgid "Error: Email '%s' exceeds 38 bytes (OpenPGP smartcard cap)."
+msgstr ""
+"Error: L'adresse « %s » dépasse 38 octets (limite des cartes OpenPGP)."
+
+#: src/changetokenmeta.c:201
+msgid ""
+"Error: The card names no signing key, so its certificate cannot be found."
+msgstr ""
+"Error: La carte ne nomme aucune clé de signature, son certificat est donc "
+"introuvable."
+
+#: src/changetokenmeta.c:222
+msgid "Error: Can't find the token's certificate here."
+msgstr "Error: Le certificat de la clé de sécurité est introuvable ici."
+
+#: src/changetokenmeta.c:236
+#, c-format
+msgid "Error: %s is not a usable email of the token's certificate."
+msgstr ""
+"Error: %s n'est pas une adresse utilisable du certificat de la clé de "
+"sécurité."
+
+#: src/changetokenmeta.c:247
+msgid "Error: Cannot make a temporary keyring."
+msgstr "Error: Impossible de créer un trousseau temporaire."
+
+#: src/changetokenmeta.c:255 src/changetokenmeta.c:270
+#, c-format
+msgid "Error: Can't fetch a usable certificate from %s."
+msgstr "Error: Impossible de récupérer un certificat utilisable depuis %s."
+
+#: src/changetokenmeta.c:285
+#, c-format
+msgid "Error: Certificate at %s doesn't hold the token's subkeys: %s."
+msgstr ""
+"Error: Le certificat servi par %s ne porte pas les sous-clés de la carte : "
+"%s."
+
+#: src/changetokenmeta.c:297
+msgid "Error: The Admin code is needed to write to the card."
+msgstr "Error: Le code Admin est nécessaire pour écrire sur la carte."
+
+#: src/changetokenmeta.c:298
+msgid "Give --admincode, or --admincodefrom to keep it off the process list."
+msgstr ""
+"Donnez --admincode, ou --admincodefrom pour le tenir hors de la liste des "
+"processus."
+
+#: src/changetokenmeta.c:303
+msgid "Warning: Admin code shorter than 8 digits."
+msgstr "Warning: Code Admin de moins de 8 chiffres."
+
+#: src/changetokenmeta.c:317
+msgid "Error: gpg --card-edit failed — wrong Admin code?"
+msgstr "Error: Échec de gpg --card-edit — code Admin erroné ?"
+
+#: src/changetokenmeta.c:320
+#, c-format
+msgid "Notice: Wrote new value '%s' into the security token."
+msgstr "Notice: Nouvelle valeur « %s » écrite dans la clé de sécurité."
+
+#: src/common.c:49
+#, c-format
+msgid "Try '%s %s --help' for more information."
+msgstr "Pour en savoir plus : « %s %s --help »."
+
+#: src/common.c:52
+#, c-format
+msgid "Try '%s --help' for more information."
+msgstr "Pour en savoir plus : « %s --help »."
+
+#: src/common.c:67
+#, c-format
+msgid "Error: %s: %s (%s)"
+msgstr "Error: %s : %s (%s)"
+
+#: src/common.c:306
+#, c-format
+msgid "Info: Sending %s to %s…"
+msgstr "Info: Envoi de %s vers %s…"
+
+#: src/common.c:308
+#, c-format
+msgid "Warning: %s would not take it."
+msgstr "Warning: %s a refusé de le prendre."
+
+#: src/del.c:28
+#, c-format
+msgid ""
+"Usage: %s del [OPTIONS]... FINGERPRINT...\n"
+"\n"
+"Delete certificates from the keyring, secret part included.\n"
+"\n"
+"Only fingerprints are accepted — 40 or 64 hexadecimal characters. An\n"
+"action that deletes does not guess which certificate was meant.\n"
+"\n"
+"OPTIONS:\n"
+"  -s, --secret                Delete only the secret part, keep the certificate\n"
+"  -h, --help                  Print this help and exit\n"
+msgstr ""
+
+#: src/del.c:48 src/ownertrust.c:48 src/property.c:178 src/sigs.c:148
+msgid "looking the certificate up"
+msgstr "recherche du certificat"
+
+#: src/del.c:55 src/ownertrust.c:55 src/sigs.c:156
+#, c-format
+msgid "Error: No certificate matching '%s'."
+msgstr "Error: Aucun certificat ne correspond à « %s »."
+
+#: src/del.c:60 src/ownertrust.c:60 src/property.c:194 src/sigs.c:161
+msgid "reading the certificate"
+msgstr "lecture du certificat"
+
+#: src/del.c:69 src/ownertrust.c:69
+#, c-format
+msgid "Error: '%s' matches more than one certificate."
+msgstr "Error: « %s » correspond à plus d'un certificat."
+
+#: src/del.c:103
+msgid "Error: At least one fingerprint is required."
+msgstr "Error: Au moins une empreinte est exigée."
+
+#: src/del.c:111 src/push.c:91
+#, c-format
+msgid "Error: '%s' is not a fingerprint."
+msgstr "Error: « %s » n'est pas une empreinte."
+
+#: src/del.c:112
+msgid "Notice: 40 or 64 hexadecimal characters, nothing else."
+msgstr "Notice: 40 ou 64 caractères hexadécimaux, rien d'autre."
+
+#: src/del.c:120 src/list.c:403 src/ownertrust.c:127 src/property.c:173
+#: src/sigs.c:142
+msgid "opening the engine"
+msgstr "ouverture du moteur"
+
+#: src/del.c:140
+#, c-format
+msgid "Error: The engine refused to delete the secret part of %s."
+msgstr "Error: Le moteur a refusé de supprimer la partie secrète de %s."
+
+#: src/del.c:147
+msgid "deleting the certificate"
+msgstr "suppression du certificat"
+
+#: src/email.c:28
+#, c-format
+msgid ""
+"Usage: %s email [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
+"\n"
+"Show the addresses a certificate carries, or add and revoke them.\n"
+"Without a target, the one the connected card belongs to.\n"
+"\n"
+"Only the addresses that still stand are shown — not the revoked, the\n"
+"expired, or those whose self-signature no longer holds.\n"
+"\n"
+"OPTIONS:\n"
+"  -A, --add EMAIL             Add it as a 'Name <EMAIL>' uid (repeatable)\n"
+"  -R, --revoke EMAIL          Revoke the uid carrying it (repeatable)\n"
+"      --revoke-all            Revoke every address but the newest\n"
+"  -y, --yes                   Assume yes: skip the irreversibility warning\n"
+"  -N, --name NAME             The name in front of an added address\n"
+"                              Default: the certificate's own FN:, else the local part\n"
+"  -c, --certs-count           Also count the certifications each address carries\n"
+"      --show-unusable         Also show the addresses that no longer stand\n"
+"      --info                  Output pairs key=value ready to be evaluated in bash\n"
+"  -K, --keyservers SERVERS    Send the changed certificate to these\n"
+"                              Empty for none. Default: %s\n"
+"  -h, --help                  Print this help and exit\n"
+"  -V, --version               Print the version and exit\n"
+"\n"
+"Revoking is irreversible: OpenPGP keeps the address on the certificate\n"
+"forever, marked revoked, and an identical one can never be added again.\n"
+msgstr ""
+
+#: src/email.c:145
+msgid "Error: No card answered, so there is no certificate to work on."
+msgstr ""
+"Error: Aucune carte n'a répondu, il n'y a donc aucun certificat sur lequel "
+"travailler."
+
+#: src/email.c:146
+msgid "Name one, or plug the card in."
+msgstr "Nommez-en un, ou branchez la carte."
+
+#: src/email.c:170
+#, c-format
+msgid "Error: No certificate here matches '%s'."
+msgstr "Error: Aucun certificat ici ne correspond à « %s »."
+
+#: src/email.c:174
+#, c-format
+msgid "Error: '%s' matches %u certificates. Name one."
+msgstr "Error: « %s » correspond à %u certificats. Nommez-en un."
+
+#: src/email.c:218
+#, c-format
+msgid "Error: Cannot check the signatures of %s."
+msgstr "Error: Impossible de vérifier les signatures de %s."
+
+#: src/email.c:316
+#, c-format
+msgid "Error: '%s' wants an address."
+msgstr "Error: « %s » attend une adresse."
+
+#: src/email.c:322
+#, c-format
+msgid "Error: Invalid email '%s'."
+msgstr "Error: Adresse invalide « %s »."
+
+#: src/email.c:326
+msgid "Error: Too many addresses at once."
+msgstr "Error: Trop d'adresses à la fois."
+
+#: src/email.c:336 src/genkey.c:135 src/printcard.c:127
+#, c-format
+msgid "Error: '%s' wants a name."
+msgstr "Error: « %s » attend un nom."
+
+#: src/email.c:343 src/genkey.c:148
+#, c-format
+msgid "Error: '%s' wants a note."
+msgstr "Error: « %s » attend une note."
+
+#: src/email.c:346
+msgid ""
+"Notice: --extra-comment is ignored: a note is carried by its own NOTE: uid."
+msgstr ""
+"Notice: --extra-comment est ignoré : une note est portée par son propre uid "
+"NOTE:."
+
+#: src/email.c:394 src/property.c:471
+#, c-format
+msgid "Error: No editable certificate %s here."
+msgstr "Error: Aucun certificat %s modifiable ici."
+
+#: src/email.c:423 src/property.c:497
+#, c-format
+msgid "Notice: Certificate %s already carries '%s'."
+msgstr "Notice: Le certificat %s porte déjà « %s »."
+
+#: src/email.c:427 src/property.c:501
+#, c-format
+msgid ""
+"Notice: '%s' was revoked earlier and cannot be added again — OpenPGP keeps "
+"revoked User IDs on the certificate forever."
+msgstr ""
+"Notice: « %s » a été révoqué auparavant et ne peut pas être rajouté — "
+"OpenPGP garde à jamais sur le certificat les User ID révoqués."
+
+#: src/email.c:432 src/property.c:506
+#, c-format
+msgid "Notice: Adding '%s' into certificate %s…"
+msgstr "Notice: Ajout de « %s » dans le certificat %s…"
+
+#: src/email.c:435 src/genkey.c:327 src/genkey.c:332 src/genkey.c:341
+#: src/property.c:509
+#, c-format
+msgid "Error: gpg would not add '%s'."
+msgstr "Error: gpg a refusé d'ajouter « %s »."
+
+#: src/email.c:468
+#, c-format
+msgid "Error: No revokable email '%s' inside certificate %s."
+msgstr "Error: Aucune adresse « %s » révocable dans le certificat %s."
+
+#: src/email.c:473
+msgid "Error: At least one email must be retained."
+msgstr "Error: Au moins une adresse doit être conservée."
+
+#: src/email.c:495 src/property.c:564
+msgid "Warning: Nothing to revoke."
+msgstr "Warning: Rien à révoquer."
+
+#: src/genkey.c:28
+#, c-format
+msgid ""
+"Usage: %s gen_key [OPTIONS]... EMAIL\n"
+"\n"
+"Generate an OpenPGP key pair the PGP ID way, and print the three\n"
+"fingerprints it ends up with: the main key that signs and certifies,\n"
+"the one that decrypts, and the one that authenticates.\n"
+"\n"
+"OPTIONS:\n"
+"  -N, --name PSEUDONYM             Common name or pseudonym\n"
+"                                   Default: the part of EMAIL before the '@'\n"
+"  -c, --eid U4|U5                  Entity identifier. Required: deriving one\n"
+"                                   needs a civil status somebody has to be asked for\n"
+"  -C, --extra-comment NOTE         A note about the entity\n"
+"  -p, --passphrase PASSPHRASE      The passphrase. Visible to anything that can\n"
+"                                   read this machine's process list\n"
+"  -P, --passfrom FILE              Read it from the first line of FILE instead\n"
+"                                   (a fifo, something on tmpfs, /dev/stdin)\n"
+"  -e, --expiration YEARS           Years before the certificate expires - Default: 11\n"
+"  -k, --keyserver KEYSERVER        The certificate server this one names as its own\n"
+"                                   Default: %s\n"
+"  -h, --help                       Print this help and exit\n"
+"  -V, --version                    Print the version and exit\n"
+"\n"
+"Both ways of giving the passphrase have their drawback, and the second\n"
+"has fewer: an argument is visible to every process on the machine for as\n"
+"long as this one runs.\n"
+msgstr ""
+
+#: src/genkey.c:141
+#, c-format
+msgid "Error: '%s' wants an identifier."
+msgstr "Error: « %s » attend un identifiant."
+
+#: src/genkey.c:154 src/printsecret.c:234 src/scan.c:106 src/totoken.c:116
+#, c-format
+msgid "Error: '%s' wants a passphrase."
+msgstr "Error: « %s » attend une phrase de passe."
+
+#: src/genkey.c:177
+#, c-format
+msgid "Error: '%s' wants a number of years."
+msgstr "Error: « %s » attend un nombre d'années."
+
+#: src/genkey.c:183
+#, c-format
+msgid "Error: Given parameter '%s' is not a valid number."
+msgstr "Error: Le paramètre donné « %s » n'est pas un nombre valide."
+
+#: src/genkey.c:189 src/totoken.c:126
+#, c-format
+msgid "Error: '%s' wants a keyserver."
+msgstr "Error: « %s » attend un serveur de clés."
+
+#: src/genkey.c:193
+msgid "Error: keyserver MUST be hkp(s)://…"
+msgstr "Error: le serveur de clés DOIT être en hkp(s)://…"
+
+#: src/genkey.c:224
+msgid "Error: Which entity is this key for? Give --eid."
+msgstr "Error: Cette clé est pour quelle entité ? Donnez --eid."
+
+#: src/genkey.c:225
+msgid "Deriving one needs a civil status, which is somebody's to give:"
+msgstr ""
+"En calculer un demande un état civil, et c'est à quelqu'un de le donner :"
+
+#: src/genkey.c:226
+#, c-format
+msgid ""
+"  %s gen_u4 --surname … --given-names … --birth-date … --birth-country …"
+msgstr ""
+"  %s gen_u4 --surname … --given-names … --birth-date … --birth-country …"
+
+#: src/genkey.c:231
+#, c-format
+msgid "Error: No eid in given '%s'."
+msgstr "Error: Aucun eid dans « %s »."
+
+#: src/genkey.c:235
+msgid ""
+"Error: A passphrase is needed, and asking for one is not this program's job."
+" Give --passphrase, or --passfrom to keep it off"
+msgstr ""
+"Error: Une phrase de passe est nécessaire, et ce n'est pas à ce programme de"
+" la demander. Donnez --passphrase, ou --passfrom pour la tenir"
+
+#: src/genkey.c:237
+msgid "the process list."
+msgstr "hors de la liste des processus."
+
+#: src/genkey.c:274
+msgid "Error: gpg would not generate the key."
+msgstr "Error: gpg a refusé d'engendrer la clé."
+
+#: src/genkey.c:302
+#, c-format
+msgid "Error: Freshly generated key not found by its eid UID (%s)."
+msgstr ""
+"Error: La clé fraîchement engendrée est introuvable par son uid d'identité "
+"(%s)."
+
+#: src/genkey.c:347
+#, c-format
+msgid "Warning: Can't set the primary uid to %s."
+msgstr "Warning: Impossible de placer l'uid principal sur %s."
+
+#: src/genkey.c:351
+msgid "Error: gpg would not add the authentication key."
+msgstr "Error: gpg a refusé d'ajouter la clé d'authentification."
+
+#: src/genu4.c:27
+#, c-format
+msgid ""
+"Usage: %s gen_u4 [OPTIONS]...\n"
+"\n"
+"Print the entity identifier a civil status gives: the last component\n"
+"of the surname, the first two given names, the date of birth, and\n"
+"the country.\n"
+"\n"
+"OPTIONS:\n"
+"  -s, --surname SURNAME            Surname at birth\n"
+"  -g, --given-names NAMES          Given names at birth, separated by space, comma or hyphen\n"
+"  -d, --birth-date YYYY-MM-DD      Date of birth\n"
+"  -c, --birth-country CODE         Three-letter country code of the place of birth\n"
+"  -h, --help                       Print this help and exit\n"
+"  -V, --version                    Print the version and exit\n"
+"\n"
+"Everything is required: asking for what is missing belongs to whoever\n"
+"has somebody to ask.\n"
+msgstr ""
+
+#: src/genu4.c:96
+msgid "Error: Surname, given names, date and country are all needed."
+msgstr "Error: Le nom, les prénoms, la date et le pays sont tous nécessaires."
+
+#: src/genu4.c:101
+#, c-format
+msgid "Error: '%s' is not a date of the shape YYYY-MM-DD."
+msgstr "Error: « %s » n'est pas une date de la forme AAAA-MM-JJ."
+
+#: src/genu4.c:106 src/mrz.c:257
+#, c-format
+msgid "Error: '%s' is not a three-letter country code we know."
+msgstr ""
+"Error: « %s » n'est pas un code pays à trois lettres que nous connaissions."
+
+#: src/genu4.c:115
+msgid "Error: The name is not valid UTF-8."
+msgstr "Error: Le nom n'est pas de l'UTF-8 valide."
+
+#: src/genu4.c:120
+#, c-format
+msgid "Error: No surname and given names could be read from '%s'."
+msgstr "Error: Impossible de lire un nom et des prénoms dans « %s »."
+
+#: src/genu4.c:121
+msgid "Notice: Both need at least one letter once reduced to A-Z."
+msgstr "Notice: Il faut au moins une lettre à chacun une fois réduits à A-Z."
+
+#: src/genuid.c:30
+#, c-format
+msgid ""
+"Usage: %s gen_uid [OPTIONS]... U4|U5|STRING\n"
+"\n"
+"Print the Unix account number an entity identifier gives, between\n"
+"%lld and %lld. The same identifier always gives the same number, on\n"
+"any machine — which is what lets an account be opened again\n"
+"elsewhere from the certificate alone.\n"
+"\n"
+"OPTIONS:\n"
+"  -f, --free-input            Accept any string, not only an identifier\n"
+"  -h, --help                  Print this help and exit\n"
+"  -V, --version               Print the version and exit\n"
+"\n"
+"Asking interactively for a civil status is the caller's business:\n"
+"this reads what it is given and nothing else.\n"
+msgstr ""
+
+#: src/genuid.c:157
+msgid "Error: Which identifier?"
+msgstr "Error: Quel identifiant ?"
+
+#: src/genuid.c:180
+#, c-format
+msgid "Error: No entity identifier in '%.50s'."
+msgstr "Error: Aucun identifiant d'entité dans « %.50s »."
+
+#: src/genuid.c:181
+msgid "Notice: '--free-input' takes any string instead."
+msgstr "Notice: « --free-input » accepte n'importe quelle chaîne à la place."
+
+#: src/get.c:27
+#, c-format
+msgid ""
+"Usage: %s get [OPTIONS]... NAME|EMAIL|KEYID|U4|U5|'*'\n"
+"\n"
+"Print the fingerprints, addresses and entity identifiers of the\n"
+"certificates matching what is asked for, one line per address.\n"
+"Refreshes them from the keyservers first, unless told otherwise.\n"
+"\n"
+"A search term is required — '*' for the whole keyring. `list` is the\n"
+"one that shows everything when asked nothing.\n"
+"\n"
+"OPTIONS:\n"
+"  -F, --fingerprint           Print only fingerprints\n"
+"  -E, --email                 Print only addresses\n"
+"  -f, --no-fetch              Do not refresh from keyservers or Web Key Directories\n"
+"  -m, --errexit-g=N           Fail if more than N certificates match\n"
+"  -K, --keyservers SERVERS    Refresh from these, space separated\n"
+"                              Empty for none, same as --no-fetch. Default: %s\n"
+"  -h, --help                  Print this help and exit\n"
+"  -V, --version               Print the version and exit\n"
+"\n"
+"There is no 'cert_check': `list` answers what it answered, for less.\n"
+msgstr ""
+
+#: src/get.c:86
+#, c-format
+msgid "Notice: '%s' is a name, not an address or a key — asking nobody."
+msgstr ""
+"Notice: « %s » est un nom, pas une adresse ni une clé — personne n'est "
+"interrogé."
+
+#: src/get.c:87
+msgid ""
+"Notice: Searching keyservers by name is not here yet; give an address or a "
+"fingerprint."
+msgstr ""
+"Notice: Chercher par nom sur les serveurs de clés n'existe pas encore ; "
+"donnez une adresse ou une empreinte."
+
+#: src/get.c:137
+#, c-format
+msgid "Error: '%s' wants a number of one or more."
+msgstr "Error: « %s » attend un nombre supérieur ou égal à un."
+
+#: src/get.c:160
+msgid "Error: What are you looking for? '*' for everything."
+msgstr "Error: Que cherchez-vous ? « * » pour tout."
+
+#: src/get.c:188 src/tovcard.c:408
+msgid "Error: No certificate for what was asked."
+msgstr "Error: Aucun certificat pour ce qui a été demandé."
+
+#: src/get.c:196
+#, c-format
+msgid "Error: %zu certificates matched, more than the %ld asked for."
+msgstr "Error: %zu certificats correspondent, plus que les %ld demandés."
+
+#: src/list.c:288 src/list.c:428
+msgid "reading a certificate"
+msgstr "lecture d'un certificat"
+
+#: src/list.c:301
+#, c-format
+msgid "Warning: Certificate %s carries more than one identifier."
+msgstr "Warning: Le certificat %s porte plus d'un identifiant."
+
+#: src/list.c:323
+#, c-format
+msgid ""
+"Usage: %s list [OPTIONS]... [SEARCH]\n"
+"\n"
+"List the certificates of the keyring, one per line.\n"
+"\n"
+"Columns:\n"
+"fingerprint, entity identifier, email (primary), certifications\n"
+"(optional), validity, credibility, creation_date, expiration_date,\n"
+"revocation_date\n"
+"\n"
+"Single dash '-' means hidden or unknown value.\n"
+"\n"
+"Values for validity: certified|uncertified|expired|revoked|broken|-\n"
+"Order of importance for unusable certificates: broken>revoked>expired\n"
+"\n"
+"Values for credibility: never|undefined|marginal|full|ultimate|-\n"
+"\n"
+"SEARCH, when given, is passed to the engine as a pattern; without it\n"
+"the whole keyring is listed.\n"
+"\n"
+"OPTIONS:\n"
+"  -S, --short                 One line per address: fingerprint, address, entity identifier\n"
+"                              What 'bl-pgpid get --no-fetch' answers, to the column\n"
+"  -L, --no-check-eid          Legacy: don't consider certificate as 'broken' if there is no consistent eid inside\n"
+"      --count-certs           Count the distinct certifiers of each certificates and fill *certifications* column (may take time !)\n"
+"      --hide-trust            Credibility (aka ownertrust) is a sensible information used to calculate validity — sometimes both need to stay private\n"
+"      --machine-readable      Output time (seconds since epoch) instead of date (iso-8601) and flags instead of human-readable validity and credibility\n"
+"  -h, --help                  Print this help and exit\n"
+msgstr ""
+
+#: src/list.c:409
+msgid "listing the keyring"
+msgstr "listage du trousseau"
+
+#: src/main.c:25
+#, c-format
+msgid ""
+"Usage: %s [OPTIONS]... ACTION [ARGS]...\n"
+"\n"
+"Read and act on OpenPGP certificates through the pgpid model: entity\n"
+"identifiers, validity, ownertrust.\n"
+"\n"
+"ACTIONS:\n"
+"  list                        List the certificates of the keyring\n"
+"  get                         Look a certificate up, refreshing it first\n"
+"  property                    Print a vCard property of one certificate\n"
+"  sigs                        List who has certified one certificate\n"
+"  ownertrust                  Print or set how far one is trusted to certify\n"
+"  del                         Delete certificates, by fingerprint only\n"
+"  avatar                      Extract the image a certificate wears\n"
+"  push                        Send certificates to the keyservers\n"
+"  gen_u4                      Print the identifier a civil status gives\n"
+"  mrz_to_u4                   Print the identifier a passport's machine zone gives\n"
+"  gen_uid                     Print the Unix account number an identifier gives\n"
+"\n"
+"OPTIONS:\n"
+"  -H, --homedir DIR           GnuPG home directory - Environment variable: GNUPGHOME\n"
+"      --output-format=FORMAT  Specify output format between {raw, info, md} - Default: 'raw'\n"
+"  -h, --help                  Print this help and exit\n"
+"  -V, --version               Print the version and exit\n"
+"\n"
+"Every action takes --help of its own.\n"
+msgstr ""
+
+#: src/main.c:83
+#, c-format
+msgid "Error: Unknown output format '%s'."
+msgstr "Error: Format de sortie inconnu « %s »."
+
+#: src/main.c:84
+msgid "Notice: One of raw, info, md."
+msgstr "Notice: Au choix : raw, info, md."
+
+#: src/main.c:166
+#, c-format
+msgid "Error: Unknown action '%s'."
+msgstr "Error: Action inconnue « %s »."
+
+#: src/mrz.c:128
+#, c-format
+msgid ""
+"Usage: %s mrz_to_u4 [OPTIONS]... MRZ...\n"
+"\n"
+"Print the entity identifier the machine readable zone of a passport\n"
+"gives. The zone is 88 characters over two lines; spaces and newlines\n"
+"are ignored, so it can be pasted as it was read.\n"
+"\n"
+"OPTIONS:\n"
+"  -d, --birth-date YYYY-MM-DD  Date of birth, for anyone the two digits cannot place\n"
+"  -u, --uncheck                Report a failing check digit rather than refusing\n"
+"  -h, --help                   Print this help and exit\n"
+"  -V, --version                Print the version and exit\n"
+"\n"
+"Roughly one passport in five gives the wrong identifier: a surname\n"
+"truncated to fit, a name changed since birth, another transliteration,\n"
+"or a year of birth two digits cannot place. It has to be checked.\n"
+msgstr ""
+
+#: src/mrz.c:158
+#, c-format
+msgid "Error: '%s' wants a date."
+msgstr "Error: « %s » attend une date."
+
+#: src/mrz.c:184
+msgid "Error: Where is the machine readable zone?"
+msgstr "Error: Où est la zone de lecture automatique ?"
+
+#: src/mrz.c:202
+msgid "Error: Only a passport zone is read, and this does not begin with 'P'."
+msgstr ""
+"Error: Seule une zone de passeport est lue, et celle-ci ne commence pas par "
+"« P »."
+
+#: src/mrz.c:206
+#, c-format
+msgid "%s: The zone is %zu characters, not 88."
+msgstr "%s: La zone fait %zu caractères, et non 88."
+
+#: src/mrz.c:219
+#, c-format
+msgid "%s: The check digit for %s does not agree."
+msgstr "%s: Le chiffre de contrôle de %s ne concorde pas."
+
+#: src/mrz.c:230
+#, c-format
+msgid "Error: No complete surname and given names in '%s'."
+msgstr "Error: Pas de nom et de prénoms complets dans « %s »."
+
+#: src/mrz.c:248
+#, c-format
+msgid "Error: '%s' is not a date this can read."
+msgstr "Error: « %s » n'est pas une date lisible ici."
+
+#: src/ownertrust.c:25
+#, c-format
+msgid ""
+"Usage: %s ownertrust [OPTIONS]... FINGERPRINT\n"
+"\n"
+"Print how far that certificate is trusted to certify others: one of\n"
+"unknown, never, marginal, full, ultimate.\n"
+"\n"
+"'undefined' can be set and reads back as 'unknown': the engine does not\n"
+"keep them apart, and neither does anyone who has had to explain the\n"
+"difference. One rung, two spellings.\n"
+"\n"
+"OPTIONS:\n"
+"  -r, --replace-to VALUE      Set it to VALUE instead of printing it\n"
+"  -h, --help                  Print this help and exit\n"
+msgstr ""
+
+#: src/ownertrust.c:106 src/sigs.c:134
+msgid "Error: A fingerprint is required."
+msgstr "Error: Une empreinte est exigée."
+
+#: src/ownertrust.c:112
+msgid "Notice: One of undefined, never, marginal, full, ultimate."
+msgstr "Notice: Au choix : undefined, never, marginal, full, ultimate."
+
+#: src/ownertrust.c:118
+msgid "Error: 'unknown' cannot be set; it is what a certificate"
+msgstr ""
+"Error: « unknown » ne se pose pas ; c'est ainsi que se lit un certificat"
+
+#: src/ownertrust.c:119
+msgid "Notice: no one has ruled on already reads as."
+msgstr "Notice: sur lequel personne ne s'est encore prononcé."
+
+#: src/ownertrust.c:141
+msgid "setting the ownertrust"
+msgstr "pose de l'ownertrust"
+
+#: src/printcard.c:31
+#, c-format
+msgid ""
+"Usage: %s print_card [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
+"\n"
+"Produce or print a PGP ID sticker or business card. Without a target,\n"
+"the certificate the connected card belongs to.\n"
+"\n"
+"One address appears on it: the argument itself when that is what was\n"
+"given, otherwise the most recent one the certificate still stands by.\n"
+"\n"
+"OPTIONS:\n"
+"  -P, --print PRINTER|FILE.svg  Printer to send to, or an SVG file to write\n"
+"                                when the name ends in '.svg'\n"
+"  -t, --template FILE.svg       Use this template instead of the sticker\n"
+"  -N, --name NAME               Override the displayed name\n"
+"  -g, --no-color                Grayscale instead of colour\n"
+"  -h, --help                    Print this help and exit\n"
+"  -V, --version                 Print the version and exit\n"
+msgstr ""
+
+#: src/printcard.c:115
+#, c-format
+msgid "Error: '%s' wants a printer or an SVG file."
+msgstr "Error: « %s » attend une imprimante ou un fichier SVG."
+
+#: src/printcard.c:121
+#, c-format
+msgid "Error: '%s' wants a template."
+msgstr "Error: « %s » attend un gabarit."
+
+#: src/printcard.c:166
+msgid "Error: No card answered, so there is no certificate to print."
+msgstr ""
+"Error: Aucune carte n'a répondu, il n'y a donc aucun certificat à imprimer."
+
+#: src/printcard.c:167
+msgid "Name one instead."
+msgstr "Nommez-en un à la place."
+
+#: src/printcard.c:203
+#, c-format
+msgid "Error: No usable certificate for %s."
+msgstr "Error: Aucun certificat utilisable pour %s."
+
+#: src/printcard.c:207
+#, c-format
+msgid ""
+"Error: Email %s matches several certificates that still stand by it (%zu)."
+msgstr ""
+"Error: L'adresse %s correspond à plusieurs certificats qui la portent encore"
+" (%zu)."
+
+#: src/printcard.c:214
+#, c-format
+msgid "Error: No certificate matches '%s'."
+msgstr "Error: Aucun certificat ne correspond à « %s »."
+
+#: src/printcard.c:218
+#, c-format
+msgid "Error: '%s' matches %zu certificates. Name one."
+msgstr "Error: « %s » correspond à %zu certificats. Nommez-en un."
+
+#: src/printcard.c:242
+#, c-format
+msgid "Error: No usable (non-revoked) email in certificate %s."
+msgstr ""
+"Error: Aucune adresse utilisable (non révoquée) dans le certificat %s."
+
+#: src/printcard.c:245
+#, c-format
+msgid "Notice: Picking most recent email %s."
+msgstr "Notice: Adresse la plus récente retenue : %s."
+
+#: src/printcard.c:296 src/printsecret.c:333 src/scan.c:159
+msgid "Error: Cannot make a working directory."
+msgstr "Error: Impossible de créer un répertoire de travail."
+
+#: src/printcard.c:308
+msgid "Error: qrencode would not draw the code."
+msgstr "Error: qrencode a refusé de dessiner le code."
+
+#: src/printcard.c:313
+msgid "Error: Cannot read the code back."
+msgstr "Error: Impossible de relire le code."
+
+#: src/printcard.c:327
+#, c-format
+msgid "Error: Card template '%s' is not readable."
+msgstr "Error: Le gabarit de carte « %s » n'est pas lisible."
+
+#: src/printcard.c:384
+msgid "Error: Cannot write the card."
+msgstr "Error: Impossible d'écrire la carte."
+
+#: src/printcard.c:398
+#, c-format
+msgid "Error: Cannot write %s."
+msgstr "Error: Impossible d'écrire %s."
+
+#: src/printcard.c:406
+#, c-format
+msgid "Notice: Wrote SVG to %s."
+msgstr "Notice: SVG écrit dans %s."
+
+#: src/printcard.c:411
+msgid "Error: Where should this go? Name a printer, or a file ending"
+msgstr ""
+"Error: Où cela doit-il aller ? Nommez une imprimante, ou un fichier "
+"finissant"
+
+#: src/printcard.c:412
+msgid "in '.svg' to keep it."
+msgstr "par « .svg » pour le garder."
+
+#: src/printcard.c:423
+msgid "Error: rsvg-convert would not render the card."
+msgstr "Error: rsvg-convert a refusé de rendre la carte."
+
+#: src/printcard.c:441
+msgid "Error: pdfunite would not repeat the card."
+msgstr "Error: pdfunite a refusé de répéter la carte."
+
+#: src/printcard.c:448
+msgid "Error: pdfjam would not lay the page out."
+msgstr "Error: pdfjam a refusé de composer la page."
+
+#: src/printcard.c:452
+#, c-format
+msgid "Notice: Printing %s %s on %s…"
+msgstr "Notice: Impression de %s %s sur %s…"
+
+#: src/printcard.c:456
+msgid "Error: lpr would not print the page."
+msgstr "Error: lpr a refusé d'imprimer la page."
+
+#: src/printsecret.c:36
+#, c-format
+msgid ""
+"Usage: %s print_secret [OPTIONS]... KEY\n"
+"\n"
+"Print an OpenPGP secret key as QR codes, split so that no single sheet\n"
+"carries it. By default five fragments of which any three rebuild it.\n"
+"\n"
+"OPTIONS:\n"
+"  -p, --passphrase PASSPHRASE    The passphrase protecting the secret parts\n"
+"  -P, --passfrom FILE            Read it from the first line of FILE instead\n"
+"  -t, --printer PRINTER          Where to print. Empty to produce the sheets\n"
+"                                 and send nothing — they stay in the workdir\n"
+"  -w, --with-passphrase          Print the passphrase beside the QR codes\n"
+"                                 Easier to use, and no longer a split secret\n"
+"  -W, --workdir DIRECTORY        Work here instead of a temporary directory\n"
+"                                 Its contents must be shredded afterwards\n"
+"  -S, --split NUM                Fragments to produce - Default: 5\n"
+"  -T, --threshold NUM            Fragments needed to rebuild - Default: 3\n"
+"  -h, --help                     Print this help and exit\n"
+"  -V, --version                  Print the version and exit\n"
+"\n"
+"With --split equal to --threshold there is no secret sharing: the\n"
+"fragments are consecutive pieces and each one leaks its part. Everything\n"
+"then rests on the passphrase, and printing it alongside leaves nothing.\n"
+"\n"
+"Photographs are left out of what is printed. A backup does not need your\n"
+"face, and paper is handled by whoever finds it.\n"
+msgstr ""
+
+#: src/printsecret.c:250
+#, c-format
+msgid "Error: '%s' wants a printer, empty for none."
+msgstr "Error: « %s » attend une imprimante, vide pour aucune."
+
+#: src/printsecret.c:265 src/scan.c:126
+#, c-format
+msgid "Error: Nonexistent or unattainable directory (%s)."
+msgstr "Error: Répertoire inexistant ou inaccessible (%s)."
+
+#: src/printsecret.c:271 src/printsecret.c:277
+#, c-format
+msgid "Error: '%s' wants a number."
+msgstr "Error: « %s » attend un nombre."
+
+#: src/printsecret.c:299
+msgid "Error: Which secret key? This machine may hold several."
+msgstr "Error: Quelle clé secrète ? Cette machine peut en détenir plusieurs."
+
+#: src/printsecret.c:304
+msgid "Error: The passphrase is needed to export the secret parts."
+msgstr ""
+"Error: La phrase de passe est nécessaire pour exporter les parties secrètes."
+
+#: src/printsecret.c:305 src/totoken.c:278
+msgid "Give --passphrase, or --passfrom to keep it off the process list."
+msgstr ""
+"Donnez --passphrase, ou --passfrom pour la tenir hors de la liste des "
+"processus."
+
+#: src/printsecret.c:309
+msgid "Error: Where should this be printed? Name a printer, or pass"
+msgstr "Error: Où cela doit-il s'imprimer ? Nommez une imprimante, ou passez"
+
+#: src/printsecret.c:310
+msgid "--printer '' to produce the sheets and send nothing."
+msgstr "--printer '' pour produire les feuilles sans rien envoyer."
+
+#: src/printsecret.c:314
+#, c-format
+msgid "Error: Splits number (%d) can't be lower than 3."
+msgstr "Error: Le nombre de fragments (%d) ne peut pas être inférieur à 3."
+
+#: src/printsecret.c:318
+#, c-format
+msgid ""
+"Warning: Threshold can't be greater than the number of splits, reducing "
+"threshold to %d."
+msgstr ""
+"Warning: Le seuil ne peut pas dépasser le nombre de fragments ; seuil ramené"
+" à %d."
+
+#: src/printsecret.c:338 src/scan.c:164
+msgid "Error: Working directory is unclean (it holds SECRET*)."
+msgstr ""
+"Error: Le répertoire de travail n'est pas propre (il contient SECRET*)."
+
+#: src/printsecret.c:339 src/scan.c:165
+#, c-format
+msgid "Suggestion: bl-security shred_path --remove '%s'"
+msgstr "Suggestion: bl-security shred_path --remove '%s'"
+
+#: src/printsecret.c:376
+msgid "Error: gpg would not export the secret key — right passphrase?"
+msgstr ""
+"Error: gpg a refusé d'exporter la clé secrète — la bonne phrase de passe ?"
+
+#: src/printsecret.c:389
+#, c-format
+msgid "Error: %s carries no uid worth printing."
+msgstr "Error: %s ne porte aucun uid qui vaille d'être imprimé."
+
+#: src/printsecret.c:393
+msgid "Error: Cannot trim the export down to its three uids."
+msgstr "Error: Impossible de réduire l'export à ses trois uids."
+
+#: src/printsecret.c:396
+#, c-format
+msgid ""
+"Notice: Printing %zu uid(s) of %zu — the rest comes back from a keyring."
+msgstr ""
+"Notice: %zu uid imprimé(s) sur %zu — le reste se retrouve dans un trousseau."
+
+#: src/printsecret.c:407
+msgid "Error: basenc would not encode the export."
+msgstr "Error: basenc a refusé d'encoder l'export."
+
+#: src/printsecret.c:414
+#, c-format
+msgid "Error: split would not cut the export in %d."
+msgstr "Error: split a refusé de couper l'export en %d."
+
+#: src/printsecret.c:424
+msgid "Error: gfsplit would not share the secret out."
+msgstr "Error: gfsplit a refusé de partager le secret."
+
+#: src/printsecret.c:439
+#, c-format
+msgid "Error: basenc would not encode %s."
+msgstr "Error: basenc a refusé d'encoder %s."
+
+#: src/printsecret.c:459
+#, c-format
+msgid "Notice: Printing the secret split into %d fragments on %s…"
+msgstr "Notice: Impression du secret en %d fragments sur %s…"
+
+#: src/printsecret.c:462
+#, c-format
+msgid "Notice: Producing %d fragments in %s, sending nothing."
+msgstr "Notice: Production de %d fragments dans %s, sans rien envoyer."
+
+#: src/printsecret.c:484
+msgid "Error: No fragment was produced."
+msgstr "Error: Aucun fragment n'a été produit."
+
+#: src/printsecret.c:505
+#, c-format
+msgid "Error: Cannot read the fragment %s."
+msgstr "Error: Impossible de lire le fragment %s."
+
+#: src/printsecret.c:518
+#, c-format
+msgid "Error: qrencode would not draw fragment %zu."
+msgstr "Error: qrencode a refusé de dessiner le fragment %zu."
+
+#: src/printsecret.c:544
+#, c-format
+msgid "Error: pandoc would not lay fragment %zu out."
+msgstr "Error: pandoc a refusé de composer le fragment %zu."
+
+#: src/printsecret.c:549
+#, c-format
+msgid "Error: pdfcrop would not trim fragment %zu."
+msgstr "Error: pdfcrop a refusé de rogner le fragment %zu."
+
+#: src/printsecret.c:557
+#, c-format
+msgid "Error: lpr would not print fragment %zu."
+msgstr "Error: lpr a refusé d'imprimer le fragment %zu."
+
+#: src/printsecret.c:575
+#, c-format
+msgid "Notice: The working copies are removed. Shred %s if anything is left."
+msgstr ""
+"Notice: Les copies de travail sont supprimées. Broyez %s s'il en reste "
+"quelque chose."
+
+#: src/printsecret.c:578
+#, c-format
+msgid ""
+"Notice: The fragments are in %s. Shred it once they are on paper: bl-"
+"security shred_path --remove '%s'"
+msgstr ""
+"Notice: Les fragments sont dans %s. Broyez-le une fois qu'ils sont sur "
+"papier : bl-security shred_path --remove '%s'"
+
+#: src/property.c:216
+#, c-format
+msgid "Error: No certificate %s."
+msgstr "Error: Aucun certificat %s."
+
+#: src/property.c:220
+#, c-format
+msgid "Error: %u certificates match; name one."
+msgstr "Error: %u certificats correspondent ; nommez-en un."
+
+#: src/property.c:247
+msgid ""
+"Error: 'ksprefrd' cannot be revoked — it is a subpacket of a signature, not "
+"a uid. Set another value instead."
+msgstr ""
+"Error: « ksprefrd » ne se révoque pas — c'est un sous-paquet de signature, "
+"pas un uid. Posez plutôt une autre valeur."
+
+#: src/property.c:254
+#, c-format
+msgid "Error: 'ksprefrd' must start with hkp:// or hkps:// (%s)."
+msgstr "Error: « ksprefrd » doit commencer par hkp:// ou hkps:// (%s)."
+
+#: src/property.c:261
+msgid "Error: Cannot set the preferred keyserver — right PIN?"
+msgstr "Error: Impossible de poser le serveur de clés préféré — le bon PIN ?"
+
+#: src/property.c:283
+#, c-format
+msgid "Error: Cannot export %s."
+msgstr "Error: Impossible d'exporter %s."
+
+#: src/property.c:301
+#, c-format
+msgid ""
+"Usage: %s property NAME [OPTIONS]... [SEARCH]\n"
+"\n"
+"Show the values of one vCard property carried by a certificate, one per\n"
+"line, or add and revoke them. Without SEARCH, the certificate is the one\n"
+"whose secret key is at hand — the plugged security key.\n"
+"\n"
+"NAME is one of: name, note, phone, address, url, lang, geo, ksprefrd.\n"
+"name and note hold a single value: adding one revokes the one before.\n"
+"A certificate always keeps at least one name.\n"
+"\n"
+"Addresses are not vCard properties — they keep the 'Name <addr>' shape\n"
+"every mail client reads. Use '%s email' for those.\n"
+"\n"
+"'ksprefrd' is the certificate server this certificate names as its own.\n"
+"It is a signature subpacket rather than a uid, so it can be replaced but\n"
+"never revoked.\n"
+"\n"
+"OPTIONS:\n"
+"  -A, --add VALUE             Add a value (repeatable)\n"
+"      --replace-to VALUE      The same word, for the properties that hold one\n"
+"  -R, --revoke VALUE          Revoke the uid carrying VALUE (repeatable)\n"
+"      --revoke-all            Revoke every value, bar the newest where one is kept\n"
+"  -y, --yes                   Assume yes: skip the irreversibility warning\n"
+"      --show-unusable         Also show the values that no longer stand\n"
+"  -K, --keyservers SERVERS    Send the changed certificate to these\n"
+"                              Empty for none. Default: %s\n"
+"  -h, --help                  Print this help and exit\n"
+"  -V, --version               Print the version and exit\n"
+"\n"
+"Revoking is irreversible: OpenPGP keeps the uid on the certificate\n"
+"forever, marked revoked, and an identical one can never be added again.\n"
+msgstr ""
+
+#: src/property.c:358
+msgid "Error: Too many values at once."
+msgstr "Error: Trop de valeurs à la fois."
+
+#: src/property.c:391
+#, c-format
+msgid "Warning: Ignoring extra argument '%s'."
+msgstr "Warning: Argument supplémentaire « %s » ignoré."
+
+#: src/property.c:396
+msgid "Error: A property name is required."
+msgstr "Error: Un nom de propriété est exigé."
+
+#: src/property.c:416
+#, c-format
+msgid "Error: Unknown property '%s'."
+msgstr "Error: Propriété inconnue « %s »."
+
+#: src/property.c:417
+#, c-format
+msgid "Notice: One of name, note, phone, address, url, lang, geo, %s."
+msgstr "Notice: Au choix : name, note, phone, address, url, lang, geo, %s."
+
+#: src/property.c:424
+#, c-format
+msgid ""
+"Error: Only one --add at a time for '%s' — the new value replaces the one "
+"before, and two would race."
+msgstr ""
+"Error: Un seul --add à la fois pour « %s » — la nouvelle valeur remplace la "
+"précédente, et deux se disputeraient la place."
+
+#: src/property.c:436
+#, c-format
+msgid "Error: Only one --add at a time for '%s'."
+msgstr "Error: Un seul --add à la fois pour « %s »."
+
+#: src/property.c:457
+#, c-format
+msgid "Error: Invalid %s value '%s'."
+msgstr "Error: Valeur %s invalide « %s »."
+
+#: src/property.c:536
+#, c-format
+msgid "Error: No revokable '%s:%s' inside certificate %s."
+msgstr "Error: Aucun « %s:%s » révocable dans le certificat %s."
+
+#: src/property.c:541
+#, c-format
+msgid "Error: At least one %s must be retained."
+msgstr "Error: Au moins un %s doit être conservé."
+
+#: src/push.c:30
+#, c-format
+msgid ""
+"Usage: %s push [OPTIONS]... FINGERPRINT...\n"
+"\n"
+"Send certificates to the keyservers as they stand, changing nothing.\n"
+"Fingerprints only: what is published cannot be recalled.\n"
+"\n"
+"OPTIONS:\n"
+"  -K, --keyservers SERVERS    Send to these, space separated\n"
+"                              Empty for none. Default: %s\n"
+"  -h, --help                  Print this help and exit\n"
+"  -V, --version               Print the version and exit\n"
+msgstr ""
+
+#: src/push.c:80
+msgid "Error: Which certificate?"
+msgstr "Error: Quel certificat ?"
+
+#: src/push.c:92
+msgid ""
+"Notice: Publishing takes fingerprints, so a search never becomes a "
+"broadcast."
+msgstr ""
+"Notice: Publier demande des empreintes, ainsi une recherche ne devient "
+"jamais une diffusion."
+
+#: src/push.c:99
+msgid "Notice: No keyserver asked for; nothing sent."
+msgstr "Notice: Aucun serveur de clés demandé ; rien n'a été envoyé."
+
+#: src/scan.c:33
+#, c-format
+msgid ""
+"Usage: %s scan [OPTIONS]... IMAGE...\n"
+"\n"
+"Rebuild an OpenPGP secret key from the QR codes in IMAGE..., import it,\n"
+"and print the fingerprint of the certification key that came back.\n"
+"Images may be PNG, JPEG, or PDF.\n"
+"\n"
+"OPTIONS:\n"
+"  -p, --passphrase PASSPHRASE   The passphrase the secret parts are under\n"
+"  -P, --passfrom FILE           Read it from the first line of FILE instead\n"
+"  -W, --workdir DIRECTORY       Work here instead of a temporary directory\n"
+"                                Its contents must be shredded afterwards\n"
+"  -h, --help                    Print this help and exit\n"
+"  -V, --version                 Print the version and exit\n"
+"\n"
+"Fragments missing are named rather than worked around: this reads what it\n"
+"is given, and does not open a camera to go looking.\n"
+msgstr ""
+
+#: src/scan.c:148
+msgid "Error: Which images? There is no camera to fall back on here."
+msgstr ""
+"Error: Quelles images ? Il n'y a pas de caméra sur laquelle se rabattre ici."
+
+#: src/scan.c:182
+#, c-format
+msgid "Error: Can't convert pdf %s."
+msgstr "Error: Impossible de convertir le pdf %s."
+
+#: src/scan.c:193 src/scan.c:242
+#, c-format
+msgid "Error: No QR code with expected data in '%s'."
+msgstr "Error: Aucun QR code portant les données attendues dans « %s »."
+
+#: src/scan.c:224
+#, c-format
+msgid "Crit: QR codes don't share the same version (%d != %d)."
+msgstr "Crit: Les QR codes ne partagent pas la même version (%d != %d)."
+
+#: src/scan.c:229
+#, c-format
+msgid "Crit: QR codes don't share the same division (%d != %d)."
+msgstr "Crit: Les QR codes ne partagent pas le même découpage (%d != %d)."
+
+#: src/scan.c:234
+#, c-format
+msgid "Crit: Fragment number %d is out of range."
+msgstr "Crit: Le numéro de fragment %d est hors plage."
+
+#: src/scan.c:245
+#, c-format
+msgid "Info: QR code(s) with expected data read from '%s'."
+msgstr "Info: QR code(s) portant les données attendues lu(s) depuis « %s »."
+
+#: src/scan.c:249
+#, c-format
+msgid "Crit: Unsupported qrcode version (%d)."
+msgstr "Crit: Version de QR code non prise en charge (%d)."
+
+#: src/scan.c:250
+msgid "Versions 1 to 3 needed an extra passphrase and are long gone."
+msgstr ""
+"Les versions 1 à 3 demandaient une phrase de passe supplémentaire et ont "
+"disparu depuis longtemps."
+
+#: src/scan.c:265
+#, c-format
+msgid "Error: %zu fragment(s) of the %d needed; missing: %s."
+msgstr "Error: %zu fragment(s) sur les %d nécessaires ; manquants : %s."
+
+#: src/scan.c:287
+msgid "Error: basenc would not decode the fragments."
+msgstr "Error: basenc a refusé de décoder les fragments."
+
+#: src/scan.c:300
+#, c-format
+msgid "Error: basenc would not decode fragment %zu."
+msgstr "Error: basenc a refusé de décoder le fragment %zu."
+
+#: src/scan.c:318
+msgid "Error: gfcombine would not put the fragments back together."
+msgstr "Error: gfcombine a refusé de recomposer les fragments."
+
+#: src/scan.c:328
+msgid "Error: gpg would not import what came back."
+msgstr "Error: gpg a refusé d'importer ce qui est revenu."
+
+#: src/scan.c:329
+msgid "A wrong passphrase, or fragments from two different printings."
+msgstr ""
+"Une mauvaise phrase de passe, ou des fragments issus de deux impressions "
+"différentes."
+
+#: src/sigs.c:86
+#, c-format
+msgid ""
+"Usage: %s sigs [OPTIONS]... FINGERPRINT\n"
+"\n"
+"List who has certified that certificate, oldest first: date, key\n"
+"identifier, address. The key identifier is what a search takes to walk\n"
+"one step further into the web of trust.\n"
+"\n"
+"Only the identity uid (UID:urn:eid:...) is read, because a certification\n"
+"is about the entity and not about one of its addresses. A certificate\n"
+"carrying no identity uid falls back to the merged list, with a notice.\n"
+"\n"
+"Self-signatures are left out: they make a uid stand, they do not\n"
+"certify anyone.\n"
+"\n"
+"OPTIONS:\n"
+"  -a, --all-uids              Merge the signatures of every uid\n"
+"  -h, --help                  Print this help and exit\n"
+msgstr ""
+
+#: src/sigs.c:174
+msgid "Notice: No identity uid; merging every uid instead."
+msgstr ""
+"Notice: Aucun uid d'identité ; tous les uids sont fusionnés à la place."
+
+#: src/token.c:24
+#, c-format
+msgid ""
+"Usage: %s token_retries [OPTIONS]...\n"
+"\n"
+"Print how many attempts remain on the connected security key's codes,\n"
+"before each one locks. All three unless one is asked for.\n"
+"\n"
+"OPTIONS:\n"
+"  -P, --pin                   The PIN, usually six digits\n"
+"  -R, --rc                    The reset code, usually unused\n"
+"  -A, --admin                 The admin code, usually eight digits\n"
+"  -q, --quiet                 The numbers alone, one per line\n"
+"  -h, --help                  Print this help and exit\n"
+"  -V, --version               Print the version and exit\n"
+msgstr ""
+
+#: src/token.c:81
+#, c-format
+msgid "Error: No security key answered%s%s."
+msgstr "Error: Aucune clé de sécurité n'a répondu%s%s."
+
+#: src/token.c:99
+#, c-format
+msgid "Error: The card answered %u numbers, not seven."
+msgstr "Error: La carte a répondu %u nombres, et non sept."
+
+#: src/tokencheck.c:178
+#, c-format
+msgid ""
+"Usage: %s token_check [OPTIONS]...\n"
+"\n"
+"Say whether the connected security key is configured to carry a PGP\n"
+"ID, and what it holds. Tries to fetch the certificate named in the\n"
+"key's own metadata unless told not to.\n"
+"\n"
+"OPTIONS:\n"
+"  -f, --no-fetch              Do not fetch the certificate from the key's URL\n"
+"  -p, --cert-fpr              Print the certification key's fingerprint\n"
+"  -i, --info                  Print every field as key='value'\n"
+"  -q, --quiet                 Say nothing on the error stream\n"
+"  -h, --help                  Print this help and exit\n"
+"  -V, --version               Print the version and exit\n"
+"\n"
+"Returns 0 when the key carries a complete identity, otherwise 100 plus\n"
+"the number of fields missing — so 107 is a key that carries nothing,\n"
+"which is a blank key rather than a broken one.\n"
+msgstr ""
+
+#: src/tokencheck.c:280
+msgid "Error: No security key answered."
+msgstr "Error: Aucune clé de sécurité n'a répondu."
+
+#: src/tokencheck.c:301
+#, c-format
+msgid "Notice: Fetching the certificate from %s…"
+msgstr "Notice: Récupération du certificat depuis %s…"
+
+#: src/tokencheck.c:384
+#, c-format
+msgid "Notice: The key names %u addresses; keeping the first."
+msgstr "Notice: La clé nomme %u adresses ; la première est retenue."
+
+#: src/tokencheck.c:386
+#, c-format
+msgid "Error: The key names %u identifiers, which cannot both be its."
+msgstr ""
+"Error: La clé nomme %u identifiants, qui ne peuvent pas être tous les siens."
+
+#: src/tokencheck.c:413
+msgid "Warning: No certification key known. Share or fetch the certificate."
+msgstr ""
+"Warning: Aucune clé de certification connue. Partagez ou récupérez le "
+"certificat."
+
+#: src/tokencheck.c:438
+#, c-format
+msgid "Notice: Not a PGP ID key yet, missing: '%s'."
+msgstr "Notice: Pas encore une clé PGP ID, il manque : « %s »."
+
+#: src/tokencheck.c:445
+#, c-format
+msgid "Info: A PGP ID key, certified by %s, carrying %s."
+msgstr "Info: Une clé PGP ID, certifiée par %s, portant %s."
+
+#: src/totoken.c:34
+#, c-format
+msgid ""
+"Usage: %s totoken [OPTIONS]... KEY\n"
+"\n"
+"Move an OpenPGP secret key onto the connected security key, and print the\n"
+"certificate, the new PIN and the new Admin code.\n"
+"\n"
+"This wipes the card and takes the secret parts off this machine. Both are\n"
+"final. Print the key first if it is not printed: %s print_secret.\n"
+"\n"
+"OPTIONS:\n"
+"  -p, --passphrase PASSPHRASE  The passphrase protecting the secret parts\n"
+"  -P, --passfrom FILE          Read it from the first line of FILE instead\n"
+"  -U, --certurl URL            Where the certificate can be fetched\n"
+"                               Default: the keyserver's lookup for this key\n"
+"  -L, --lang LANG              The card's language preference - Default: the locale's\n"
+"  -k, --keyserver KEYSERVER    Send the certificate there, and build the\n"
+"                               default URL from it\n"
+"  -K, --pubkey FILE            Also write the armored certificate to FILE\n"
+"      --force                  Wipe a card that is not blank\n"
+"  -h, --help                   Print this help and exit\n"
+"  -V, --version                Print the version and exit\n"
+msgstr ""
+
+#: src/totoken.c:123
+#, c-format
+msgid "Error: '%s' wants a URL."
+msgstr "Error: « %s » attend une URL."
+
+#: src/totoken.c:129
+#, c-format
+msgid "Error: '%s' wants a language."
+msgstr "Error: « %s » attend une langue."
+
+#: src/totoken.c:141
+#, c-format
+msgid "Warning: Deprecated option %s."
+msgstr "Warning: Option obsolète %s."
+
+#: src/totoken.c:160
+msgid ""
+"Warning: Only 2 lower case ASCII letters can define a preferred language; "
+"leaving it out."
+msgstr ""
+"Warning: Seules 2 lettres ASCII minuscules définissent une langue préférée ;"
+" elle est laissée de côté."
+
+#: src/totoken.c:163
+msgid "Error: Which secret key should move onto the card?"
+msgstr "Error: Quelle clé secrète doit passer sur la carte ?"
+
+#: src/totoken.c:203
+#, c-format
+msgid "Error: Cannot write the certificate to %s."
+msgstr "Error: Impossible d'écrire le certificat dans %s."
+
+#: src/totoken.c:232
+#, c-format
+msgid "Error: No email for OpenPGP key '%s'."
+msgstr "Error: Aucune adresse pour la clé OpenPGP « %s »."
+
+#: src/totoken.c:256
+#, c-format
+msgid "Notice: Detected OpenPGP security token: %s."
+msgstr "Notice: Clé de sécurité OpenPGP détectée : %s."
+
+#: src/totoken.c:260
+#, c-format
+msgid "Error: This wipes card %s and everything on it, then takes the"
+msgstr ""
+"Error: Ceci efface la carte %s et tout ce qu'elle porte, puis retire les"
+
+#: src/totoken.c:261
+#, c-format
+msgid "secret parts of %s off this machine. Neither can be undone."
+msgstr ""
+"parties secrètes de %s de cette machine. Ni l'un ni l'autre ne se défait."
+
+#: src/totoken.c:262
+msgid "Pass --force when that is what you mean."
+msgstr "Passez --force si c'est bien ce que vous voulez dire."
+
+#: src/totoken.c:276
+msgid ""
+"Error: The key is protected by a passphrase, which has to come off before it"
+" can move to a card."
+msgstr ""
+"Error: La clé est protégée par une phrase de passe, qui doit être retirée "
+"avant qu'elle puisse passer sur une carte."
+
+#: src/totoken.c:286
+#, c-format
+msgid "Error: Cannot take the passphrase off '%s' — right passphrase?"
+msgstr ""
+"Error: Impossible de retirer la phrase de passe de « %s » — la bonne phrase "
+"de passe ?"
+
+#: src/totoken.c:291
+msgid "Notice: Resetting OpenPGP security token…"
+msgstr "Notice: Remise à zéro de la clé de sécurité OpenPGP…"
+
+#: src/totoken.c:294
+msgid "Error: Factory reset of the OpenPGP card failed."
+msgstr "Error: Échec de la remise en état d'usine de la carte OpenPGP."
+
+#: src/totoken.c:298
+msgid "Notice: Configuring OpenPGP security token…"
+msgstr "Notice: Configuration de la clé de sécurité OpenPGP…"
+
+#: src/totoken.c:309
+msgid "Error: Configuring the OpenPGP card failed."
+msgstr "Error: Échec de la configuration de la carte OpenPGP."
+
+#: src/totoken.c:316
+msgid "Error: Setting the card's key attributes failed."
+msgstr "Error: Échec de la pose des attributs de clé de la carte."
+
+#: src/totoken.c:320
+msgid "Notice: Moving OpenPGP secrets to security token…"
+msgstr "Notice: Déplacement des secrets OpenPGP vers la clé de sécurité…"
+
+#: src/totoken.c:325
+msgid "Error: Moving the secrets to the card failed."
+msgstr "Error: Échec du déplacement des secrets vers la carte."
+
+#: src/totoken.c:333
+msgid ""
+"Error: Cannot draw new codes — the card is left on its factory PIN 123456 "
+"and Admin 12345678. Change them now."
+msgstr ""
+"Error: Impossible de tirer de nouveaux codes — la carte reste sur son PIN "
+"d'usine 123456 et son Admin 12345678. Changez-les maintenant."
+
+#: src/totoken.c:340
+msgid "Error: Cannot make a temporary file for the new codes."
+msgstr ""
+"Error: Impossible de créer un fichier temporaire pour les nouveaux codes."
+
+#: src/totoken.c:352
+#, c-format
+msgid "Error: Cannot write the new %s code out."
+msgstr "Error: Impossible d'écrire le nouveau code %s."
+
+#: src/totoken.c:370
+#, c-format
+msgid ""
+"Error: Changing the %s code failed (%d). The card is left on its factory "
+"code — change it now."
+msgstr ""
+"Error: Échec du changement du code %s (%d). La carte reste sur son code "
+"d'usine — changez-le maintenant."
+
+#: src/totoken.c:382
+msgid ""
+"Warning: Please publish this certificate on the Internet (a keyserver will "
+"do)."
+msgstr ""
+"Warning: Publiez ce certificat sur Internet (un serveur de clés fera "
+"l'affaire)."
+
+#: src/totoken.c:386
+#, c-format
+msgid ""
+"Notice: Write these down. Nothing else knows them. They can be changed with "
+"'%s change_token_code'."
+msgstr ""
+"Notice: Notez-les. Rien d'autre ne les connaît. Ils se changent avec « %s "
+"change_token_code »."
+
+#: src/tovcard.c:255
+#, c-format
+msgid "Warning: Several preferred keyservers across uids — kept '%s'."
+msgstr ""
+"Warning: Plusieurs serveurs de clés préférés selon les uids — « %s » retenu."
+
+#: src/tovcard.c:344
+#, c-format
+msgid ""
+"Usage: %s to_vcard [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
+"\n"
+"Write a certificate as a vCard 4.0, which an address book can read.\n"
+"Without a selector, the certificate whose secret key is at hand.\n"
+"\n"
+"OPTIONS:\n"
+"  -o, --output FILE           Write there rather than to standard output\n"
+"      --raw                   Print every uid instead, one per paragraph\n"
+"  -h, --help                  Print this help and exit\n"
+"  -V, --version               Print the version and exit\n"
+msgstr ""
+
+#: src/tovcard.c:415
+#, c-format
+msgid "Error: Cannot write '%s'."
+msgstr "Error: Impossible d'écrire « %s »."
+
+#: src/tovcard.c:470
+msgid "Error: This certificate carries no name."
+msgstr "Error: Ce certificat ne porte aucun nom."
+
+#: src/tovcard.c:471
+msgid "Notice: A vCard needs FN; there is no card to write."
+msgstr "Notice: Une vCard exige FN ; il n'y a pas de carte à écrire."
+
+#: src/tovcard.c:585
+#, c-format
+msgid "Notice: Written into '%s'."
+msgstr "Notice: Écrit dans « %s »."
+
+#: src/trustdb.c:38
+#, c-format
+msgid ""
+"Usage: %s update_trustdb [OPTIONS]... [OWNERTRUST.GPG]...\n"
+"\n"
+"Recompute GnuPG's trust database, after applying the delegations the\n"
+"given files carry.\n"
+"\n"
+"Every file must be a signed OpenPGP message, and its signer must already\n"
+"be valid when its turn comes — which is why the order of the files is\n"
+"part of what they mean. Whatever they say about your own keys is\n"
+"ignored: somebody may extend trust to others, not redefine yours.\n"
+"\n"
+"OPTIONS:\n"
+"      --batch                 Recompute without asking about the remaining keys\n"
+"  -q, --quiet                 Only errors and warnings\n"
+"  -h, --help                  Print this help and exit\n"
+"  -V, --version               Print the version and exit\n"
+msgstr ""
+
+#: src/trustdb.c:122
+msgid "Error: Cannot make a temporary file."
+msgstr "Error: Impossible de créer un fichier temporaire."
+
+#: src/trustdb.c:141
+#, c-format
+msgid ""
+"Error: Cannot read or verify %s (missing, not signed, or bad signature?)."
+msgstr ""
+"Error: Impossible de lire ou de vérifier %s (absent, non signé, ou mauvaise "
+"signature ?)."
+
+#: src/trustdb.c:163
+#, c-format
+msgid "Error: %s carries no verifiable signature (signer key missing?)."
+msgstr ""
+"Error: %s ne porte aucune signature vérifiable (clé du signataire absente "
+"?)."
+
+#: src/trustdb.c:175
+#, c-format
+msgid "Warning: %s is signed in the future (%s) — is the local clock right?"
+msgstr ""
+"Warning: %s est signé dans le futur (%s) — l'horloge locale est-elle juste ?"
+
+#: src/trustdb.c:183
+#, c-format
+msgid "Warning: %s carries a delegation older than a year (%s)."
+msgstr "Warning: %s porte une délégation vieille de plus d'un an (%s)."
+
+#: src/trustdb.c:197 src/trustdb.c:203
+#, c-format
+msgid "Error: %s is not a valid ownertrust file."
+msgstr "Error: %s n'est pas un fichier d'ownertrust valide."
+
+#: src/trustdb.c:246
+msgid "Info: ownertrust changes:"
+msgstr "Info: changements d'ownertrust :"
+
+#: src/trustdb.c:249
+#, c-format
+msgid "  - %s"
+msgstr "  - %s"
+
+#: src/trustdb.c:252
+#, c-format
+msgid "  + %s"
+msgstr "  + %s"
+
+#: src/trustdb.c:282
+msgid "Error: Too many files at once."
+msgstr "Error: Trop de fichiers à la fois."
+
+#: src/trustdb.c:345
+msgid "Info: The delegations are already applied — ownertrust left unchanged."
+msgstr ""
+"Info: Les délégations sont déjà appliquées — l'ownertrust reste inchangé."
+
+#: src/trustdb.c:366
+#, c-format
+msgid "Notice: Current ownertrust backed up in %s."
+msgstr "Notice: Ownertrust actuel sauvegardé dans %s."
+
+#: src/trustdb.c:368
+#, c-format
+msgid ""
+"Warning: Cannot write the backup %s — going ahead anyway would leave no way "
+"back. Stopping."
+msgstr ""
+"Warning: Impossible d'écrire la sauvegarde %s — continuer quand même ne "
+"laisserait aucun retour possible. Arrêt."
+
+#: src/trustdb.c:376
+#, c-format
+msgid "Error: Delegation chain broken: the signer of %s is not (yet) valid."
+msgstr ""
+"Error: Chaîne de délégations rompue : le signataire de %s n'est pas (encore)"
+" valide."
+
+#: src/trustdb.c:383
+#, c-format
+msgid "Error: gpg would not import the delegation from %s."
+msgstr "Error: gpg a refusé d'importer la délégation venue de %s."
+
+#: src/trustdb.c:397
+#, c-format
+msgid "Notice: To restore the previous trust: gpg --import-ownertrust %s"
+msgstr ""
+"Notice: Pour rétablir la confiance précédente : gpg --import-ownertrust %s"
+
+#: src/uidedit.c:69
+msgid "Error: Revoking a User ID is irreversible — OpenPGP keeps it"
+msgstr "Error: Révoquer un User ID est irréversible — OpenPGP le garde"
+
+#: src/uidedit.c:70
+msgid "on the certificate forever, marked revoked, and an identical one"
+msgstr "à jamais sur le certificat, marqué révoqué, et un identique"
+
+#: src/uidedit.c:71
+msgid "can never be added again. Pass --yes if that is what you want:"
+msgstr ""
+"ne pourra plus jamais être ajouté. Passez --yes si c'est ce que vous voulez "
+":"
+
+#: src/uidedit.c:72
+#, c-format
+msgid "  %s"
+msgstr "  %s"
+
+#: src/uidedit.c:75
+#, c-format
+msgid "Notice: Revoking %s inside certificate %s…"
+msgstr "Notice: Révocation de %s dans le certificat %s…"
+
+#: src/uidedit.c:78
+#, c-format
+msgid "Error: gpg would not revoke %s."
+msgstr "Error: gpg a refusé de révoquer %s."
+
+#: src/uidedit.c:115
+#, c-format
+msgid ""
+"Warning: No address left on certificate %s to carry the primary User ID "
+"flag."
+msgstr ""
+"Warning: Plus aucune adresse sur le certificat %s pour porter le drapeau "
+"d'User ID principal."
+
+#: src/uidedit.c:119
+#, c-format
+msgid ""
+"Notice: Main identity is no longer an address: moving the primary User ID "
+"flag to %s."
+msgstr ""
+"Notice: L'identité principale n'est plus une adresse : le drapeau d'User ID "
+"principal passe sur %s."
+
+#: src/uidedit.c:123
+msgid "Error: gpg would not move the primary User ID flag."
+msgstr "Error: gpg a refusé de déplacer le drapeau d'User ID principal."
+
+#: src/uidedit.c:173
+#, c-format
+msgid "Notice: Minting the identity uid %s…"
+msgstr "Notice: Frappe de l'uid d'identité %s…"
+
+#: src/uidedit.c:176
+#, c-format
+msgid "Error: gpg would not add %s."
+msgstr "Error: gpg a refusé d'ajouter %s."
+
+#: src/uidedit.c:195
+#, c-format
+msgid "Warning: gpg would not add %s."
+msgstr "Warning: gpg a refusé d'ajouter %s."

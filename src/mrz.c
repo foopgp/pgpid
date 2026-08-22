@@ -125,8 +125,9 @@ static void expand_year(const char *yymmdd, char *out, size_t max)
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " mrz_to_u4 [OPTIONS]... MRZ...\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " mrz_to_u4 [OPTIONS]... MRZ...\n"
         "\n"
         "Print the entity identifier the machine readable zone of a passport\n"
         "gives. The zone is 88 characters over two lines; spaces and newlines\n"
@@ -140,7 +141,8 @@ static void usage(FILE *out)
         "\n"
         "Roughly one passport in five gives the wrong identifier: a surname\n"
         "truncated to fit, a name changed since birth, another transliteration,\n"
-        "or a year of birth two digits cannot place. It has to be checked.\n");
+        "or a year of birth two digits cannot place. It has to be checked.\n"),
+            PGPID_NAME);
 }
 
 int pgpid_action_mrz_to_u4(int argc, char **argv)
@@ -153,7 +155,7 @@ int pgpid_action_mrz_to_u4(int argc, char **argv)
         const char *a = argv[i];
         if (!strcmp(a, "-d") || !strcmp(a, "--birth-date")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a date.", a);
+                pgpid_error(_("Error: '%s' wants a date."), a);
                 return PGPID_USAGE;
             }
             given_date = argv[i];
@@ -169,8 +171,8 @@ int pgpid_action_mrz_to_u4(int argc, char **argv)
             first = i + 1;
             break;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " mrz_to_u4 --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("mrz_to_u4");
             return PGPID_USAGE;
         } else {
             first = i;
@@ -179,7 +181,7 @@ int pgpid_action_mrz_to_u4(int argc, char **argv)
     }
 
     if (!first || first >= argc) {
-        pgpid_error("Error: Where is the machine readable zone?");
+        pgpid_error(_("Error: Where is the machine readable zone?"));
         usage(stderr);
         return PGPID_USAGE;
     }
@@ -197,11 +199,11 @@ int pgpid_action_mrz_to_u4(int argc, char **argv)
     const char *level = uncheck ? "Warning" : "Error";
 
     if (!mrz.is_passport) {
-        pgpid_error("Error: Only a passport zone is read, and this does not begin with 'P'.");
+        pgpid_error(_("Error: Only a passport zone is read, and this does not begin with 'P'."));
         return PGPID_FAIL;
     }
     if (!mrz.right_length) {
-        pgpid_error("%s: The zone is %zu characters, not 88.", level, mrz.length);
+        pgpid_error(_("%s: The zone is %zu characters, not 88."), level, mrz.length);
         if (!uncheck)
             return PGPID_FAIL;
         if (mrz.length < 88)
@@ -214,7 +216,7 @@ int pgpid_action_mrz_to_u4(int argc, char **argv)
         };
         for (unsigned i = 0; i < 5; i++)
             if (mrz.bad[i])
-                pgpid_error("%s: The check digit for %s does not agree.", level, what[i]);
+                pgpid_error(_("%s: The check digit for %s does not agree."), level, what[i]);
         if (!uncheck)
             return PGPID_FAIL;
     }
@@ -225,7 +227,7 @@ int pgpid_action_mrz_to_u4(int argc, char **argv)
      * the surname from the given names, which is the only structure it has. */
     char extracted[640];
     if (!pgpid_extract_names(mrz.names, extracted, sizeof extracted)) {
-        pgpid_error("Error: No complete surname and given names in '%s'.", mrz.names);
+        pgpid_error(_("Error: No complete surname and given names in '%s'."), mrz.names);
         return PGPID_FAIL;
     }
 
@@ -243,7 +245,7 @@ int pgpid_action_mrz_to_u4(int argc, char **argv)
         else if (n == 6)
             expand_year(digits, date, sizeof date);
         else {
-            pgpid_error("Error: '%s' is not a date this can read.", given_date);
+            pgpid_error(_("Error: '%s' is not a date this can read."), given_date);
             return PGPID_USAGE;
         }
     } else {
@@ -252,7 +254,7 @@ int pgpid_action_mrz_to_u4(int argc, char **argv)
 
     const char *coord = pgpid_country_coordinates(mrz.country);
     if (!coord) {
-        pgpid_error("Error: '%s' is not a three-letter country code we know.", mrz.country);
+        pgpid_error(_("Error: '%s' is not a three-letter country code we know."), mrz.country);
         return PGPID_FAIL;
     }
 

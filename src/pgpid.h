@@ -15,6 +15,20 @@
 
 #define PGPID_NAME    "pgpid"
 
+/* The gettext domain, and where its catalogues are installed. The Makefile
+ * gives the second; the fallback lets the file compile on its own. */
+#define PGPID_TEXTDOMAIN "pgpid"
+#ifndef PGPID_LOCALEDIR
+#define PGPID_LOCALEDIR "/usr/share/locale"
+#endif
+
+/* Every sentence a person reads goes through this. What does not: the
+ * Error:/Warning:/Notice:/Info: prefixes, which say the level rather than
+ * anything in a language, and the key=value names, which callers parse. */
+#include <libintl.h>
+#define _(s)  gettext(s)
+#define N_(s) (s)
+
 /* From `git describe`, through a header the Makefile writes — the same answer
  * bl-pgpid and bl-pgpkey give, so that a bug report names a commit rather than
  * a release nobody can place. The fallback is for building without it. */
@@ -66,6 +80,11 @@ gpgme_error_t pgpid_ctx_new(gpgme_ctx_t *ctx, gpgme_keylist_mode_t mode);
 
 /* Error/Warning/Notice/Info on stderr, prefixed like the shell libraries. */
 void pgpid_error(const char *fmt, ...);
+
+/* "Try 'pgpid certify --help' for more information." — the same sentence in
+ * twenty-six places, so it is written once and translated once. ACTION is
+ * NULL for the program itself. */
+void pgpid_try_help(const char *action);
 void pgpid_gpgme_error(const char *what, gpgme_error_t err);
 
 /* The single letter gpg prints in colon field 2 or 9, for a validity or an

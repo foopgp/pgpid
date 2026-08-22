@@ -83,8 +83,9 @@ static bool is_identity_uid(const char *uid)
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " sigs [OPTIONS]... FINGERPRINT\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " sigs [OPTIONS]... FINGERPRINT\n"
         "\n"
         "List who has certified that certificate, oldest first: date, key\n"
         "identifier, address. The key identifier is what a search takes to walk\n"
@@ -99,7 +100,8 @@ static void usage(FILE *out)
         "\n"
         "OPTIONS:\n"
         "  -a, --all-uids              Merge the signatures of every uid\n"
-        "  -h, --help                  Print this help and exit\n");
+        "  -h, --help                  Print this help and exit\n"),
+            PGPID_NAME);
 }
 
 int pgpid_action_sigs(int argc, char **argv)
@@ -119,8 +121,8 @@ int pgpid_action_sigs(int argc, char **argv)
                 pattern = argv[i + 1];
             break;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " sigs --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("sigs");
             return PGPID_USAGE;
         } else {
             pattern = a;
@@ -129,7 +131,7 @@ int pgpid_action_sigs(int argc, char **argv)
     }
 
     if (!pattern) {
-        pgpid_error("Error: A fingerprint is required.");
+        pgpid_error(_("Error: A fingerprint is required."));
         return PGPID_USAGE;
     }
 
@@ -137,13 +139,13 @@ int pgpid_action_sigs(int argc, char **argv)
     gpgme_error_t err = pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL |
                                             GPGME_KEYLIST_MODE_SIGS);
     if (err) {
-        pgpid_gpgme_error("opening the engine", err);
+        pgpid_gpgme_error(_("opening the engine"), err);
         return PGPID_FAIL;
     }
 
     err = gpgme_op_keylist_start(ctx, pattern, 0);
     if (err) {
-        pgpid_gpgme_error("looking the certificate up", err);
+        pgpid_gpgme_error(_("looking the certificate up"), err);
         gpgme_release(ctx);
         return PGPID_FAIL;
     }
@@ -151,12 +153,12 @@ int pgpid_action_sigs(int argc, char **argv)
     err = gpgme_op_keylist_next(ctx, &key);
     gpgme_op_keylist_end(ctx);
     if (gpg_err_code(err) == GPG_ERR_EOF) {
-        pgpid_error("Error: No certificate matching '%s'.", pattern);
+        pgpid_error(_("Error: No certificate matching '%s'."), pattern);
         gpgme_release(ctx);
         return PGPID_NOTHING;
     }
     if (err) {
-        pgpid_gpgme_error("reading the certificate", err);
+        pgpid_gpgme_error(_("reading the certificate"), err);
         gpgme_release(ctx);
         return PGPID_FAIL;
     }
@@ -169,7 +171,7 @@ int pgpid_action_sigs(int argc, char **argv)
         if (!u->revoked && !u->invalid && is_identity_uid(u->uid))
             has_identity = true;
     if (!all_uids && !has_identity) {
-        pgpid_error("Notice: No identity uid; merging every uid instead.");
+        pgpid_error(_("Notice: No identity uid; merging every uid instead."));
         all_uids = true;
     }
 

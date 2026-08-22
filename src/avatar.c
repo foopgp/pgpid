@@ -166,16 +166,16 @@ static int by_standing_then_date(const void *a, const void *b)
 static bool workdir_ready(const char *dir)
 {
     if (mkdir(dir, 0700) && errno != EEXIST) {
-        pgpid_error("Error: Cannot create '%s': %s.", dir, strerror(errno));
+        pgpid_error(_("Error: Cannot create '%s': %s."), dir, strerror(errno));
         return false;
     }
     struct stat st;
     if (lstat(dir, &st)) {
-        pgpid_error("Error: Cannot read '%s': %s.", dir, strerror(errno));
+        pgpid_error(_("Error: Cannot read '%s': %s."), dir, strerror(errno));
         return false;
     }
     if (!S_ISDIR(st.st_mode) || st.st_uid != getuid()) {
-        pgpid_error("Error: '%s' is not a directory of yours.", dir);
+        pgpid_error(_("Error: '%s' is not a directory of yours."), dir);
         return false;
     }
     return true;
@@ -190,12 +190,12 @@ static bool write_image(const char *dir, const char *fpr,
     snprintf(path, sizeof path, "%s/%s-%u.jpg", dir, fpr, img->index);
     FILE *f = fopen(path, "wb");
     if (!f) {
-        pgpid_error("Error: Cannot write '%s': %s.", path, strerror(errno));
+        pgpid_error(_("Error: Cannot write '%s': %s."), path, strerror(errno));
         return false;
     }
     bool ok = fwrite(img->data, 1, img->len, f) == img->len;
     if (fclose(f) || !ok) {
-        pgpid_error("Error: Cannot write '%s': %s.", path, strerror(errno));
+        pgpid_error(_("Error: Cannot write '%s': %s."), path, strerror(errno));
         return false;
     }
     puts(path);
@@ -253,11 +253,11 @@ static const char *resized(const char *image, const char *dir, char *buf,
     geometry[10] = target;
     int rc = run_program(geometry);
     if (rc == 127) {
-        pgpid_error("Error: graphicsmagick is needed to resize an image - install 'graphicsmagick'.");
+        pgpid_error(_("Error: graphicsmagick is needed to resize an image - install 'graphicsmagick'."));
         return NULL;
     }
     if (rc) {
-        pgpid_error("Error: Cannot read '%s' as an image.", image);
+        pgpid_error(_("Error: Cannot read '%s' as an image."), image);
         return NULL;
     }
     return buf;
@@ -403,7 +403,7 @@ static int replace_avatar(gpgme_ctx_t ctx, gpgme_key_t key, const char *image,
     unsigned nos[MAX_IMAGES];
     size_t n = standing_uidnos(fpr, nos, MAX_IMAGES);
     if (!n && !addfile) {
-        pgpid_error("Notice: No image to take back.");
+        pgpid_error(_("Notice: No image to take back."));
         return PGPID_NOTHING;
     }
     /* Revoking runs from the last to the first: gpg renumbers nothing during
@@ -419,19 +419,19 @@ static int replace_avatar(gpgme_ctx_t ctx, gpgme_key_t key, const char *image,
     gpgme_data_t out;
     gpgme_error_t err = gpgme_data_new(&out);
     if (err) {
-        pgpid_gpgme_error("gpgme_data_new", err);
+        pgpid_gpgme_error(_("gpgme_data_new"), err);
         return PGPID_FAIL;
     }
     if (n)
-        pgpid_error("Info: Taking back %zu image(s) on %s…", n, fpr);
+        pgpid_error(_("Info: Taking back %zu image(s) on %s…"), n, fpr);
     if (e.addfile)
-        pgpid_error("Info: Putting %s on %s…", image, fpr);
+        pgpid_error(_("Info: Putting %s on %s…"), image, fpr);
 
     err = gpgme_op_interact(ctx, key, 0, edit_cb, &e, out);
     gpgme_data_release(out);
     if (err) {
-        pgpid_gpgme_error("gpgme_op_interact", err);
-        pgpid_error("Notice: A certificate is edited with its secret key - is the right one at hand?");
+        pgpid_gpgme_error(_("gpgme_op_interact"), err);
+        pgpid_error(_("Notice: A certificate is edited with its secret key - is the right one at hand?"));
         return PGPID_FAIL;
     }
     /* A changed certificate that stays home is a certificate nobody can
@@ -443,8 +443,9 @@ static int replace_avatar(gpgme_ctx_t ctx, gpgme_key_t key, const char *image,
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " avatar [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " avatar [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
         "\n"
         "Extract the image an OpenPGP certificate wears and print its path.\n"
         "The image that stands today comes first, so the first line is the\n"
@@ -460,10 +461,13 @@ static void usage(FILE *out)
         "  -A, --replace-to IMAGE      Take back every image that stands and put IMAGE on\n"
         "  -R, --revoke                Just take back every image that stands\n"
         "  -K, --keyservers SERVERS    Send the changed certificate to these, space separated\n"
-        "                              Empty for none. Default: " PGPID_KEYSERVERS "\n"
+        "                              Empty for none. Default: "
+        "%s"
+        "\n"
         "  -W, --workdir DIRECTORY     Where the images are written\n"
         "  -h, --help                  Print this help and exit\n"
-        "  -V, --version               Print the version and exit\n");
+        "  -V, --version               Print the version and exit\n"),
+            PGPID_NAME, PGPID_KEYSERVERS);
 }
 
 /* The certificate to read when the caller named none: the first secret one,
@@ -488,13 +492,13 @@ static int one_key(gpgme_ctx_t ctx, gpgme_key_t key, const char *dir, bool all)
     gpgme_data_t out;
     gpgme_error_t err = gpgme_data_new(&out);
     if (err) {
-        pgpid_gpgme_error("gpgme_data_new", err);
+        pgpid_gpgme_error(_("gpgme_data_new"), err);
         return PGPID_FAIL;
     }
     err = gpgme_op_export(ctx, fpr, 0, out);
     if (err) {
         gpgme_data_release(out);
-        pgpid_gpgme_error("gpgme_op_export", err);
+        pgpid_gpgme_error(_("gpgme_op_export"), err);
         return PGPID_FAIL;
     }
     size_t buflen = 0;
@@ -536,7 +540,7 @@ int pgpid_action_avatar(int argc, char **argv)
         } else if (!strcmp(a, "-A") || !strcmp(a, "--replace-to")
                    || !strcmp(a, "--add")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants an image.", a);
+                pgpid_error(_("Error: '%s' wants an image."), a);
                 return PGPID_USAGE;
             }
             image = argv[i];
@@ -544,14 +548,14 @@ int pgpid_action_avatar(int argc, char **argv)
             revoke = true;
         } else if (!strcmp(a, "-K") || !strcmp(a, "--keyservers")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a list of servers, empty for none.", a);
+                pgpid_error(_("Error: '%s' wants a list of servers, empty for none."), a);
                 return PGPID_USAGE;
             }
             keyservers = argv[i];
         } else if (!strcmp(a, "-W") || !strcmp(a, "--workdir")
                    || !strcmp(a, "--tmpdir")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a directory.", a);
+                pgpid_error(_("Error: '%s' wants a directory."), a);
                 return PGPID_USAGE;
             }
             workdir = argv[i];
@@ -566,13 +570,13 @@ int pgpid_action_avatar(int argc, char **argv)
                 selector = argv[i];
             break;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " avatar --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("avatar");
             return PGPID_USAGE;
         } else if (!selector) {
             selector = a;
         } else {
-            pgpid_error("Error: One certificate at a time.");
+            pgpid_error(_("Error: One certificate at a time."));
             return PGPID_USAGE;
         }
     }
@@ -589,23 +593,24 @@ int pgpid_action_avatar(int argc, char **argv)
      * line for the same reason: being shown too much costs nothing, being
      * revoked by accident cannot be undone. */
     if ((image || revoke) && (!selector || !pgpid_is_fingerprint(selector))) {
-        pgpid_error("Error: Changing an image wants a fingerprint, not a search.");
+        pgpid_error(_("Error: Changing an image wants a fingerprint, not a search."));
         return PGPID_USAGE;
     }
     if (keyservers && !image && !revoke) {
-        pgpid_error("Error: '--keyservers' publishes a change; there is none to make.");
-        pgpid_error("Notice: To publish a certificate as it stands, see '" PGPID_NAME " push'.");
+        pgpid_error(_("Error: '--keyservers' publishes a change; there is none to make."));
+        pgpid_error(_("Notice: To publish a certificate as it stands, see '%s push'."),
+                    PGPID_NAME);
         return PGPID_USAGE;
     }
     if (image && revoke) {
-        pgpid_error("Error: '--revoke' takes every image back; '--replace-to' already does.");
+        pgpid_error(_("Error: '--revoke' takes every image back; '--replace-to' already does."));
         return PGPID_USAGE;
     }
 
     gpgme_ctx_t ctx;
     gpgme_error_t err = pgpid_ctx_new(&ctx, 0);
     if (err) {
-        pgpid_gpgme_error("gpgme_new", err);
+        pgpid_gpgme_error(_("gpgme_new"), err);
         return PGPID_FAIL;
     }
 
@@ -622,7 +627,7 @@ int pgpid_action_avatar(int argc, char **argv)
         err = gpgme_op_keylist_start(ctx, selector, 0);
         if (err) {
             gpgme_release(ctx);
-            pgpid_gpgme_error("gpgme_op_keylist_start", err);
+            pgpid_gpgme_error(_("gpgme_op_keylist_start"), err);
             return PGPID_FAIL;
         }
         while (nfound < MAX_KEYS && !gpgme_op_keylist_next(ctx, &key))
@@ -644,12 +649,12 @@ int pgpid_action_avatar(int argc, char **argv)
         ret = one_key(ctx, key, workdir, all);
         gpgme_key_unref(key);
     } else {
-        pgpid_error("Error: No secret certificate to read - name one.");
+        pgpid_error(_("Error: No secret certificate to read - name one."));
         ret = PGPID_FAIL;
     }
 
     if (ret == PGPID_NOTHING)
-        pgpid_error("Notice: No image in that certificate.");
+        pgpid_error(_("Notice: No image in that certificate."));
     gpgme_release(ctx);
     return ret;
 }

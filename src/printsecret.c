@@ -33,8 +33,9 @@
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " print_secret [OPTIONS]... KEY\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " print_secret [OPTIONS]... KEY\n"
         "\n"
         "Print an OpenPGP secret key as QR codes, split so that no single sheet\n"
         "carries it. By default five fragments of which any three rebuild it.\n"
@@ -58,7 +59,8 @@ static void usage(FILE *out)
         "then rests on the passphrase, and printing it alongside leaves nothing.\n"
         "\n"
         "Photographs are left out of what is printed. A backup does not need your\n"
-        "face, and paper is handled by whoever finds it.\n");
+        "face, and paper is handled by whoever finds it.\n"),
+            PGPID_NAME);
 }
 
 /* Is there anything called SECRET* here already? Reusing a directory that
@@ -80,7 +82,7 @@ static bool first_line_of(const char *path, char *out, size_t max)
 {
     FILE *f = fopen(path, "r");
     if (!f) {
-        pgpid_error("Error: Cannot read %s.", path);
+        pgpid_error(_("Error: Cannot read %s."), path);
         return false;
     }
     if (!fgets(out, (int)max, f))
@@ -229,7 +231,7 @@ int pgpid_action_print_secret(int argc, char **argv)
         const char *a = argv[i];
         if (!strcmp(a, "-p") || !strcmp(a, "--passphrase")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a passphrase.", a);
+                pgpid_error(_("Error: '%s' wants a passphrase."), a);
                 return PGPID_USAGE;
             }
             snprintf(passphrase, sizeof passphrase, "%s", argv[i]);
@@ -237,7 +239,7 @@ int pgpid_action_print_secret(int argc, char **argv)
         } else if (!strcmp(a, "-P") || !strcmp(a, "--passfrom")
                    || !strcmp(a, "--pass-from")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a file.", a);
+                pgpid_error(_("Error: '%s' wants a file."), a);
                 return PGPID_USAGE;
             }
             if (!first_line_of(argv[i], passphrase, sizeof passphrase))
@@ -245,7 +247,7 @@ int pgpid_action_print_secret(int argc, char **argv)
             passphrase_given = true;
         } else if (!strcmp(a, "-t") || !strcmp(a, "--printer")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a printer, empty for none.", a);
+                pgpid_error(_("Error: '%s' wants a printer, empty for none."), a);
                 return PGPID_USAGE;
             }
             printer = argv[i];
@@ -255,24 +257,24 @@ int pgpid_action_print_secret(int argc, char **argv)
         } else if (!strcmp(a, "-W") || !strcmp(a, "--workdir")
                    || !strcmp(a, "-D") || !strcmp(a, "--tmpdir")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a directory.", a);
+                pgpid_error(_("Error: '%s' wants a directory."), a);
                 return PGPID_USAGE;
             }
             struct stat st;
             if (stat(argv[i], &st) || !S_ISDIR(st.st_mode)) {
-                pgpid_error("Error: Nonexistent or unattainable directory (%s).", argv[i]);
+                pgpid_error(_("Error: Nonexistent or unattainable directory (%s)."), argv[i]);
                 return PGPID_USAGE;
             }
             given_workdir = argv[i];
         } else if (!strcmp(a, "-S") || !strcmp(a, "--split")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a number.", a);
+                pgpid_error(_("Error: '%s' wants a number."), a);
                 return PGPID_USAGE;
             }
             splits = atoi(argv[i]);
         } else if (!strcmp(a, "-T") || !strncmp(a, "--thres", 7)) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a number.", a);
+                pgpid_error(_("Error: '%s' wants a number."), a);
                 return PGPID_USAGE;
             }
             threshold = atoi(argv[i]);
@@ -285,8 +287,8 @@ int pgpid_action_print_secret(int argc, char **argv)
         } else if (!strcmp(a, "--")) {
             continue;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " print_secret --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("print_secret");
             return PGPID_USAGE;
         } else if (!keyid) {
             keyid = a;
@@ -294,27 +296,27 @@ int pgpid_action_print_secret(int argc, char **argv)
     }
 
     if (!keyid) {
-        pgpid_error("Error: Which secret key? This machine may hold several.");
+        pgpid_error(_("Error: Which secret key? This machine may hold several."));
         usage(stderr);
         return PGPID_USAGE;
     }
     if (!passphrase_given) {
-        pgpid_error("Error: The passphrase is needed to export the secret parts.");
-        pgpid_error("Give --passphrase, or --passfrom to keep it off the process list.");
+        pgpid_error(_("Error: The passphrase is needed to export the secret parts."));
+        pgpid_error(_("Give --passphrase, or --passfrom to keep it off the process list."));
         return PGPID_USAGE;
     }
     if (!printer_given) {
-        pgpid_error("Error: Where should this be printed? Name a printer, or pass");
-        pgpid_error("--printer '' to produce the sheets and send nothing.");
+        pgpid_error(_("Error: Where should this be printed? Name a printer, or pass"));
+        pgpid_error(_("--printer '' to produce the sheets and send nothing."));
         return PGPID_USAGE;
     }
     if (splits < 3) {
-        pgpid_error("Error: Splits number (%d) can't be lower than 3.", splits);
+        pgpid_error(_("Error: Splits number (%d) can't be lower than 3."), splits);
         return PGPID_USAGE;
     }
     if (splits < threshold) {
-        pgpid_error("Warning: Threshold can't be greater than the number of splits, "
-                    "reducing threshold to %d.", splits);
+        pgpid_error(_("Warning: Threshold can't be greater than the number of splits, "
+                    "reducing threshold to %d."), splits);
         threshold = splits;
     }
     /* Same count as threshold: no sharing left to do, the pieces are simply
@@ -328,13 +330,13 @@ int pgpid_action_print_secret(int argc, char **argv)
     } else {
         snprintf(workdir, sizeof workdir, "/tmp/pgpid-print.XXXXXX");
         if (!mkdtemp(workdir)) {
-            pgpid_error("Error: Cannot make a working directory.");
+            pgpid_error(_("Error: Cannot make a working directory."));
             return PGPID_FAIL;
         }
     }
     if (workdir_is_unclean(workdir)) {
-        pgpid_error("Error: Working directory is unclean (it holds SECRET*).");
-        pgpid_error("Suggestion: bl-security shred_path --remove '%s'", workdir);
+        pgpid_error(_("Error: Working directory is unclean (it holds SECRET*)."));
+        pgpid_error(_("Suggestion: bl-security shred_path --remove '%s'"), workdir);
         return PGPID_USAGE;
     }
 
@@ -357,7 +359,7 @@ int pgpid_action_print_secret(int argc, char **argv)
             break;
         }
     if (!*fpr) {
-        pgpid_error("Error: No secret for '%s' here.", keyid);
+        pgpid_error(_("Error: No secret for '%s' here."), keyid);
         return PGPID_FAIL;
     }
 
@@ -371,7 +373,7 @@ int pgpid_action_print_secret(int argc, char **argv)
                              "export-minimal,export-clean,no-export-attributes",
                              "--export-secret-key", fpr, NULL };
     if (pgpid_run_engine_io(export, answer, priv)) {
-        pgpid_error("Error: gpg would not export the secret key — right passphrase?");
+        pgpid_error(_("Error: gpg would not export the secret key — right passphrase?"));
         return PGPID_FAIL;
     }
 
@@ -384,15 +386,15 @@ int pgpid_action_print_secret(int argc, char **argv)
         const char *keep[3];
         size_t nkeep = choose_three(all, n, keep);
         if (!nkeep) {
-            pgpid_error("Error: %s carries no uid worth printing.", fpr);
+            pgpid_error(_("Error: %s carries no uid worth printing."), fpr);
             return PGPID_FAIL;
         }
         if (!keep_only(priv, keep, nkeep)) {
-            pgpid_error("Error: Cannot trim the export down to its three uids.");
+            pgpid_error(_("Error: Cannot trim the export down to its three uids."));
             return PGPID_FAIL;
         }
-        pgpid_error("Notice: Printing %zu uid(s) of %zu — the rest comes back from "
-                    "a keyring.", nkeep, n);
+        pgpid_error(_("Notice: Printing %zu uid(s) of %zu — the rest comes back from "
+                    "a keyring."), nkeep, n);
     }
 
     char pattern[600];
@@ -402,14 +404,14 @@ int pgpid_action_print_secret(int argc, char **argv)
         snprintf(prefix, sizeof prefix, "%s/SECRET-", workdir);
         const char *enc[] = { "basenc", "--base64url", "--wrap", "0", priv, NULL };
         if (pgpid_run_program(enc, NULL, b64)) {
-            pgpid_error("Error: basenc would not encode the export.");
+            pgpid_error(_("Error: basenc would not encode the export."));
             return PGPID_FAIL;
         }
         char n[16];
         snprintf(n, sizeof n, "%d", splits);
         const char *sp[] = { "split", b64, "-d", "-n", n, prefix, NULL };
         if (pgpid_run_program(sp, NULL, NULL)) {
-            pgpid_error("Error: split would not cut the export in %d.", splits);
+            pgpid_error(_("Error: split would not cut the export in %d."), splits);
             return PGPID_FAIL;
         }
     } else {
@@ -419,7 +421,7 @@ int pgpid_action_print_secret(int argc, char **argv)
         snprintf(m, sizeof m, "%d", splits);
         const char *gf[] = { "gfsplit", "-n", t, "-m", m, priv, base, NULL };
         if (pgpid_run_program(gf, NULL, NULL)) {
-            pgpid_error("Error: gfsplit would not share the secret out.");
+            pgpid_error(_("Error: gfsplit would not share the secret out."));
             return PGPID_FAIL;
         }
         /* gfsplit writes SECRET.001…; each becomes SECRET-001, base64url'd. */
@@ -434,7 +436,7 @@ int pgpid_action_print_secret(int argc, char **argv)
             snprintf(to, sizeof to, "%.500s/SECRET-%.240s", workdir, e->d_name + 7);
             const char *enc[] = { "basenc", "--base64url", "--wrap", "0", from, NULL };
             if (pgpid_run_program(enc, NULL, to)) {
-                pgpid_error("Error: basenc would not encode %s.", e->d_name);
+                pgpid_error(_("Error: basenc would not encode %s."), e->d_name);
                 closedir(d);
                 return PGPID_FAIL;
             }
@@ -454,10 +456,10 @@ int pgpid_action_print_secret(int argc, char **argv)
     strftime(today, sizeof today, "%Y-%m-%d", &tm);
 
     if (*printer)
-        pgpid_error("Notice: Printing the secret split into %d fragments on %s…",
+        pgpid_error(_("Notice: Printing the secret split into %d fragments on %s…"),
                     splits, printer);
     else
-        pgpid_error("Notice: Producing %d fragments in %s, sending nothing.",
+        pgpid_error(_("Notice: Producing %d fragments in %s, sending nothing."),
                     splits, workdir);
 
     /* The fragments in order: gfsplit numbers them, and reading the directory
@@ -479,7 +481,7 @@ int pgpid_action_print_secret(int argc, char **argv)
             snprintf(names[k], sizeof names[0], "%.63s", t);
         }
     if (!nfrag) {
-        pgpid_error("Error: No fragment was produced.");
+        pgpid_error(_("Error: No fragment was produced."));
         return PGPID_FAIL;
     }
 
@@ -500,7 +502,7 @@ int pgpid_action_print_secret(int argc, char **argv)
 
         FILE *in = fopen(frag, "r");
         if (!in) {
-            pgpid_error("Error: Cannot read the fragment %s.", frag);
+            pgpid_error(_("Error: Cannot read the fragment %s."), frag);
             return PGPID_FAIL;
         }
         static char payload[262144];
@@ -513,7 +515,7 @@ int pgpid_action_print_secret(int argc, char **argv)
         const char *qr[] = { "qrencode", "--level", qrversion == 5 ? "L" : "M",
                              "--dpi=50", "--output", png, NULL };
         if (pgpid_run_program(qr, payload, NULL)) {
-            pgpid_error("Error: qrencode would not draw fragment %zu.", i + 1);
+            pgpid_error(_("Error: qrencode would not draw fragment %zu."), i + 1);
             return PGPID_FAIL;
         }
 
@@ -539,12 +541,12 @@ int pgpid_action_print_secret(int argc, char **argv)
         const char *doc[] = { "pandoc", "--from", "markdown", "--to", "pdf",
                               "-fmarkdown-implicit_figures", NULL };
         if (pgpid_run_program(doc, sheet, rough)) {
-            pgpid_error("Error: pandoc would not lay fragment %zu out.", i + 1);
+            pgpid_error(_("Error: pandoc would not lay fragment %zu out."), i + 1);
             return PGPID_FAIL;
         }
         const char *crop[] = { "pdfcrop", "--quiet", "--margins", "4", rough, pdf, NULL };
         if (pgpid_run_program(crop, NULL, NULL)) {
-            pgpid_error("Error: pdfcrop would not trim fragment %zu.", i + 1);
+            pgpid_error(_("Error: pdfcrop would not trim fragment %zu."), i + 1);
             return PGPID_FAIL;
         }
         unlink(rough);
@@ -552,7 +554,7 @@ int pgpid_action_print_secret(int argc, char **argv)
         if (*printer) {
             const char *print[] = { "lpr", "-#", "1", "-P", printer, pdf, NULL };
             if (pgpid_run_program(print, NULL, NULL)) {
-                pgpid_error("Error: lpr would not print fragment %zu.", i + 1);
+                pgpid_error(_("Error: lpr would not print fragment %zu."), i + 1);
                 return PGPID_FAIL;
             }
         }
@@ -570,11 +572,11 @@ int pgpid_action_print_secret(int argc, char **argv)
             unlink(pdf);
         }
         unlink(priv);
-        pgpid_error("Notice: The working copies are removed. Shred %s if anything "
-                    "is left.", workdir);
+        pgpid_error(_("Notice: The working copies are removed. Shred %s if anything "
+                    "is left."), workdir);
     } else {
-        pgpid_error("Notice: The fragments are in %s. Shred it once they are on "
-                    "paper: bl-security shred_path --remove '%s'", workdir, workdir);
+        pgpid_error(_("Notice: The fragments are in %s. Shred it once they are on "
+                    "paper: bl-security shred_path --remove '%s'"), workdir, workdir);
     }
     return PGPID_OK;
 }

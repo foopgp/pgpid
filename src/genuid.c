@@ -27,8 +27,9 @@
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " gen_uid [OPTIONS]... U4|U5|STRING\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " gen_uid [OPTIONS]... U4|U5|STRING\n"
         "\n"
         "Print the Unix account number an entity identifier gives, between\n"
         "%lld and %lld. The same identifier always gives the same number, on\n"
@@ -41,8 +42,8 @@ static void usage(FILE *out)
         "  -V, --version               Print the version and exit\n"
         "\n"
         "Asking interactively for a civil status is the caller's business:\n"
-        "this reads what it is given and nothing else.\n",
-        (long long)XUID_MIN, (long long)XUID_MAX);
+        "this reads what it is given and nothing else.\n"),
+            PGPID_NAME, (long long)XUID_MIN, (long long)XUID_MAX);
 }
 
 /* The shell hashes through `echo … | md5sum`, and echo adds a newline. The
@@ -143,8 +144,8 @@ int pgpid_action_gen_uid(int argc, char **argv)
             first = i + 1;
             break;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " gen_uid --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("gen_uid");
             return PGPID_USAGE;
         } else {
             first = i;
@@ -153,7 +154,7 @@ int pgpid_action_gen_uid(int argc, char **argv)
     }
 
     if (!first || first >= argc) {
-        pgpid_error("Error: Which identifier?");
+        pgpid_error(_("Error: Which identifier?"));
         usage(stderr);
         return PGPID_USAGE;
     }
@@ -176,8 +177,8 @@ int pgpid_action_gen_uid(int argc, char **argv)
     unsigned char digest[16];
     bool ok = digest_of(joined, free_input, digest);
     if (!ok) {
-        pgpid_error("Error: No entity identifier in '%.50s'.", joined);
-        pgpid_error("Notice: '--free-input' takes any string instead.");
+        pgpid_error(_("Error: No entity identifier in '%.50s'."), joined);
+        pgpid_error(_("Notice: '--free-input' takes any string instead."));
         free(joined);
         return PGPID_USAGE;
     }

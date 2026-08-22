@@ -21,8 +21,9 @@
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " change_passphrase [OPTIONS]... KEY\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " change_passphrase [OPTIONS]... KEY\n"
         "\n"
         "Change the passphrase protecting the secret parts of an OpenPGP key on\n"
         "this machine. KEY is a fingerprint, a key id, an address or a name.\n"
@@ -36,7 +37,8 @@ static void usage(FILE *out)
         "  -V, --version                   Print the version and exit\n"
         "\n"
         "Passing a passphrase as an argument shows it to everything that can read\n"
-        "this machine's process list. The file forms exist for that reason.\n");
+        "this machine's process list. The file forms exist for that reason.\n"),
+            PGPID_NAME);
 }
 
 /** The first line of a file, its ending removed. */
@@ -44,7 +46,7 @@ static bool first_line_of(const char *path, char *out, size_t max)
 {
     FILE *f = fopen(path, "r");
     if (!f) {
-        pgpid_error("Error: Cannot read %s.", path);
+        pgpid_error(_("Error: Cannot read %s."), path);
         return false;
     }
     if (!fgets(out, (int)max, f))
@@ -83,7 +85,7 @@ int pgpid_action_change_passphrase(int argc, char **argv)
 
         if (wants_value) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a %s.", a, from_file ? "file" : "passphrase");
+                pgpid_error(_("Error: '%s' wants a %s."), a, from_file ? "file" : "passphrase");
                 return PGPID_USAGE;
             }
             if (from_file) {
@@ -105,8 +107,8 @@ int pgpid_action_change_passphrase(int argc, char **argv)
         } else if (!strcmp(a, "--")) {
             continue;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " change_passphrase --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("change_passphrase");
             return PGPID_USAGE;
         } else if (!keyid) {
             keyid = a;
@@ -114,15 +116,15 @@ int pgpid_action_change_passphrase(int argc, char **argv)
     }
 
     if (!keyid) {
-        pgpid_error("Error: Which key? Naming it is not something to guess at:");
-        pgpid_error("this machine may hold several secret keys.");
+        pgpid_error(_("Error: Which key? Naming it is not something to guess at:"));
+        pgpid_error(_("this machine may hold several secret keys."));
         usage(stderr);
         return PGPID_USAGE;
     }
     if (!current_given || !fresh_given) {
-        pgpid_error("Error: Both passphrases are needed — the current one with "
-                    "--passphrase or --passfrom, the new one with");
-        pgpid_error("--newpassphrase or --newpassfrom. Empty strings mean none.");
+        pgpid_error(_("Error: Both passphrases are needed — the current one with "
+                    "--passphrase or --passfrom, the new one with"));
+        pgpid_error(_("--newpassphrase or --newpassfrom. Empty strings mean none."));
         return PGPID_USAGE;
     }
 
@@ -130,7 +132,7 @@ int pgpid_action_change_passphrase(int argc, char **argv)
     const char *find[] = { "--list-secret-keys", "--with-colons", keyid, NULL };
     if (pgpid_capture_engine(find, listing, sizeof listing) <= 0
         || !strstr(listing, "sec:")) {
-        pgpid_error("Error: No secret for '%s' here.", keyid);
+        pgpid_error(_("Error: No secret for '%s' here."), keyid);
         return PGPID_FAIL;
     }
 
@@ -142,14 +144,14 @@ int pgpid_action_change_passphrase(int argc, char **argv)
                           "loopback", "--dry-run", "--change-passphrase", keyid, NULL };
     int said = pgpid_run_engine_input(dry, answer);
     if (said) {
-        pgpid_error("Error: That is not the current passphrase of '%s'.", keyid);
+        pgpid_error(_("Error: That is not the current passphrase of '%s'."), keyid);
         /* gpg's own code, not ours: the caller can tell a wrong passphrase
          * from a key that would not open for another reason. */
         return said;
     }
 
     if (!strcmp(current, fresh)) {
-        pgpid_error("Notice: Passphrase unchanged.");
+        pgpid_error(_("Notice: Passphrase unchanged."));
         return PGPID_OK;
     }
 
@@ -166,9 +168,9 @@ int pgpid_action_change_passphrase(int argc, char **argv)
                              "loopback", "--change-passphrase", keyid, NULL };
     said = pgpid_run_engine_input(change, script);
     if (said) {
-        pgpid_error("Error: gpg would not change the passphrase of '%s'.", keyid);
+        pgpid_error(_("Error: gpg would not change the passphrase of '%s'."), keyid);
         return said;
     }
-    pgpid_error("Notice: Passphrase successfully changed.");
+    pgpid_error(_("Notice: Passphrase successfully changed."));
     return PGPID_OK;
 }

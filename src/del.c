@@ -25,8 +25,9 @@
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " del [OPTIONS]... FINGERPRINT...\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " del [OPTIONS]... FINGERPRINT...\n"
         "\n"
         "Delete certificates from the keyring, secret part included.\n"
         "\n"
@@ -35,7 +36,8 @@ static void usage(FILE *out)
         "\n"
         "OPTIONS:\n"
         "  -s, --secret                Delete only the secret part, keep the certificate\n"
-        "  -h, --help                  Print this help and exit\n");
+        "  -h, --help                  Print this help and exit\n"),
+            PGPID_NAME);
 }
 
 /* Exactly one certificate for that fingerprint, or nothing. */
@@ -43,19 +45,19 @@ static int one_key(gpgme_ctx_t ctx, const char *fpr, gpgme_key_t *out)
 {
     gpgme_error_t err = gpgme_op_keylist_start(ctx, fpr, 0);
     if (err) {
-        pgpid_gpgme_error("looking the certificate up", err);
+        pgpid_gpgme_error(_("looking the certificate up"), err);
         return PGPID_FAIL;
     }
     gpgme_key_t first = NULL, extra = NULL;
     err = gpgme_op_keylist_next(ctx, &first);
     if (gpg_err_code(err) == GPG_ERR_EOF) {
         gpgme_op_keylist_end(ctx);
-        pgpid_error("Error: No certificate matching '%s'.", fpr);
+        pgpid_error(_("Error: No certificate matching '%s'."), fpr);
         return PGPID_NOTHING;
     }
     if (err) {
         gpgme_op_keylist_end(ctx);
-        pgpid_gpgme_error("reading the certificate", err);
+        pgpid_gpgme_error(_("reading the certificate"), err);
         return PGPID_FAIL;
     }
     err = gpgme_op_keylist_next(ctx, &extra);
@@ -64,7 +66,7 @@ static int one_key(gpgme_ctx_t ctx, const char *fpr, gpgme_key_t *out)
         gpgme_key_unref(first);
         if (extra)
             gpgme_key_unref(extra);
-        pgpid_error("Error: '%s' matches more than one certificate.", fpr);
+        pgpid_error(_("Error: '%s' matches more than one certificate."), fpr);
         return PGPID_USAGE;
     }
     *out = first;
@@ -88,8 +90,8 @@ int pgpid_action_del(int argc, char **argv)
             i++;
             break;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " del --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("del");
             return PGPID_USAGE;
         } else {
             break;
@@ -98,7 +100,7 @@ int pgpid_action_del(int argc, char **argv)
     first_target = i;
 
     if (first_target >= argc) {
-        pgpid_error("Error: At least one fingerprint is required.");
+        pgpid_error(_("Error: At least one fingerprint is required."));
         return PGPID_USAGE;
     }
     /* Every argument is checked before the first one is deleted: a run that
@@ -106,8 +108,8 @@ int pgpid_action_del(int argc, char **argv)
      * caller with no idea what happened. */
     for (int t = first_target; t < argc; t++) {
         if (!pgpid_is_fingerprint(argv[t])) {
-            pgpid_error("Error: '%s' is not a fingerprint.", argv[t]);
-            pgpid_error("Notice: 40 or 64 hexadecimal characters, nothing else.");
+            pgpid_error(_("Error: '%s' is not a fingerprint."), argv[t]);
+            pgpid_error(_("Notice: 40 or 64 hexadecimal characters, nothing else."));
             return PGPID_USAGE;
         }
     }
@@ -115,7 +117,7 @@ int pgpid_action_del(int argc, char **argv)
     gpgme_ctx_t ctx = NULL;
     gpgme_error_t err = pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL);
     if (err) {
-        pgpid_gpgme_error("opening the engine", err);
+        pgpid_gpgme_error(_("opening the engine"), err);
         return PGPID_FAIL;
     }
 
@@ -135,14 +137,14 @@ int pgpid_action_del(int argc, char **argv)
                                    "--delete-secret-keys", fpr, NULL };
             int status = pgpid_run_engine(args);
             if (status != 0) {
-                pgpid_error("Error: The engine refused to delete the secret part of %s.", fpr);
+                pgpid_error(_("Error: The engine refused to delete the secret part of %s."), fpr);
                 rc = PGPID_FAIL;
             }
         } else {
             err = gpgme_op_delete_ext(ctx, key,
                                       GPGME_DELETE_ALLOW_SECRET | GPGME_DELETE_FORCE);
             if (err) {
-                pgpid_gpgme_error("deleting the certificate", err);
+                pgpid_gpgme_error(_("deleting the certificate"), err);
                 rc = PGPID_FAIL;
             }
         }

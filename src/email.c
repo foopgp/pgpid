@@ -25,8 +25,9 @@
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " email [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " email [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
         "\n"
         "Show the addresses a certificate carries, or add and revoke them.\n"
         "Without a target, the one the connected card belongs to.\n"
@@ -45,12 +46,15 @@ static void usage(FILE *out)
         "      --show-unusable         Also show the addresses that no longer stand\n"
         "      --info                  Output pairs key=value ready to be evaluated in bash\n"
         "  -K, --keyservers SERVERS    Send the changed certificate to these\n"
-        "                              Empty for none. Default: " PGPID_KEYSERVERS "\n"
+        "                              Empty for none. Default: "
+        "%s"
+        "\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"
         "\n"
         "Revoking is irreversible: OpenPGP keeps the address on the certificate\n"
-        "forever, marked revoked, and an identical one can never be added again.\n");
+        "forever, marked revoked, and an identical one can never be added again.\n"),
+            PGPID_NAME, PGPID_KEYSERVERS);
 }
 
 /* Enough of a check to catch a typo, not a parser for RFC 5322. */
@@ -138,8 +142,8 @@ static int resolve_target(const char *given, char *out, size_t max)
     if (!given) {
         if (pgpid_card_certification_key(out, max))
             return PGPID_OK;
-        pgpid_error("Error: No card answered, so there is no certificate to work on.");
-        pgpid_error("Name one, or plug the card in.");
+        pgpid_error(_("Error: No card answered, so there is no certificate to work on."));
+        pgpid_error(_("Name one, or plug the card in."));
         return PGPID_FAIL;
     }
 
@@ -163,11 +167,11 @@ static int resolve_target(const char *given, char *out, size_t max)
     gpgme_release(ctx);
 
     if (!n) {
-        pgpid_error("Error: No certificate here matches '%s'.", given);
+        pgpid_error(_("Error: No certificate here matches '%s'."), given);
         return PGPID_FAIL;
     }
     if (n > 1) {
-        pgpid_error("Error: '%s' matches %u certificates. Name one.", given, n);
+        pgpid_error(_("Error: '%s' matches %u certificates. Name one."), given, n);
         return PGPID_FAIL;
     }
     snprintf(out, max, "%s", found);
@@ -211,7 +215,7 @@ static int show_certs_count(const char *user)
     char listing[1048576];
     const char *argv[] = { "--with-colons", "--check-sigs", user, NULL };
     if (pgpid_capture_engine(argv, listing, sizeof listing) <= 0) {
-        pgpid_error("Error: Cannot check the signatures of %s.", user);
+        pgpid_error(_("Error: Cannot check the signatures of %s."), user);
         return PGPID_FAIL;
     }
     const char *owner = user + (strlen(user) > 16 ? strlen(user) - 16 : 0);
@@ -309,17 +313,17 @@ int pgpid_action_email(int argc, char **argv)
             || !strcmp(a, "-R") || !strcmp(a, "--rev") || !strcmp(a, "--revoke")) {
             bool adding = (a[1] == 'A' || !strcmp(a, "--add"));
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants an address.", a);
+                pgpid_error(_("Error: '%s' wants an address."), a);
                 return PGPID_USAGE;
             }
             char addr[320];
             unbracket(argv[i], addr, sizeof addr);
             if (!looks_like_address(addr)) {
-                pgpid_error("Error: Invalid email '%s'.", argv[i]);
+                pgpid_error(_("Error: Invalid email '%s'."), argv[i]);
                 return PGPID_USAGE;
             }
             if ((adding ? nadd : nrev) >= MAX_LIST) {
-                pgpid_error("Error: Too many addresses at once.");
+                pgpid_error(_("Error: Too many addresses at once."));
                 return PGPID_USAGE;
             }
             snprintf(adding ? toadd[nadd++] : torev[nrev++], 320, "%s", addr);
@@ -329,18 +333,18 @@ int pgpid_action_email(int argc, char **argv)
             assume_yes = true;
         } else if (!strcmp(a, "-N") || !strcmp(a, "--name")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a name.", a);
+                pgpid_error(_("Error: '%s' wants a name."), a);
                 return PGPID_USAGE;
             }
             pseudo = argv[i];
         } else if (!strcmp(a, "-C") || !strcmp(a, "--extra-comment")
                    || !strcmp(a, "--extracomment")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a note.", a);
+                pgpid_error(_("Error: '%s' wants a note."), a);
                 return PGPID_USAGE;
             }
-            pgpid_error("Notice: --extra-comment is ignored: a note is carried by "
-                        "its own NOTE: uid.");
+            pgpid_error(_("Notice: --extra-comment is ignored: a note is carried by "
+                        "its own NOTE: uid."));
         } else if (!strcmp(a, "-c") || !strcmp(a, "--certs-count")
                    || !strcmp(a, "--certscount")) {
             certs_count = true;
@@ -350,7 +354,7 @@ int pgpid_action_email(int argc, char **argv)
             info = true;
         } else if (!strcmp(a, "-K") || !strcmp(a, "--keyservers")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a list, empty for none.", a);
+                pgpid_error(_("Error: '%s' wants a list, empty for none."), a);
                 return PGPID_USAGE;
             }
             keyservers = argv[i];
@@ -365,8 +369,8 @@ int pgpid_action_email(int argc, char **argv)
         } else if (!strcmp(a, "--")) {
             continue;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " email --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("email");
             return PGPID_USAGE;
         } else if (!target) {
             target = a;
@@ -387,7 +391,7 @@ int pgpid_action_email(int argc, char **argv)
             return PGPID_FAIL;
         nuids = pgpid_list_uids(user, true, uids, MAX_UIDS);
         if (!nuids) {
-            pgpid_error("Error: No editable certificate %s here.", user);
+            pgpid_error(_("Error: No editable certificate %s here."), user);
             return PGPID_FAIL;
         }
         char name[512] = "";
@@ -416,19 +420,19 @@ int pgpid_action_email(int argc, char **argv)
                     struck = true;
             }
             if (here) {
-                pgpid_error("Notice: Certificate %s already carries '%s'.", user, want);
+                pgpid_error(_("Notice: Certificate %s already carries '%s'."), user, want);
                 continue;
             }
             if (struck) {
-                pgpid_error("Notice: '%s' was revoked earlier and cannot be added "
+                pgpid_error(_("Notice: '%s' was revoked earlier and cannot be added "
                             "again — OpenPGP keeps revoked User IDs on the "
-                            "certificate forever.", want);
+                            "certificate forever."), want);
                 continue;
             }
-            pgpid_error("Notice: Adding '%s' into certificate %s…", want, user);
+            pgpid_error(_("Notice: Adding '%s' into certificate %s…"), want, user);
             const char *add[] = { "--batch", "--quick-add-uid", user, want, NULL };
             if (pgpid_run_engine(add)) {
-                pgpid_error("Error: gpg would not add '%s'.", want);
+                pgpid_error(_("Error: gpg would not add '%s'."), want);
                 return PGPID_FAIL;
             }
             changed = true;
@@ -461,12 +465,12 @@ int pgpid_action_email(int argc, char **argv)
                 addresses++;
 
         if (!victim) {
-            pgpid_error("Error: No revokable email '%s' inside certificate %s.",
+            pgpid_error(_("Error: No revokable email '%s' inside certificate %s."),
                         torev[r], user);
             return PGPID_FAIL;
         }
         if (addresses < 2) {
-            pgpid_error("Error: At least one email must be retained.");
+            pgpid_error(_("Error: At least one email must be retained."));
             return PGPID_FAIL;
         }
         if (!pgpid_revoke_uid(user, victim, assume_yes))
@@ -488,7 +492,7 @@ int pgpid_action_email(int argc, char **argv)
             }
         }
         if (n < 2) {
-            pgpid_error("Warning: Nothing to revoke.");
+            pgpid_error(_("Warning: Nothing to revoke."));
         } else {
             for (size_t i = 0; i < nuids; i++) {
                 if (i == keep)

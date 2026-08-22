@@ -22,8 +22,9 @@
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " ownertrust [OPTIONS]... FINGERPRINT\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " ownertrust [OPTIONS]... FINGERPRINT\n"
         "\n"
         "Print how far that certificate is trusted to certify others: one of\n"
         "unknown, never, marginal, full, ultimate.\n"
@@ -34,7 +35,8 @@ static void usage(FILE *out)
         "\n"
         "OPTIONS:\n"
         "  -r, --replace-to VALUE      Set it to VALUE instead of printing it\n"
-        "  -h, --help                  Print this help and exit\n");
+        "  -h, --help                  Print this help and exit\n"),
+            PGPID_NAME);
 }
 
 /* One certificate, exactly. A fingerprint that matches two is a caller error,
@@ -43,19 +45,19 @@ static int one_key(gpgme_ctx_t ctx, const char *pattern, gpgme_key_t *out)
 {
     gpgme_error_t err = gpgme_op_keylist_start(ctx, pattern, 0);
     if (err) {
-        pgpid_gpgme_error("looking the certificate up", err);
+        pgpid_gpgme_error(_("looking the certificate up"), err);
         return PGPID_FAIL;
     }
     gpgme_key_t first = NULL, extra = NULL;
     err = gpgme_op_keylist_next(ctx, &first);
     if (gpg_err_code(err) == GPG_ERR_EOF) {
         gpgme_op_keylist_end(ctx);
-        pgpid_error("Error: No certificate matching '%s'.", pattern);
+        pgpid_error(_("Error: No certificate matching '%s'."), pattern);
         return PGPID_NOTHING;
     }
     if (err) {
         gpgme_op_keylist_end(ctx);
-        pgpid_gpgme_error("reading the certificate", err);
+        pgpid_gpgme_error(_("reading the certificate"), err);
         return PGPID_FAIL;
     }
     err = gpgme_op_keylist_next(ctx, &extra);
@@ -64,7 +66,7 @@ static int one_key(gpgme_ctx_t ctx, const char *pattern, gpgme_key_t *out)
         gpgme_key_unref(first);
         if (extra)
             gpgme_key_unref(extra);
-        pgpid_error("Error: '%s' matches more than one certificate.", pattern);
+        pgpid_error(_("Error: '%s' matches more than one certificate."), pattern);
         return PGPID_USAGE;
     }
     *out = first;
@@ -79,7 +81,7 @@ int pgpid_action_ownertrust(int argc, char **argv)
         const char *a = argv[i];
         if (!strcmp(a, "-r") || !strcmp(a, "--replace-to")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a value.", a);
+                pgpid_error(_("Error: '%s' wants a value."), a);
                 return PGPID_USAGE;
             }
             value = argv[i];
@@ -91,8 +93,8 @@ int pgpid_action_ownertrust(int argc, char **argv)
                 pattern = argv[i + 1];
             break;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " ownertrust --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("ownertrust");
             return PGPID_USAGE;
         } else {
             pattern = a;
@@ -101,20 +103,20 @@ int pgpid_action_ownertrust(int argc, char **argv)
     }
 
     if (!pattern) {
-        pgpid_error("Error: A fingerprint is required.");
+        pgpid_error(_("Error: A fingerprint is required."));
         return PGPID_USAGE;
     }
     if (value) {
         if (pgpid_validity_from_word(value) < 0) {
-            pgpid_error("Error: Unknown ownertrust value '%s'.", value);
-            pgpid_error("Notice: One of undefined, never, marginal, full, ultimate.");
+            pgpid_error(_("Error: Unknown ownertrust value '%s'."), value);
+            pgpid_error(_("Notice: One of undefined, never, marginal, full, ultimate."));
             return PGPID_USAGE;
         }
         /* The engine refuses this one, and it is right to: unknown is the
          * absence of a decision, not one more decision to take. */
         if (!strcmp(value, "unknown")) {
-            pgpid_error("Error: 'unknown' cannot be set; it is what a certificate");
-            pgpid_error("Notice: no one has ruled on already reads as.");
+            pgpid_error(_("Error: 'unknown' cannot be set; it is what a certificate"));
+            pgpid_error(_("Notice: no one has ruled on already reads as."));
             return PGPID_USAGE;
         }
     }
@@ -122,7 +124,7 @@ int pgpid_action_ownertrust(int argc, char **argv)
     gpgme_ctx_t ctx = NULL;
     gpgme_error_t err = pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL);
     if (err) {
-        pgpid_gpgme_error("opening the engine", err);
+        pgpid_gpgme_error(_("opening the engine"), err);
         return PGPID_FAIL;
     }
 
@@ -136,7 +138,7 @@ int pgpid_action_ownertrust(int argc, char **argv)
     if (value) {
         err = gpgme_op_setownertrust(ctx, key, value);
         if (err) {
-            pgpid_gpgme_error("setting the ownertrust", err);
+            pgpid_gpgme_error(_("setting the ownertrust"), err);
             gpgme_key_unref(key);
             gpgme_release(ctx);
             return PGPID_FAIL;

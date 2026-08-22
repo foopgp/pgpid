@@ -31,25 +31,37 @@ GPGME_LIBS   := $(shell pkg-config --libs   gpgme 2>/dev/null || gpgme-config --
 
 CFLAGS  ?= -O2 -g
 CFLAGS  += -std=c11 -Wall -Wextra -Wpedantic -Wshadow -Wstrict-prototypes \
-           -D_GNU_SOURCE $(GPGME_CFLAGS) -I$(BUILDDIR)
+           -D_GNU_SOURCE $(GPGME_CFLAGS) -I$(BUILDDIR) \
+           -DPGPID_LOCALEDIR='"$(LOCALEDIR)"'
 LDLIBS  += $(GPGME_LIBS)
 
 PREFIX  ?= /usr/local
 BINDIR  ?= $(PREFIX)/bin
+DATADIR ?= $(PREFIX)/share
+LOCALEDIR ?= $(DATADIR)/locale
+
+# man/ and po/ spell it `prefix`, this file spells it `PREFIX`, and a variable
+# set here does not reach a sub-make on its own. Passed explicitly, or
+# `make PREFIX=/tmp/x install` quietly writes into /usr/local — which is what
+# it did before anybody noticed.
+SUBMAKE = $(MAKE) prefix='$(PREFIX)' DESTDIR='$(DESTDIR)'
 
 # Tauri picks its sidecars up by target triple, so a bundle looks for
 # _build/pgpid-<triple> and not _build/pgpid. The same binary is left under both
 # names rather than built twice: one to run from here, one for a bundle.
 TRIPLE := $(shell rustc -vV 2>/dev/null | sed -n 's/^host: //p')
 
-.PHONY: all build check clean install uninstall sidecar man
+.PHONY: all build check clean install uninstall sidecar man po
 
 all: build
 
-build: $(BUILDDIR)/$(BIN) man
+build: $(BUILDDIR)/$(BIN) man po
 
 man:
-	$(MAKE) -C man
+	$(SUBMAKE) -C man
+
+po:
+	$(SUBMAKE) -C po
 
 $(BUILDDIR)/$(BIN): $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
@@ -75,7 +87,9 @@ $(BUILDDIR):
 # caller's own certificates is a test nobody else can run.
 check: $(BUILDDIR)/$(BIN)
 	./tests/run.sh ./$(BUILDDIR)/$(BIN)
-	$(MAKE) -C man check
+	./tests/pgpi_var_to_json.sh
+	$(SUBMAKE) -C man check
+	$(SUBMAKE) -C po check
 
 sidecar: $(BUILDDIR)/$(BIN)
 	@test -n "$(TRIPLE)" || { \
@@ -86,13 +100,16 @@ install: build
 	install -D -m 0755 $(BUILDDIR)/$(BIN) $(DESTDIR)$(BINDIR)/$(BIN)
 	install -D -m 0755 bin/pgpid-gen     $(DESTDIR)$(BINDIR)/pgpid-gen
 	install -D -m 0755 bin/pgpid-qrscan  $(DESTDIR)$(BINDIR)/pgpid-qrscan
-	$(MAKE) -C man install
+	$(SUBMAKE) -C man install
+	$(SUBMAKE) -C po install
 
 uninstall:
 	$(RM) $(DESTDIR)$(BINDIR)/$(BIN)
 	$(RM) $(DESTDIR)$(BINDIR)/pgpid-gen $(DESTDIR)$(BINDIR)/pgpid-qrscan
-	$(MAKE) -C man uninstall
+	$(SUBMAKE) -C man uninstall
+	$(SUBMAKE) -C po uninstall
 
 clean:
 	rm -rf $(BUILDDIR)
-	$(MAKE) -C man clean
+	$(SUBMAKE) -C man clean
+	$(SUBMAKE) -C po clean

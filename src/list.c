@@ -267,13 +267,13 @@ int pgpid_list_short(const char *pattern, bool only_fpr, bool only_mbox,
     gpgme_ctx_t ctx;
     gpgme_error_t err = pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL);
     if (err) {
-        pgpid_gpgme_error("gpgme_new", err);
+        pgpid_gpgme_error(_("gpgme_new"), err);
         return PGPID_FAIL;
     }
     err = gpgme_op_keylist_start(ctx, pattern, 0);
     if (err) {
         gpgme_release(ctx);
-        pgpid_gpgme_error("gpgme_op_keylist_start", err);
+        pgpid_gpgme_error(_("gpgme_op_keylist_start"), err);
         return PGPID_FAIL;
     }
 
@@ -285,7 +285,7 @@ int pgpid_list_short(const char *pattern, bool only_fpr, bool only_mbox,
         if (gpg_err_code(err) == GPG_ERR_EOF)
             break;
         if (err) {
-            pgpid_gpgme_error("reading a certificate", err);
+            pgpid_gpgme_error(_("reading a certificate"), err);
             gpgme_op_keylist_end(ctx);
             gpgme_release(ctx);
             return PGPID_FAIL;
@@ -298,7 +298,7 @@ int pgpid_list_short(const char *pattern, bool only_fpr, bool only_mbox,
         unsigned neids = 0;
         char *eid = eid_of_key(key, &neids, false);
         if (neids > 1)
-            pgpid_error("Warning: Certificate %s carries more than one identifier.", fpr);
+            pgpid_error(_("Warning: Certificate %s carries more than one identifier."), fpr);
         for (gpgme_user_id_t u = key->uids; u; u = u->next) {
             if (!u->email || !*u->email || !strchr(u->email, '@'))
                 continue;
@@ -320,8 +320,9 @@ int pgpid_list_short(const char *pattern, bool only_fpr, bool only_mbox,
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " list [OPTIONS]... [SEARCH]\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " list [OPTIONS]... [SEARCH]\n"
         "\n"
         "List the certificates of the keyring, one per line.\n"
         "\n"
@@ -347,7 +348,8 @@ static void usage(FILE *out)
         "      --count-certs           Count the distinct certifiers of each certificates and fill *certifications* column (may take time !)\n"
         "      --hide-trust            Credibility (aka ownertrust) is a sensible information used to calculate validity — sometimes both need to stay private\n"
         "      --machine-readable      Output time (seconds since epoch) instead of date (iso-8601) and flags instead of human-readable validity and credibility\n"
-        "  -h, --help                  Print this help and exit\n");
+        "  -h, --help                  Print this help and exit\n"),
+            PGPID_NAME);
 }
 
 int pgpid_action_list(int argc, char **argv)
@@ -376,8 +378,8 @@ int pgpid_action_list(int argc, char **argv)
                 pattern = argv[i + 1];
             break;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " list --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("list");
             return PGPID_USAGE;
         } else {
             pattern = a;
@@ -398,13 +400,13 @@ int pgpid_action_list(int argc, char **argv)
     gpgme_ctx_t ctx = NULL;
     gpgme_error_t err = pgpid_ctx_new(&ctx, mode);
     if (err) {
-        pgpid_gpgme_error("opening the engine", err);
+        pgpid_gpgme_error(_("opening the engine"), err);
         return PGPID_FAIL;
     }
 
     err = gpgme_op_keylist_start(ctx, pattern, 0);
     if (err) {
-        pgpid_gpgme_error("listing the keyring", err);
+        pgpid_gpgme_error(_("listing the keyring"), err);
         gpgme_release(ctx);
         return PGPID_FAIL;
     }
@@ -423,7 +425,7 @@ int pgpid_action_list(int argc, char **argv)
         if (gpg_err_code(err) == GPG_ERR_EOF)
             break;
         if (err) {
-            pgpid_gpgme_error("reading a certificate", err);
+            pgpid_gpgme_error(_("reading a certificate"), err);
             gpgme_release(ctx);
             return PGPID_FAIL;
         }

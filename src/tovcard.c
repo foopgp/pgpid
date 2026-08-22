@@ -252,7 +252,7 @@ char *pgpid_preferred_keyserver(const unsigned char *buf, size_t len,
     if (!*pick)
         return NULL;
     if (*seen_other && strcmp(seen_other, pick))
-        pgpid_error("Warning: Several preferred keyservers across uids — kept '%s'.", pick);
+        pgpid_error(_("Warning: Several preferred keyservers across uids — kept '%s'."), pick);
     snprintf(chosen, sizeof chosen, "%s", pick);
     return chosen;
 }
@@ -341,8 +341,9 @@ static bool display_name(const char *uid, char *out, size_t max)
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " to_vcard [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " to_vcard [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
         "\n"
         "Write a certificate as a vCard 4.0, which an address book can read.\n"
         "Without a selector, the certificate whose secret key is at hand.\n"
@@ -351,7 +352,8 @@ static void usage(FILE *out)
         "  -o, --output FILE           Write there rather than to standard output\n"
         "      --raw                   Print every uid instead, one per paragraph\n"
         "  -h, --help                  Print this help and exit\n"
-        "  -V, --version               Print the version and exit\n");
+        "  -V, --version               Print the version and exit\n"),
+            PGPID_NAME);
 }
 
 int pgpid_action_to_vcard(int argc, char **argv)
@@ -363,7 +365,7 @@ int pgpid_action_to_vcard(int argc, char **argv)
         const char *a = argv[i];
         if (!strcmp(a, "-o") || !strcmp(a, "--output")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a file.", a);
+                pgpid_error(_("Error: '%s' wants a file."), a);
                 return PGPID_USAGE;
             }
             output = argv[i];
@@ -380,8 +382,8 @@ int pgpid_action_to_vcard(int argc, char **argv)
                 selector = argv[i];
             break;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " to_vcard --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("to_vcard");
             return PGPID_USAGE;
         } else {
             selector = a;
@@ -392,7 +394,7 @@ int pgpid_action_to_vcard(int argc, char **argv)
     gpgme_ctx_t ctx;
     gpgme_error_t err = pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL);
     if (err) {
-        pgpid_gpgme_error("gpgme_new", err);
+        pgpid_gpgme_error(_("gpgme_new"), err);
         return PGPID_FAIL;
     }
 
@@ -403,14 +405,14 @@ int pgpid_action_to_vcard(int argc, char **argv)
     gpgme_op_keylist_end(ctx);
     if (err || !key) {
         gpgme_release(ctx);
-        pgpid_error("Error: No certificate for what was asked.");
+        pgpid_error(_("Error: No certificate for what was asked."));
         return PGPID_NOTHING;
     }
     const char *fpr = key->subkeys ? key->subkeys->fpr : "";
 
     FILE *out = stdout;
     if (output && !(out = freopen(output, "w", stdout))) {
-        pgpid_error("Error: Cannot write '%s'.", output);
+        pgpid_error(_("Error: Cannot write '%s'."), output);
         gpgme_key_unref(key);
         gpgme_release(ctx);
         return PGPID_FAIL;
@@ -465,8 +467,8 @@ int pgpid_action_to_vcard(int argc, char **argv)
                     has_own_fn = true;
             }
             if (!has_own_fn) {
-                pgpid_error("Error: This certificate carries no name.");
-                pgpid_error("Notice: A vCard needs FN; there is no card to write.");
+                pgpid_error(_("Error: This certificate carries no name."));
+                pgpid_error(_("Notice: A vCard needs FN; there is no card to write."));
                 gpgme_key_unref(key);
                 gpgme_release(ctx);
                 return PGPID_NOTHING;
@@ -580,7 +582,7 @@ int pgpid_action_to_vcard(int argc, char **argv)
     printf("END:VCARD\r\n");
     if (output) {
         fflush(out);
-        pgpid_error("Notice: Written into '%s'.", output);
+        pgpid_error(_("Notice: Written into '%s'."), output);
     }
     gpgme_key_unref(key);
     gpgme_release(ctx);

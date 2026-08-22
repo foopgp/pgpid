@@ -66,16 +66,16 @@ const char *pgpid_uid_address(const char *uid, size_t *len)
 bool pgpid_revoke_uid(const char *user, const char *uid, bool assume_yes)
 {
     if (!assume_yes) {
-        pgpid_error("Error: Revoking a User ID is irreversible — OpenPGP keeps it");
-        pgpid_error("on the certificate forever, marked revoked, and an identical one");
-        pgpid_error("can never be added again. Pass --yes if that is what you want:");
-        pgpid_error("  %s", uid);
+        pgpid_error(_("Error: Revoking a User ID is irreversible — OpenPGP keeps it"));
+        pgpid_error(_("on the certificate forever, marked revoked, and an identical one"));
+        pgpid_error(_("can never be added again. Pass --yes if that is what you want:"));
+        pgpid_error(_("  %s"), uid);
         return false;
     }
-    pgpid_error("Notice: Revoking %s inside certificate %s…", uid, user);
+    pgpid_error(_("Notice: Revoking %s inside certificate %s…"), uid, user);
     const char *argv[] = { "--batch", "--quick-revoke-uid", user, uid, NULL };
     if (pgpid_run_engine(argv)) {
-        pgpid_error("Error: gpg would not revoke %s.", uid);
+        pgpid_error(_("Error: gpg would not revoke %s."), uid);
         return false;
     }
     return true;
@@ -112,15 +112,15 @@ bool pgpid_fix_primary(const char *user)
         }
     }
     if (!newest) {
-        pgpid_error("Warning: No address left on certificate %s to carry the "
-                    "primary User ID flag.", user);
+        pgpid_error(_("Warning: No address left on certificate %s to carry the "
+                    "primary User ID flag."), user);
         return true;
     }
-    pgpid_error("Notice: Main identity is no longer an address: moving the "
-                "primary User ID flag to %s.", newest);
+    pgpid_error(_("Notice: Main identity is no longer an address: moving the "
+                "primary User ID flag to %s."), newest);
     const char *argv[] = { "--batch", "--quick-set-primary-uid", user, newest, NULL };
     if (pgpid_run_engine(argv)) {
-        pgpid_error("Error: gpg would not move the primary User ID flag.");
+        pgpid_error(_("Error: gpg would not move the primary User ID flag."));
         return false;
     }
     return true;
@@ -170,10 +170,10 @@ bool pgpid_upgrade_uids(const char *user)
 
     char uid[600];
     snprintf(uid, sizeof uid, "UID:urn:eid:%s", eid);
-    pgpid_error("Notice: Minting the identity uid %s…", uid);
+    pgpid_error(_("Notice: Minting the identity uid %s…"), uid);
     const char *add[] = { "--batch", "--quick-add-uid", user, uid, NULL };
     if (pgpid_run_engine(add)) {
-        pgpid_error("Error: gpg would not add %s.", uid);
+        pgpid_error(_("Error: gpg would not add %s."), uid);
         return false;
     }
 
@@ -192,7 +192,7 @@ bool pgpid_upgrade_uids(const char *user)
         snprintf(fnuid, sizeof fnuid, "FN:%s", fn);
         const char *addfn[] = { "--batch", "--quick-add-uid", user, fnuid, NULL };
         if (pgpid_run_engine(addfn))
-            pgpid_error("Warning: gpg would not add %s.", fnuid);
+            pgpid_error(_("Warning: gpg would not add %s."), fnuid);
     }
     return true;
 }

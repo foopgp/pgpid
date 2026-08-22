@@ -175,8 +175,9 @@ static void clean_name(char *name, size_t max)
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " token_check [OPTIONS]...\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " token_check [OPTIONS]...\n"
         "\n"
         "Say whether the connected security key is configured to carry a PGP\n"
         "ID, and what it holds. Tries to fetch the certificate named in the\n"
@@ -192,7 +193,8 @@ static void usage(FILE *out)
         "\n"
         "Returns 0 when the key carries a complete identity, otherwise 100 plus\n"
         "the number of fields missing — so 107 is a key that carries nothing,\n"
-        "which is a blank key rather than a broken one.\n");
+        "which is a blank key rather than a broken one.\n"),
+            PGPID_NAME);
 }
 
 /** The certificate's own FN, which has room where the card's field has not. */
@@ -263,8 +265,8 @@ int pgpid_action_token_check(int argc, char **argv)
             printf("%s %s\n", argv[0], PGPID_VERSION);
             return PGPID_OK;
         } else {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " token_check --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("token_check");
             return PGPID_USAGE;
         }
     }
@@ -275,7 +277,7 @@ int pgpid_action_token_check(int argc, char **argv)
     char status[16384];
     const char *card[] = { "--card-status", NULL };
     if (pgpid_capture_engine(card, status, sizeof status) < 0 || !*status) {
-        pgpid_error("Error: No security key answered.");
+        pgpid_error(_("Error: No security key answered."));
         return PGPID_FAIL;
     }
 
@@ -296,7 +298,7 @@ int pgpid_action_token_check(int argc, char **argv)
     }
     if (*url && fetch) {
         if (!quiet)
-            pgpid_error("Notice: Fetching the certificate from %s…", url);
+            pgpid_error(_("Notice: Fetching the certificate from %s…"), url);
         char fetched[1 << 20];
         const char *curl[] = { "curl", "--no-progress-meter", "--location", url, NULL };
         int n = pgpid_capture(curl, fetched, sizeof fetched);
@@ -379,9 +381,9 @@ int pgpid_action_token_check(int argc, char **argv)
     if (nemails)
         snprintf(f.v[F_EMAIL], sizeof f.v[0], "%s", emails[0]);
     if (nemails > 1 && !quiet)
-        pgpid_error("Notice: The key names %u addresses; keeping the first.", nemails);
+        pgpid_error(_("Notice: The key names %u addresses; keeping the first."), nemails);
     if (nids > 1) {
-        pgpid_error("Error: The key names %u identifiers, which cannot both be its.", nids);
+        pgpid_error(_("Error: The key names %u identifiers, which cannot both be its."), nids);
         return PGPID_FAIL;
     }
     if (nids)
@@ -408,7 +410,7 @@ int pgpid_action_token_check(int argc, char **argv)
         }
     }
     if (!*f.v[F_CKEY] && !quiet)
-        pgpid_error("Warning: No certification key known. Share or fetch the certificate.");
+        pgpid_error(_("Warning: No certification key known. Share or fetch the certificate."));
 
     /* The certificate's name wins over the card's: the card's field is short
      * and was filled once, the certificate's is the one kept up to date. */
@@ -433,14 +435,14 @@ int pgpid_action_token_check(int argc, char **argv)
             continue;
         missing++;
         if (!quiet)
-            pgpid_error("Notice: Not a PGP ID key yet, missing: '%s'.",
+            pgpid_error(_("Notice: Not a PGP ID key yet, missing: '%s'."),
                         FIELD_NAME[REQUIRED[i]]);
     }
     if (missing)
         return 100 + missing;
 
     if (!quiet)
-        pgpid_error("Info: A PGP ID key, certified by %s, carrying %s.",
+        pgpid_error(_("Info: A PGP ID key, certified by %s, carrying %s."),
                     f.v[F_CKEY], f.v[F_ID]);
     return PGPID_OK;
 }

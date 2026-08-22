@@ -24,8 +24,9 @@
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " gen_u4 [OPTIONS]...\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " gen_u4 [OPTIONS]...\n"
         "\n"
         "Print the entity identifier a civil status gives: the last component\n"
         "of the surname, the first two given names, the date of birth, and\n"
@@ -40,7 +41,8 @@ static void usage(FILE *out)
         "  -V, --version                    Print the version and exit\n"
         "\n"
         "Everything is required: asking for what is missing belongs to whoever\n"
-        "has somebody to ask.\n");
+        "has somebody to ask.\n"),
+            PGPID_NAME);
 }
 
 /** YYYY-MM-DD, and a date that exists. A wrong date mints a wrong name. */
@@ -77,13 +79,13 @@ int pgpid_action_gen_u4(int argc, char **argv)
             printf("%s %s\n", argv[0], PGPID_VERSION);
             return PGPID_OK;
         } else {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " gen_u4 --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("gen_u4");
             return PGPID_USAGE;
         }
         if (want) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a value.", a);
+                pgpid_error(_("Error: '%s' wants a value."), a);
                 return PGPID_USAGE;
             }
             *want = argv[i];
@@ -91,17 +93,17 @@ int pgpid_action_gen_u4(int argc, char **argv)
     }
 
     if (!surname || !given || !date || !country) {
-        pgpid_error("Error: Surname, given names, date and country are all needed.");
+        pgpid_error(_("Error: Surname, given names, date and country are all needed."));
         usage(stderr);
         return PGPID_USAGE;
     }
     if (!date_is_sound(date)) {
-        pgpid_error("Error: '%s' is not a date of the shape YYYY-MM-DD.", date);
+        pgpid_error(_("Error: '%s' is not a date of the shape YYYY-MM-DD."), date);
         return PGPID_USAGE;
     }
     const char *coord = pgpid_country_coordinates(country);
     if (!coord) {
-        pgpid_error("Error: '%s' is not a three-letter country code we know.", country);
+        pgpid_error(_("Error: '%s' is not a three-letter country code we know."), country);
         return PGPID_USAGE;
     }
 
@@ -110,13 +112,13 @@ int pgpid_action_gen_u4(int argc, char **argv)
     char s[300], g[300], composed[640], names[640];
     if (pgpid_transliterate(surname, s, sizeof s) < 0
         || pgpid_transliterate(given, g, sizeof g) < 0) {
-        pgpid_error("Error: The name is not valid UTF-8.");
+        pgpid_error(_("Error: The name is not valid UTF-8."));
         return PGPID_USAGE;
     }
     snprintf(composed, sizeof composed, "%s<<%s<<", s, g);
     if (!pgpid_extract_names(composed, names, sizeof names)) {
-        pgpid_error("Error: No surname and given names could be read from '%s'.", composed);
-        pgpid_error("Notice: Both need at least one letter once reduced to A-Z.");
+        pgpid_error(_("Error: No surname and given names could be read from '%s'."), composed);
+        pgpid_error(_("Notice: Both need at least one letter once reduced to A-Z."));
         return PGPID_USAGE;
     }
 

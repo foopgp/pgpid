@@ -27,17 +27,21 @@
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " push [OPTIONS]... FINGERPRINT...\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " push [OPTIONS]... FINGERPRINT...\n"
         "\n"
         "Send certificates to the keyservers as they stand, changing nothing.\n"
         "Fingerprints only: what is published cannot be recalled.\n"
         "\n"
         "OPTIONS:\n"
         "  -K, --keyservers SERVERS    Send to these, space separated\n"
-        "                              Empty for none. Default: " PGPID_KEYSERVERS "\n"
+        "                              Empty for none. Default: "
+        "%s"
+        "\n"
         "  -h, --help                  Print this help and exit\n"
-        "  -V, --version               Print the version and exit\n");
+        "  -V, --version               Print the version and exit\n"),
+            PGPID_NAME, PGPID_KEYSERVERS);
 }
 
 int pgpid_action_push(int argc, char **argv)
@@ -49,7 +53,7 @@ int pgpid_action_push(int argc, char **argv)
         const char *a = argv[i];
         if (!strcmp(a, "-K") || !strcmp(a, "--keyservers")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a list of servers, empty for none.", a);
+                pgpid_error(_("Error: '%s' wants a list of servers, empty for none."), a);
                 return PGPID_USAGE;
             }
             keyservers = argv[i];
@@ -63,8 +67,8 @@ int pgpid_action_push(int argc, char **argv)
             first = i + 1;
             break;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " push --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("push");
             return PGPID_USAGE;
         } else {
             first = i;
@@ -73,7 +77,7 @@ int pgpid_action_push(int argc, char **argv)
     }
 
     if (!first || first >= argc) {
-        pgpid_error("Error: Which certificate?");
+        pgpid_error(_("Error: Which certificate?"));
         usage(stderr);
         return PGPID_USAGE;
     }
@@ -84,15 +88,15 @@ int pgpid_action_push(int argc, char **argv)
      * back, so both look at the whole list first. */
     for (int i = first; i < argc; i++) {
         if (!pgpid_is_fingerprint(argv[i])) {
-            pgpid_error("Error: '%s' is not a fingerprint.", argv[i]);
-            pgpid_error("Notice: Publishing takes fingerprints, so a search never becomes a broadcast.");
+            pgpid_error(_("Error: '%s' is not a fingerprint."), argv[i]);
+            pgpid_error(_("Notice: Publishing takes fingerprints, so a search never becomes a broadcast."));
             return PGPID_USAGE;
         }
     }
 
     const char *list = keyservers ? keyservers : PGPID_KEYSERVERS;
     if (!*list) {
-        pgpid_error("Notice: No keyserver asked for; nothing sent.");
+        pgpid_error(_("Notice: No keyserver asked for; nothing sent."));
         return PGPID_OK;
     }
 

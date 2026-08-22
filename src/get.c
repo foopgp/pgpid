@@ -24,8 +24,9 @@
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " get [OPTIONS]... NAME|EMAIL|KEYID|U4|U5|'*'\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " get [OPTIONS]... NAME|EMAIL|KEYID|U4|U5|'*'\n"
         "\n"
         "Print the fingerprints, addresses and entity identifiers of the\n"
         "certificates matching what is asked for, one line per address.\n"
@@ -40,11 +41,14 @@ static void usage(FILE *out)
         "  -f, --no-fetch              Do not refresh from keyservers or Web Key Directories\n"
         "  -m, --errexit-g=N           Fail if more than N certificates match\n"
         "  -K, --keyservers SERVERS    Refresh from these, space separated\n"
-        "                              Empty for none, same as --no-fetch. Default: " PGPID_KEYSERVERS "\n"
+        "                              Empty for none, same as --no-fetch. Default: "
+        "%s"
+        "\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"
         "\n"
-        "There is no 'cert_check': `list` answers what it answered, for less.\n");
+        "There is no 'cert_check': `list` answers what it answered, for less.\n"),
+            PGPID_NAME, PGPID_KEYSERVERS);
 }
 
 /**
@@ -79,8 +83,8 @@ static void refresh(const char *term, const char *keyservers)
     }
 
     if (!is_address && !is_key) {
-        pgpid_error("Notice: '%s' is a name, not an address or a key — asking nobody.", term);
-        pgpid_error("Notice: Searching keyservers by name is not here yet; give an address or a fingerprint.");
+        pgpid_error(_("Notice: '%s' is a name, not an address or a key — asking nobody."), term);
+        pgpid_error(_("Notice: Searching keyservers by name is not here yet; give an address or a fingerprint."));
         return;
     }
 
@@ -121,7 +125,7 @@ int pgpid_action_get(int argc, char **argv)
             fetch = false;
         } else if (!strcmp(a, "-K") || !strcmp(a, "--keyservers")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a list of servers, empty for none.", a);
+                pgpid_error(_("Error: '%s' wants a list of servers, empty for none."), a);
                 return PGPID_USAGE;
             }
             keyservers = argv[i];
@@ -130,7 +134,7 @@ int pgpid_action_get(int argc, char **argv)
             char *end = NULL;
             errexit = strtol(v, &end, 10);
             if (!*v || (end && *end) || errexit < 1) {
-                pgpid_error("Error: '%s' wants a number of one or more.", a);
+                pgpid_error(_("Error: '%s' wants a number of one or more."), a);
                 return PGPID_USAGE;
             }
         } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
@@ -143,8 +147,8 @@ int pgpid_action_get(int argc, char **argv)
             first = i + 1;
             break;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " get --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("get");
             return PGPID_USAGE;
         } else {
             first = i;
@@ -153,7 +157,7 @@ int pgpid_action_get(int argc, char **argv)
     }
 
     if (!first || first >= argc) {
-        pgpid_error("Error: What are you looking for? '*' for everything.");
+        pgpid_error(_("Error: What are you looking for? '*' for everything."));
         usage(stderr);
         return PGPID_USAGE;
     }
@@ -181,7 +185,7 @@ int pgpid_action_get(int argc, char **argv)
     }
 
     if (ret == PGPID_NOTHING) {
-        pgpid_error("Error: No certificate for what was asked.");
+        pgpid_error(_("Error: No certificate for what was asked."));
         return ret;
     }
 
@@ -189,7 +193,7 @@ int pgpid_action_get(int argc, char **argv)
      * who asked for one certificate and got three wants to see which three,
      * not just to be told the count was wrong. */
     if (errexit > 0 && matched > (size_t)errexit) {
-        pgpid_error("Error: %zu certificates matched, more than the %ld asked for.",
+        pgpid_error(_("Error: %zu certificates matched, more than the %ld asked for."),
                     matched, errexit);
         return PGPID_FAIL;
     }

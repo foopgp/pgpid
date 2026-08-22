@@ -25,8 +25,9 @@
 
 static void usage(FILE *out)
 {
-    fprintf(out,
-        "Usage: " PGPID_NAME " gen_key [OPTIONS]... EMAIL\n"
+    fprintf(out, _("Usage: "
+        "%s"
+        " gen_key [OPTIONS]... EMAIL\n"
         "\n"
         "Generate an OpenPGP key pair the PGP ID way, and print the three\n"
         "fingerprints it ends up with: the main key that signs and certifies,\n"
@@ -44,13 +45,16 @@ static void usage(FILE *out)
         "                                   (a fifo, something on tmpfs, /dev/stdin)\n"
         "  -e, --expiration YEARS           Years before the certificate expires - Default: 11\n"
         "  -k, --keyserver KEYSERVER        The certificate server this one names as its own\n"
-        "                                   Default: " PGPID_KEYSERVERS "\n"
+        "                                   Default: "
+        "%s"
+        "\n"
         "  -h, --help                       Print this help and exit\n"
         "  -V, --version                    Print the version and exit\n"
         "\n"
         "Both ways of giving the passphrase have their drawback, and the second\n"
         "has fewer: an argument is visible to every process on the machine for as\n"
-        "long as this one runs.\n");
+        "long as this one runs.\n"),
+            PGPID_NAME, PGPID_KEYSERVERS);
 }
 
 /* Enough of a check to catch a typo, not a parser for RFC 5322. */
@@ -128,38 +132,38 @@ int pgpid_action_gen_key(int argc, char **argv)
         const char *a = argv[i];
         if (!strcmp(a, "-n") || !strcmp(a, "-N") || !strncmp(a, "--name", 6)) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a name.", a);
+                pgpid_error(_("Error: '%s' wants a name."), a);
                 return PGPID_USAGE;
             }
             pseudo = argv[i];
         } else if (!strcmp(a, "-c") || !strcmp(a, "--eid") || !strcmp(a, "--comment")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants an identifier.", a);
+                pgpid_error(_("Error: '%s' wants an identifier."), a);
                 return PGPID_USAGE;
             }
             given_eid = argv[i];
         } else if (!strcmp(a, "-C") || !strcmp(a, "--extra-comment")
                    || !strcmp(a, "--extracomment")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a note.", a);
+                pgpid_error(_("Error: '%s' wants a note."), a);
                 return PGPID_USAGE;
             }
             note = argv[i];
         } else if (!strcmp(a, "-p") || !strcmp(a, "--passphrase")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a passphrase.", a);
+                pgpid_error(_("Error: '%s' wants a passphrase."), a);
                 return PGPID_USAGE;
             }
             snprintf(passphrase, sizeof passphrase, "%s", argv[i]);
         } else if (!strcmp(a, "-P") || !strcmp(a, "--passfrom")
                    || !strcmp(a, "--pass-from")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a file.", a);
+                pgpid_error(_("Error: '%s' wants a file."), a);
                 return PGPID_USAGE;
             }
             FILE *f = fopen(argv[i], "r");
             if (!f) {
-                pgpid_error("Error: Cannot read %s.", argv[i]);
+                pgpid_error(_("Error: Cannot read %s."), argv[i]);
                 return PGPID_FAIL;
             }
             if (!fgets(passphrase, sizeof passphrase, f))
@@ -170,23 +174,23 @@ int pgpid_action_gen_key(int argc, char **argv)
                 passphrase[--n] = '\0';
         } else if (!strcmp(a, "-e") || !strncmp(a, "--expir", 7)) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a number of years.", a);
+                pgpid_error(_("Error: '%s' wants a number of years."), a);
                 return PGPID_USAGE;
             }
             char *end = NULL;
             long v = strtol(argv[i], &end, 10);
             if (!end || *end || v < 1) {
-                pgpid_error("Error: Given parameter '%s' is not a valid number.", argv[i]);
+                pgpid_error(_("Error: Given parameter '%s' is not a valid number."), argv[i]);
                 return PGPID_USAGE;
             }
             expire = (int)v;
         } else if (!strcmp(a, "-k") || !strcmp(a, "--keyserver")) {
             if (++i >= argc) {
-                pgpid_error("Error: '%s' wants a keyserver.", a);
+                pgpid_error(_("Error: '%s' wants a keyserver."), a);
                 return PGPID_USAGE;
             }
             if (strncmp(argv[i], "hkp://", 6) && strncmp(argv[i], "hkps://", 7)) {
-                pgpid_error("Error: keyserver MUST be hkp(s)://…");
+                pgpid_error(_("Error: keyserver MUST be hkp(s)://…"));
                 return PGPID_USAGE;
             }
             keyserver = argv[i];
@@ -202,8 +206,8 @@ int pgpid_action_gen_key(int argc, char **argv)
         } else if (!strcmp(a, "--")) {
             continue;
         } else if (a[0] == '-' && a[1]) {
-            pgpid_error("Error: Unrecognized option '%s'.", a);
-            pgpid_error("Try '" PGPID_NAME " gen_key --help' for more information.");
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("gen_key");
             return PGPID_USAGE;
         } else if (!email) {
             email = a;
@@ -217,19 +221,20 @@ int pgpid_action_gen_key(int argc, char **argv)
 
     char eid[64];
     if (!given_eid) {
-        pgpid_error("Error: Which entity is this key for? Give --eid.");
-        pgpid_error("Deriving one needs a civil status, which is somebody's to give:");
-        pgpid_error("  " PGPID_NAME " gen_u4 --surname … --given-names … --birth-date … --birth-country …");
+        pgpid_error(_("Error: Which entity is this key for? Give --eid."));
+        pgpid_error(_("Deriving one needs a civil status, which is somebody's to give:"));
+        pgpid_error(_("  %s gen_u4 --surname … --given-names … --birth-date … --birth-country …"),
+                    PGPID_NAME);
         return PGPID_USAGE;
     }
     if (!read_eid(given_eid, eid, sizeof eid)) {
-        pgpid_error("Error: No eid in given '%s'.", given_eid);
+        pgpid_error(_("Error: No eid in given '%s'."), given_eid);
         return PGPID_USAGE;
     }
     if (!*passphrase) {
-        pgpid_error("Error: A passphrase is needed, and asking for one is not this "
-                    "program's job. Give --passphrase, or --passfrom to keep it off");
-        pgpid_error("the process list.");
+        pgpid_error(_("Error: A passphrase is needed, and asking for one is not this "
+                    "program's job. Give --passphrase, or --passfrom to keep it off"));
+        pgpid_error(_("the process list."));
         return PGPID_USAGE;
     }
 
@@ -266,7 +271,7 @@ int pgpid_action_gen_key(int argc, char **argv)
 
     const char *gen[] = { "--batch", "--generate-key", "--allow-freeform-uid", NULL };
     if (pgpid_run_engine_input(gen, params)) {
-        pgpid_error("Error: gpg would not generate the key.");
+        pgpid_error(_("Error: gpg would not generate the key."));
         return PGPID_FAIL;
     }
 
@@ -294,7 +299,7 @@ int pgpid_action_gen_key(int argc, char **argv)
             break;
         }
     if (!*fpr) {
-        pgpid_error("Error: Freshly generated key not found by its eid UID (%s).", eid);
+        pgpid_error(_("Error: Freshly generated key not found by its eid UID (%s)."), eid);
         return PGPID_FAIL;
     }
 
@@ -319,12 +324,12 @@ int pgpid_action_gen_key(int argc, char **argv)
 
     QUICK("--quick-add-uid", fpr, fn);
     if (pgpid_run_engine(quick)) {
-        pgpid_error("Error: gpg would not add '%s'.", fn);
+        pgpid_error(_("Error: gpg would not add '%s'."), fn);
         return PGPID_FAIL;
     }
     QUICK("--quick-add-uid", fpr, addr);
     if (pgpid_run_engine(quick)) {
-        pgpid_error("Error: gpg would not add '%s'.", addr);
+        pgpid_error(_("Error: gpg would not add '%s'."), addr);
         return PGPID_FAIL;
     }
     if (note && *note) {
@@ -333,17 +338,17 @@ int pgpid_action_gen_key(int argc, char **argv)
         snprintf(noteuid, sizeof noteuid, "NOTE:%.1023s", escaped);
         QUICK("--quick-add-uid", fpr, noteuid);
         if (pgpid_run_engine(quick)) {
-            pgpid_error("Error: gpg would not add '%s'.", noteuid);
+            pgpid_error(_("Error: gpg would not add '%s'."), noteuid);
             return PGPID_FAIL;
         }
     }
     QUICK("--quick-set-primary-uid", fpr, addr);
     if (pgpid_run_engine(quick))
-        pgpid_error("Warning: Can't set the primary uid to %s.", addr);
+        pgpid_error(_("Warning: Can't set the primary uid to %s."), addr);
 
     QUICK("--quick-add-key", fpr, "ed25519", "auth", years);
     if (pgpid_run_engine(quick)) {
-        pgpid_error("Error: gpg would not add the authentication key.");
+        pgpid_error(_("Error: gpg would not add the authentication key."));
         return PGPID_FAIL;
     }
     #undef QUICK
