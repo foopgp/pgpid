@@ -16,7 +16,12 @@ BUILDDIR = _build
 # The version is the commit, as bl-pgpid and bl-pgpkey answer it. A release
 # number nobody can place is worse than a hash somebody can check out; when a
 # tag exists, git describe says so on its own.
-VERSION := $(shell git describe --dirty --broken --always 2>/dev/null)
+#
+# --match keeps it to upstream tags: the debian branch carries debian/0.0.7-1
+# and the like, and a binary that answers "debian/0.0.7-1-39-g…" inside a
+# package numbered 0.1.0 tells nobody anything. A packager passes VERSION in
+# and none of this runs.
+VERSION ?= $(shell git describe --match='[0-9]*' --dirty --broken --always 2>/dev/null)
 ifeq ($(VERSION),)
 VERSION := unknown
 endif
