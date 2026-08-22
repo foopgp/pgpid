@@ -97,3 +97,52 @@ char *pgpid_eid_of_uid(const char *uid)
 
     return NULL;
 }
+
+/**
+ * Does an identifier written bare start here?
+ *
+ * `u4` then twenty-two characters of the identifier alphabet, or `u5` then a
+ * timestamp of sixteen; either followed by the fourteen that say where. The
+ * card's "Login data" field holds one exactly so, with nothing around it.
+ */
+bool pgpid_eid_body_is_sound(const char *at)
+{
+    static const char ALPHABET[] =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    if (at[0] != 'u' || (at[1] != '4' && at[1] != '5'))
+        return false;
+    const char *p = at + 2;
+
+    if (at[1] == '4') {
+        for (unsigned i = 0; i < 22; i++, p++)
+            if (!*p || !strchr(ALPHABET, *p))
+                return false;
+    } else {
+        /* Twelve digits, a dot, three digits: an instant to the millisecond. */
+        for (unsigned i = 0; i < 12; i++, p++)
+            if (*p < '0' || *p > '9')
+                return false;
+        if (*p++ != '.')
+            return false;
+        for (unsigned i = 0; i < 3; i++, p++)
+            if (*p < '0' || *p > '9')
+                return false;
+    }
+
+    /* Then where: 'e', a sign, two digits, a dot, two digits, a sign, three
+     * digits, a dot, two digits. */
+    static const char SHAPE[] = "eSDD.DDSDDD.DD";
+    for (const char *s = SHAPE; *s; s++, p++) {
+        if (!*p)
+            return false;
+        if (*s == 'e' && *p != 'e')
+            return false;
+        if (*s == 'S' && *p != '_' && *p != '-')
+            return false;
+        if (*s == 'D' && (*p < '0' || *p > '9'))
+            return false;
+        if (*s == '.' && *p != '.')
+            return false;
+    }
+    return true;
+}

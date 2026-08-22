@@ -265,3 +265,49 @@ size_t pgpid_uid_validities(const char *fpr, char *out, size_t max)
     out[n] = '\0';
     return n;
 }
+
+/**
+ * Run a program and keep what it writes, up to `max` bytes.
+ *
+ * Not the engine: the card is reached through gpg-connect-agent, which
+ * speaks to scdaemon. gpgme has no call for it — its business is keys and
+ * data, and a smartcard's remaining attempts are neither.
+ *
+ * Returns the number of bytes captured, or -1 if the program could not run.
+ * Its exit status is deliberately not the answer: a program can fail and
+ * still have said something worth reading.
+ */
+int pgpid_capture(const char *const *argv, char *out, size_t max)
+{
+    int fds[2];
+    if (pipe(fds))
+        return -1;
+    pid_t pid = fork();
+    if (pid < 0) {
+        close(fds[0]);
+        close(fds[1]);
+        return -1;
+    }
+    if (pid == 0) {
+        close(fds[0]);
+        dup2(fds[1], STDOUT_FILENO);
+        close(fds[1]);
+        int null = open("/dev/null", O_WRONLY);
+        if (null >= 0) {
+            dup2(null, STDERR_FILENO);
+            close(null);
+        }
+        execvp(argv[0], (char *const *)argv);
+        _exit(127);
+    }
+    close(fds[1]);
+    size_t n = 0;
+    ssize_t got;
+    while (n + 1 < max && (got = read(fds[0], out + n, max - n - 1)) > 0)
+        n += (size_t)got;
+    out[n] = '\0';
+    close(fds[0]);
+    int st;
+    waitpid(pid, &st, 0);
+    return (int)n;
+}

@@ -77,6 +77,10 @@ int pgpid_validity_from_word(const char *word);
  * Caller frees. Both shapes are recognised — see eid.c. */
 char *pgpid_eid_of_uid(const char *uid);
 
+/* Does an identifier written bare — as the card's "Login data" holds it —
+ * start at this position? */
+bool pgpid_eid_body_is_sound(const char *at);
+
 /* Run the engine with these arguments, wait, and give back its exit status.
  * No shell: the arguments go to execv as they are. -1 if it could not run. */
 int pgpid_run_engine(const char *const *argv);
@@ -169,6 +173,10 @@ const char *pgpid_country_coordinates(const char *code);
 bool pgpid_current_image(const unsigned char *buf, size_t len, const char *keyid,
                          const unsigned char **data, size_t *ilen);
 
+/* Run a program and keep its output — for the card, which is reached through
+ * gpg-connect-agent and scdaemon rather than through gpgme. */
+int pgpid_capture(const char *const *argv, char *out, size_t max);
+
 /* The validity letter gpg gives each uid, in listing order — because gpgme
  * cannot say "expired": such a uid arrives as unknown, indistinguishable
  * from one nobody vouched for. Returns how many were written. */
@@ -192,6 +200,8 @@ int pgpid_action_gen_uid(int argc, char **argv);
 int pgpid_action_gen_u4(int argc, char **argv);
 int pgpid_action_mrz_to_u4(int argc, char **argv);
 int pgpid_action_to_vcard(int argc, char **argv);
+int pgpid_action_token_retries(int argc, char **argv);
+int pgpid_action_token_check(int argc, char **argv);
 
 /* The short listing — one line per address — shared by `list --short` and
  * `get`, so that the two cannot drift apart. */

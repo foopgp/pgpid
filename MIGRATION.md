@@ -58,6 +58,36 @@ Le chemin le plus chaud de foodjis : appelé à chaque branchement, et deux fois
 (rapide sans réseau, puis lent avec). Lecture seule — on ne touche pas encore
 à ce que la carte contient.
 
+**Faite.** Sortie identique au shell sur la carte branchée, dans les deux
+formes (avec et sans interrogation des serveurs de clés) ; 2 744 → 1 793 ms
+pour cinq appels de la forme chaude, l'écart restant modeste parce que c'est
+la latence de la carte qui domine, pas l'interpréteur.
+
+Le décompte des champs manquants — les codes 101 à 107 — ne peut pas être
+atteint avec une carte complète. Il a été provoqué en retirant des lignes de
+la réponse de `--card-status` : mêmes codes, mêmes champs, dans le même ordre.
+Retirer le nom du porteur ne manque rien, des deux côtés, parce que
+`pgpid_name` vient du certificat et non de la carte.
+
+Deux différences assumées : l'identifiant est lu dans « Login data », que la
+carte écrit nu, là où le lecteur d'uid attendait ses enrobages ; et la ligne
+finale `Info:` est reformulée, foodjis ne l'affichant jamais (il ne montre
+stderr qu'au-delà de 101).
+
+## Ce qui manque encore : les messages ne sont pas traduits
+
+`token_check` a montré un manque qui vaut pour tout pgpid-mip. Ses lignes
+`Notice:` ne sont pas de la prose interne : foodjis les affiche telles quelles
+à qui branche une clé refusée. Côté shell elles passent par gettext ; côté C
+il n'y a pas de gettext du tout, et une centaine de messages sont en anglais
+seul. Un utilisateur francophone verrait donc, après migration, une phrase
+anglaise là où il lisait une phrase française.
+
+Ce n'est pas propre à cette vague et ça ne se répare pas dedans. À trancher
+avant que foodjis n'appelle pgpid-mip sur ce chemin : soit `libintl` et un
+domaine à nous, soit les manuels traduits mais les messages non — ce qui est
+un choix, pas un oubli, et se dit alors quelque part.
+
 ## Vague 3 — écrire dans le certificat
 
 `property` (écriture) · `email` · `certify` · `update_trustdb`
