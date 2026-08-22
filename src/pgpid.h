@@ -177,6 +177,14 @@ bool pgpid_current_image(const unsigned char *buf, size_t len, const char *keyid
  * gpg-connect-agent and scdaemon rather than through gpgme. */
 int pgpid_capture(const char *const *argv, char *out, size_t max);
 
+/* Same, with the engine and the home directory already in front. */
+int pgpid_capture_engine(const char *const *argv, char *out, size_t max);
+
+/* The certification key of whoever holds the connected card — the card
+ * carries subkeys, the certifying key stays off it. False when no card
+ * answered, or when its subkeys belong to no certificate we hold. */
+bool pgpid_card_certification_key(char *out, size_t max);
+
 /* The validity letter gpg gives each uid, in listing order — because gpgme
  * cannot say "expired": such a uid arrives as unknown, indistinguishable
  * from one nobody vouched for. Returns how many were written. */
@@ -202,6 +210,7 @@ int pgpid_action_mrz_to_u4(int argc, char **argv);
 int pgpid_action_to_vcard(int argc, char **argv);
 int pgpid_action_token_retries(int argc, char **argv);
 int pgpid_action_token_check(int argc, char **argv);
+int pgpid_action_certify(int argc, char **argv);
 
 /* The short listing — one line per address — shared by `list --short` and
  * `get`, so that the two cannot drift apart. */

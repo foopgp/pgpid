@@ -311,3 +311,91 @@ int pgpid_capture(const char *const *argv, char *out, size_t max)
     waitpid(pid, &st, 0);
     return (int)n;
 }
+
+/**
+ * Run the engine and keep what it said.
+ *
+ * `pgpid_capture` takes a whole command line; this one prepends the engine
+ * and the home directory, so that a caller asking gpg a question cannot
+ * forget which keyring the answer is about.
+ */
+int pgpid_capture_engine(const char *const *argv, char *out, size_t max)
+{
+    size_t n = 0;
+    while (argv[n])
+        n++;
+
+    const char **full = calloc(n + 4, sizeof *full);
+    if (!full)
+        return -1;
+    size_t at = 0;
+    full[at++] = engine_path();
+    if (pgpid_homedir) {
+        full[at++] = "--homedir";
+        full[at++] = pgpid_homedir;
+    }
+    for (size_t i = 0; i < n; i++)
+        full[at++] = argv[i];
+    full[at] = NULL;
+
+    int got = pgpid_capture(full, out, max);
+    free(full);
+    return got;
+}
+
+/**
+ * The certification key of whoever holds the connected card.
+ *
+ * The card carries subkeys; the key that certifies stays off it, in a safe
+ * place. So the card is asked for a subkey it does have, and the keyring is
+ * asked which certificate that subkey belongs to.
+ */
+bool pgpid_card_certification_key(char *out, size_t max)
+{
+    char status[16384];
+    const char *argv[] = { "gpg", "--card-status", NULL };
+    if (pgpid_capture(argv, status, sizeof status) <= 0)
+        return false;
+
+    /* Whichever of the three the card holds: any of them names the same
+     * certificate, and a card missing one is not a card missing all. */
+    static const char *const WANTED[] = {
+        "Signature key", "Encryption key", "Authentication key",
+    };
+    char anchor[64] = "";
+    for (unsigned w = 0; w < 3 && !*anchor; w++) {
+        const char *at = strstr(status, WANTED[w]);
+        if (!at)
+            continue;
+        const char *colon = strchr(at, ':');
+        if (!colon)
+            continue;
+        size_t n = 0;
+        for (const char *p = colon + 1; *p && *p != '\n' && n < sizeof anchor - 1; p++)
+            if ((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F')
+                || (*p >= 'a' && *p <= 'f'))
+                anchor[n++] = *p;
+        anchor[n] = '\0';
+        if (n != 40)
+            *anchor = '\0';
+    }
+    if (!*anchor)
+        return false;
+
+    gpgme_ctx_t ctx;
+    if (pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL))
+        return false;
+    gpgme_key_t key = NULL;
+    bool got = false;
+    if (!gpgme_op_keylist_start(ctx, anchor, 0)
+        && !gpgme_op_keylist_next(ctx, &key)) {
+        if (key->subkeys && key->subkeys->fpr) {
+            snprintf(out, max, "%s", key->subkeys->fpr);
+            got = true;
+        }
+        gpgme_key_unref(key);
+    }
+    gpgme_op_keylist_end(ctx);
+    gpgme_release(ctx);
+    return got;
+}
