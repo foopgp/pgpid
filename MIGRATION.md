@@ -180,19 +180,66 @@ moitié du papier à conserver en moins. Les uids sont en revanche **tous
 gardés** : « extras uid » est ambigu, et une sauvegarde qui perd un numéro de
 téléphone est une sauvegarde qui a perdu quelque chose. À trancher.
 
+### Le papier ne garde que trois uids
+
+Demandé par JJB le 22 août, et la mesure lui donne plus raison qu'il ne le
+pensait : ce n'est pas une question de lisibilité, c'est une question de
+possibilité. Un QR code au niveau L porte 2 953 octets au maximum.
+
+| ce qui est exporté | fragment | QR |
+|---|---|---|
+| tout, comme le shell aujourd'hui — 3 311 o | 4 416 o | **refusé, trop gros** |
+| sans les photos — 1 984 o | 2 648 o | 169 modules de côté |
+| sans les photos, trois uids — 1 239 o | 1 652 o | **137 modules** |
+
+Autrement dit, un certificat portant une photo et quelques propriétés ne
+s'imprime **pas du tout** aujourd'hui. Les trois uids gardés sont l'identité
+(`UID:urn:eid:`), le nom (`FN:`) et **une** adresse : celle de l'uid principal,
+et à défaut la plus récente qui tienne encore. Le reste se retrouve dans
+n'importe quel trousseau.
+
+Le retrait se fait au niveau des paquets : l'auto-signature d'un uid ne lie que
+cet uid, donc jeter la paire laisse toutes les autres signatures aussi valides
+qu'avant. Rien n'est resigné — donc rien ne réclame la phrase de passe et
+aucune date ne change.
+
+### Ce qui a été éprouvé sur une carte d'essai
+
+JJB a branché une carte de rebut le 22 août. Les trois actions qui écrivent
+dessus sont désormais vérifiées sur du matériel :
+
+- **`totoken`** — reset d'usine, configuration, attributs de clé, transfert des
+  trois sous-clés, tirage et pose des deux nouveaux codes. La clé locale est
+  bien devenue un renvoi vers la carte. Lancée sur la **même clé** par les deux
+  outils, elle laisse un **état de carte identique champ pour champ**.
+- **`change_token_code`** — changement, vérification, et les trois codes de
+  retour dans l'ordre : 194 puis 193 puis 192, jusqu'au blocage ; puis
+  `--unblock` avec le code Admin, qui rend les trois essais et pose le nouveau
+  PIN. Un code correct remet le compteur à plein.
+- **`change_token_meta`** — les trois champs écrits et relus : la langue
+  (trois fois de suite, sans faute), l'URL (acceptée quand le certificat servi
+  porte les trois sous-clés, refusée sinon), et le nom (refusé pour une adresse
+  que le certificat ne porte pas, et au-delà de 38 octets).
+
+### Un défaut trouvé en éprouvant : « quel trousseau » n'avait pas une réponse
+
+La lecture de la carte contournait `--homedir` : `--card-status` et
+`gpg-connect-agent` étaient appelés nus. Conséquence, `totoken --homedir X`
+détectait la carte depuis le trousseau **par défaut**, dont l'agent prenait
+alors le lecteur — et `--card-edit`, lui, cherchait la carte dans X et trouvait
+« aucun périphérique de ce type ». Un seul scdaemon tient le lecteur à la fois ;
+demander sans dire quel trousseau en démarre un second. Tous les accès carte
+passent maintenant par le trousseau nommé.
+
+Corollaire pratique, qui coûte du temps quand on l'ignore : un scdaemon coincé
+ne meurt pas sur SIGTERM et garde le périphérique. La carte devient alors
+invisible depuis *tous* les trousseaux à la fois, ce qui ressemble à un
+débranchement.
+
 ### Ce qui n'a pas pu être éprouvé
 
-`totoken`, `change_token_meta` et `change_token_code` **écrivent sur la
-carte**, et la seule branchée est celle de Mnêmê. `totoken` efface la carte
-puis déplace le secret hors du disque ; `change_token_code` dépense un essai
-sur trois à chaque vérification. Elles sont écrites, elles compilent, leurs
-chemins de refus et de validation concordent avec le shell — mais **aucun
-APDU d'écriture n'a jamais été envoyé**. À ne pas brancher dans foodjis avant
-un essai sur une carte de rebut.
-
-Ce qui a pu l'être : la détection du champ visé, la vérification qu'une
-adresse est bien portée par le certificat, celle qu'une URL sert un
-certificat portant les trois sous-clés, et tous les refus d'arguments.
+*Cette section n'a plus lieu d'être : la carte d'essai a levé la réserve.* Elle
+reste ici pour mémoire de ce qui s'était passé entre-temps.
 
 Une bêtise au passage, qui vaut mise en garde : comparer « ce qui refuse avant
 la carte » a coûté un essai. Le shell ne refuse pas un code manquant, il le

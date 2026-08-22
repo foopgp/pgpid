@@ -92,6 +92,115 @@ static bool first_line_of(const char *path, char *out, size_t max)
     return true;
 }
 
+/**
+ * The three uids worth printing, and no more.
+ *
+ * A QR code holds what it holds: past a few hundred bytes the modules get
+ * small enough that a phone camera in ordinary light stops reading them, and
+ * a backup nobody can scan is not a backup. So the paper carries the
+ * identity, the name, and one address — enough to know whose key this is and
+ * to write back — and drops the rest, which is re-addable from a keyring
+ * anyway.
+ *
+ * The address is the primary uid when the primary is an address, which is
+ * where this project puts it; failing that the most recent one that stands.
+ */
+static size_t choose_three(const struct pgpid_uid *uids, size_t n,
+                           const char *keep[3])
+{
+    size_t nkeep = 0;
+    const char *identity = NULL, *fn = NULL, *address = NULL;
+    long newest = -1;
+
+    for (size_t i = 0; i < n; i++) {
+        if (!pgpid_uid_stands(uids[i].validity))
+            continue;
+        if (!identity && !strncmp(uids[i].text, "UID:urn:eid:", 12))
+            identity = uids[i].text;
+        if (!fn && !strncmp(uids[i].text, "FN:", 3))
+            fn = uids[i].text;
+        if (!pgpid_uid_has_address(uids[i].text))
+            continue;
+        /* gpg lists the primary first, so the first address seen is it when
+         * the primary is one. Anything later only wins on being newer. */
+        if (!address) {
+            address = uids[i].text;
+            newest = (i == 0) ? (long)0x7fffffff : uids[i].created;
+        } else if (uids[i].created > newest) {
+            address = uids[i].text;
+            newest = uids[i].created;
+        }
+    }
+    if (identity)
+        keep[nkeep++] = identity;
+    if (fn)
+        keep[nkeep++] = fn;
+    if (address)
+        keep[nkeep++] = address;
+    return nkeep;
+}
+
+/**
+ * Rewrite an exported key, keeping only the uids named.
+ *
+ * Packet surgery rather than a round trip through a scratch keyring: a uid's
+ * self-signature binds that uid and nothing else, so dropping the pair leaves
+ * every remaining signature as valid as it was. Nothing is re-signed, which
+ * means nothing needs the passphrase and nothing changes date.
+ *
+ * A signature belongs to whatever came before it. Anything that is not a uid,
+ * an attribute or a signature — the key and its subkeys — is always kept, and
+ * puts the stream back into "keeping" state.
+ */
+static bool keep_only(const char *path, const char *keep[3], size_t nkeep)
+{
+    FILE *f = fopen(path, "rb");
+    if (!f)
+        return false;
+    static unsigned char buf[1048576];
+    size_t len = fread(buf, 1, sizeof buf, f);
+    fclose(f);
+    if (!len)
+        return false;
+
+    static unsigned char out[1048576];
+    size_t at = 0;
+    const unsigned char *p = buf, *end = buf + len;
+    struct pgpid_packet pkt;
+    bool keeping = true;
+
+    while (pgpid_packet_next(p, end, &pkt)) {
+        const unsigned char *start = p;
+        p = pkt.next;
+
+        if (pkt.tag == TAG_USER_ID) {
+            keeping = false;
+            for (size_t i = 0; i < nkeep; i++)
+                if (strlen(keep[i]) == pkt.len && !memcmp(keep[i], pkt.body, pkt.len))
+                    keeping = true;
+        } else if (pkt.tag == TAG_USER_ATTR) {
+            keeping = false;   /* a face is not part of a backup */
+        } else if (pkt.tag != TAG_SIGNATURE) {
+            keeping = true;
+        }
+
+        if (!keeping)
+            continue;
+        size_t size = (size_t)(pkt.next - start);
+        if (at + size > sizeof out)
+            return false;
+        memcpy(out + at, start, size);
+        at += size;
+    }
+
+    FILE *w = fopen(path, "wb");
+    if (!w)
+        return false;
+    size_t wrote = fwrite(out, 1, at, w);
+    fclose(w);
+    return wrote == at;
+}
+
 /** The uids of a certificate, one per line, for the sheet to be recognisable. */
 static void uid_block(const char *fpr, char *out, size_t max)
 {
@@ -264,6 +373,26 @@ int pgpid_action_print_secret(int argc, char **argv)
     if (pgpid_run_engine_io(export, answer, priv)) {
         pgpid_error("Error: gpg would not export the secret key — right passphrase?");
         return PGPID_FAIL;
+    }
+
+    /* Down to three uids: the identity, the name, one address. What is left
+     * out is what a keyring can give back; what stays is what tells somebody
+     * whose key they are holding. */
+    {
+        struct pgpid_uid all[256];
+        size_t n = pgpid_list_uids(fpr, true, all, 256);
+        const char *keep[3];
+        size_t nkeep = choose_three(all, n, keep);
+        if (!nkeep) {
+            pgpid_error("Error: %s carries no uid worth printing.", fpr);
+            return PGPID_FAIL;
+        }
+        if (!keep_only(priv, keep, nkeep)) {
+            pgpid_error("Error: Cannot trim the export down to its three uids.");
+            return PGPID_FAIL;
+        }
+        pgpid_error("Notice: Printing %zu uid(s) of %zu — the rest comes back from "
+                    "a keyring.", nkeep, n);
     }
 
     char pattern[600];

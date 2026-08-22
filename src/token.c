@@ -47,7 +47,20 @@ static void usage(FILE *out)
 bool pgpid_card_retries(int *pin, int *rc, int *admin)
 {
     char out[1024];
-    const char *argv[] = { "gpg-connect-agent", "SCD GETATTR CHV-STATUS", "/bye", NULL };
+    /* The home directory travels here too: scdaemon belongs to an agent, an
+     * agent belongs to a keyring, and only one of them can hold the reader.
+     * Asking without saying which one starts a second agent that then finds
+     * "no such device" — from every keyring at once. */
+    const char *argv[8];
+    size_t nargs = 0;
+    argv[nargs++] = "gpg-connect-agent";
+    if (pgpid_homedir) {
+        argv[nargs++] = "--homedir";
+        argv[nargs++] = pgpid_homedir;
+    }
+    argv[nargs++] = "SCD GETATTR CHV-STATUS";
+    argv[nargs++] = "/bye";
+    argv[nargs] = NULL;
     if (pgpid_capture(argv, out, sizeof out) < 0) {
         pgpid_error("Error: Cannot run gpg-connect-agent.");
         return false;

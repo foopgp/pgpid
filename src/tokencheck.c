@@ -273,8 +273,8 @@ int pgpid_action_token_check(int argc, char **argv)
     memset(&f, 0, sizeof f);
 
     char status[16384];
-    const char *card[] = { "gpg", "--card-status", NULL };
-    if (pgpid_capture(card, status, sizeof status) < 0 || !*status) {
+    const char *card[] = { "--card-status", NULL };
+    if (pgpid_capture_engine(card, status, sizeof status) < 0 || !*status) {
         pgpid_error("Error: No security key answered.");
         return PGPID_FAIL;
     }

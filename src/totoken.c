@@ -234,9 +234,9 @@ int pgpid_action_totoken(int argc, char **argv)
     (void)skey; (void)ekey; (void)akey;
     {
         char status[16384];
-        const char *argv2[] = { "gpg", "--card-status", NULL };
+        const char *argv2[] = { "--card-status", NULL };
         *serial = '\0';
-        if (pgpid_capture(argv2, status, sizeof status) > 0) {
+        if (pgpid_capture_engine(argv2, status, sizeof status) > 0) {
             const char *at = strstr(status, "Serial number");
             const char *colon = at ? strchr(at, ':') : NULL;
             size_t n = 0;
@@ -268,7 +268,7 @@ int pgpid_action_totoken(int argc, char **argv)
     snprintf(answer, sizeof answer, "\n");
     const char *dry[] = { "--batch", "--pinentry-mode", "loopback", "--passphrase", "",
                           "--dry-run", "--change-passphrase", fpr, NULL };
-    if (pgpid_run_engine(dry)) {
+    if (pgpid_run_engine_quiet(dry)) {
         if (!*passphrase) {
             pgpid_error("Error: The key is protected by a passphrase, which has to "
                         "come off before it can move to a card.");

@@ -175,10 +175,16 @@ int pgpid_run_program(const char *const *argv, const char *text, const char *out
             close(fds[0]);
         }
         if (out_path) {
-            int out = open(out_path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+            /* The one magic name: "/dev/null:stderr" silences complaints
+             * rather than capturing output. Probes need that and nothing
+             * else, so it is a special case rather than a second parameter
+             * every caller would have to pass NULL for. */
+            bool silence = !strcmp(out_path, "/dev/null:stderr");
+            int out = open(silence ? "/dev/null" : out_path,
+                           O_WRONLY | O_CREAT | O_TRUNC, 0600);
             if (out < 0)
                 _exit(126);
-            dup2(out, STDOUT_FILENO);
+            dup2(out, silence ? STDERR_FILENO : STDOUT_FILENO);
             close(out);
         }
         execvp(argv[0], (char *const *)argv);
@@ -229,6 +235,24 @@ int pgpid_run_engine(const char *const *argv)
     if (!full)
         return -1;
     int ret = pgpid_run_program(full, NULL, NULL);
+    free(full);
+    return ret;
+}
+
+/**
+ * The same, with the engine's complaints thrown away.
+ *
+ * For probes — asking "is this key protected?" by trying to open it with
+ * nothing. The failure is the answer, and printing gpg's account of it makes
+ * a working program look like a broken one, which cost an hour of reading a
+ * log backwards.
+ */
+int pgpid_run_engine_quiet(const char *const *argv)
+{
+    const char **full = with_engine(argv);
+    if (!full)
+        return -1;
+    int ret = pgpid_run_program(full, NULL, "/dev/null:stderr");
     free(full);
     return ret;
 }
@@ -420,8 +444,8 @@ int pgpid_capture_engine(const char *const *argv, char *out, size_t max)
 bool pgpid_card_certification_key(char *out, size_t max)
 {
     char status[16384];
-    const char *argv[] = { "gpg", "--card-status", NULL };
-    if (pgpid_capture(argv, status, sizeof status) <= 0)
+    const char *argv[] = { "--card-status", NULL };
+    if (pgpid_capture_engine(argv, status, sizeof status) <= 0)
         return false;
 
     /* Whichever of the three the card holds: any of them names the same

@@ -92,6 +92,10 @@ int pgpid_run_engine(const char *const *argv);
  * edit-key conversation, which has no --quick- equivalent. */
 int pgpid_run_engine_input(const char *const *argv, const char *text);
 
+/* The same, with the engine's complaints thrown away — for probes, where the
+ * failure is the answer and gpg's account of it reads as a bug. */
+int pgpid_run_engine_quiet(const char *const *argv);
+
 /* And the same again, keeping the engine's output in a file — for the bytes
  * a buffer has no business holding. Either of TEXT and OUT_PATH may be NULL. */
 int pgpid_run_engine_io(const char *const *argv, const char *text, const char *out_path);
