@@ -44,7 +44,7 @@ static void usage(FILE *out)
  * admin code. The first four say whether a PIN is needed for signing and how
  * long each may be — not our business here.
  */
-static bool read_chv_status(int *pin, int *rc, int *admin)
+bool pgpid_card_retries(int *pin, int *rc, int *admin)
 {
     char out[1024];
     const char *argv[] = { "gpg-connect-agent", "SCD GETATTR CHV-STATUS", "/bye", NULL };
@@ -122,7 +122,7 @@ int pgpid_action_token_retries(int argc, char **argv)
         show_pin = show_rc = show_admin = true;
 
     int pin, rc, admin;
-    if (!read_chv_status(&pin, &rc, &admin))
+    if (!pgpid_card_retries(&pin, &rc, &admin))
         return PGPID_FAIL;
 
     struct { bool show; const char *key; int value; const char *what; } rows[] = {

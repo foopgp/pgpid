@@ -195,6 +195,25 @@ int pgpid_capture(const char *const *argv, char *out, size_t max);
 /* Same, with the engine and the home directory already in front. */
 int pgpid_capture_engine(const char *const *argv, char *out, size_t max);
 
+/* Send one ISO 7816 command to the card and keep its status word — for what
+ * gpgme has no opinion about and gpg will only ask questions about. */
+bool pgpid_card_apdu(const char *apdu, char *sw, size_t max);
+
+/* What that status word means: 0 when the card agreed, 192 to 194 when a
+ * code has that many attempts left, else the class of the problem. */
+int pgpid_sw_analyse(const char *sw);
+
+/* How many attempts remain on each of the three codes. Needed outside
+ * token_retries because some cards answer a wrong VERIFY with 6982 instead
+ * of 63CX, and the count has to be fetched to say anything useful. */
+bool pgpid_card_retries(int *pin, int *rc, int *admin);
+
+/* Put the OpenPGP application in front before asking it anything. */
+bool pgpid_card_select_openpgp(int *ret);
+
+/* A string as the card wants it: its bytes in hexadecimal, space separated. */
+void pgpid_to_hex(const char *in, char *out, size_t max);
+
 /* The certification key of whoever holds the connected card — the card
  * carries subkeys, the certifying key stays off it. False when no card
  * answered, or when its subkeys belong to no certificate we hold. */
@@ -270,6 +289,9 @@ int pgpid_action_change_passphrase(int argc, char **argv);
 int pgpid_action_print_secret(int argc, char **argv);
 int pgpid_action_scan(int argc, char **argv);
 int pgpid_action_print_card(int argc, char **argv);
+int pgpid_action_change_token_code(int argc, char **argv);
+int pgpid_action_change_token_meta(int argc, char **argv);
+int pgpid_action_totoken(int argc, char **argv);
 
 /* The short listing — one line per address — shared by `list --short` and
  * `get`, so that the two cannot drift apart. */

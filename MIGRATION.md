@@ -159,6 +159,59 @@ action `print` et qu'elles n'impriment pas la même chose :
 Le nom dit alors lequel des deux ne doit **jamais** partir sur une imprimante
 partagée, ce que `print` ne disait pas.
 
+**Faite, à une réserve près qui compte** — voir plus bas.
+
+`gen_key` produit les mêmes uids dans le même ordre, avec les mêmes sous-clés,
+la même expiration, le même serveur préféré et la même note échappée.
+`change_passphrase` a été vérifiée en vidant le cache de l'agent entre chaque
+essai : sans cela la signature réussit avec l'ancienne phrase et l'essai ne
+prouve rien. `print_card` rend un SVG identique à l'octet sur toutes les
+formes.
+
+Le papier se relit **dans les deux sens** : trois fragments imprimés par le C
+reconstruisent la clé sous `bl-pgpkey scan`, et trois fragments imprimés par
+le shell la reconstruisent sous `pgpid-mip scan`. C'est la seule vérification
+qui vaille pour une sauvegarde — celle que personne n'a jamais restaurée n'est
+pas une sauvegarde.
+
+Le TODO est fait : les photos ne partent plus à l'imprimante. Sur un
+certificat qui en porte une, l'export passe de 2 566 à 1 239 octets — la
+moitié du papier à conserver en moins. Les uids sont en revanche **tous
+gardés** : « extras uid » est ambigu, et une sauvegarde qui perd un numéro de
+téléphone est une sauvegarde qui a perdu quelque chose. À trancher.
+
+### Ce qui n'a pas pu être éprouvé
+
+`totoken`, `change_token_meta` et `change_token_code` **écrivent sur la
+carte**, et la seule branchée est celle de Mnêmê. `totoken` efface la carte
+puis déplace le secret hors du disque ; `change_token_code` dépense un essai
+sur trois à chaque vérification. Elles sont écrites, elles compilent, leurs
+chemins de refus et de validation concordent avec le shell — mais **aucun
+APDU d'écriture n'a jamais été envoyé**. À ne pas brancher dans foodjis avant
+un essai sur une carte de rebut.
+
+Ce qui a pu l'être : la détection du champ visé, la vérification qu'une
+adresse est bien portée par le certificat, celle qu'une URL sert un
+certificat portant les trois sous-clés, et tous les refus d'arguments.
+
+Une bêtise au passage, qui vaut mise en garde : comparer « ce qui refuse avant
+la carte » a coûté un essai. Le shell ne refuse pas un code manquant, il le
+*demande*, reçoit du vide, et vérifie quand même — le 194 que j'ai lu venait
+de la carte. Compteur remis à 3 par une vérification correcte, après avoir
+vidé le cache de scdaemon.
+
+Deux différences assumées, du même genre que dans les vagues précédentes. Le C
+ne demande jamais : `change_token_code` exige les deux codes d'entrée, ce qui
+lui interdit par construction de dépenser un essai sur une commande
+incomplète. Et `print_secret --printer ''` produit les feuilles sans rien
+envoyer, comme `--keyservers ''` n'envoie à personne.
+
+### Un défaut corrigé, trouvé en exécutant le refus
+
+`totoken` retirait la phrase de passe de la clé **avant** de vérifier
+`--force` : un refus modifiait donc quand même la clé sur le disque. Le shell
+fait pareil. Le refus passe maintenant en premier.
+
 **Un TODO devient presque gratuit ici** : *« Remove Photos and extras uid from
 exported data »* (bl-pgpkey l. 742). L'export secret emporte aujourd'hui les
 photos et toutes les adresses — un dos de papier qui porte votre visage, et
