@@ -106,6 +106,22 @@ int pgpid_base64url_decode(const char *in, unsigned char *out, size_t max);
  */
 int pgpid_transliterate(const char *in, char *out, size_t max);
 
+/* The surname and given names, matched out of a string already reduced to
+ * the format's alphabet: the first run that satisfies
+ * `[A-Z]{1,32}<<[A-Z]{1,32}<[A-Z]{0,32}<`. False when there is none. */
+bool pgpid_extract_names(const char *composed, char *out, size_t max);
+
+/* An ICAO 9303 passport zone, and whether its check digits agree. */
+struct pgpid_mrz {
+    char line[512];
+    size_t length;
+    bool is_passport, right_length;
+    bool bad[5];        /* number, birth, expiry, personal, composite */
+    char country[4], names[40], birth[7];
+};
+bool pgpid_mrz_parse(const char *raw, struct pgpid_mrz *out);
+int pgpid_mrz_check_digit(const char *s, size_t len);
+
 /* Where a country is, as the last fourteen characters of an identifier.
  * NULL for a code that is not one of the 231 — refused rather than guessed. */
 const char *pgpid_country_coordinates(const char *code);
@@ -126,6 +142,7 @@ int pgpid_action_push(int argc, char **argv);
 int pgpid_action_get(int argc, char **argv);
 int pgpid_action_gen_uid(int argc, char **argv);
 int pgpid_action_gen_u4(int argc, char **argv);
+int pgpid_action_mrz_to_u4(int argc, char **argv);
 
 /* The short listing — one line per address — shared by `list --short` and
  * `get`, so that the two cannot drift apart. */

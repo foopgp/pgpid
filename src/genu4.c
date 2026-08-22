@@ -61,67 +61,6 @@ static bool date_is_sound(const char *d)
     return day <= last;
 }
 
-/**
- * The names, extracted as the shell extracts them.
- *
- * Not composed from parts: matched. The shell builds `SURNAME<<GIVEN<<` and
- * runs `grep -o "[A-Z]\{1,32\}<<[A-Z]\{1,32\}<[A-Z]\{0,32\}<"` over it,
- * taking the first match — and that is not the same thing as taking the last
- * surname component and the first two given names.
- *
- * It differs in two ways that matter. A character which survives
- * transliteration as a non-letter — '÷' becomes '/' — breaks a run, so two
- * components stay two rather than silently joining. And a person with one
- * given name matches through the trailing pair, giving NIETO<<ENRIQUE<<
- * with two brackets rather than one.
- */
-static bool run_of_capitals(const char *s, size_t *len, size_t max)
-{
-    size_t n = 0;
-    while (n < max && s[n] >= 'A' && s[n] <= 'Z')
-        n++;
-    *len = n;
-    return true;
-}
-
-static bool extract_names(const char *composed, char *out, size_t max)
-{
-    for (const char *at = composed; *at; at++) {
-        const char *p = at;
-        size_t n;
-
-        run_of_capitals(p, &n, 32);
-        if (n < 1)
-            continue;
-        p += n;
-        if (p[0] != '<' || p[1] != '<')
-            continue;
-        p += 2;
-
-        run_of_capitals(p, &n, 32);
-        if (n < 1)
-            continue;
-        p += n;
-        if (*p != '<')
-            continue;
-        p += 1;
-
-        run_of_capitals(p, &n, 32);
-        p += n;
-        if (*p != '<')
-            continue;
-        p += 1;
-
-        size_t len = (size_t)(p - at);
-        if (len >= max)
-            return false;
-        memcpy(out, at, len);
-        out[len] = '\0';
-        return true;
-    }
-    return false;
-}
-
 int pgpid_action_gen_u4(int argc, char **argv)
 {
     const char *surname = NULL, *given = NULL, *date = NULL, *country = NULL;
@@ -175,7 +114,7 @@ int pgpid_action_gen_u4(int argc, char **argv)
         return PGPID_USAGE;
     }
     snprintf(composed, sizeof composed, "%s<<%s<<", s, g);
-    if (!extract_names(composed, names, sizeof names)) {
+    if (!pgpid_extract_names(composed, names, sizeof names)) {
         pgpid_error("Error: No surname and given names could be read from '%s'.", composed);
         pgpid_error("Notice: Both need at least one letter once reduced to A-Z.");
         return PGPID_USAGE;

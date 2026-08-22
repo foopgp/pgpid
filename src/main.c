@@ -38,6 +38,7 @@ static void usage(FILE *out)
         "  avatar                      Extract the image a certificate wears\n"
         "  push                        Send certificates to the keyservers\n"
         "  gen_u4                      Print the identifier a civil status gives\n"
+        "  mrz_to_u4                   Print the identifier a passport's machine zone gives\n"
         "  gen_uid                     Print the Unix account number an identifier gives\n"
         "\n"
         "OPTIONS:\n"
@@ -127,6 +128,8 @@ int main(int argc, char **argv)
         return pgpid_action_gen_uid(sub_argc, sub_argv);
     if (!strcmp(action, "gen_u4"))
         return pgpid_action_gen_u4(sub_argc, sub_argv);
+    if (!strcmp(action, "mrz_to_u4"))
+        return pgpid_action_mrz_to_u4(sub_argc, sub_argv);
 
     pgpid_error("Error: Unknown action '%s'.", action);
     pgpid_error("Try '" PGPID_MIP_NAME " --help' for more information.");

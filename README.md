@@ -35,6 +35,7 @@ pgpid-mip avatar [--extract-all] [--workdir DIR] [SEARCH]
 pgpid-mip avatar --replace-to IMAGE | --revoke [--keyservers SERVERS] FINGERPRINT
 pgpid-mip push [--keyservers SERVERS] FINGERPRINT...
 pgpid-mip gen_u4 --surname S --given-names G --birth-date D --birth-country C
+pgpid-mip mrz_to_u4 [--uncheck] [--birth-date D] MRZ...
 pgpid-mip gen_uid [--free-input] U4|U5|STRING
 ```
 
@@ -104,6 +105,27 @@ the same as taking the last surname component and the first two given names.
 A character surviving as a non-letter breaks a run, so two components stay
 two; and one given name matches through the trailing pair, giving
 `NIETO<<ENRIQUE<<`.
+
+`mrz_to_u4` reads the two lines at the bottom of a passport — ICAO 9303's
+TD3 form, eighty-eight characters — and prints the identifier they give.
+That is the point of the format: not typing a civil status is where the
+mistakes stop being made.
+
+It verifies the five check digits and refuses on any disagreement, unless
+`--uncheck` turns the refusal into a warning — a zone read by a camera in
+poor light is wrong in one character more often than it is unreadable, and
+refusing outright helps nobody who has the document in hand.
+
+Roughly one passport in five still gives the wrong identifier, and the tool
+says so: a surname truncated to fit the field, a name changed since birth,
+another transliteration, or a year of birth written with two digits.
+That last one is why `--birth-date` exists — the century pivots at
+sixty-eight, so somebody born in 1930 reads as 2030.
+
+The name extraction is shared with `gen_u4` rather than written twice,
+because a passport and the same civil status typed by hand have to give the
+same identifier — otherwise the document is useless. That is a test, not a
+hope.
 
 `gen_uid` prints the Unix account number an entity identifier gives — not
 an OpenPGP uid, a Unix one. Opening an account for somebody from their
