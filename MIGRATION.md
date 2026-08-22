@@ -102,6 +102,44 @@ appels qui restent.
 irréversibles. Même règle que pour `del` et `push` — empreinte obligatoire,
 jamais un motif de recherche.
 
+**Faite.** Éprouvée sur un trousseau jetable de quatre certificats, remis à
+neuf avant chaque essai, sans qu'aucun serveur de clés soit nommé. Une
+quarantaine de cas : signature, révocation, `--all-emails`, `--local`,
+`--ownertrust`, ajout et révocation d'adresses et de propriétés,
+`--revoke-all`, les échappements RFC 6350 avec virgules et points-virgules,
+le serveur préféré écrit puis relu par l'autre outil, et la chaîne de
+délégations signées. Mêmes codes de retour, mêmes sorties, même état du
+trousseau.
+
+Le décompte des champs manquants et les branches d'erreur ne s'atteignent pas
+avec un trousseau sain ; elles ont été provoquées — empreinte inconnue,
+identité absente, dernière adresse, délégation non signée, délégation qui
+prétend redéfinir la confiance en nos propres clés. Cette dernière est la
+seule qui compte vraiment : l'ancre tient des deux côtés.
+
+Là où le shell ouvre une fenêtre, le C dit quoi passer à la place. La phrase
+sur l'irréversibilité d'une révocation est écrite plutôt que sautée : c'est le
+seul endroit où quelqu'un l'apprend.
+
+### Deux défauts trouvés en chemin
+
+`property` rendait 141 quand la propriété était simplement vide. Foodjis
+*« fait remonter tout code non nul plutôt que de l'avaler »* — un contact sans
+numéro de téléphone serait devenu une erreur. 141 vaut pour « aucun certificat
+trouvé », pas pour « ce certificat n'a pas de téléphone ». Corrigé.
+
+L'affichage de `property` passait par gpgme, qui ne sait pas distinguer un uid
+expiré d'un uid que personne n'a certifié : `--show-unusable` n'avait donc
+rien à montrer. Il lit maintenant la sortie à deux points, comme le shell.
+
+### Un défaut partagé, laissé en l'état
+
+`property lang --add français` est accepté des deux côtés. `[a-zA-Z]` dépend
+de la collation de la locale, et sous une locale française la plage couvre les
+lettres accentuées — en bash comme dans `regcomp`. Le C reproduit donc
+fidèlement le défaut du shell. À corriger dans les deux, ou dans aucun : ce
+n'est pas à la migration de trancher.
+
 ## Vague 4 — la carte et le papier
 
 `gen_key` · `totoken` · `change_token_meta` · `change_token_code` ·

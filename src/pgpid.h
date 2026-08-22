@@ -253,6 +253,7 @@ int pgpid_action_token_retries(int argc, char **argv);
 int pgpid_action_token_check(int argc, char **argv);
 int pgpid_action_certify(int argc, char **argv);
 int pgpid_action_email(int argc, char **argv);
+int pgpid_action_update_trustdb(int argc, char **argv);
 
 /* The short listing — one line per address — shared by `list --short` and
  * `get`, so that the two cannot drift apart. */
