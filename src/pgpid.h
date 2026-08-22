@@ -96,6 +96,21 @@ void pgpid_md5(const void *data, size_t len, unsigned char out[16]);
 void pgpid_base64url(const unsigned char *in, size_t len, char *out);
 int pgpid_base64url_decode(const char *in, unsigned char *out, size_t max);
 
+/* A name, reduced to the letters an identifier is derived from: separators
+ * become '<', diacritics go, what is left is A-Z uppercase.
+ *
+ * `dropped` collects the Latin letters that do not decompose — Ø, Æ, ß and
+ * their kin — which this maps to a conventional ASCII form where the draft's
+ * rule would simply lose them. Empty when there were none. Returns the
+ * length written, or -1 on input that is not valid UTF-8.
+ */
+int pgpid_transliterate(const char *in, char *out, size_t max,
+                        char *dropped, size_t dropped_max);
+
+/* Where a country is, as the last fourteen characters of an identifier.
+ * NULL for a code that is not one of the 231 — refused rather than guessed. */
+const char *pgpid_country_coordinates(const char *code);
+
 /* Is this a fingerprint and nothing else? 40 or 64 hexadecimal characters.
  * What the destructive actions accept, so that a search pattern can never
  * become a target. */
@@ -111,6 +126,7 @@ int pgpid_action_avatar(int argc, char **argv);
 int pgpid_action_push(int argc, char **argv);
 int pgpid_action_get(int argc, char **argv);
 int pgpid_action_gen_uid(int argc, char **argv);
+int pgpid_action_gen_u4(int argc, char **argv);
 
 /* The short listing — one line per address — shared by `list --short` and
  * `get`, so that the two cannot drift apart. */

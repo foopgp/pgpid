@@ -34,6 +34,7 @@ pgpid-mip del [--secret] FINGERPRINT...
 pgpid-mip avatar [--extract-all] [--workdir DIR] [SEARCH]
 pgpid-mip avatar --replace-to IMAGE | --revoke [--keyservers SERVERS] FINGERPRINT
 pgpid-mip push [--keyservers SERVERS] FINGERPRINT...
+pgpid-mip gen_u4 --surname S --given-names G --birth-date D --birth-country C
 pgpid-mip gen_uid [--free-input] U4|U5|STRING
 ```
 
@@ -77,6 +78,25 @@ is not worth it yet.
 
 There is no `cert_check` and there will not be: `list` answers what it
 answered, for less.
+
+`gen_u4` prints the identifier a civil status gives: the last component of
+the surname, the first two given names, the date of birth, the country. Not
+a secret and not a key — a name two strangers can compute the same way,
+which is the whole point.
+
+Its transliteration is the **draft's rule** and not `iconv --to-code
+ascii//TRANSLIT`, which is what the shell uses. That matters more than it
+sounds: iconv's output depends on the locales installed on the machine.
+Measured on 2026-08-22, on a system carrying only C, C.utf8, fr_FR.utf8 and
+POSIX, the same civil status gives an identifier under `fr_FR.UTF-8` and an
+outright **error** under `LC_ALL=C`. An identifier that depends on where it
+was computed is not an identifier — and a Djibian installed with a minimal
+locale set cannot currently mint one for an accented name, which is to say
+for most of continental Europe.
+
+The two agree on every case tried, accents and hyphens included, because
+this machine has the locale that makes the shell work. That agreement is a
+property of this machine, not of the two implementations.
 
 `gen_uid` prints the Unix account number an entity identifier gives — not
 an OpenPGP uid, a Unix one. Opening an account for somebody from their

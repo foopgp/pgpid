@@ -222,6 +222,33 @@ is "--errexit-g=1 refuses two"     "$("$BIN" get --no-fetch --errexit-g=1 '*' >/
 is "an empty keyserver list asks nobody" \
    "$("$BIN" get --keyservers '' "$FPR" >/dev/null 2>&1 ; echo $?)" "0"
 
+printf '\ngen_u4\n'
+# Fictional civil statuses only: a test file is a public thing, and a real
+# date of birth in one is a real date of birth published. The values are what
+# bl-pgpid produces for the same input, so a change of rule shows up here.
+u4() { "$BIN" gen_u4 --surname "$1" --given-names "$2" --birth-date "$3" --birth-country "$4" 2>/dev/null ; }
+is "a plain civil status"        "$(u4 DOE John 1970-01-01 FRA)" "NgSm8XXwb5v3PCJ8pUmwNQe_42.17-002.76"
+is "keeps only the last surname component" \
+   "$(u4 'DE LA TOUR' 'Marie Claire' 1980-06-15 FRA)" "$(u4 'TOUR' 'Marie Claire' 1980-06-15 FRA)"
+is "keeps only two given names"  "$(u4 SMITH 'Alan Mathison Turing' 1912-06-23 GBR)" \
+                                 "$(u4 SMITH 'Alan Mathison' 1912-06-23 GBR)"
+is "a hyphen separates as a space does" \
+   "$(u4 'PENA-NIETO' Enrique 1966-10-20 MEX)" "$(u4 'PENA NIETO' Enrique 1966-10-20 MEX)"
+# Transliteration is the draft's rule and not iconv's: deterministic, and the
+# same wherever it runs. The shell's depends on installed locales — the same
+# civil status yields an identifier under fr_FR and an error under LC_ALL=C.
+is "accents go, letters stay"    "$(u4 'MÜLLER' 'Jürgen Karl' 1970-01-01 DEU)" \
+                                 "$(u4 'MULLER' 'Jurgen Karl' 1970-01-01 DEU)"
+is "case does not matter"        "$(u4 'peña-nieto' 'enrique' 1966-10-20 MEX)" \
+                                 "$(u4 'PEÑA-NIETO' 'Enrique' 1966-10-20 MEX)"
+is "the country decides the tail" "$(u4 DOE John 1970-01-01 FRA | cut --characters=23-)" "e_42.17-002.76"
+is "an unknown country is refused" \
+   "$("$BIN" gen_u4 -s DOE -g John -d 1970-01-01 -c ZZZ >/dev/null 2>&1 ; echo $?)" "2"
+is "an impossible date is refused" \
+   "$("$BIN" gen_u4 -s DOE -g John -d 2026-02-30 -c FRA >/dev/null 2>&1 ; echo $?)" "2"
+is "a leap day is not"           "$("$BIN" gen_u4 -s DOE -g John -d 2024-02-29 -c FRA >/dev/null 2>&1 ; echo $?)" "0"
+is "everything is required"      "$("$BIN" gen_u4 -s DOE >/dev/null 2>&1 ; echo $?)" "2"
+
 printf '\ngen_uid\n'
 # The number an identifier gives is a promise: accounts have been opened with
 # it, and two machines that never met must agree on it. So these are not
