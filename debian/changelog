@@ -1,3 +1,18 @@
+pgpid (0.1.0-1) unstable; urgency=medium
+
+  [ Mnêmê ]
+  * pgpid: the C tool, in C over gpgme, arrives from the foodjis repository
+    where it was written. Twenty-four actions, replacing bl-pgpid and
+    bl-pgpkey action for action.
+  * Nine message catalogues; French complete for the messages themselves.
+  * Build-depends on libgpgme-dev, gettext and pandoc, which the packaging
+    needed already and did not say.
+  * Depends on ${shlibs:Depends}: there is a compiled binary now.
+  * The tools the printing and scanning actions call are Recommends rather
+    than Depends — pgpid reads certificates without any of them.
+
+ -- Mnêmê <mneme@foopgp.org>  Sat, 22 Aug 2026 23:30:00 +0200
+
 pgpid (0.0.7-1) unstable; urgency=medium
 
   [ jjbrucker ]

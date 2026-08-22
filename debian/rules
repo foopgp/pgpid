@@ -1,4 +1,17 @@
 #!/usr/bin/make -f
 
+# PREFIX rather than prefix: the top makefile spells it that way and passes it
+# down. Without it everything lands in /usr/local, inside the package.
+export PREFIX = /usr
+
+# The binary answers the version of the package it is in. Without this it
+# answers `git describe`, which on this branch is a debian tag — a second
+# number that places neither itself nor the first.
+export VERSION = $(shell dpkg-parsechangelog --show-field Version | sed 's/-[^-]*$$//')
+
 %:
 	dh $@
+
+# The suite builds a keyring and talks to gpg-agent, which a build chroot has
+# no reason to provide. It runs from the source tree, where it belongs.
+override_dh_auto_test:

@@ -1,3 +1,1 @@
-bin/pgpid-gen /usr/bin/
-bin/pgpid-qrscan /usr/bin/
 data/ /usr/share/pgpid/

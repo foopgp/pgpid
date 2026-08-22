@@ -2,7 +2,11 @@ Source: pgpid
 Section: utils
 Priority: optional
 Maintainer: Sébastien Picardeau <piseb@mailo.com>
-Build-Depends: debhelper-compat (= 13)
+Build-Depends: debhelper-compat (= 13),
+  gettext,
+  libgpgme-dev,
+  pandoc,
+  pkgconf
 Standards-Version: 4.5.1
 Homepage: https://foopgp.org
 Rules-Requires-Root: no
@@ -11,11 +15,34 @@ Vcs-Browser: https://codeberg.org/foopgp/pgpid
 
 Package: pgpid
 Architecture: any
-Depends: bashlibs-pgpid,
+Depends: gnupg,
+  ${shlibs:Depends},
+  ${misc:Depends}
+Recommends: qrencode,
+  zbar-tools,
+  libgfshare-bin,
+  poppler-utils,
+  texlive-extra-utils,
+  librsvg2-bin,
+  cups-client,
+  pandoc,
+  graphicsmagick
+Suggests: bashlibs-pgpid,
   facedetect,
-  graphicsmagick,
   tesseract-ocr,
   gpg-wks-client,
-  ${misc:Depends}
-Description: pgpid-gen - generate OpenPGP certifcates and secrets on multiple QR codes (physical secret sharing scheme)
-  pgpid-qrscan - transfers OpenPGP secrets from pgpid QR codes to OpenPGP smartcard (eg: yubikey, nitrokey, ...)
+  imagemagick,
+  curl
+Description: OpenPGP certificates that say whose they are
+ The PGP ID model gives an OpenPGP certificate a decentralised entity
+ identifier: who this key belongs to, said once and checked by people rather
+ than by an authority.
+ .
+ pgpid reads and changes certificates through that model — identifiers,
+ validity, ownertrust, addresses, vCard properties, avatars — vouches for
+ other people, drives an OpenPGP security key, and puts a secret key on paper
+ as QR codes so that any three of five fragments rebuild it.
+ .
+ Two older shell programs ship alongside: pgpid-gen, which generates a
+ certificate from a passport, and pgpid-qrscan, which moves secrets onto a
+ smartcard. They need the packages under Suggests.
