@@ -37,6 +37,7 @@ static void usage(FILE *out)
         "  del                         Delete certificates, by fingerprint only\n"
         "  avatar                      Extract the image a certificate wears\n"
         "  push                        Send certificates to the keyservers\n"
+        "  gen_uid                     Print the Unix account number an identifier gives\n"
         "\n"
         "OPTIONS:\n"
         "  -H, --homedir DIR           GnuPG home directory - Environment variable: GNUPGHOME\n"
@@ -121,6 +122,8 @@ int main(int argc, char **argv)
         return pgpid_action_push(sub_argc, sub_argv);
     if (!strcmp(action, "get"))
         return pgpid_action_get(sub_argc, sub_argv);
+    if (!strcmp(action, "gen_uid"))
+        return pgpid_action_gen_uid(sub_argc, sub_argv);
 
     pgpid_error("Error: Unknown action '%s'.", action);
     pgpid_error("Try '" PGPID_MIP_NAME " --help' for more information.");

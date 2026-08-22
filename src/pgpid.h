@@ -11,6 +11,7 @@
 #include <gpgme.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #define PGPID_MIP_NAME    "pgpid-mip"
 
@@ -88,6 +89,13 @@ long pgpid_revocation_time(const char *fpr, const char *pattern);
  * returning PGPID_OK: asking for nowhere is not a failure. */
 int pgpid_send_to_keyservers(const char *fpr, const char *list);
 
+/* MD5 and base64url — what an entity identifier is made of. Written here
+ * rather than linked: see md5.c for why, and why that is not the usual
+ * "don't write your own crypto" mistake. */
+void pgpid_md5(const void *data, size_t len, unsigned char out[16]);
+void pgpid_base64url(const unsigned char *in, size_t len, char *out);
+int pgpid_base64url_decode(const char *in, unsigned char *out, size_t max);
+
 /* Is this a fingerprint and nothing else? 40 or 64 hexadecimal characters.
  * What the destructive actions accept, so that a search pattern can never
  * become a target. */
@@ -102,6 +110,7 @@ int pgpid_action_property(int argc, char **argv);
 int pgpid_action_avatar(int argc, char **argv);
 int pgpid_action_push(int argc, char **argv);
 int pgpid_action_get(int argc, char **argv);
+int pgpid_action_gen_uid(int argc, char **argv);
 
 /* The short listing — one line per address — shared by `list --short` and
  * `get`, so that the two cannot drift apart. */

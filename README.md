@@ -34,6 +34,7 @@ pgpid-mip del [--secret] FINGERPRINT...
 pgpid-mip avatar [--extract-all] [--workdir DIR] [SEARCH]
 pgpid-mip avatar --replace-to IMAGE | --revoke [--keyservers SERVERS] FINGERPRINT
 pgpid-mip push [--keyservers SERVERS] FINGERPRINT...
+pgpid-mip gen_uid [--free-input] U4|U5|STRING
 ```
 
 `list` prints one row per certificate: fingerprint, entity identifier, first
@@ -76,6 +77,30 @@ is not worth it yet.
 
 There is no `cert_check` and there will not be: `list` answers what it
 answered, for less.
+
+`gen_uid` prints the Unix account number an entity identifier gives — not
+an OpenPGP uid, a Unix one. Opening an account for somebody from their
+certificate means giving them a number, and deriving it from their
+identifier means two machines that never met agree on it. That is what lets
+an account be opened again elsewhere from the certificate alone.
+
+It is the first of the calls that touch no engine, no keyring and no
+network: a hash, a fold, a range. Which is why it came first — it is also
+the piece that has to exist wherever the model goes, Android included.
+
+Two things in it are reproduced rather than improved, and both would have
+been tidier done differently. The fold's modulo is **signed**, because the
+shell computes in signed sixty-four bits and a digest whose top bit is set
+reads as negative there. And the hash covers a **trailing newline**, because
+the shell pipes through `echo`. Either change would renumber people who
+already have accounts. Checked against `bl-pgpid gen_uid` on all 46
+identifiers of a real keyring, and about ninety times faster: 41 ms against
+3.8 s for twenty calls.
+
+MD5 is written here rather than linked — see `src/md5.c` for why that is not
+the usual mistake: an identifier *is* a digest, nothing here defends against
+an adversary, and linking libgcrypt would add a dependency gpgme does not
+bring while being unavailable where the model must also run.
 
 `property` prints the values of one vCard property a certificate carries on
 uids of its own — `name`, `note`, `phone`, `address`, `url`, `lang`, `geo`.

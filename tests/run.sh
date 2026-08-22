@@ -222,6 +222,26 @@ is "--errexit-g=1 refuses two"     "$("$BIN" get --no-fetch --errexit-g=1 '*' >/
 is "an empty keyserver list asks nobody" \
    "$("$BIN" get --keyservers '' "$FPR" >/dev/null 2>&1 ; echo $?)" "0"
 
+printf '\ngen_uid\n'
+# The number an identifier gives is a promise: accounts have been opened with
+# it, and two machines that never met must agree on it. So these are not
+# "some plausible numbers" but the ones bl-pgpid produced, written down.
+is "a u4 gives its number"        "$("$BIN" gen_uid 'u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76')" "1702501105"
+is "a u5 gives its number"        "$("$BIN" gen_uid 'u5001777236237.945e_43.30_005.38')" "319780676"
+is "the same one from a whole uid" \
+   "$("$BIN" gen_uid 'UID:urn:eid:u5001777236237.945e_43.30_005.38')" "319780676"
+is "--free-input takes a string"  "$("$BIN" gen_uid --free-input 'hello')" "669450302"
+is "and refuses one without it"   "$("$BIN" gen_uid 'hello' >/dev/null 2>&1 ; echo $?)" "2"
+is "wants something to work on"   "$("$BIN" gen_uid >/dev/null 2>&1 ; echo $?)" "2"
+# The range is what keeps the number out of the way of system accounts and
+# out of reach of software that reads it as signed.
+n=$("$BIN" gen_uid 'u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76')
+is "inside the range, low"        "$(( n >= 262144 ))" "1"
+is "inside the range, high"       "$(( n <= 2147483646 ))" "1"
+# MD5 itself is not tested separately here: every number above depends on it,
+# so a wrong digest would move them all. Its RFC 1321 vectors were checked
+# directly when it was written — see src/md5.c.
+
 printf '\npush\n'
 # Nowhere is named everywhere below: a key made for a test has no business
 # reaching a real keyserver, and the one closed port proves the attempt.
