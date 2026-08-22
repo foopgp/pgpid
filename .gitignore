@@ -1,2 +1,3 @@
 *_samples/
 man/*.1.gz
+_build/
