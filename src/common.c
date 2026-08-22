@@ -142,15 +142,75 @@ void pgpid_exec_engine(const char *const *argv)
  * the fingerprints go through as they are, with nothing to quote and nothing
  * to get wrong. argv is NULL-terminated and starts after the program name;
  * --homedir is prepended here when one was given. */
-int pgpid_run_engine(const char *const *argv)
+/**
+ * Run a program, optionally speaking to it and optionally keeping what it says.
+ *
+ * One primitive rather than three near-copies: the differences between
+ * "run it", "tell it something" and "keep its output" are two redirections,
+ * and three functions that each set up a fork were three places for the same
+ * mistake.
+ *
+ * A closed pipe is ignored rather than fatal — a program that gives up before
+ * reading everything says so with its exit status, which is more use than a
+ * signal that kills us instead.
+ */
+int pgpid_run_program(const char *const *argv, const char *text, const char *out_path)
+{
+    int fds[2] = { -1, -1 };
+    if (text && pipe(fds))
+        return -1;
+
+    pid_t pid = fork();
+    if (pid < 0) {
+        if (text) {
+            close(fds[0]);
+            close(fds[1]);
+        }
+        return -1;
+    }
+    if (pid == 0) {
+        if (text) {
+            close(fds[1]);
+            dup2(fds[0], STDIN_FILENO);
+            close(fds[0]);
+        }
+        if (out_path) {
+            int out = open(out_path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+            if (out < 0)
+                _exit(126);
+            dup2(out, STDOUT_FILENO);
+            close(out);
+        }
+        execvp(argv[0], (char *const *)argv);
+        _exit(127);
+    }
+    if (text) {
+        close(fds[0]);
+        signal(SIGPIPE, SIG_IGN);
+        size_t len = strlen(text), written = 0;
+        while (written < len) {
+            ssize_t got = write(fds[1], text + written, len - written);
+            if (got <= 0)
+                break;
+            written += (size_t)got;
+        }
+        close(fds[1]);
+    }
+    int status = 0;
+    if (waitpid(pid, &status, 0) < 0)
+        return -1;
+    return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+}
+
+/* The engine and the home directory in front of what the caller asked for. */
+static const char **with_engine(const char *const *argv)
 {
     size_t n = 0;
     while (argv[n])
         n++;
-
     const char **full = calloc(n + 4, sizeof *full);
     if (!full)
-        return -1;
+        return NULL;
     size_t at = 0;
     full[at++] = engine_path();
     if (pgpid_homedir) {
@@ -160,21 +220,27 @@ int pgpid_run_engine(const char *const *argv)
     for (size_t i = 0; i < n; i++)
         full[at++] = argv[i];
     full[at] = NULL;
+    return full;
+}
 
-    pid_t pid = fork();
-    if (pid < 0) {
-        free(full);
+int pgpid_run_engine(const char *const *argv)
+{
+    const char **full = with_engine(argv);
+    if (!full)
         return -1;
-    }
-    if (pid == 0) {
-        execv(full[0], (char *const *)full);
-        _exit(127);
-    }
+    int ret = pgpid_run_program(full, NULL, NULL);
     free(full);
-    int status = 0;
-    if (waitpid(pid, &status, 0) < 0)
+    return ret;
+}
+
+int pgpid_run_engine_io(const char *const *argv, const char *text, const char *out_path)
+{
+    const char **full = with_engine(argv);
+    if (!full)
         return -1;
-    return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+    int ret = pgpid_run_program(full, text, out_path);
+    free(full);
+    return ret;
 }
 
 bool pgpid_is_fingerprint(const char *s)
@@ -507,59 +573,5 @@ size_t pgpid_list_uids(const char *user, bool secret,
  */
 int pgpid_run_engine_input(const char *const *argv, const char *text)
 {
-    size_t n = 0;
-    while (argv[n])
-        n++;
-
-    const char **full = calloc(n + 4, sizeof *full);
-    if (!full)
-        return -1;
-    size_t at = 0;
-    full[at++] = engine_path();
-    if (pgpid_homedir) {
-        full[at++] = "--homedir";
-        full[at++] = pgpid_homedir;
-    }
-    for (size_t i = 0; i < n; i++)
-        full[at++] = argv[i];
-    full[at] = NULL;
-
-    int fds[2];
-    if (pipe(fds)) {
-        free(full);
-        return -1;
-    }
-    pid_t pid = fork();
-    if (pid < 0) {
-        close(fds[0]);
-        close(fds[1]);
-        free(full);
-        return -1;
-    }
-    if (pid == 0) {
-        close(fds[1]);
-        dup2(fds[0], STDIN_FILENO);
-        close(fds[0]);
-        execv(full[0], (char *const *)full);
-        _exit(127);
-    }
-    close(fds[0]);
-    free(full);
-
-    /* A closed pipe means gpg gave up before reading everything, which its
-     * own exit status will say about far better than a signal would. */
-    signal(SIGPIPE, SIG_IGN);
-    size_t len = strlen(text), written = 0;
-    while (written < len) {
-        ssize_t got = write(fds[1], text + written, len - written);
-        if (got <= 0)
-            break;
-        written += (size_t)got;
-    }
-    close(fds[1]);
-
-    int status = 0;
-    if (waitpid(pid, &status, 0) < 0)
-        return -1;
-    return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+    return pgpid_run_engine_io(argv, text, NULL);
 }

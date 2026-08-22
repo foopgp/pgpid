@@ -142,6 +142,14 @@ int main(int argc, char **argv)
         return pgpid_action_email(sub_argc, sub_argv);
     if (!strcmp(action, "update_trustdb"))
         return pgpid_action_update_trustdb(sub_argc, sub_argv);
+    if (!strcmp(action, "gen_key"))
+        return pgpid_action_gen_key(sub_argc, sub_argv);
+    if (!strcmp(action, "change_passphrase"))
+        return pgpid_action_change_passphrase(sub_argc, sub_argv);
+    if (!strcmp(action, "print_secret"))
+        return pgpid_action_print_secret(sub_argc, sub_argv);
+    if (!strcmp(action, "scan"))
+        return pgpid_action_scan(sub_argc, sub_argv);
 
     pgpid_error("Error: Unknown action '%s'.", action);
     pgpid_error("Try '" PGPID_MIP_NAME " --help' for more information.");

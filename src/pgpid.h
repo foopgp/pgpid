@@ -37,6 +37,9 @@
  * does it above, by passing --keyservers, and an empty list means nothing
  * is sent. */
 #define PGPID_KEYSERVERS "hkps://keys.foopgp.org hkps://keys.openpgp.org"
+
+/* The one a fresh certificate names as its own. */
+#define PGPID_KEYSERVERS_FIRST "hkps://keys.foopgp.org"
 /* The first of them, which is the one a card points at. */
 #define PGPID_FIRST_KEYSERVER "hkps://keys.foopgp.org"
 
@@ -88,6 +91,14 @@ int pgpid_run_engine(const char *const *argv);
 /* The same, with TEXT handed to the engine on its standard input — for the
  * edit-key conversation, which has no --quick- equivalent. */
 int pgpid_run_engine_input(const char *const *argv, const char *text);
+
+/* And the same again, keeping the engine's output in a file — for the bytes
+ * a buffer has no business holding. Either of TEXT and OUT_PATH may be NULL. */
+int pgpid_run_engine_io(const char *const *argv, const char *text, const char *out_path);
+
+/* Run any program, not just the engine: printing a secret is a pipeline of
+ * other people's tools, and calling them is the work. */
+int pgpid_run_program(const char *const *argv, const char *text, const char *out_path);
 /* Same, but replacing this process — the child side of a pipe. */
 void pgpid_exec_engine(const char *const *argv);
 /* When that certificate was revoked, 0 when it was not or is not known.
@@ -254,6 +265,10 @@ int pgpid_action_token_check(int argc, char **argv);
 int pgpid_action_certify(int argc, char **argv);
 int pgpid_action_email(int argc, char **argv);
 int pgpid_action_update_trustdb(int argc, char **argv);
+int pgpid_action_gen_key(int argc, char **argv);
+int pgpid_action_change_passphrase(int argc, char **argv);
+int pgpid_action_print_secret(int argc, char **argv);
+int pgpid_action_scan(int argc, char **argv);
 
 /* The short listing — one line per address — shared by `list --short` and
  * `get`, so that the two cannot drift apart. */
