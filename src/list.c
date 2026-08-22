@@ -19,6 +19,8 @@
  */
 #include "pgpid.h"
 
+#include <ctype.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -60,12 +62,21 @@ static const char *first_mbox(gpgme_key_t key)
  * a certificate saying two things about whose it is. The caller reads that as
  * broken. Caller frees.
  */
-static char *eid_of_key(gpgme_key_t key, unsigned *count)
+/* The identifier a certificate carries.
+ *
+ * `standing_only` is the difference between the two questions one can ask.
+ * The long form asks what the certificate asserts *today*, so a revoked uid
+ * carrying an old identifier must not count — otherwise replacing one's
+ * identifier would make the certificate read as broken ever after. The short
+ * form asks what the shell's `get` answers, and that one reads every uid
+ * whatever its validity; the shell's own helper takes the same parameter, for
+ * the same reason. */
+static char *eid_of_key(gpgme_key_t key, unsigned *count, bool standing_only)
 {
     char *found = NULL;
     *count = 0;
     for (gpgme_user_id_t u = key->uids; u; u = u->next) {
-        if (u->revoked || u->invalid)
+        if (standing_only && (u->revoked || u->invalid))
             continue;
         char *eid = pgpid_eid_of_uid(u->uid);
         if (!eid)
@@ -139,6 +150,73 @@ static void put_date(char *out, size_t n, long t, bool machine)
         snprintf(out, n, "-");
 }
 
+/* --short collects before it prints, because the shell it must match pipes
+ * its lines through `sort -u`: without the same sort, any pattern touching
+ * more than one certificate comes out in a different order, and without the
+ * same dedup a certificate carrying an address twice prints it twice. */
+struct short_lines {
+    char **line;
+    size_t n, cap;
+};
+
+static void short_add(struct short_lines *s, const char *fpr,
+                      const char *email, const char *eid)
+{
+    char buf[640], left[512], lowered[320];
+    /* gpg lowercases the address it reports, and the shell prints what gpg
+     * reports. Strictly an address's local part is case-sensitive, but the
+     * question here is what the certificate can be found by, and that is the
+     * normalised form. */
+    size_t i = 0;
+    for (; email[i] && i + 1 < sizeof lowered; i++)
+        lowered[i] = (char)tolower((unsigned char)email[i]);
+    lowered[i] = '\0';
+    snprintf(left, sizeof left, "%s %s", fpr, lowered);
+    /* The identifier follows a field of eighty columns, preceded by one
+     * space — a certificate without one leaves the field padded and nothing
+     * after it, which is what the shell writes. */
+    if (eid)
+        snprintf(buf, sizeof buf, "%-80s %s", left, eid);
+    else
+        snprintf(buf, sizeof buf, "%-80s", left);
+    if (s->n == s->cap) {
+        size_t cap = s->cap ? s->cap * 2 : 64;
+        char **grown = realloc(s->line, cap * sizeof *grown);
+        if (!grown)
+            return;
+        s->line = grown;
+        s->cap = cap;
+    }
+    s->line[s->n] = strdup(buf);
+    if (s->line[s->n])
+        s->n++;
+}
+
+/* strcoll and not strcmp: the shell sorts with `sort`, which collates in the
+ * caller's locale. Byte order and French collation disagree on case and on
+ * punctuation, and the disagreement is visible on any keyring holding more
+ * than a handful of certificates. */
+static int by_text(const void *a, const void *b)
+{
+    return strcoll(*(char *const *)a, *(char *const *)b);
+}
+
+static void short_flush(struct short_lines *s)
+{
+    qsort(s->line, s->n, sizeof *s->line, by_text);
+    /* Printed in one pass and freed in another: comparing against the
+     * previous line means reading it, and a line freed at the end of its own
+     * iteration is not there to be read on the next. */
+    for (size_t i = 0; i < s->n; i++)
+        if (i == 0 || strcmp(s->line[i], s->line[i - 1]))
+            puts(s->line[i]);
+    for (size_t i = 0; i < s->n; i++)
+        free(s->line[i]);
+    free(s->line);
+    s->line = NULL;
+    s->n = s->cap = 0;
+}
+
 static void usage(FILE *out)
 {
     fprintf(out,
@@ -162,6 +240,8 @@ static void usage(FILE *out)
         "the whole keyring is listed.\n"
         "\n"
         "OPTIONS:\n"
+        "  -S, --short                 One line per address: fingerprint, address, entity identifier\n"
+        "                              What 'bl-pgpid get --no-fetch' answers, to the column\n"
         "  -L, --no-check-eid          Legacy: don't consider certificate as 'broken' if there is no consistent eid inside\n"
         "      --count-certs           Count the distinct certifiers of each certificates and fill *certifications* column (may take time !)\n"
         "      --hide-trust            Credibility (aka ownertrust) is a sensible information used to calculate validity — sometimes both need to stay private\n"
@@ -172,11 +252,15 @@ static void usage(FILE *out)
 int pgpid_action_list(int argc, char **argv)
 {
     bool check_eid = true, count_certs = false, hide_trust = false, machine = false;
+    bool short_form = false;
+    struct short_lines lines = { NULL, 0, 0 };
     const char *pattern = NULL;
 
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
-        if (!strcmp(a, "-L") || !strcmp(a, "--no-check-eid")) {
+        if (!strcmp(a, "-S") || !strcmp(a, "--short")) {
+            short_form = true;
+        } else if (!strcmp(a, "-L") || !strcmp(a, "--no-check-eid")) {
             check_eid = false;
         } else if (!strcmp(a, "--count-certs")) {
             count_certs = true;
@@ -227,7 +311,8 @@ int pgpid_action_list(int argc, char **argv)
         "validity", "credibility",
         "creation_date", "expiration_date", "revocation_date",
     };
-    pgpid_table_start(COLUMNS, sizeof COLUMNS / sizeof *COLUMNS);
+    if (!short_form)
+        pgpid_table_start(COLUMNS, sizeof COLUMNS / sizeof *COLUMNS);
 
     unsigned rows = 0;
     for (;;) {
@@ -248,7 +333,39 @@ int pgpid_action_list(int argc, char **argv)
         }
 
         unsigned neids = 0;
-        char *eid = eid_of_key(key, &neids);
+        char *eid = eid_of_key(key, &neids, !short_form);
+        /* Neither none nor several is an identifier: both print as a dash,
+         * and several is worth saying out loud because it means the
+         * certificate asserts two things about whose it is. */
+        if (short_form && neids > 1)
+            pgpid_error("Warning: Certificate %s carries more than one identifier.", fpr);
+
+        /* --short answers what `bl-pgpid get --no-fetch` answers: one line
+         * per address rather than per certificate, fingerprint and address
+         * inside eighty columns, then the identifier. The shell pads exactly
+         * so, and callers have been reading those columns for a year — the
+         * point of this option is to be indistinguishable, not similar. */
+        if (short_form) {
+            for (gpgme_user_id_t u = key->uids; u; u = u->next) {
+                /* A mailbox, not any string between angle brackets: gpg
+                 * reports none for a uid like `Frre U4 <a.com>`, and neither
+                 * do we. */
+                if (!u->email || !*u->email || !strchr(u->email, '@'))
+                    continue;
+                /* A revoked address is not an address any more — except on a
+                 * certificate that is itself revoked, where hiding them would
+                 * leave it with no identity at all. Both behaviours were read
+                 * off gpg rather than assumed. */
+                if ((u->revoked || u->invalid) && !key->revoked)
+                    continue;
+                short_add(&lines, fpr, u->email, neids == 1 ? eid : "-");
+            }
+            free(eid);
+            gpgme_key_unref(key);
+            rows++;
+            continue;
+        }
+
         const char *mbox = first_mbox(key);
         gpgme_validity_t uidv = best_uid_validity(key);
 
@@ -297,7 +414,10 @@ int pgpid_action_list(int argc, char **argv)
         gpgme_key_unref(key);
     }
 
-    pgpid_table_end();
+    if (short_form)
+        short_flush(&lines);
+    else
+        pgpid_table_end();
     gpgme_release(ctx);
     return rows ? PGPID_OK : PGPID_NOTHING;
 }

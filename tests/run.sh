@@ -188,6 +188,24 @@ else
     printf '  skip  no graphicsmagick to make test images with\n'
 fi
 
+printf '\nlist --short\n'
+# The contract is not "similar to bl-pgpid get --no-fetch" but
+# indistinguishable from it: one line per address, fingerprint and address
+# inside eighty columns, then the identifier — a dash when there is none or
+# more than one. Callers have been reading those columns; the point of the
+# option is that they cannot tell the difference.
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-add-uid "$FPR" 'Ada <Ada@Example.Invalid>' 2>/dev/null
+out=$("$BIN" list --short "$FPR")
+is "one line per address"          "$(grep --count . <<<"$out")" "1"
+is "fingerprint first"             "$(awk '{print $1}' <<<"$out")" "$FPR"
+is "lowercased, as gpg reports it" "$(awk '{print $2}' <<<"$out")" "ada@example.invalid"
+is "identifier in column 82"       "$(awk '{print index($0, "u5")}' <<<"$out")" "82"
+is "and it is the certificate's"   "$(awk '{print $3}' <<<"$out")" "$EID"
+is "no identifier prints a dash"   "$("$BIN" list --short "$NFPR" | awk '{print $3}')" "-"
+is "a uid without an address is not one" \
+   "$("$BIN" list --short "$FPR" | grep --count 'FN:')" "0"
+
 printf '\npush\n'
 # Nowhere is named everywhere below: a key made for a test has no business
 # reaching a real keyserver, and the one closed port proves the attempt.
