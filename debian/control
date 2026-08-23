@@ -16,6 +16,8 @@ Vcs-Browser: https://codeberg.org/foopgp/pgpid
 Package: pgpid
 Architecture: any
 Depends: gnupg,
+  bashlibs-common,
+  bashlibs-convert,
   ${shlibs:Depends},
   ${misc:Depends}
 Recommends: qrencode,
@@ -27,8 +29,7 @@ Recommends: qrencode,
   cups-client,
   pandoc,
   graphicsmagick
-Suggests: bashlibs-pgpid,
-  facedetect,
+Suggests: facedetect,
   tesseract-ocr,
   gpg-wks-client,
   imagemagick,
