@@ -47,7 +47,22 @@ SPDX-License-Identifier = "LicenseRef-reference-material"
 # by the Council of the European Union, plus a few specimens. Test fixtures
 # for the MRZ scanner.
 [[annotations]]
-path = [ "imgsamples/*.jpg", "imgsamples/*.JPG", "imgsamples/*.png", "imgsamples/scan_nok/**" ]
+path = [
+    "imgsamples/*.jpg",
+    "imgsamples/*.JPG",
+    "imgsamples/*.png",
+    "imgsamples/scan_nok/101737.jpg",
+    "imgsamples/scan_nok/109508.JPG",
+    "imgsamples/scan_nok/119603.jpg",
+    "imgsamples/scan_nok/121146.JPG",
+    "imgsamples/scan_nok/211185.jpg",
+    "imgsamples/scan_nok/235115.JPG",
+    "imgsamples/scan_nok/244972.jpg",
+    "imgsamples/scan_nok/261923.jpg",
+    "imgsamples/scan_nok/97060.JPG",
+    "imgsamples/scan_nok/P_CHNCHUNG__KWOK_SUM.jpg",
+    "imgsamples/scan_nok/P_FRAHOLLANDE__FRANCOIS.jpg",
+]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "Council of the European Union (PRADO) and the respective issuing authorities"
 SPDX-License-Identifier = "LicenseRef-reference-material"
@@ -73,4 +88,12 @@ SPDX-License-Identifier = "LicenseRef-reference-material"
 path = "oldies/notes/pgpid-cert"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "the participants in the conversation"
+SPDX-License-Identifier = "LicenseRef-reference-material"
+
+# A still from the television series "Friends", kept as a negative test case:
+# an image the scanner must decline rather than read an MRZ out of.
+[[annotations]]
+path = "imgsamples/scan_nok/friends.jpg"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Warner Bros. Entertainment Inc."
 SPDX-License-Identifier = "LicenseRef-reference-material"
