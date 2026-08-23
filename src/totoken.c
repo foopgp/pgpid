@@ -50,7 +50,8 @@ static void usage(FILE *out)
         "                               Default: the keyserver's lookup for this key\n"
         "  -L, --lang LANG              The card's language preference - Default: the locale's\n"
         "  -k, --keyserver KEYSERVER    Send the certificate there, and build the\n"
-        "                               default URL from it\n"
+        "                               default URL from it. Empty to send it\n"
+        "                               nowhere and keep the default URL\n"
         "  -K, --pubkey FILE            Also write the armored certificate to FILE\n"
         "      --force                  Wipe a card that is not blank\n"
         "  -h, --help                   Print this help and exit\n"
@@ -188,9 +189,14 @@ int pgpid_action_totoken(int argc, char **argv)
         return PGPID_FAIL;
     }
 
+    /* Where to send and what URL to write down are two questions. An empty
+       --keyserver answers the first with "nowhere" — the same escape hatch
+       bl-pgpid spells --keyservers '' — but the card should still say where
+       the certificate will be findable once somebody publishes it. */
     const char *host = keyserver ? keyserver : PGPID_KEYSERVERS_FIRST;
-    const char *bare = strstr(host, "//");
-    bare = bare ? bare + 2 : host;
+    const char *urlhost = *host ? host : PGPID_KEYSERVERS_FIRST;
+    const char *bare = strstr(urlhost, "//");
+    bare = bare ? bare + 2 : urlhost;
     char url[512];
     if (certurl)
         snprintf(url, sizeof url, "%.500s", certurl);

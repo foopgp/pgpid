@@ -32,7 +32,7 @@ secured device (eg yubikey).
 
 **-k**, **\--no-send**
 
-:   don\'t send public key (certificate) to HKPS keyserver ()
+:   don\'t send the public key (certificate) to any keyserver
 
 **-v**, **\--verbose**
 

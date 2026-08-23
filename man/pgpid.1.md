@@ -607,7 +607,8 @@ OPTIONS:
                                Default: the keyserver's lookup for this key
   -L, --lang LANG              The card's language preference - Default: the locale's
   -k, --keyserver KEYSERVER    Send the certificate there, and build the
-                               default URL from it
+                               default URL from it. Empty to send it
+                               nowhere and keep the default URL
   -K, --pubkey FILE            Also write the armored certificate to FILE
       --force                  Wipe a card that is not blank
   -h, --help                   Print this help and exit

@@ -612,7 +612,8 @@ OPTIONS:
                                Default: la ricerca del server per questa chiave
   -L, --lang LINGUA            Lingua preferita della carta - Default: la locale
   -k, --keyserver SERVER       Inviarvi il certificato, e costruirne la URL
-                               predefinita
+                               predefinita. Vuoto per non inviarlo da nessuna
+                               parte e mantenere la URL predefinita
   -K, --pubkey FILE            Scrivere anche il certificato in armatura lì
       --force                  Cancellare una carta che non è vergine
   -h, --help                   Stampare questo aiuto e uscire

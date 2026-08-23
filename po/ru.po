@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid 0.0.7-35-g8512aa6\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-08-23 11:20+0200\n"
+"POT-Creation-Date: 2026-08-23 23:26+0200\n"
 "PO-Revision-Date: 2026-08-22 22:58+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -58,12 +58,8 @@ msgid "Error: Cannot write '%s': %s."
 msgstr "Error: Не удаётся записать «%s»: %s."
 
 #: ../src/avatar.c:256
-msgid ""
-"Error: graphicsmagick is needed to resize an image - install "
-"'graphicsmagick'."
-msgstr ""
-"Error: для изменения размера изображения нужен graphicsmagick — установите "
-"«graphicsmagick»."
+msgid "Error: graphicsmagick is needed to resize an image - install 'graphicsmagick'."
+msgstr "Error: для изменения размера изображения нужен graphicsmagick — установите «graphicsmagick»."
 
 #: ../src/avatar.c:260
 #, c-format
@@ -93,11 +89,8 @@ msgid "gpgme_op_interact"
 msgstr "gpgme_op_interact"
 
 #: ../src/avatar.c:434
-msgid ""
-"Notice: A certificate is edited with its secret key - is the right one at "
-"hand?"
-msgstr ""
-"Notice: Сертификат правится своим секретным ключом — под рукой именно тот?"
+msgid "Notice: A certificate is edited with its secret key - is the right one at hand?"
+msgstr "Notice: Сертификат правится своим секретным ключом — под рукой именно тот?"
 
 #: ../src/avatar.c:446
 #, c-format
@@ -166,13 +159,12 @@ msgstr "Error: «%s» ожидает каталог."
 
 #: ../src/avatar.c:573 ../src/certify.c:322 ../src/changepass.c:110
 #: ../src/changetokencode.c:126 ../src/changetokenmeta.c:153 ../src/del.c:93
-#: ../src/email.c:372 ../src/genkey.c:209 ../src/genu4.c:82
-#: ../src/genuid.c:147 ../src/get.c:150 ../src/list.c:381 ../src/main.c:112
-#: ../src/mrz.c:174 ../src/ownertrust.c:96 ../src/printcard.c:143
-#: ../src/printsecret.c:290 ../src/property.c:383 ../src/push.c:70
-#: ../src/scan.c:139 ../src/sigs.c:124 ../src/token.c:129
-#: ../src/tokencheck.c:268 ../src/totoken.c:151 ../src/tovcard.c:385
-#: ../src/trustdb.c:276
+#: ../src/email.c:372 ../src/genkey.c:209 ../src/genu4.c:82 ../src/genuid.c:147
+#: ../src/get.c:150 ../src/list.c:381 ../src/main.c:112 ../src/mrz.c:174
+#: ../src/ownertrust.c:96 ../src/printcard.c:143 ../src/printsecret.c:290
+#: ../src/property.c:383 ../src/push.c:70 ../src/scan.c:139 ../src/sigs.c:124
+#: ../src/token.c:129 ../src/tokencheck.c:268 ../src/totoken.c:152
+#: ../src/tovcard.c:385 ../src/trustdb.c:276
 #, c-format
 msgid "Error: Unrecognized option '%s'."
 msgstr "Error: Неизвестный параметр «%s»."
@@ -196,8 +188,7 @@ msgstr "Notice: Чтобы опубликовать сертификат как 
 
 #: ../src/avatar.c:606
 msgid "Error: '--revoke' takes every image back; '--replace-to' already does."
-msgstr ""
-"Error: «--revoke» снимает все изображения; «--replace-to» это уже делает."
+msgstr "Error: «--revoke» снимает все изображения; «--replace-to» это уже делает."
 
 #: ../src/avatar.c:613 ../src/list.c:270 ../src/tovcard.c:397
 msgid "gpgme_new"
@@ -246,16 +237,12 @@ msgstr "Error: Неизвестное слово состояния (%s)."
 #: ../src/card.c:128
 #, c-format
 msgid "Error: Verification/authentication failed (%s) - no retry info."
-msgstr ""
-"Error: Проверка или подтверждение не удались (%s) — сведений об оставшихся "
-"попытках нет."
+msgstr "Error: Проверка или подтверждение не удались (%s) — сведений об оставшихся попытках нет."
 
 #: ../src/card.c:132
 #, c-format
-msgid ""
-"Error: Verification/authentication failed (%s) - remaining retries: %d ."
-msgstr ""
-"Error: Проверка или подтверждение не удались (%s) — осталось попыток: %d ."
+msgid "Error: Verification/authentication failed (%s) - remaining retries: %d ."
+msgstr "Error: Проверка или подтверждение не удались (%s) — осталось попыток: %d ."
 
 #: ../src/card.c:137
 #, c-format
@@ -274,12 +261,8 @@ msgstr "Error: Есть ещё данные (%s) — байтов к получ�
 
 #: ../src/card.c:170
 #, c-format
-msgid ""
-"Error: Warning/non-fatal condition (%s). Check returned data or card "
-"documentation for details."
-msgstr ""
-"Error: Некритическое состояние (%s). Смотрите возвращённые данные или "
-"документацию карты."
+msgid "Error: Warning/non-fatal condition (%s). Check returned data or card documentation for details."
+msgstr "Error: Некритическое состояние (%s). Смотрите возвращённые данные или документацию карты."
 
 #: ../src/card.c:174
 #, c-format
@@ -442,12 +425,8 @@ msgid "Info: --ownertrust means nothing when revoking; ignored."
 msgstr "Info: --ownertrust ничего не значит при отзыве; пропущено."
 
 #: ../src/certify.c:434
-msgid ""
-"Notice: gpg reported no error, which does not mean it found a certification "
-"to revoke."
-msgstr ""
-"Notice: gpg не сообщил об ошибке, что не значит, что он нашёл заверение к "
-"отзыву."
+msgid "Notice: gpg reported no error, which does not mean it found a certification to revoke."
+msgstr "Notice: gpg не сообщил об ошибке, что не значит, что он нашёл заверение к отзыву."
 
 #: ../src/certify.c:437
 #, c-format
@@ -491,7 +470,7 @@ msgstr ""
 
 #: ../src/changepass.c:49 ../src/changetokencode.c:59
 #: ../src/changetokenmeta.c:56 ../src/genkey.c:166 ../src/printsecret.c:85
-#: ../src/scan.c:58 ../src/totoken.c:65
+#: ../src/scan.c:58 ../src/totoken.c:66
 #, c-format
 msgid "Error: Cannot read %s."
 msgstr "Error: Не удаётся прочитать %s."
@@ -510,18 +489,14 @@ msgid "this machine may hold several secret keys."
 msgstr "эта машина может хранить несколько."
 
 #: ../src/changepass.c:125
-msgid ""
-"Error: Both passphrases are needed — the current one with --passphrase or "
-"--passfrom, the new one with"
-msgstr ""
-"Error: Нужны обе парольные фразы — нынешняя через --passphrase или "
-"--passfrom, новая через"
+msgid "Error: Both passphrases are needed — the current one with --passphrase or --passfrom, the new one with"
+msgstr "Error: Нужны обе парольные фразы — нынешняя через --passphrase или --passfrom, новая через"
 
 #: ../src/changepass.c:127
 msgid "--newpassphrase or --newpassfrom. Empty strings mean none."
 msgstr "--newpassphrase или --newpassfrom. Пустая строка означает никакой."
 
-#: ../src/changepass.c:135 ../src/printsecret.c:362 ../src/totoken.c:187
+#: ../src/changepass.c:135 ../src/printsecret.c:362 ../src/totoken.c:188
 #, c-format
 msgid "Error: No secret for '%s' here."
 msgstr "Error: Здесь нет секрета для «%s»."
@@ -605,7 +580,7 @@ msgstr "Error: «%s» ожидает код."
 
 #: ../src/changetokencode.c:94 ../src/changetokencode.c:104
 #: ../src/changetokenmeta.c:140 ../src/genkey.c:161 ../src/printsecret.c:242
-#: ../src/scan.c:113 ../src/totoken.c:119 ../src/totoken.c:134
+#: ../src/scan.c:113 ../src/totoken.c:120 ../src/totoken.c:135
 #: ../src/tovcard.c:368
 #, c-format
 msgid "Error: '%s' wants a file."
@@ -613,20 +588,12 @@ msgstr "Error: «%s» ожидает файл."
 
 #: ../src/changetokencode.c:137
 #, c-format
-msgid ""
-"Error: The current %s code is needed. Give --code, or --codefrom to keep it "
-"off the process list."
-msgstr ""
-"Error: Нужен нынешний код %s. Дайте --code либо --codefrom, чтобы он не "
-"попал в список процессов."
+msgid "Error: The current %s code is needed. Give --code, or --codefrom to keep it off the process list."
+msgstr "Error: Нужен нынешний код %s. Дайте --code либо --codefrom, чтобы он не попал в список процессов."
 
 #: ../src/changetokencode.c:142
-msgid ""
-"Error: What should the code become? Give --newcode, or --onlycheck to only "
-"check the current one."
-msgstr ""
-"Error: Чем должен стать код? Дайте --newcode либо --onlycheck, чтобы только "
-"проверить нынешний."
+msgid "Error: What should the code become? Give --newcode, or --onlycheck to only check the current one."
+msgstr "Error: Чем должен стать код? Дайте --newcode либо --onlycheck, чтобы только проверить нынешний."
 
 #: ../src/changetokencode.c:152
 #, c-format
@@ -700,20 +667,15 @@ msgstr ""
 "  -V, --version                Вывести версию и выйти\n"
 
 #: ../src/changetokenmeta.c:162
-msgid ""
-"Error: What should the card say? An address, an http URL, or a two-letter "
-"language code."
-msgstr ""
-"Error: Что должна говорить карта? Адрес, http-адрес или двухбуквенный код "
-"языка."
+msgid "Error: What should the card say? An address, an http URL, or a two-letter language code."
+msgstr "Error: Что должна говорить карта? Адрес, http-адрес или двухбуквенный код языка."
 
 #: ../src/changetokenmeta.c:181
 #, c-format
-msgid ""
-"Error: '%s' is neither an email, a certurl, nor a 2-letter language code."
+msgid "Error: '%s' is neither an email, a certurl, nor a 2-letter language code."
 msgstr "Error: «%s» — ни адрес, ни certurl, ни двухбуквенный код языка."
 
-#: ../src/changetokenmeta.c:188 ../src/totoken.c:253
+#: ../src/changetokenmeta.c:188 ../src/totoken.c:259
 msgid "Error: No security token detected."
 msgstr "Error: Ключ безопасности не обнаружен."
 
@@ -723,10 +685,8 @@ msgid "Error: Email '%s' exceeds 38 bytes (OpenPGP smartcard cap)."
 msgstr "Error: Адрес «%s» превышает 38 байт (предел карт OpenPGP)."
 
 #: ../src/changetokenmeta.c:201
-msgid ""
-"Error: The card names no signing key, so its certificate cannot be found."
-msgstr ""
-"Error: Карта не называет ключ подписи, поэтому её сертификат не найти."
+msgid "Error: The card names no signing key, so its certificate cannot be found."
+msgstr "Error: Карта не называет ключ подписи, поэтому её сертификат не найти."
 
 #: ../src/changetokenmeta.c:222
 msgid "Error: Can't find the token's certificate here."
@@ -757,9 +717,7 @@ msgstr "Error: Для записи на карту нужен код Admin."
 
 #: ../src/changetokenmeta.c:298
 msgid "Give --admincode, or --admincodefrom to keep it off the process list."
-msgstr ""
-"Дайте --admincode либо --admincodefrom, чтобы он не попал в список "
-"процессов."
+msgstr "Дайте --admincode либо --admincodefrom, чтобы он не попал в список процессов."
 
 #: ../src/changetokenmeta.c:303
 msgid "Warning: Admin code shorter than 8 digits."
@@ -974,11 +932,8 @@ msgid "Error: '%s' wants a note."
 msgstr "Error: «%s» ожидает заметку."
 
 #: ../src/email.c:346
-msgid ""
-"Notice: --extra-comment is ignored: a note is carried by its own NOTE: uid."
-msgstr ""
-"Notice: --extra-comment пропускается: заметку несёт её собственный uid "
-"NOTE:."
+msgid "Notice: --extra-comment is ignored: a note is carried by its own NOTE: uid."
+msgstr "Notice: --extra-comment пропускается: заметку несёт её собственный uid NOTE:."
 
 #: ../src/email.c:394 ../src/property.c:471
 #, c-format
@@ -992,12 +947,8 @@ msgstr "Notice: Сертификат %s уже несёт «%s»."
 
 #: ../src/email.c:427 ../src/property.c:501
 #, c-format
-msgid ""
-"Notice: '%s' was revoked earlier and cannot be added again — OpenPGP keeps "
-"revoked User IDs on the certificate forever."
-msgstr ""
-"Notice: «%s» был отозван ранее и не может быть добавлен снова — OpenPGP "
-"навсегда хранит на сертификате отозванные User ID."
+msgid "Notice: '%s' was revoked earlier and cannot be added again — OpenPGP keeps revoked User IDs on the certificate forever."
+msgstr "Notice: «%s» был отозван ранее и не может быть добавлен снова — OpenPGP навсегда хранит на сертификате отозванные User ID."
 
 #: ../src/email.c:432 ../src/property.c:506
 #, c-format
@@ -1083,7 +1034,7 @@ msgid "Error: '%s' wants an identifier."
 msgstr "Error: «%s» ожидает идентификатор."
 
 #: ../src/genkey.c:154 ../src/printsecret.c:234 ../src/scan.c:106
-#: ../src/totoken.c:116
+#: ../src/totoken.c:117
 #, c-format
 msgid "Error: '%s' wants a passphrase."
 msgstr "Error: «%s» ожидает парольную фразу."
@@ -1098,7 +1049,7 @@ msgstr "Error: «%s» ожидает число лет."
 msgid "Error: Given parameter '%s' is not a valid number."
 msgstr "Error: Указанный параметр «%s» — не число."
 
-#: ../src/genkey.c:189 ../src/totoken.c:126
+#: ../src/genkey.c:189 ../src/totoken.c:127
 #, c-format
 msgid "Error: '%s' wants a keyserver."
 msgstr "Error: «%s» ожидает сервер ключей."
@@ -1117,10 +1068,8 @@ msgstr "Вычисление требует гражданского состо�
 
 #: ../src/genkey.c:226
 #, c-format
-msgid ""
-"  %s gen_u4 --surname … --given-names … --birth-date … --birth-country …"
-msgstr ""
-"  %s gen_u4 --surname … --given-names … --birth-date … --birth-country …"
+msgid "  %s gen_u4 --surname … --given-names … --birth-date … --birth-country …"
+msgstr "  %s gen_u4 --surname … --given-names … --birth-date … --birth-country …"
 
 #: ../src/genkey.c:231
 #, c-format
@@ -1128,12 +1077,8 @@ msgid "Error: No eid in given '%s'."
 msgstr "Error: В «%s» нет eid."
 
 #: ../src/genkey.c:235
-msgid ""
-"Error: A passphrase is needed, and asking for one is not this program's job."
-" Give --passphrase, or --passfrom to keep it off"
-msgstr ""
-"Error: Нужна парольная фраза, и спрашивать её — не дело этой программы. "
-"Дайте --passphrase либо --passfrom, чтобы она не попала"
+msgid "Error: A passphrase is needed, and asking for one is not this program's job. Give --passphrase, or --passfrom to keep it off"
+msgstr "Error: Нужна парольная фраза, и спрашивать её — не дело этой программы. Дайте --passphrase либо --passfrom, чтобы она не попала"
 
 #: ../src/genkey.c:237
 msgid "the process list."
@@ -1317,12 +1262,8 @@ msgid "Notice: '%s' is a name, not an address or a key — asking nobody."
 msgstr "Notice: «%s» — имя, а не адрес и не ключ — никого не спрашиваем."
 
 #: ../src/get.c:87
-msgid ""
-"Notice: Searching keyservers by name is not here yet; give an address or a "
-"fingerprint."
-msgstr ""
-"Notice: Поиска по имени на серверах ключей пока нет; дайте адрес или "
-"отпечаток."
+msgid "Notice: Searching keyservers by name is not here yet; give an address or a fingerprint."
+msgstr "Notice: Поиска по имени на серверах ключей пока нет; дайте адрес или отпечаток."
 
 #: ../src/get.c:137
 #, c-format
@@ -1691,10 +1632,8 @@ msgstr "Error: Нет пригодного сертификата для %s."
 
 #: ../src/printcard.c:207
 #, c-format
-msgid ""
-"Error: Email %s matches several certificates that still stand by it (%zu)."
-msgstr ""
-"Error: Адрес %s подходит к нескольким сертификатам, что его ещё несут (%zu)."
+msgid "Error: Email %s matches several certificates that still stand by it (%zu)."
+msgstr "Error: Адрес %s подходит к нескольким сертификатам, что его ещё несут (%zu)."
 
 #: ../src/printcard.c:214
 #, c-format
@@ -1855,10 +1794,9 @@ msgstr "Error: Какой секретный ключ? Эта машина мо�
 msgid "Error: The passphrase is needed to export the secret parts."
 msgstr "Error: Для вывоза секретных частей нужна парольная фраза."
 
-#: ../src/printsecret.c:305 ../src/totoken.c:278
+#: ../src/printsecret.c:305 ../src/totoken.c:284
 msgid "Give --passphrase, or --passfrom to keep it off the process list."
-msgstr ""
-"Дайте --passphrase либо --passfrom, чтобы она не попала в список процессов."
+msgstr "Дайте --passphrase либо --passfrom, чтобы она не попала в список процессов."
 
 #: ../src/printsecret.c:309
 msgid "Error: Where should this be printed? Name a printer, or pass"
@@ -1875,11 +1813,8 @@ msgstr "Error: Число фрагментов (%d) не может быть м�
 
 #: ../src/printsecret.c:318
 #, c-format
-msgid ""
-"Warning: Threshold can't be greater than the number of splits, reducing "
-"threshold to %d."
-msgstr ""
-"Warning: Порог не может превышать число фрагментов; порог снижен до %d."
+msgid "Warning: Threshold can't be greater than the number of splits, reducing threshold to %d."
+msgstr "Warning: Порог не может превышать число фрагментов; порог снижен до %d."
 
 #: ../src/printsecret.c:338 ../src/scan.c:164
 msgid "Error: Working directory is unclean (it holds SECRET*)."
@@ -1905,10 +1840,8 @@ msgstr "Error: Не удаётся урезать вывоз до трёх uid."
 
 #: ../src/printsecret.c:396
 #, c-format
-msgid ""
-"Notice: Printing %zu uid(s) of %zu — the rest comes back from a keyring."
-msgstr ""
-"Notice: Напечатано %zu uid из %zu — остальное вернётся из связки ключей."
+msgid "Notice: Printing %zu uid(s) of %zu — the rest comes back from a keyring."
+msgstr "Notice: Напечатано %zu uid из %zu — остальное вернётся из связки ключей."
 
 #: ../src/printsecret.c:407
 msgid "Error: basenc would not encode the export."
@@ -1974,12 +1907,8 @@ msgstr "Notice: Рабочие копии удалены. Уничтожьте %
 
 #: ../src/printsecret.c:578
 #, c-format
-msgid ""
-"Notice: The fragments are in %s. Shred it once they are on paper: bl-"
-"security shred_path --remove '%s'"
-msgstr ""
-"Notice: Фрагменты в %s. Уничтожьте его, как только они окажутся на бумаге: "
-"bl-security shred_path --remove '%s'"
+msgid "Notice: The fragments are in %s. Shred it once they are on paper: bl-security shred_path --remove '%s'"
+msgstr "Notice: Фрагменты в %s. Уничтожьте его, как только они окажутся на бумаге: bl-security shred_path --remove '%s'"
 
 #: ../src/property.c:216
 #, c-format
@@ -1992,12 +1921,8 @@ msgid "Error: %u certificates match; name one."
 msgstr "Error: Подходит %u сертификатов; назовите один."
 
 #: ../src/property.c:247
-msgid ""
-"Error: 'ksprefrd' cannot be revoked — it is a subpacket of a signature, not "
-"a uid. Set another value instead."
-msgstr ""
-"Error: «ksprefrd» не отзывается — это подпакет подписи, а не uid. Назначьте "
-"вместо этого другое значение."
+msgid "Error: 'ksprefrd' cannot be revoked — it is a subpacket of a signature, not a uid. Set another value instead."
+msgstr "Error: «ksprefrd» не отзывается — это подпакет подписи, а не uid. Назначьте вместо этого другое значение."
 
 #: ../src/property.c:254
 #, c-format
@@ -2006,8 +1931,7 @@ msgstr "Error: «ksprefrd» должен начинаться с hkp:// или h
 
 #: ../src/property.c:261
 msgid "Error: Cannot set the preferred keyserver — right PIN?"
-msgstr ""
-"Error: Не удаётся назначить предпочитаемый сервер ключей — верный PIN?"
+msgstr "Error: Не удаётся назначить предпочитаемый сервер ключей — верный PIN?"
 
 #: ../src/property.c:283
 #, c-format
@@ -2106,12 +2030,8 @@ msgstr "Notice: Одно из name, note, phone, address, url, lang, geo, %s."
 
 #: ../src/property.c:424
 #, c-format
-msgid ""
-"Error: Only one --add at a time for '%s' — the new value replaces the one "
-"before, and two would race."
-msgstr ""
-"Error: По одному --add за раз для «%s» — новое значение заменяет прежнее, а "
-"два спорили бы за место."
+msgid "Error: Only one --add at a time for '%s' — the new value replaces the one before, and two would race."
+msgstr "Error: По одному --add за раз для «%s» — новое значение заменяет прежнее, а два спорили бы за место."
 
 #: ../src/property.c:436
 #, c-format
@@ -2163,12 +2083,8 @@ msgid "Error: Which certificate?"
 msgstr "Error: Какой сертификат?"
 
 #: ../src/push.c:92
-msgid ""
-"Notice: Publishing takes fingerprints, so a search never becomes a "
-"broadcast."
-msgstr ""
-"Notice: Публикация требует отпечатков, так что поиск никогда не станет "
-"рассылкой."
+msgid "Notice: Publishing takes fingerprints, so a search never becomes a broadcast."
+msgstr "Notice: Публикация требует отпечатков, так что поиск никогда не станет рассылкой."
 
 #: ../src/push.c:99
 msgid "Notice: No keyserver asked for; nothing sent."
@@ -2213,9 +2129,7 @@ msgstr ""
 
 #: ../src/scan.c:148
 msgid "Error: Which images? There is no camera to fall back on here."
-msgstr ""
-"Error: Какие изображения? Камеры, на которую можно было бы опереться, здесь "
-"нет."
+msgstr "Error: Какие изображения? Камеры, на которую можно было бы опереться, здесь нет."
 
 #: ../src/scan.c:182
 #, c-format
@@ -2254,8 +2168,7 @@ msgstr "Crit: Неподдерживаемая версия QR-кода (%d)."
 
 #: ../src/scan.c:250
 msgid "Versions 1 to 3 needed an extra passphrase and are long gone."
-msgstr ""
-"Версии с 1 по 3 требовали дополнительной парольной фразы и давно исчезли."
+msgstr "Версии с 1 по 3 требовали дополнительной парольной фразы и давно исчезли."
 
 #: ../src/scan.c:265
 #, c-format
@@ -2420,14 +2333,11 @@ msgstr "Notice: Ключ называет %u адресов; оставлен п
 #: ../src/tokencheck.c:386
 #, c-format
 msgid "Error: The key names %u identifiers, which cannot both be its."
-msgstr ""
-"Error: Ключ называет %u идентификаторов, которые не могут быть все его."
+msgstr "Error: Ключ называет %u идентификаторов, которые не могут быть все его."
 
 #: ../src/tokencheck.c:413
 msgid "Warning: No certification key known. Share or fetch the certificate."
-msgstr ""
-"Warning: Заверяющий ключ неизвестен. Поделитесь сертификатом или получите "
-"его."
+msgstr "Warning: Заверяющий ключ неизвестен. Поделитесь сертификатом или получите его."
 
 #: ../src/tokencheck.c:438
 #, c-format
@@ -2457,7 +2367,8 @@ msgid ""
 "                               Default: the keyserver's lookup for this key\n"
 "  -L, --lang LANG              The card's language preference - Default: the locale's\n"
 "  -k, --keyserver KEYSERVER    Send the certificate there, and build the\n"
-"                               default URL from it\n"
+"                               default URL from it. Empty to send it\n"
+"                               nowhere and keep the default URL\n"
 "  -K, --pubkey FILE            Also write the armored certificate to FILE\n"
 "      --force                  Wipe a card that is not blank\n"
 "  -h, --help                   Print this help and exit\n"
@@ -2479,158 +2390,133 @@ msgstr ""
 "                               По умолчанию: поиск сервера для этого ключа\n"
 "  -L, --lang ЯЗЫК              Предпочитаемый язык карты - По умолч.: из локали\n"
 "  -k, --keyserver СЕРВЕР       Отправить туда сертификат и построить из этого\n"
-"                               URL по умолчанию\n"
+"                               URL по умолчанию. Пусто — никуда не отправлять\n"
+"                               и оставить URL по умолчанию\n"
 "  -K, --pubkey ФАЙЛ            Записать туда также сертификат в броне\n"
 "      --force                  Стереть карту, которая не пуста\n"
 "  -h, --help                   Вывести эту справку и выйти\n"
 "  -V, --version                Вывести версию и выйти\n"
 
-#: ../src/totoken.c:123
+#: ../src/totoken.c:124
 #, c-format
 msgid "Error: '%s' wants a URL."
 msgstr "Error: «%s» ожидает адрес URL."
 
-#: ../src/totoken.c:129
+#: ../src/totoken.c:130
 #, c-format
 msgid "Error: '%s' wants a language."
 msgstr "Error: «%s» ожидает язык."
 
-#: ../src/totoken.c:141
+#: ../src/totoken.c:142
 #, c-format
 msgid "Warning: Deprecated option %s."
 msgstr "Warning: Устаревший параметр %s."
 
-#: ../src/totoken.c:160
-msgid ""
-"Warning: Only 2 lower case ASCII letters can define a preferred language; "
-"leaving it out."
-msgstr ""
-"Warning: Предпочитаемый язык задают только 2 строчные буквы ASCII; он "
-"опущен."
+#: ../src/totoken.c:161
+msgid "Warning: Only 2 lower case ASCII letters can define a preferred language; leaving it out."
+msgstr "Warning: Предпочитаемый язык задают только 2 строчные буквы ASCII; он опущен."
 
-#: ../src/totoken.c:163
+#: ../src/totoken.c:164
 msgid "Error: Which secret key should move onto the card?"
 msgstr "Error: Какой секретный ключ должен перейти на карту?"
 
-#: ../src/totoken.c:203
+#: ../src/totoken.c:209
 #, c-format
 msgid "Error: Cannot write the certificate to %s."
 msgstr "Error: Не удаётся записать сертификат в %s."
 
-#: ../src/totoken.c:232
+#: ../src/totoken.c:238
 #, c-format
 msgid "Error: No email for OpenPGP key '%s'."
 msgstr "Error: Нет адреса для ключа OpenPGP «%s»."
 
-#: ../src/totoken.c:256
+#: ../src/totoken.c:262
 #, c-format
 msgid "Notice: Detected OpenPGP security token: %s."
 msgstr "Notice: Обнаружен ключ безопасности OpenPGP: %s."
 
-#: ../src/totoken.c:260
+#: ../src/totoken.c:266
 #, c-format
 msgid "Error: This wipes card %s and everything on it, then takes the"
 msgstr "Error: Это стирает карту %s и всё, что на ней, затем забирает"
 
-#: ../src/totoken.c:261
+#: ../src/totoken.c:267
 #, c-format
 msgid "secret parts of %s off this machine. Neither can be undone."
 msgstr "секретные части %s с этой машины. Ни то, ни другое не отменяется."
 
-#: ../src/totoken.c:262
+#: ../src/totoken.c:268
 msgid "Pass --force when that is what you mean."
 msgstr "Передайте --force, если вы имеете в виду именно это."
 
-#: ../src/totoken.c:276
-msgid ""
-"Error: The key is protected by a passphrase, which has to come off before it"
-" can move to a card."
-msgstr ""
-"Error: Ключ защищён парольной фразой, которую нужно снять, прежде чем он "
-"сможет перейти на карту."
+#: ../src/totoken.c:282
+msgid "Error: The key is protected by a passphrase, which has to come off before it can move to a card."
+msgstr "Error: Ключ защищён парольной фразой, которую нужно снять, прежде чем он сможет перейти на карту."
 
-#: ../src/totoken.c:286
+#: ../src/totoken.c:292
 #, c-format
 msgid "Error: Cannot take the passphrase off '%s' — right passphrase?"
 msgstr "Error: Не удаётся снять парольную фразу с «%s» — верная?"
 
-#: ../src/totoken.c:291
+#: ../src/totoken.c:297
 msgid "Notice: Resetting OpenPGP security token…"
 msgstr "Notice: Сброс ключа безопасности OpenPGP…"
 
-#: ../src/totoken.c:294
+#: ../src/totoken.c:300
 msgid "Error: Factory reset of the OpenPGP card failed."
 msgstr "Error: Заводской сброс карты OpenPGP не удался."
 
-#: ../src/totoken.c:298
+#: ../src/totoken.c:304
 msgid "Notice: Configuring OpenPGP security token…"
 msgstr "Notice: Настройка ключа безопасности OpenPGP…"
 
-#: ../src/totoken.c:309
+#: ../src/totoken.c:315
 msgid "Error: Configuring the OpenPGP card failed."
 msgstr "Error: Настройка карты OpenPGP не удалась."
 
-#: ../src/totoken.c:316
+#: ../src/totoken.c:322
 msgid "Error: Setting the card's key attributes failed."
 msgstr "Error: Назначение свойств ключей карты не удалось."
 
-#: ../src/totoken.c:320
+#: ../src/totoken.c:326
 msgid "Notice: Moving OpenPGP secrets to security token…"
 msgstr "Notice: Перенос секретов OpenPGP на ключ безопасности…"
 
-#: ../src/totoken.c:325
+#: ../src/totoken.c:331
 msgid "Error: Moving the secrets to the card failed."
 msgstr "Error: Перенос секретов на карту не удался."
 
-#: ../src/totoken.c:333
-msgid ""
-"Error: Cannot draw new codes — the card is left on its factory PIN 123456 "
-"and Admin 12345678. Change them now."
-msgstr ""
-"Error: Не удаётся выбрать новые коды — карта остаётся с заводским PIN 123456"
-" и Admin 12345678. Смените их сейчас."
+#: ../src/totoken.c:339
+msgid "Error: Cannot draw new codes — the card is left on its factory PIN 123456 and Admin 12345678. Change them now."
+msgstr "Error: Не удаётся выбрать новые коды — карта остаётся с заводским PIN 123456 и Admin 12345678. Смените их сейчас."
 
-#: ../src/totoken.c:340
+#: ../src/totoken.c:346
 msgid "Error: Cannot make a temporary file for the new codes."
 msgstr "Error: Не удаётся создать временный файл для новых кодов."
 
-#: ../src/totoken.c:352
+#: ../src/totoken.c:358
 #, c-format
 msgid "Error: Cannot write the new %s code out."
 msgstr "Error: Не удаётся записать новый код %s."
 
-#: ../src/totoken.c:370
+#: ../src/totoken.c:376
 #, c-format
-msgid ""
-"Error: Changing the %s code failed (%d). The card is left on its factory "
-"code — change it now."
-msgstr ""
-"Error: Смена кода %s не удалась (%d). Карта остаётся с заводским кодом — "
-"смените его сейчас."
+msgid "Error: Changing the %s code failed (%d). The card is left on its factory code — change it now."
+msgstr "Error: Смена кода %s не удалась (%d). Карта остаётся с заводским кодом — смените его сейчас."
 
-#: ../src/totoken.c:382
-msgid ""
-"Warning: Please publish this certificate on the Internet (a keyserver will "
-"do)."
-msgstr ""
-"Warning: Опубликуйте этот сертификат в интернете (сервера ключей "
-"достаточно)."
+#: ../src/totoken.c:388
+msgid "Warning: Please publish this certificate on the Internet (a keyserver will do)."
+msgstr "Warning: Опубликуйте этот сертификат в интернете (сервера ключей достаточно)."
 
-#: ../src/totoken.c:386
+#: ../src/totoken.c:392
 #, c-format
-msgid ""
-"Notice: Write these down. Nothing else knows them. They can be changed with "
-"'%s change_token_code'."
-msgstr ""
-"Notice: Запишите их. Больше их никто не знает. Меняются через «%s "
-"change_token_code»."
+msgid "Notice: Write these down. Nothing else knows them. They can be changed with '%s change_token_code'."
+msgstr "Notice: Запишите их. Больше их никто не знает. Меняются через «%s change_token_code»."
 
 #: ../src/tovcard.c:255
 #, c-format
 msgid "Warning: Several preferred keyservers across uids — kept '%s'."
-msgstr ""
-"Warning: Несколько предпочитаемых серверов ключей по разным uid — оставлен "
-"«%s»."
+msgstr "Warning: Несколько предпочитаемых серверов ключей по разным uid — оставлен «%s»."
 
 #: ../src/tovcard.c:344
 #, c-format
@@ -2717,11 +2603,8 @@ msgstr "Error: Не удаётся создать временный файл."
 
 #: ../src/trustdb.c:141
 #, c-format
-msgid ""
-"Error: Cannot read or verify %s (missing, not signed, or bad signature?)."
-msgstr ""
-"Error: Не удаётся прочитать или проверить %s (нет, не подписан, или подпись "
-"неверна?)."
+msgid "Error: Cannot read or verify %s (missing, not signed, or bad signature?)."
+msgstr "Error: Не удаётся прочитать или проверить %s (нет, не подписан, или подпись неверна?)."
 
 #: ../src/trustdb.c:163
 #, c-format
@@ -2772,18 +2655,13 @@ msgstr "Notice: Нынешний ownertrust сохранён в %s."
 
 #: ../src/trustdb.c:368
 #, c-format
-msgid ""
-"Warning: Cannot write the backup %s — going ahead anyway would leave no way "
-"back. Stopping."
-msgstr ""
-"Warning: Не удаётся записать сохранение %s — идти дальше всё равно значило "
-"бы остаться без пути назад. Остановка."
+msgid "Warning: Cannot write the backup %s — going ahead anyway would leave no way back. Stopping."
+msgstr "Warning: Не удаётся записать сохранение %s — идти дальше всё равно значило бы остаться без пути назад. Остановка."
 
 #: ../src/trustdb.c:376
 #, c-format
 msgid "Error: Delegation chain broken: the signer of %s is not (yet) valid."
-msgstr ""
-"Error: Цепочка поручений разорвана: подписавший %s (пока) не действителен."
+msgstr "Error: Цепочка поручений разорвана: подписавший %s (пока) не действителен."
 
 #: ../src/trustdb.c:383
 #, c-format
@@ -2824,21 +2702,13 @@ msgstr "Error: gpg отказался отозвать %s."
 
 #: ../src/uidedit.c:115
 #, c-format
-msgid ""
-"Warning: No address left on certificate %s to carry the primary User ID "
-"flag."
-msgstr ""
-"Warning: На сертификате %s не осталось адреса, который нёс бы метку главного"
-" User ID."
+msgid "Warning: No address left on certificate %s to carry the primary User ID flag."
+msgstr "Warning: На сертификате %s не осталось адреса, который нёс бы метку главного User ID."
 
 #: ../src/uidedit.c:119
 #, c-format
-msgid ""
-"Notice: Main identity is no longer an address: moving the primary User ID "
-"flag to %s."
-msgstr ""
-"Notice: Главная личность больше не адрес: метка главного User ID переходит "
-"на %s."
+msgid "Notice: Main identity is no longer an address: moving the primary User ID flag to %s."
+msgstr "Notice: Главная личность больше не адрес: метка главного User ID переходит на %s."
 
 #: ../src/uidedit.c:123
 msgid "Error: gpg would not move the primary User ID flag."

@@ -103,10 +103,20 @@ sidecar: $(BUILDDIR)/$(BIN)
 		echo "$(BIN): no rustc to ask for the target triple" >&2 ; exit 1 ; }
 	cp -f $(BUILDDIR)/$(BIN) $(BUILDDIR)/$(BIN)-$(TRIPLE)
 
+# The two shell tools read their version and the path of the binary they drive
+# from the checkout they sit in. Freeze both on the way out, so an installed
+# copy needs neither a git tree nor a _build directory. Same trick as bash-libs.
+define install_script
+	sed -e 's,^\(PGPI_VERSION=\).*$$,\1"$(VERSION)",1' \
+	    -e 's,^\(PGPID_BIN=\).*$$,\1"$(BINDIR)/$(BIN)",1' \
+	    $(1) > $(DESTDIR)$(BINDIR)/$(notdir $(1))
+	chmod 755 $(DESTDIR)$(BINDIR)/$(notdir $(1))
+endef
+
 install: build
 	install -D -m 0755 $(BUILDDIR)/$(BIN) $(DESTDIR)$(BINDIR)/$(BIN)
-	install -D -m 0755 bin/pgpid-gen     $(DESTDIR)$(BINDIR)/pgpid-gen
-	install -D -m 0755 bin/pgpid-qrscan  $(DESTDIR)$(BINDIR)/pgpid-qrscan
+	$(call install_script,bin/pgpid-gen)
+	$(call install_script,bin/pgpid-qrscan)
 	$(SUBMAKE) -C man install
 	$(SUBMAKE) -C po install
 

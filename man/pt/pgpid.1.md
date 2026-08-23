@@ -613,7 +613,8 @@ OPTIONS:
                                Omissão: a pesquisa do servidor para esta chave
   -L, --lang LÍNGUA            Língua preferida do cartão - Omissão: a locale
   -k, --keyserver SERVIDOR     Enviar-lhe o certificado, e construir daí o
-                               URL por omissão
+                               URL por omissão. Vazio para não o enviar
+                               a lado nenhum e manter o URL por omissão
   -K, --pubkey FICHEIRO        Escrever também o certificado em armadura aí
       --force                  Apagar um cartão que não está virgem
   -h, --help                   Imprimir esta ajuda e sair
