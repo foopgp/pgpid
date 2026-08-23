@@ -73,7 +73,7 @@ PGPI_U5ID=""
 
 usage="Usage: $BASH_SOURCE [OPTIONS]... [--] [PASSPORT_IMAGE]
 
-Generate OpenPGP certifcates and secrets on multiple QR codes (physical secret sharing scheme)
+Generate OpenPGP certificates and secrets on multiple QR codes (physical secret sharing scheme)
 It may take the main page of an international passport as input (ICAO 9303 compliant).
 If $PGPI_NAME succeed, it will :
   * create a subdirectory containing the public certificate and the pubkey to be use for ssh.

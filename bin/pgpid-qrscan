@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 #
 # Scan QRcodes containing parts of OpenPGP secrets from IMAGES or webcam,
-# and import this secrets into a factory reseted OpenPGP secured device (eg yubikey).
+# and import this secrets into a factory reset OpenPGP secured device (eg yubikey).
 #
 
 PGPI_NAME="$(basename $(readlink -f "$BASH_SOURCE") )"
@@ -20,7 +20,7 @@ LOGLEVEL=6
 usage="Usage: $BASH_SOURCE [OPTIONS]... [--] [IMAGES]...
 
 $PGPI_NAME scan QRcodes containing parts of OpenPGP secrets from IMAGES or webcam,
-and import this secrets into a factory reseted OpenPGP secured device (eg yubikey)."
+and import this secrets into a factory reset OpenPGP secured device (eg yubikey)."
 
 soptions="
   -k, --no-send            don't send public key (certificate) to HKPS keyserver ($HKPSSERVER)
