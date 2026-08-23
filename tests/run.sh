@@ -1,7 +1,7 @@
 #!/bin/bash
 # pgpid — checks that run against a keyring of their own.
 #
-# Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+# Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
 # Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
 #
 # SPDX-License-Identifier: GPL-3.0-only
@@ -324,7 +324,7 @@ printf '\ngen_uid\n'
 # The number an identifier gives is a promise: accounts have been opened with
 # it, and two machines that never met must agree on it. So these are not
 # "some plausible numbers" but the ones bl-pgpid produced, written down.
-is "a u4 gives its number"        "$("$BIN" gen_uid 'u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76')" "1702501105"
+is "a u4 gives its number"        "$("$BIN" gen_uid 'u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76')" "1702501105"
 is "a u5 gives its number"        "$("$BIN" gen_uid 'u5001777236237.945e_43.30_005.38')" "319780676"
 is "the same one from a whole uid" \
    "$("$BIN" gen_uid 'UID:urn:eid:u5001777236237.945e_43.30_005.38')" "319780676"
@@ -333,7 +333,7 @@ is "and refuses one without it"   "$("$BIN" gen_uid 'hello' >/dev/null 2>&1 ; ec
 is "wants something to work on"   "$("$BIN" gen_uid >/dev/null 2>&1 ; echo $?)" "2"
 # The range is what keeps the number out of the way of system accounts and
 # out of reach of software that reads it as signed.
-n=$("$BIN" gen_uid 'u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76')
+n=$("$BIN" gen_uid 'u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76')
 is "inside the range, low"        "$(( n >= 262144 ))" "1"
 is "inside the range, high"       "$(( n <= 2147483646 ))" "1"
 # MD5 itself is not tested separately here: every number above depends on it,

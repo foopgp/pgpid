@@ -1,3 +1,11 @@
+<!--
+SPDX-FileCopyrightText: 2021-2026 Friends Of OpenPGP organization <info@foopgp.org>
+SPDX-FileCopyrightText: 2021-2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+SPDX-FileCopyrightText: 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
+
+SPDX-License-Identifier: GPL-3.0-only
+-->
+
 # Migration de `bl-pgpid` et `bl-pgpkey` vers `pgpid`
 
 *Plan préparé le 2026-08-21, exécuté du 21 au 22 août. Conservé comme compte

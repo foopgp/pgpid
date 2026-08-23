@@ -1,3 +1,11 @@
+<!--
+SPDX-FileCopyrightText: 2021-2026 Friends Of OpenPGP organization <info@foopgp.org>
+SPDX-FileCopyrightText: 2021-2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+SPDX-FileCopyrightText: 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
+
+SPDX-License-Identifier: GPL-3.0-only
+-->
+
 # pgpid
 
 Tools for the PGP ID model: an OpenPGP certificate that carries a decentralised
@@ -64,24 +72,13 @@ and `scan` cover most of what they do; they are kept because the web of trust
 rests on what they produced, and because nobody has yet checked that the
 replacement covers every case they handle.
 
-## Licence — unsettled, and worth reading before you rely on it
+## Licence
 
-This repository currently says two things, and they do not agree.
+GPL-3.0-only, the whole repository. Every file of ours carries an
+`SPDX-License-Identifier` header, and `LICENSES/GPL-3.0-only.txt` holds the
+text — the REUSE convention, the same one `bash-libs` follows.
 
-`LICENSE.md` covers it as a whole: *all rights reserved*, source-available,
-**not free and not free to use**, with a note that the intention is to open it
-to something like GPL-3 once there is a lasting way to fund its maintenance.
-
-Every file of `pgpid` itself — the C sources, the Makefiles, the message
-catalogues, the manual page generator — carries an
-`SPDX-License-Identifier: GPL-3.0-only` header, because that is what it was
-written under before it moved here from the foodjis repository. `man/Makefile`
-carries LGPL-3.0-only, from the same lineage.
-
-Those headers are a grant by the people who hold the copyright, and moving a
-file does not take it back. So today: the C tool is GPL-3.0-only, and the
-older shell programs and everything else fall under `LICENSE.md`.
-
-Reconciling the two is a decision for the copyright holders, not a
-documentation fix, and it has not been made. Until it is, read the header of
-the file you care about.
+What is **not** ours and therefore not covered by it: the reference documents
+under `doc/`, the passport specimen images under `imgsamples/`, and the OCR
+training data under `data/` and `oldies/data/`. They belong to whoever
+published them and are here for reference. `REUSE.toml` says so file by file.

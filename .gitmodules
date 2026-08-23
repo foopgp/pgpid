@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2021-2026 Friends Of OpenPGP organization <info@foopgp.org>
+# SPDX-License-Identifier: GPL-3.0-only
+
 [submodule "bash-libs"]
 	path = bash-libs
 	url = https://codeberg.org/foopgp/bash-libs.git

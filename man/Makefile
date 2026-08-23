@@ -3,7 +3,7 @@
 # © 2025 Jean-Jacques Brucker <jjbrucker@foopgp.org>
 # Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
 #
-# SPDX-License-Identifier: LGPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 #
 # Two kinds of page. The ones at the top level are English and go where man
 # looks by default; the ones under a language directory go under the same

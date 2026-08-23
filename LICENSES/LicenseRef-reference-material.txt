@@ -1,0 +1,24 @@
+Reference material — not ours to license
+========================================
+
+Some files in this repository were not written by us. They are reference
+material: published specifications, sample images, trained OCR data, and
+program output, kept alongside the code so that the code can be read, checked
+and tested against the documents it implements.
+
+They are **not** covered by the repository's GPL-3.0-only licence. We claim no
+copyright over them and grant no rights in them. Each carries, in REUSE.toml,
+whatever we know of its origin.
+
+If you redistribute this repository, these files travel under their own terms,
+whatever those are — and for several of them those terms are restrictive. In
+particular:
+
+* ICAO Doc 9303 (`doc/9303_*.pdf`) is published by the International Civil
+  Aviation Organization and is ICAO copyright.
+* `doc/Říha2009_Chapter_AnOverviewOfElectronicPassport.pdf` is a book chapter
+  published by Springer.
+* The passport images under `imgsamples/` were collected from the PRADO public
+  register operated by the Council of the European Union.
+
+Reuse of any of them should be arranged with whoever published it.
