@@ -28,6 +28,12 @@ Copyright: Council of the European Union (PRADO)
            and the respective issuing authorities
 License: reference-material
 
+Files: imgsamples/scan_nok/friends.jpg
+Copyright: Warner Bros. Entertainment Inc.
+Comment: A still from the television series, kept as a negative test case: an
+ image the scanner must decline rather than read an MRZ out of.
+License: reference-material
+
 Files: data/mrz.traineddata
        data/tesseract.parameters.ref
        oldies/data/mrz_best.traineddata
