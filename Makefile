@@ -36,8 +36,7 @@ GPGME_LIBS   := $(shell pkg-config --libs   gpgme 2>/dev/null || gpgme-config --
 
 CFLAGS  ?= -O2 -g
 CFLAGS  += -std=c11 -Wall -Wextra -Wpedantic -Wshadow -Wstrict-prototypes \
-           -D_GNU_SOURCE $(GPGME_CFLAGS) -I$(BUILDDIR) \
-           -DPGPID_LOCALEDIR='"$(LOCALEDIR)"'
+           -D_GNU_SOURCE $(GPGME_CFLAGS) -I$(BUILDDIR)
 LDLIBS  += $(GPGME_LIBS)
 
 PREFIX  ?= /usr/local
@@ -74,13 +73,16 @@ $(BUILDDIR)/$(BIN): $(OBJECTS)
 $(BUILDDIR)/%.o: $(SRCDIR)/%.c $(SRCDIR)/pgpid.h $(BUILDDIR)/version.h | $(BUILDDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-# The version through a header rather than a -D, and rewritten only when it
-# actually changes. Passed on the command line it never triggers a rebuild:
-# the binary keeps saying which commit it was first built from, which is worse
-# than saying nothing at all in a bug report.
+# The version and the locale directory through a header rather than -D, and
+# rewritten only when they actually change. Passed on the command line they
+# never trigger a rebuild: the binary keeps saying which commit it was first
+# built from, and keeps looking for its catalogues under the first prefix it
+# was ever given — `make PREFIX=/tmp/x install` then installs a binary that
+# reads /usr/local, and every language falls back to English.
 .PHONY: $(BUILDDIR)/version.h.new
 $(BUILDDIR)/version.h.new: | $(BUILDDIR)
-	@printf '#define PGPID_VERSION "%s"\n' '$(VERSION)' > $@
+	@printf '#define PGPID_VERSION "%s"\n#define PGPID_LOCALEDIR "%s"\n' \
+		'$(VERSION)' '$(LOCALEDIR)' > $@
 
 $(BUILDDIR)/version.h: $(BUILDDIR)/version.h.new
 	@cmp -s $@ $< 2>/dev/null || { cp $< $@ ; echo "  version $(VERSION)" ; }
