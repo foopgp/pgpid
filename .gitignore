@@ -1,5 +1,10 @@
 *_samples/
+man/*.1
 man/*.1.gz
+man/*/*.1
+man/*/*.1.gz
+man/*.draft
+man/*/*.draft
 _build/
 po/*.mo
 

@@ -15,8 +15,14 @@
 
 #define PGPID_NAME    "pgpid"
 
-/* The gettext domain, and where its catalogues are installed. The Makefile
- * gives the second; the fallback lets the file compile on its own. */
+/* What the Makefile decides: the version and where the catalogues live. Both
+ * come through a generated header rather than -D, so that changing either
+ * rebuilds what depends on it. The fallbacks below are for building without
+ * the Makefile, and must come after the include or they win. */
+#if __has_include("version.h")
+#include "version.h"
+#endif
+
 #define PGPID_TEXTDOMAIN "pgpid"
 #ifndef PGPID_LOCALEDIR
 #define PGPID_LOCALEDIR "/usr/share/locale"
@@ -29,12 +35,8 @@
 #define _(s)  gettext(s)
 #define N_(s) (s)
 
-/* From `git describe`, through a header the Makefile writes — the same answer
- * bl-pgpid and bl-pgpkey give, so that a bug report names a commit rather than
- * a release nobody can place. The fallback is for building without it. */
-#if __has_include("version.h")
-#include "version.h"
-#endif
+/* From `git describe` — the same answer bl-pgpid and bl-pgpkey give, so that a
+ * bug report names a commit rather than a release nobody can place. */
 #ifndef PGPID_VERSION
 #define PGPID_VERSION "unknown"
 #endif
