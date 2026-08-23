@@ -1,7 +1,8 @@
 #!/bin/bash
 #
-# Copyright © 2021-2025 by Friends Of OpenPGP organization <info@foopgp.org>.
-#          All Right Reserved
+# SPDX-FileCopyrightText: 2021-2025 Friends Of OpenPGP organization <info@foopgp.org>
+#
+# SPDX-License-Identifier: GPL-3.0-only
 #
 # Generate OpenPGP certificates and keys to be imported for multiple applications (mail, chat, vote, etc.)
 # 3 important keys (SC, E and A) are only printed, to be imported into OpenPGP Security hardware (nitrokeys, yubikeys, etc.)

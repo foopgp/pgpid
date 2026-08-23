@@ -1,3 +1,11 @@
+<!--
+SPDX-FileCopyrightText: 2021-2026 Friends Of OpenPGP organization <info@foopgp.org>
+SPDX-FileCopyrightText: 2021-2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+SPDX-FileCopyrightText: 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
+
+SPDX-License-Identifier: GPL-3.0-only
+-->
+
 # pgpid
 
 Tools for the PGP ID model: an OpenPGP certificate that carries a decentralised
@@ -66,4 +74,11 @@ replacement covers every case they handle.
 
 ## Licence
 
-GPL-3.0-only. See `LICENSE.md`.
+GPL-3.0-only, the whole repository. Every file of ours carries an
+`SPDX-License-Identifier` header, and `LICENSES/GPL-3.0-only.txt` holds the
+text — the REUSE convention, the same one `bash-libs` follows.
+
+What is **not** ours and therefore not covered by it: the reference documents
+under `doc/`, the passport specimen images under `imgsamples/`, and the OCR
+training data under `data/` and `oldies/data/`. They belong to whoever
+published them and are here for reference. `REUSE.toml` says so file by file.

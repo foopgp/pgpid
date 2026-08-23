@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+#
+# SPDX-FileCopyrightText: 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+# SPDX-FileCopyrightText: 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
+#
+# SPDX-License-Identifier: GPL-3.0-only
+#
 """A translated help block must not be wider than the English it replaces.
 
 The OPTIONS blocks are tables, and a line that folds turns a column into
