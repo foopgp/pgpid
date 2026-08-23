@@ -64,6 +64,24 @@ and `scan` cover most of what they do; they are kept because the web of trust
 rests on what they produced, and because nobody has yet checked that the
 replacement covers every case they handle.
 
-## Licence
+## Licence — unsettled, and worth reading before you rely on it
 
-GPL-3.0-only. See `LICENSE.md`.
+This repository currently says two things, and they do not agree.
+
+`LICENSE.md` covers it as a whole: *all rights reserved*, source-available,
+**not free and not free to use**, with a note that the intention is to open it
+to something like GPL-3 once there is a lasting way to fund its maintenance.
+
+Every file of `pgpid` itself — the C sources, the Makefiles, the message
+catalogues, the manual page generator — carries an
+`SPDX-License-Identifier: GPL-3.0-only` header, because that is what it was
+written under before it moved here from the foodjis repository. `man/Makefile`
+carries LGPL-3.0-only, from the same lineage.
+
+Those headers are a grant by the people who hold the copyright, and moving a
+file does not take it back. So today: the C tool is GPL-3.0-only, and the
+older shell programs and everything else fall under `LICENSE.md`.
+
+Reconciling the two is a decision for the copyright holders, not a
+documentation fix, and it has not been made. Until it is, read the header of
+the file you care about.
