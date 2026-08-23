@@ -47,7 +47,13 @@ if [[ "$BASH_SOURCE" != "$0" ]] ; then
 fi
 
 PGPI_NAME="$(basename $(readlink -f "$BASH_SOURCE") )"
-PGPI_VERSION="0.0.7"
+PGPI_DIR="$(dirname $(readlink -f "$BASH_SOURCE") )"
+
+# The next two lines are rewritten by 'make install' — see the Makefile. Until
+# then they describe the checkout they are read from: the version git reports
+# for it, and the binary this very tree builds. Nothing is written down twice.
+PGPI_VERSION=$(git -C "$PGPI_DIR" describe --match='[0-9]*' --dirty --broken --always 2>/dev/null || echo unknown)
+PGPID_BIN="$PGPI_DIR/../_build/pgpid"
 
 ### Constants ###
 
@@ -125,11 +131,11 @@ source "$(dirname "$BASH_SOURCE")"/bl-log --no-act --log-level "$LOGLEVEL" --log
 source "$(dirname "$BASH_SOURCE")"/bl-interactive --
 source "$(dirname "$BASH_SOURCE")"/bl-security --
 source "$(dirname "$BASH_SOURCE")"/bl-json --
-source "$(dirname "$BASH_SOURCE")"/bl-pgpid --
-source "$(dirname "$BASH_SOURCE")"/bl-qrkey --
 
 # Do nothing else if sourced
 [[ "$BASH_SOURCE" == "$0" ]] || return 0
+
+[[ -x "$PGPID_BIN" ]] || bl_log crit "$PGPID_BIN: not built. Run 'make' at the root of the checkout."
 
 
 ### Init ###
@@ -189,12 +195,14 @@ fi
 
 #PGPID[birth_date]=$(bl_input --iso-8601 "Birth date (YYYY-mm-dd)") # also used as a default passphrase
 if [[ -n "$PGPI_U5ID" ]] ; then
-	if [[ ! "$PGPI_U5ID" =~ ${BL_PGPID_U5_REGEX} ]] ; then
-		bl_log crit "Invalid u5 identifier: '$PGPI_U5ID'"
-	fi
-	PGPID[comment]="u5=${BASH_REMATCH[0]}"
+	u5id=${PGPI_U5ID#u5} ; u5id=${u5id#[=:]}
+	# gen_uid hashes anything opening with u5; only the uid form makes it apply
+	# the pattern. That check is pgpid's to hold, not a regex copied back here.
+	"$PGPID_BIN" gen_uid "UID:urn:eid:u5$u5id" > /dev/null 2>&1 \
+		|| bl_log crit "Invalid u5 identifier: '$PGPI_U5ID'"
+	PGPID[comment]="u5=$u5id"
 	bl_log info "${PGPID[comment]}"
-elif PGPID[udid4]=$(bl_pgpid_gen_u4 --verify "${mrz[@]}") ; then
+elif PGPID[udid4]=$("$PGPID_BIN" mrz_to_u4 "${mrz[@]}" 2> >(bl_log notice)) ; then
 	PGPID[comment]="u4=${PGPID[udid4]}"
 	bl_log info "${PGPID[comment]}"
 else
@@ -243,15 +251,17 @@ PGPID[hkp_server]="keys.foopgp.org"
 chmod -R go-rwx "$outdir"
 
 # generate keys
-FPRS=($(bl_pgpid_gen_key --homedir "$outdir/gnupg" --passphrase "${PGPID[passphrase]}" --name "${PGPID[pseudonym]}" --comment "${PGPID[comment]}" --extra-comment "$PGPI_EXTRACOMMENT" "${PGPID[email]}"))
+# ${PGPID[comment]} keeps the u4=/u5= spelling for the log and the JSON, but a
+# uid being minted now gets the standard glued one: pgpid refuses the other.
+FPRS=($("$PGPID_BIN" --homedir "$outdir/gnupg" gen_key --passphrase "${PGPID[passphrase]}" --name "${PGPID[pseudonym]}" --comment "${PGPID[comment]/=/}" --extra-comment "$PGPI_EXTRACOMMENT" "${PGPID[email]}"))
 PGPID[frps]="$(declare -p FPRS)"
 
 # print QR codes
-if ! bl_qrkey_print --printer "${printer}" --split "${PGPI_SPLITN}" --threshold "$PGPI_THRESN" --homedir "$outdir/gnupg" --passphrase "${PGPID[passphrase]}" --with-passphrase --tmpdir "$outdir/temp/" "${FPRS[0]}" > >(bl_log debug) 2> >(bl_log notice) ; then
+if ! "$PGPID_BIN" --homedir "$outdir/gnupg" print_secret --printer "${printer}" --split "${PGPI_SPLITN}" --threshold "$PGPI_THRESN" --passphrase "${PGPID[passphrase]}" --with-passphrase --tmpdir "$outdir/temp/" "${FPRS[0]}" > >(bl_log debug) 2> >(bl_log notice) ; then
 	bl_log crit "Printing QR codes FAIL ($?)"
 fi
 
-bl_pgpid_print --homedir "$outdir/gnupg" --printer "${printer}" --usename "${PGPID[pseudonym]}" "${FPRS[0]}" > >(bl_log debug) 2> >(bl_log notice)
+"$PGPID_BIN" --homedir "$outdir/gnupg" print_card --printer "${printer}" --usename "${PGPID[pseudonym]}" "${FPRS[0]}" > >(bl_log debug) 2> >(bl_log notice)
 
 bl_log info "Export OpenPGP first certificate and public ssh key..."
 gpg --homedir "$outdir/gnupg" --armor --export 2> >(bl_log crit) > "$outdir/PGPcert.gpg.asc"
