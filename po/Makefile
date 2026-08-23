@@ -44,13 +44,15 @@ check: build
 		msgfmt --check --statistics --output-file=/dev/null $$po 2>&1 ; \
 	done
 
+# --no-wrap throughout: these msgids are column-aligned help blocks, and a
+# line broken at 80 hides the alignment that check-width.py is there to guard.
 update-po: $(DOMAIN).pot
 	@for po in $(POFILES) ; do \
-		msgmerge --quiet --update --backup=none $$po $(DOMAIN).pot ; \
+		msgmerge --quiet --no-wrap --update --backup=none $$po $(DOMAIN).pot ; \
 	done
 
 $(DOMAIN).pot: $(wildcard ../src/*.c)
-	xgettext --language=C --from-code=UTF-8 \
+	xgettext --language=C --from-code=UTF-8 --no-wrap \
 		--keyword=_ --keyword=N_ --add-comments=TRANSLATORS \
 		--package-name=$(DOMAIN) --msgid-bugs-address=jjbrucker@foopgp.org \
 		--copyright-holder="Jean-Jacques Brucker and Mnêmê" \

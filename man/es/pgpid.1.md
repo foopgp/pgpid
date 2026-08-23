@@ -615,7 +615,8 @@ OPTIONS:
                                Omisión: la búsqueda del servidor para esta clave
   -L, --lang IDIOMA            Idioma preferido de la tarjeta - Omisión: la locale
   -k, --keyserver SERVIDOR     Enviar allí el certificado, y construir con él
-                               la URL por omisión
+                               la URL por defecto. Vacío para no enviarlo
+                               a ninguna parte y conservar la URL por defecto
   -K, --pubkey FICHERO         Escribir también el certificado con armadura ahí
       --force                  Borrar una tarjeta que no está virgen
   -h, --help                   Mostrar esta ayuda y salir

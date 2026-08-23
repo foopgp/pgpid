@@ -610,7 +610,8 @@ OPTIONS:
                                Domyślnie: wyszukiwanie serwera dla tego klucza
   -L, --lang JĘZYK             Preferowany język karty - Domyślnie: z locale
   -k, --keyserver SERWER       Wysłać tam certyfikat i zbudować z tego
-                               domyślny adres URL
+                               domyślny adres URL. Puste, aby nigdzie nie
+                               wysyłać i zachować domyślny adres URL
   -K, --pubkey PLIK            Zapisać tam także certyfikat w zbroi
       --force                  Wyczyścić kartę, która nie jest pusta
   -h, --help                   Wypisać tę pomoc i zakończyć

@@ -616,7 +616,8 @@ OPTIONS:
                                Défaut : la recherche du serveur pour cette clé
   -L, --lang LANGUE            Langue préférée de la carte - Défaut : la locale
   -k, --keyserver SERVEUR      Y envoyer le certificat, et en construire
-                               l'URL par défaut
+                               l'URL par défaut. Vide pour ne rien envoyer
+                               et garder l'URL par défaut
   -K, --pubkey FICHIER         Écrire aussi le certificat en armure dans FICHIER
       --force                  Effacer une carte qui n'est pas vierge
   -h, --help                   Afficher cette aide et quitter

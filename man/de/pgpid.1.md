@@ -619,7 +619,8 @@ OPTIONS:
                                Vorgabe: die Serversuche für diesen Schlüssel
   -L, --lang SPRACHE           Bevorzugte Sprache der Karte - Vorgabe: die Locale
   -k, --keyserver SERVER       Das Zertifikat dorthin senden und daraus die
-                               Vorgabe-URL bauen
+                               Vorgabe-URL bauen. Leer, um nichts zu senden
+                               und die Vorgabe-URL zu behalten
   -K, --pubkey DATEI           Das gepanzerte Zertifikat auch dorthin schreiben
       --force                  Eine Karte löschen, die nicht leer ist
   -h, --help                   Diese Hilfe ausgeben und beenden
