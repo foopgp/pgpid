@@ -1,5 +1,10 @@
 #!/usr/bin/make -f
 
+# Debian leaves bindnow off by default; on a program that hands a passphrase and
+# a PIN around, a lazily bound PLT is worth closing. The rest of +all is already
+# on — asking for it costs nothing and survives the day Debian adds one more.
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
 # PREFIX rather than prefix: the top makefile spells it that way and passes it
 # down. Without it everything lands in /usr/local, inside the package.
 export PREFIX = /usr
