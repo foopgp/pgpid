@@ -96,10 +96,10 @@ int pgpid_action_scan(int argc, char **argv)
 {
     char passphrase[512] = "";
     const char *given_workdir = NULL;
-    /* One slot per argument, since that is what the list is made of: an image
-     * named on the command line and then quietly ignored is a fragment
-     * missing from a secret nobody will be able to put back together. */
-    const char *images[argc > 0 ? argc : 1];
+    /* A secret is cut into PGPID_SPLIT_MAX fragments at most, so that is how
+     * many images there can be to read. More is not a longer job, it is a
+     * mistake — and one worth naming before anything is decoded. */
+    const char *images[PGPID_SPLIT_MAX];
     size_t nimages = 0;
 
     for (int i = 1; i < argc; i++) {
@@ -142,8 +142,12 @@ int pgpid_action_scan(int argc, char **argv)
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
             pgpid_try_help("scan");
             return PGPID_USAGE;
-        } else {
+        } else if (nimages < PGPID_SPLIT_MAX) {
             images[nimages++] = a;
+        } else {
+            pgpid_error(_("Error: Too many images given. Maximum: %d."),
+                        PGPID_SPLIT_MAX);
+            return PGPID_USAGE;
         }
     }
 
