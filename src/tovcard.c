@@ -345,12 +345,13 @@ static void usage(FILE *out)
         "%s"
         " to_vcard [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
         "\n"
-        "Write a certificate as a vCard 4.0, which an address book can read.\n"
-        "Without a selector, the certificate whose secret key is at hand.\n"
+        "Convert OpenPGP certificate to vCard (format 4.0).\n"
+        "Missing NAME|EMAIL|KEYID|U4|U5 => the certificate whose secret key is at\n"
+        "hand.\n"
         "\n"
         "OPTIONS:\n"
-        "  -o, --output FILE           Write there rather than to standard output\n"
-        "      --raw                   Print every uid instead, one per paragraph\n"
+        "  -o, --output FILE           Write into given FILE instead of standard output\n"
+        "      --raw                   Don't convert, but raw output all OpenPGP uids strings, separated by empty lines\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"),
             PGPID_NAME);

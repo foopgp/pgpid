@@ -31,18 +31,18 @@ static void usage(FILE *out)
         "%s"
         " gen_uid [OPTIONS]... U4|U5|STRING\n"
         "\n"
-        "Print the Unix account number an entity identifier gives, between\n"
-        "%lld and %lld. The same identifier always gives the same number, on\n"
-        "any machine — which is what lets an account be opened again\n"
-        "elsewhere from the certificate alone.\n"
+        "Generate a 32bit Unix User ID, from 2^18 to (2^31)-2 ([%lld,%lld]).\n"
+        "The same identifier always gives the same number, on any machine — which\n"
+        "is what lets an account be opened again elsewhere from the certificate\n"
+        "alone.\n"
         "\n"
         "OPTIONS:\n"
-        "  -f, --free-input            Accept any string, not only an identifier\n"
+        "  -f, --free-input            Accept any input, not only valid PGPID U4 string\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"
         "\n"
-        "Asking interactively for a civil status is the caller's business:\n"
-        "this reads what it is given and nothing else.\n"),
+        "An argument is required: asking interactively for a civil status is the\n"
+        "caller's business.\n"),
             PGPID_NAME, (long long)XUID_MIN, (long long)XUID_MAX);
 }
 

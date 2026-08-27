@@ -30,8 +30,8 @@ static void usage(FILE *out)
         "%s"
         " change_token_meta [OPTIONS]... NEW_METADATA\n"
         "\n"
-        "Write one of the three things a security key says about its holder. Which\n"
-        "one is read off NEW_METADATA:\n"
+        "Change a textual metadata of a security token (OpenPGP smartcard).\n"
+        "Detect if NEW_METADATA is an email, a certurl or a lang:\n"
         "\n"
         "  an address        the cardholder name (DO 5B)\n"
         "  an http(s) URL    where the public certificate lives (DO 5F50)\n"
@@ -42,8 +42,8 @@ static void usage(FILE *out)
         "carrying this key's three subkeys.\n"
         "\n"
         "OPTIONS:\n"
-        "  -A, --admincode CODE         The Admin code, usually eight digits\n"
-        "  -p, --admincodefrom FILE     Read it from the first line of FILE instead\n"
+        "  -A, --admincode CODE         Admin code (usually 8 digits) protecting writes to security token metadata\n"
+        "  -p, --admincodefrom FILE     Get admin code from first line of FILE (eg: fifo, tmpfs, /dev/stdin)\n"
         "  -h, --help                   Print this help and exit\n"
         "  -V, --version                Print the version and exit\n"),
             PGPID_NAME);

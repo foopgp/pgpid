@@ -179,21 +179,22 @@ static void usage(FILE *out)
         "%s"
         " token_check [OPTIONS]...\n"
         "\n"
-        "Say whether the connected security key is configured to carry a PGP\n"
-        "ID, and what it holds. Tries to fetch the certificate named in the\n"
-        "key's own metadata unless told not to.\n"
+        "Check if security token is correctly configured for PGP ID ; may output informations.\n"
+        "Will try to import cleaned certificate indicated in 'URL of public key' field.\n"
         "\n"
         "OPTIONS:\n"
-        "  -f, --no-fetch              Do not fetch the certificate from the key's URL\n"
-        "  -p, --cert-fpr              Print the certification key's fingerprint\n"
-        "  -i, --info                  Print every field as key='value'\n"
-        "  -q, --quiet                 Say nothing on the error stream\n"
+        "  -f, --no-fetch              Don't try to fetch public certificate (from URL indicated in token metadata)\n"
+        "  -q, --quiet                 Don't errput 'Info' or 'Notice' messages\n"
+        "  -p, --cert-fpr              Output certificate fingerprint (Certification key fpr)\n"
+        "  -i, --info                  Output the metadata as pairs key='value' ready to be evaluated in bash\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"
         "\n"
-        "Returns 0 when the key carries a complete identity, otherwise 100 plus\n"
-        "the number of fields missing — so 107 is a key that carries nothing,\n"
-        "which is a blank key rather than a broken one.\n"),
+        "Return value:\n"
+        "-   0 if no error and security token is correctly configured for PGP ID.\n"
+        "- 100 + number of missing PGP ID data fields.\n"
+        "- then 107 if all required data are missing (OpenPGP card is probably empty).\n"
+        "- Other non-zero on other errors.\n"),
             PGPID_NAME);
 }
 
