@@ -46,8 +46,10 @@ static void usage(FILE *out)
         "  local    What this machine says about the given certificates, or about\n"
         "           every one of them when none is named.\n"
         "  export   The same, signed, for others to replay. Writes to stdout.\n"
-        "  import   Apply what others signed. Order is part of what it means:\n"
-        "           a signer must already be valid when its turn comes.\n"
+        "  import   Apply what others signed, fetching the keys it names. Order\n"
+        "           is part of what it means: a signer must already be valid when\n"
+        "           its turn comes, and each file is weighed against what the\n"
+        "           one before it decided.\n"
         "\n"
         "OPTIONS:\n"
         "  -r, --replace-to VALUE      local: set it instead of printing it — needs\n"
@@ -57,6 +59,10 @@ static void usage(FILE *out)
         "  -u, --use-privkey NAME|KEYID  export: sign with this key\n"
         "      --export-all            export: include ultimate and unknown too\n"
         "      --armor                 export: ASCII rather than binary, to commit it\n"
+        "      --import-no-fetch       import: do not ask anyone for the keys it names\n"
+        "      --import-fetch-all      import: fetch or refresh every key it names,\n"
+        "                              not only the ones missing here\n"
+        "  -K, --keyservers SERVERS    import: ask these, space separated\n"
         "      --check                 recompute without asking about the rest\n"
         "      --update                recompute, asking about the rest\n"
         "  -q, --quiet                 Only errors and warnings\n"
@@ -76,23 +82,105 @@ static void usage(FILE *out)
  * gpg spells the rungs as digits in --export-ownertrust: 2 unknown, 3 never,
  * 4 marginal, 5 full, 6 ultimate. Measured against `trustdb local`, not
  * guessed from their order. */
-static size_t local_anchors(char *raw, size_t rawsize, char *out[], size_t max)
+/*
+ * What this machine says about every key it has an opinion on.
+ *
+ * Read once and then kept in step by hand as the files are weighed, because
+ * the order of the files is part of what they mean: file N+1 must be judged
+ * against what file N decided, not against the state before either ran.
+ */
+#define LOCAL_MAX 1024
+
+struct local_table {
+    /* Wide enough for a v5 fingerprint, which is sixty-four characters where
+     * a v4 one is forty. */
+    char fpr[LOCAL_MAX][128];
+    char level[LOCAL_MAX];
+    size_t n;
+    bool full;
+};
+
+static bool local_levels(struct local_table *t)
 {
+    static char raw[262144];
     const char *argv[] = { "--export-ownertrust", NULL };
-    if (pgpid_capture_engine(argv, raw, rawsize) <= 0)
-        return 0;
-    size_t n = 0;
-    for (char *line = raw, *save; (line = strtok_r(line, "\n", &save)) && n < max;
-         line = NULL) {
+    t->n = 0;
+    if (pgpid_capture_engine(argv, raw, sizeof raw) <= 0)
+        return false;
+    for (char *line = raw, *save; (line = strtok_r(line, "\n", &save)); line = NULL) {
         if (!*line || *line == '#')
             continue;
         char *colon = strchr(line, ':');
-        if (!colon || colon[1] != '6')
+        if (!colon || !colon[1])
             continue;
+        if (t->n == LOCAL_MAX) {
+            /* Said rather than swallowed: past here the weighing would judge
+             * a key against an opinion it cannot see. */
+            if (!t->full)
+                pgpid_error(_("Warning: More than %d keys have a credibility here; "
+                            "the rest are weighed as though undecided."), LOCAL_MAX);
+            t->full = true;
+            break;
+        }
+        t->level[t->n] = colon[1];
         *colon = '\0';
-        out[n++] = line;
+        snprintf(t->fpr[t->n], sizeof t->fpr[0], "%s", line);
+        t->n++;
     }
-    return n;
+    return true;
+}
+
+/* '2' — no opinion — for a key this machine has never ruled on. */
+static char local_level(const struct local_table *t, const char *fpr)
+{
+    for (size_t i = 0; i < t->n; i++)
+        if (!strcmp(t->fpr[i], fpr))
+            return t->level[i];
+    return '2';
+}
+
+static void local_set(struct local_table *t, const char *fpr, char level)
+{
+    for (size_t i = 0; i < t->n; i++)
+        if (!strcmp(t->fpr[i], fpr)) {
+            t->level[i] = level;
+            return;
+        }
+    if (t->n < LOCAL_MAX) {
+        snprintf(t->fpr[t->n], sizeof t->fpr[0], "%s", fpr);
+        t->level[t->n++] = level;
+    }
+}
+
+/* What becomes of one received line, given what this machine already says.
+ * The level is capped in place. */
+enum verdict { V_TAKE, V_ANCHOR, V_LOCAL_NEVER, V_NO_OPINION, V_UNDER_LOCAL };
+
+static enum verdict weigh_line(char *level, char local, bool *capped)
+{
+    /* An anchor is what the whole computation stands on. A referent extends
+     * credibility to others; it never redefines what we hold in ourselves. */
+    if (local == '6')
+        return V_ANCHOR;
+    /* Having said never about somebody is a decision, and the strongest one
+     * there is. Nobody else's file undoes it. */
+    if (local == '3')
+        return V_LOCAL_NEVER;
+    /* An absence is not a decision. Letting it through would quietly unset
+     * what somebody here had ruled. */
+    if (*level < '3')
+        return V_NO_OPINION;
+    /* Full is as far as a delegation reaches. Ultimate says "this is mine",
+     * and that is not something somebody else gets to say. */
+    if (*level > '5') {
+        *level = '5';
+        *capped = true;
+    }
+    /* Downwards only for never, which is a warning worth hearing. Marginal
+     * under a local full is a second opinion, not news. */
+    if (*level == '4' && local == '5')
+        return V_UNDER_LOCAL;
+    return V_TAKE;
 }
 
 struct delegation {
@@ -152,6 +240,8 @@ static bool looks_like_ownertrust(const char *line)
 }
 
 /** The current ownertrust, its comments dropped and its lines sorted. */
+
+/** The current ownertrust, its comments dropped and its lines sorted. */
 static char *export_ownertrust(void)
 {
     static char raw[1048576];
@@ -185,8 +275,7 @@ static char *export_ownertrust(void)
 }
 
 /** Read a signed file: its content, who signed it, and when. */
-static bool read_delegation(struct delegation *d, char *const own[], size_t nown,
-                            bool quiet)
+static bool read_delegation(struct delegation *d)
 {
     char status_path[] = "/tmp/pgpid-status-XXXXXX";
     int fd = mkstemp(status_path);
@@ -280,54 +369,108 @@ static bool read_delegation(struct delegation *d, char *const own[], size_t nown
     d->content = malloc(room);
     if (!d->content)
         return false;
-    *d->content = '\0';
-    size_t skipped = 0, capped = 0, nevers = 0;
-    for (char *line = content, *save; (line = strtok_r(line, "\n", &save)); line = NULL) {
+    snprintf(d->content, room, "%s", content);
+    return true;
+}
+
+/*
+ * Every key the file speaks of, fetched if this keyring has not got it.
+ *
+ * Whether its line will be taken or left alone does not come into it: the
+ * file explains a tree, and a certificate one cannot see is a branch one
+ * cannot check. `all` refreshes the ones already here as well.
+ */
+static void fetch_named(const struct delegation *d, bool all,
+                        const char *known, const char *keyservers)
+{
+    char *copy = strdup(d->content);
+    if (!copy)
+        return;
+    for (char *line = copy, *save; (line = strtok_r(line, "\n", &save)); line = NULL) {
         if (!*line || *line == '#')
             continue;
-
-        /* An anchor is what the whole computation stands on. A referent
-         * extends credibility to others; it never redefines what we hold in
-         * ourselves. Said aloud rather than dropped in silence: a file that
-         * speaks about our anchors is worth knowing about. */
-        bool anchor = false;
-        for (size_t i = 0; i < nown; i++)
-            if (!strncmp(line, own[i], strlen(own[i])))
-                anchor = true;
-        if (anchor) {
-            skipped++;
+        char *colon = strchr(line, ':');
+        if (!colon)
             continue;
-        }
-
-        char kept[128];
-        snprintf(kept, sizeof kept, "%s", line);
-        char *colon = strchr(kept, ':');
-        if (colon && colon[1]) {
-            if (colon[1] == '3')
-                nevers++;
-            /* Full is as far as a delegation reaches. Ultimate says "this is
-             * mine", and that is not something somebody else gets to say. */
-            if (colon[1] > '5') {
-                colon[1] = '5';
-                capped++;
-            }
-        }
-        strcat(d->content, kept);
-        strcat(d->content, "\n");
+        *colon = '\0';
+        if (!all && known && strstr(known, line))
+            continue;
+        pgpid_refresh(line, keyservers);
     }
+    free(copy);
+}
 
-    if (!quiet) {
-        if (skipped)
-            pgpid_error(_("Info: %s: %zu line(s) about your own anchors, left alone."),
-                        d->path, skipped);
-        if (capped)
-            pgpid_error(_("Info: %s: %zu line(s) beyond full, brought back to it."),
-                        d->path, capped);
-        if (nevers)
-            pgpid_error(_("Info: %s: %zu key(s) it would have you credit with nothing."),
-                        d->path, nevers);
+/*
+ * Weigh every line against what this machine already says, and keep what
+ * survives. The table is moved on as we go, so the next file is judged
+ * against this one's decisions rather than against the state before it.
+ */
+static void filter_delegation(struct delegation *d, struct local_table *table,
+                              bool quiet)
+{
+    char *kept = malloc(strlen(d->content) + 2);
+    if (!kept)
+        return;
+    *kept = '\0';
+
+    size_t anchors = 0, refused = 0, capped = 0, nevers = 0, undercut = 0;
+    char *copy = strdup(d->content);
+    if (!copy) {
+        free(kept);
+        return;
     }
-    return true;
+    for (char *line = copy, *save; (line = strtok_r(line, "\n", &save)); line = NULL) {
+        if (!*line || *line == '#')
+            continue;
+        char one[128];
+        snprintf(one, sizeof one, "%s", line);
+        char *colon = strchr(one, ':');
+        if (!colon || !colon[1])
+            continue;
+        *colon = '\0';
+
+        bool was_capped = false;
+        char level = colon[1];
+        switch (weigh_line(&level, local_level(table, one), &was_capped)) {
+        case V_ANCHOR:       anchors++;  continue;
+        case V_LOCAL_NEVER:  refused++;  continue;
+        case V_NO_OPINION:              continue;
+        case V_UNDER_LOCAL:  undercut++; continue;
+        case V_TAKE:         break;
+        }
+        if (was_capped)
+            capped++;
+        if (level == '3')
+            nevers++;
+
+        colon[1] = level;
+        *colon = ':';
+        strcat(kept, one);
+        strcat(kept, "\n");
+        *colon = '\0';
+        local_set(table, one, level);
+    }
+    free(copy);
+    free(d->content);
+    d->content = kept;
+
+    if (quiet)
+        return;
+    if (anchors)
+        pgpid_error(_("Info: %s: %zu line(s) about your own anchors, left alone."),
+                    d->path, anchors);
+    if (refused)
+        pgpid_error(_("Info: %s: %zu key(s) you have ruled never on, left alone."),
+                    d->path, refused);
+    if (undercut)
+        pgpid_error(_("Info: %s: %zu key(s) it credits less than you already do, "
+                    "left alone."), d->path, undercut);
+    if (capped)
+        pgpid_error(_("Info: %s: %zu line(s) beyond full, brought back to it."),
+                    d->path, capped);
+    if (nevers)
+        pgpid_error(_("Info: %s: %zu key(s) it would have you credit with nothing."),
+                    d->path, nevers);
 }
 
 /** Is this key valid enough for what it signed to be applied? */
@@ -641,6 +784,10 @@ static int do_import(int argc, char **argv)
      * out to it — and a prompt in a place with no terminal does not ask, it
      * hangs. A human who wants to be asked about the rest says --update. */
     bool interactive = false, quiet = false;
+    /* Fetching what a delegation names is the default: a file explaining a
+     * tree is worth little beside a keyring that has not got the branches. */
+    bool fetch = true, fetch_all = false;
+    const char *keyservers = NULL;
     const char *files[MAX_FILES];
     size_t nfiles = 0;
 
@@ -650,6 +797,16 @@ static int do_import(int argc, char **argv)
             interactive = false;
         } else if (!strcmp(a, "--update")) {
             interactive = true;
+        } else if (!strcmp(a, "--import-no-fetch")) {
+            fetch = false;
+        } else if (!strcmp(a, "--import-fetch-all")) {
+            fetch_all = true;
+        } else if (!strcmp(a, "-K") || !strcmp(a, "--keyservers")) {
+            if (++i >= argc) {
+                pgpid_error(_("Error: '%s' wants a list, empty for none."), a);
+                return PGPID_USAGE;
+            }
+            keyservers = argv[i];
         } else if (!strcmp(a, "-q") || !strcmp(a, "--quiet")) {
             quiet = true;
         } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
@@ -673,16 +830,19 @@ static int do_import(int argc, char **argv)
     }
 
     if (nfiles) {
-        /* The anchor: what this machine holds at ultimate, whatever any
-         * delegation says about it. */
-        char ownraw[262144];
-        char *own[512];
-        size_t nown = local_anchors(ownraw, sizeof ownraw, own, 512);
+        static struct local_table table;
+        if (!local_levels(&table)) {
+            pgpid_error(_("Error: Cannot read what this machine already says."));
+            return PGPID_FAIL;
+        }
 
         /* Without an anchor there is nothing for the delegations to hang
          * from: gpg would compute validity out of a chain with no first
          * link, and every verdict it returned would be meaningless. */
-        if (!nown) {
+        bool anchored = false;
+        for (size_t i = 0; i < table.n && !anchored; i++)
+            anchored = table.level[i] == '6';
+        if (!anchored) {
             pgpid_error(_("Error: No key here is ultimate, so there is no anchor to "
                         "extend from."));
             pgpid_error(_("Notice: Mark your own certificate ultimate first: "
@@ -691,12 +851,26 @@ static int do_import(int argc, char **argv)
             return PGPID_FAIL;
         }
 
+        /* One listing rather than one question per key. */
+        static char known[1048576];
+        if (fetch && !fetch_all) {
+            const char *listing[] = { "--with-colons", "--list-keys", NULL };
+            if (pgpid_capture_engine(listing, known, sizeof known) <= 0)
+                *known = '\0';
+        }
+
         struct delegation d[MAX_FILES];
         memset(d, 0, sizeof d);
         for (size_t i = 0; i < nfiles; i++) {
             d[i].path = files[i];
-            if (!read_delegation(&d[i], own, nown, quiet))
+            if (!read_delegation(&d[i]))
                 return PGPID_FAIL;
+            /* Between reading and weighing, so that a key this file names may
+             * be the one signing the next. */
+            if (fetch || fetch_all)
+                fetch_named(&d[i], fetch_all, fetch_all ? NULL : known,
+                            keyservers ? keyservers : PGPID_KEYSERVERS);
+            filter_delegation(&d[i], &table, quiet);
         }
 
         char *before = export_ownertrust();

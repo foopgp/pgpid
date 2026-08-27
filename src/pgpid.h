@@ -340,6 +340,11 @@ int pgpid_action_totoken(int argc, char **argv);
 void pgpid_list_short_start(bool only_fpr, bool only_mbox);
 void pgpid_list_short_end(void);
 
+/* Ask the keyservers about one term — an address, a key id, a fingerprint.
+ * Failure is ordinary and silent-ish: a server may be down, a key absent, and
+ * neither must stop the caller from working with what is already local. */
+void pgpid_refresh(const char *term, const char *keyservers);
+
 int pgpid_list_short(const char *pattern, bool only_fpr, bool only_mbox,
                      size_t *certificates);
 

@@ -61,7 +61,7 @@ static void usage(FILE *out)
  * mean carrying an HTTP client for a case that is rare and ambiguous — a name
  * matches whoever else chose it. Said plainly rather than silently skipped.
  */
-static void refresh(const char *term, const char *keyservers)
+void pgpid_refresh(const char *term, const char *keyservers)
 {
     if (!keyservers || !*keyservers)
         return;
@@ -168,7 +168,7 @@ int pgpid_action_get(int argc, char **argv)
 
     if (fetch && !everything)
         for (int i = first; i < argc; i++)
-            refresh(argv[i], keyservers ? keyservers : PGPID_KEYSERVERS);
+            pgpid_refresh(argv[i], keyservers ? keyservers : PGPID_KEYSERVERS);
 
     /* One pattern at a time, as the engine takes them; several terms are
      * several searches whose answers meet in the output. */

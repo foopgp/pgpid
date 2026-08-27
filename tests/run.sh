@@ -442,6 +442,44 @@ is "which is the one taken"       "$(gpg --decrypt "$GNUPGHOME/ot.gpg" 2>/dev/nu
 "$BIN" trustdb export --use-privkey "$SFPR" somewhere.gpg >/dev/null 2>&1
 is "takes no positional argument" "$?" "2"
 
+printf '\ntrustdb import\n'
+# Everything here is weighed offline: --import-no-fetch, so a check never
+# reaches for a keyserver. The anchor first — the local block left this
+# certificate undecided, and without an anchor an import is refused outright.
+"$BIN" trustdb local --replace-to ultimate "$FPR" >/dev/null 2>&1
+"$BIN" trustdb local --replace-to full "$WFPR" >/dev/null 2>&1
+# The signer is the key made for the export checks: locally generated, so
+# ultimate, so valid — which is what a delegation's signer has to be.
+deleg() {
+    printf '%s\n' "$@" > "$GNUPGHOME/d.txt"
+    gpg --batch --yes --quiet --passphrase '' --pinentry-mode loopback \
+        --default-key "$SFPR" --output "$GNUPGHOME/d.gpg" --sign "$GNUPGHOME/d.txt" 2>/dev/null
+    "$BIN" trustdb import --import-no-fetch "$GNUPGHOME/d.gpg" 2>&1
+}
+level() { "$BIN" trustdb local "$1" | awk '{print $2}' ; }
+
+out=$(deleg "$WFPR:6:")
+is "ultimate from somebody else is capped" "$(grep --count 'beyond full' <<<"$out")" "1"
+is "and lands on full"            "$(level "$WFPR")" "full"
+out=$(deleg "$WFPR:2:")
+# An absence is not a decision, and saying so on every line would be noise.
+is "no opinion changes nothing"   "$(level "$WFPR")" "full"
+is "and is not worth a word"      "$(grep --count 'Info: .*d.gpg' <<<"$out")" "0"
+out=$(deleg "$WFPR:4:")
+is "less than we credit is left alone" "$(level "$WFPR")" "full"
+is "and it is said"               "$(grep --count 'credits less' <<<"$out")" "1"
+out=$(deleg "$FPR:5:")
+is "a line about the anchor is left alone" "$(grep --count 'anchors' <<<"$out")" "1"
+is "and the anchor stands"        "$(level "$FPR")" "ultimate"
+# Never is the one verdict that comes downwards: it is a warning, and one
+# worth hearing even from somebody who credits others generously.
+out=$(deleg "$WFPR:3:")
+is "never comes down through a full" "$(level "$WFPR")" "never"
+is "and is said"                  "$(grep --count 'credit with nothing' <<<"$out")" "1"
+out=$(deleg "$WFPR:5:")
+is "nothing lifts it afterwards"  "$(level "$WFPR")" "never"
+is "which is said, not swallowed" "$(grep --count 'ruled never' <<<"$out")" "1"
+
 printf '\ndel\n'
 "$BIN" del "not-a-fingerprint" >/dev/null 2>&1
 is "refuses anything but a fingerprint" "$?" "2"
