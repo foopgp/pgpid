@@ -474,10 +474,10 @@ OPTIONS:
   -u, --use-privkey NOME|KEYID  export: firmare con questa chiave
       --export-all            export: includere anche ultimate e unknown
       --armor                 export: ASCII anziché binario, per versionarlo
-      --import-no-fetch       import: non chiedere a nessuno le chiavi nominate
       --import-fetch-all      import: recuperare o aggiornare tutte le chiavi,
                               non solo quelle che qui mancano
   -K, --keyservers SERVER     import: chiedere a questi, separati da spazi
+                              — vuoto per nessuno
       --check                 Ricalcolare senza interrogare sulle altre
       --update                Ricalcolare, interrogando sulle altre
   -q, --quiet                 Solo errori e avvisi

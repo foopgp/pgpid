@@ -474,10 +474,10 @@ OPTIONS:
   -u, --use-privkey NAME|KEYID  export: sign with this key
       --export-all            export: include ultimate and unknown too
       --armor                 export: ASCII rather than binary, to commit it
-      --import-no-fetch       import: do not ask anyone for the keys it names
       --import-fetch-all      import: fetch or refresh every key it names,
                               not only the ones missing here
-  -K, --keyservers SERVERS    import: ask these, space separated
+  -K, --keyservers SERVERS    import: ask these, space separated — empty
+                              for none
       --check                 recompute without asking about the rest
       --update                recompute, asking about the rest
   -q, --quiet                 Only errors and warnings

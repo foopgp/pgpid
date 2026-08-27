@@ -477,10 +477,10 @@ OPTIONS:
   -u, --use-privkey NOMBRE|KEYID  export: firmar con esa clave
       --export-all            export: incluir también ultimate y unknown
       --armor                 export: ASCII en vez de binario, para versionarlo
-      --import-no-fetch       import: no pedir a nadie las claves que nombra
       --import-fetch-all      import: traer o refrescar todas sus claves,
                               no solo las que faltan aquí
-  -K, --keyservers SERVIDORES import: preguntar a estos, separados por espacios
+  -K, --keyservers SERVIDORES import: preguntar a estos, separados por
+                              espacios — vacío para nadie
       --check                 Recalcular sin preguntar por las demás
       --update                Recalcular, preguntando por las demás
   -q, --quiet                 Solo errores y advertencias

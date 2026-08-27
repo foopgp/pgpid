@@ -480,10 +480,10 @@ OPTIONS:
   -u, --use-privkey NAME|KEYID  export: mit diesem Schlüssel signieren
       --export-all            export: auch ultimate und unknown mitnehmen
       --armor                 export: ASCII statt binär, um es zu versionieren
-      --import-no-fetch       import: nach keinem genannten Schlüssel fragen
       --import-fetch-all      import: alle genannten holen oder auffrischen,
                               nicht nur die hier fehlenden
-  -K, --keyservers SERVER     import: diese fragen, durch Leerzeichen getrennt
+  -K, --keyservers SERVER     import: diese fragen, durch Leerzeichen
+                              getrennt — leer für niemanden
       --check                 Neu berechnen, ohne nach den übrigen zu fragen
       --update                Neu berechnen und nach den übrigen fragen
   -q, --quiet                 Nur Fehler und Warnungen

@@ -478,10 +478,10 @@ OPTIONS:
   -u, --use-privkey NOM|KEYID  export : signer avec cette clé
       --export-all            export : inclure aussi ultimate et unknown
       --armor                 export : ASCII plutôt que binaire, pour le commiter
-      --import-no-fetch       import : ne demander ses clés à personne
       --import-fetch-all      import : récupérer ou rafraîchir toutes ses clés,
                               pas seulement celles qui manquent ici
-  -K, --keyservers SERVEURS   import : demander à ceux-ci, séparés par des espaces
+  -K, --keyservers SERVEURS   import : demander à ceux-ci, séparés par des
+                              espaces — vide pour personne
       --check                 Recalculer sans questionner sur les autres
       --update                Recalculer, en questionnant sur les autres
   -q, --quiet                 Seulement les erreurs et les avertissements

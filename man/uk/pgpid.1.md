@@ -473,10 +473,10 @@ OPTIONS:
   -u, --use-privkey ІМʼЯ|KEYID  export: підписати цим ключем
       --export-all            export: узяти також ultimate і unknown
       --armor                 export: ASCII, а не двійкове, щоб покласти в git
-      --import-no-fetch       import: не питати ні в кого названих ключів
       --import-fetch-all      import: дістати чи оновити всі названі ключі,
                               не лише ті, яких тут бракує
-  -K, --keyservers СЕРВЕРИ    import: питати цих, через пробіл
+  -K, --keyservers СЕРВЕРИ    import: питати цих, через пробіл — порожньо,
+                              щоб не питати нікого
       --check                 Перерахувати, не питаючи про решту
       --update                Перерахувати, питаючи про решту
   -q, --quiet                 Лише помилки й попередження

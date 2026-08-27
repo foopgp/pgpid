@@ -476,10 +476,10 @@ OPTIONS:
   -u, --use-privkey NAZWA|KEYID  export: podpisać tym kluczem
       --export-all            export: objąć także ultimate i unknown
       --armor                 export: ASCII zamiast binarnego, by go wersjonować
-      --import-no-fetch       import: nie pytać nikogo o wymienione klucze
       --import-fetch-all      import: pobrać lub odświeżyć wszystkie jego klucze,
                               nie tylko te, których tu brak
   -K, --keyservers SERWERY    import: pytać tych, rozdzielonych spacjami
+                              — puste, by nikogo nie pytać
       --check                 Przeliczyć bez pytania o pozostałe
       --update                Przeliczyć, pytając o pozostałe
   -q, --quiet                 Tylko błędy i ostrzeżenia
