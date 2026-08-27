@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid 0.0.7-35-g8512aa6\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-08-27 15:06+0200\n"
+"POT-Creation-Date: 2026-08-27 15:48+0200\n"
 "PO-Revision-Date: 2026-08-22 22:58+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -158,9 +158,9 @@ msgstr "Error: «%s» espera uma lista de servidores, vazia para nenhum."
 msgid "Error: '%s' wants a directory."
 msgstr "Error: «%s» espera um diretório."
 
-#: ../src/avatar.c:573 ../src/certify.c:322 ../src/changepass.c:110
+#: ../src/avatar.c:573 ../src/certify.c:324 ../src/changepass.c:110
 #: ../src/changetokencode.c:126 ../src/changetokenmeta.c:153 ../src/del.c:93
-#: ../src/email.c:372 ../src/genkey.c:209 ../src/genu4.c:199
+#: ../src/email.c:372 ../src/genkey.c:209 ../src/genu4.c:283
 #: ../src/genuid.c:147 ../src/get.c:150 ../src/list.c:377 ../src/main.c:110
 #: ../src/printcard.c:143 ../src/printsecret.c:290 ../src/property.c:383
 #: ../src/push.c:70 ../src/scan.c:139 ../src/sigs.c:124 ../src/token.c:129
@@ -291,7 +291,8 @@ msgid ""
 "  -E, --all-emails              Also certify every uid carrying an email,\n"
 "                                for software that expects it there\n"
 "  -R, --revoke                  Revoke your earlier certifications on it\n"
-"  -o, --ownertrust VALUE        How well they certify others, in turn\n"
+"  -o, --credibility VALUE       How well they certify others, in turn\n"
+"      --ownertrust VALUE        The same, under the name gpg gives it\n"
 "                                {undefined,marginal,full,never} - Default: marginal\n"
 "  -l, --local                   Certify without exporting — useful for testing\n"
 "  -K, --keyservers SERVERS      Send the result to these, space separated\n"
@@ -325,7 +326,8 @@ msgstr ""
 "  -E, --all-emails              Certificar também todo o uid com endereço,\n"
 "                                para os programas que o esperam aí\n"
 "  -R, --revoke                  Revogar as suas certificações anteriores\n"
-"  -o, --ownertrust VALOR        Até onde certificam outros, por sua vez\n"
+"  -o, --credibility VALOR       Até onde certificam outros, por sua vez\n"
+"      --ownertrust VALOR        O mesmo, com o nome que o gpg lhe dá\n"
 "                                {undefined,marginal,full,never} — omissão: marginal\n"
 "  -l, --local                   Certificar sem exportar — útil para ensaiar\n"
 "  -K, --keyservers SERVIDORES   Enviar o resultado a estes, separados por\n"
@@ -341,95 +343,95 @@ msgstr ""
 "- %d Autocertificar-se não tem nada de novo! ;-)\n"
 "- %d Esse certificado não traz esse identificador\n"
 
-#: ../src/certify.c:115
+#: ../src/certify.c:116
 msgid "Error: No card answered, so there is nothing to certify with."
 msgstr "Error: Nenhum cartão respondeu, portanto não há com que certificar."
 
-#: ../src/certify.c:116
+#: ../src/certify.c:117
 msgid "Say which key with --use-privkey."
 msgstr "Diga que chave com --use-privkey."
 
-#: ../src/certify.c:124
+#: ../src/certify.c:125
 msgid "Error: Cannot list the secret keys."
 msgstr "Error: Não é possível listar as chaves secretas."
 
-#: ../src/certify.c:142
+#: ../src/certify.c:143
 #, c-format
 msgid "Error: '%s' names %s secret key."
 msgstr "Error: «%s» indica %s chave secreta."
 
-#: ../src/certify.c:285 ../src/trustdb.c:552
+#: ../src/certify.c:286 ../src/trustdb.c:552
 #, c-format
 msgid "Error: '%s' wants a key."
 msgstr "Error: «%s» espera uma chave."
 
-#: ../src/certify.c:298 ../src/genu4.c:208 ../src/property.c:354
+#: ../src/certify.c:300 ../src/genu4.c:292 ../src/property.c:354
 #: ../src/trustdb.c:419
 #, c-format
 msgid "Error: '%s' wants a value."
 msgstr "Error: «%s» espera um valor."
 
-#: ../src/certify.c:304 ../src/trustdb.c:459
+#: ../src/certify.c:306 ../src/trustdb.c:459
 #, c-format
 msgid "Error: Unknown credibility value '%s'."
 msgstr "Error: Valor de credibilidade desconhecido «%s»."
 
-#: ../src/certify.c:309 ../src/email.c:357 ../src/property.c:370
+#: ../src/certify.c:311 ../src/email.c:357 ../src/property.c:370
 #, c-format
 msgid "Error: '%s' wants a list, empty for none."
 msgstr "Error: «%s» espera uma lista, vazia para nenhum."
 
-#: ../src/certify.c:332
+#: ../src/certify.c:334
 #, c-format
 msgid "Error: '%s' is neither a fingerprint nor an identifier."
 msgstr "Error: «%s» não é nem uma impressão digital nem um identificador."
 
-#: ../src/certify.c:338
+#: ../src/certify.c:340
 msgid "Error: Which certificate? A whole fingerprint is required —"
 msgstr "Error: Que certificado? Exige-se uma impressão digital inteira —"
 
-#: ../src/certify.c:339
+#: ../src/certify.c:341
 msgid "a certification cannot be taken back, so it is never guessed."
 msgstr "uma certificação não se retira, portanto nunca se adivinha."
 
-#: ../src/certify.c:370
+#: ../src/certify.c:372
 #, c-format
 msgid "Error: Nobody here carries '%s'."
 msgstr "Error: Ninguém aqui traz «%s»."
 
-#: ../src/certify.c:378
+#: ../src/certify.c:380
 #, c-format
 msgid "Error: %s carries '%s', and %s does not."
 msgstr "Error: %s traz «%s», e %s não."
 
-#: ../src/certify.c:384
+#: ../src/certify.c:386
 #, c-format
 msgid "Error: No certificate here carries %s."
 msgstr "Error: Nenhum certificado aqui traz %s."
 
-#: ../src/certify.c:389
+#: ../src/certify.c:391
 msgid "Warning: Self-certification is not innovative! ;-)"
 msgstr "Warning: Autocertificar-se não tem nada de novo! ;-)"
 
-#: ../src/certify.c:398
+#: ../src/certify.c:400
 #, c-format
 msgid "Error: %s carries no usable uid for '%s'."
 msgstr "Error: %s não traz nenhum uid utilizável para «%s»."
 
-#: ../src/certify.c:401
+#: ../src/certify.c:403
 #, c-format
 msgid "Crit: %s carries no identity uid — the certificate looks broken."
 msgstr "Crit: %s não traz uid de identidade — o certificado parece danificado."
 
-#: ../src/certify.c:414
-msgid "Info: --ownertrust means nothing when revoking; ignored."
-msgstr "Info: --ownertrust nada significa ao revogar; ignorado."
+#: ../src/certify.c:416
+msgid "Info: --credibility means nothing when revoking; ignored."
+msgstr "Info: --credibility nada significa ao revogar; ignorado."
 
-#: ../src/certify.c:434
+#: ../src/certify.c:436
 msgid "Notice: gpg reported no error, which does not mean it found a certification to revoke."
 msgstr "Notice: gpg não assinalou erro, o que não quer dizer que tenha encontrado uma certificação a revogar."
 
-#: ../src/certify.c:437
+#: ../src/certify.c:439
 #, c-format
 msgid "Notice: Signed %zu uid(s) of certificate %s."
 msgstr "Notice: Assinados %zu uid do certificado %s."
@@ -1117,7 +1119,9 @@ msgid ""
 "\n"
 "With --from-passport-mrz the four are read off the machine readable\n"
 "zone of a passport instead — 88 characters over two lines, spaces and\n"
-"newlines ignored, so it can be pasted as it was read.\n"
+"newlines ignored, so it can be pasted as it was read. The four options\n"
+"above still work beside it, and replace what the zone says: that is how\n"
+"a surname truncated to fit gets corrected without typing the rest.\n"
 "\n"
 "OPTIONS:\n"
 "  -s, --surname SURNAME            Surname at birth\n"
@@ -1130,8 +1134,9 @@ msgid ""
 "  -V, --version                    Print the version and exit\n"
 "\n"
 "Typed in, everything is required: asking for what is missing belongs\n"
-"to whoever has somebody to ask. From a passport, only --birth-date is\n"
-"worth adding, for anyone the two digits cannot place.\n"
+"to whoever has somebody to ask. From a passport, nothing is — and\n"
+"--birth-date is the one worth adding anyway, for anyone the zone's two\n"
+"digits cannot place.\n"
 "\n"
 "Roughly one passport in five gives the wrong identifier: a surname\n"
 "truncated to fit, a name changed since birth, another transliteration,\n"
@@ -1146,7 +1151,9 @@ msgstr ""
 "\n"
 "Com --from-passport-mrz os quatro são lidos na zona de leitura ótica de\n"
 "um passaporte — 88 carateres em duas linhas, espaços e mudanças de linha\n"
-"ignorados, pode pois ser colada tal como foi lida.\n"
+"ignorados, pode pois ser colada tal como foi lida. As quatro opções acima\n"
+"continuam a valer ao lado, e substituem o que a zona diz: é assim que um\n"
+"apelido truncado para caber se corrige sem reescrever o resto.\n"
 "\n"
 "OPTIONS:\n"
 "  -s, --surname APELIDO            Apelido de nascimento\n"
@@ -1159,81 +1166,67 @@ msgstr ""
 "  -V, --version                    Imprimir a versão e sair\n"
 "\n"
 "Escrito à mão, tudo é exigido: pedir o que falta cabe a quem tem alguém a\n"
-"quem pedir. De um passaporte, só --birth-date vale a pena acrescentar, se\n"
-"dois dígitos não bastarem.\n"
+"quem pedir. De um passaporte, nada é — e --birth-date continua a ser a que\n"
+"vale a pena acrescentar, se dois dígitos não bastarem.\n"
 "\n"
 "Cerca de um passaporte em cinco dá o identificador errado: um apelido\n"
 "truncado para caber, um nome mudado desde o nascimento, outra\n"
 "transliteração, ou um ano que dois dígitos não situam. Tem de ser\n"
 "conferido.\n"
 
-#: ../src/genu4.c:109
-msgid "Error: Only a passport zone is read, and this does not begin with 'P'."
-msgstr "Error: Só se lê uma zona de passaporte, e esta não começa por «P»."
-
-#: ../src/genu4.c:113
-#, c-format
-msgid "%s: The zone is %zu characters, not 88."
-msgstr "%s: A zona tem %zu carateres, não 88."
-
-#: ../src/genu4.c:126
-#, c-format
-msgid "%s: The check digit for %s does not agree."
-msgstr "%s: O dígito de controlo de %s não concorda."
-
-#: ../src/genu4.c:133
-#, c-format
-msgid "Error: No complete surname and given names in '%s'."
-msgstr "Error: Sem apelido e nomes completos em «%s»."
-
-#: ../src/genu4.c:151
-#, c-format
-msgid "Error: '%s' is not a date this can read."
-msgstr "Error: «%s» não é uma data legível aqui."
-
-#: ../src/genu4.c:160 ../src/genu4.c:255
-#, c-format
-msgid "Error: '%s' is not a three-letter country code we know."
-msgstr "Error: «%s» não é um código de país de três letras que conheçamos."
-
-#: ../src/genu4.c:220
-msgid "Error: With --from-passport-mrz the name and the country come from the zone."
-msgstr "Error: Com --from-passport-mrz, o nome e o país vêm da zona."
-
-#: ../src/genu4.c:225
-msgid "Error: Where is the machine readable zone?"
-msgstr "Error: Onde está a zona de leitura ótica?"
-
-#: ../src/genu4.c:233
-msgid "Error: '--uncheck' is about a passport's check digits; it needs --from-passport-mrz."
-msgstr "Error: «--uncheck» é sobre os dígitos de controlo de um passaporte; precisa de --from-passport-mrz."
-
-#: ../src/genu4.c:238
-#, c-format
-msgid "Error: A civil status is given by options; '%s' is not one."
-msgstr "Error: Um estado civil dá-se por opções; «%s» não é uma."
-
-#: ../src/genu4.c:245
-msgid "Error: Surname, given names, date and country are all needed."
-msgstr "Error: São precisos apelido, nomes, data e país."
-
-#: ../src/genu4.c:250
-#, c-format
-msgid "Error: '%s' is not a date of the shape YYYY-MM-DD."
-msgstr "Error: «%s» não é uma data da forma AAAA-MM-DD."
-
-#: ../src/genu4.c:264
-msgid "Error: The name is not valid UTF-8."
-msgstr "Error: O nome não é UTF-8 válido."
-
-#: ../src/genu4.c:269
+#: ../src/genu4.c:155
 #, c-format
 msgid "Error: No surname and given names could be read from '%s'."
 msgstr "Error: Não foi possível ler apelido e nomes em «%s»."
 
-#: ../src/genu4.c:270
+#: ../src/genu4.c:156
 msgid "Notice: Both need at least one letter once reduced to A-Z."
 msgstr "Notice: Ambos precisam de pelo menos uma letra depois de reduzidos a A-Z."
+
+#: ../src/genu4.c:201
+msgid "Error: Only a passport zone is read, and this does not begin with 'P'."
+msgstr "Error: Só se lê uma zona de passaporte, e esta não começa por «P»."
+
+#: ../src/genu4.c:205
+#, c-format
+msgid "%s: The zone is %zu characters, not 88."
+msgstr "%s: A zona tem %zu carateres, não 88."
+
+#: ../src/genu4.c:218
+#, c-format
+msgid "%s: The check digit for %s does not agree."
+msgstr "%s: O dígito de controlo de %s não concorda."
+
+#: ../src/genu4.c:228 ../src/genu4.c:232 ../src/genu4.c:342
+msgid "Error: The name is not valid UTF-8."
+msgstr "Error: O nome não é UTF-8 válido."
+
+#: ../src/genu4.c:241 ../src/genu4.c:328
+#, c-format
+msgid "Error: '%s' is not a date. Give it as YYYY-MM-DD."
+msgstr "Error: «%s» não é uma data. Dê-a em AAAA-MM-DD."
+
+#: ../src/genu4.c:252 ../src/genu4.c:333
+#, c-format
+msgid "Error: '%s' is not a three-letter country code we know."
+msgstr "Error: «%s» não é um código de país de três letras que conheçamos."
+
+#: ../src/genu4.c:301
+msgid "Error: Where is the machine readable zone?"
+msgstr "Error: Onde está a zona de leitura ótica?"
+
+#: ../src/genu4.c:310
+msgid "Error: '--uncheck' is about a passport's check digits; it needs --from-passport-mrz."
+msgstr "Error: «--uncheck» é sobre os dígitos de controlo de um passaporte; precisa de --from-passport-mrz."
+
+#: ../src/genu4.c:315
+#, c-format
+msgid "Error: A civil status is given by options; '%s' is not one."
+msgstr "Error: Um estado civil dá-se por opções; «%s» não é uma."
+
+#: ../src/genu4.c:321
+msgid "Error: Surname, given names, date and country are all needed."
+msgstr "Error: São precisos apelido, nomes, data e país."
 
 #: ../src/genuid.c:30
 #, c-format
@@ -2779,6 +2772,17 @@ msgstr "Error: gpg recusou-se a adicionar %s."
 #, c-format
 msgid "Warning: gpg would not add %s."
 msgstr "Warning: gpg recusou-se a adicionar %s."
+
+#, c-format
+#~ msgid "Error: No complete surname and given names in '%s'."
+#~ msgstr "Error: Sem apelido e nomes completos em «%s»."
+
+#, c-format
+#~ msgid "Error: '%s' is not a date this can read."
+#~ msgstr "Error: «%s» não é uma data legível aqui."
+
+#~ msgid "Error: With --from-passport-mrz the name and the country come from the zone."
+#~ msgstr "Error: Com --from-passport-mrz, o nome e o país vêm da zona."
 
 #, c-format
 #~ msgid ""

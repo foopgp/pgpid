@@ -328,7 +328,9 @@ und das Land.
 
 Mit --from-passport-mrz werden die vier stattdessen aus der
 maschinenlesbaren Zone eines Passes gelesen — 88 Zeichen auf zwei Zeilen,
-Leerzeichen und Zeilenumbrüche übergangen, unverändert einfügbar.
+Leerzeichen und Zeilenumbrüche übergangen, unverändert einfügbar. Die vier
+Optionen oben gelten daneben weiter und ersetzen, was die Zone sagt: so
+wird ein zum Passen gekürzter Nachname berichtigt, ohne den Rest zu tippen.
 
 OPTIONS:
   -s, --surname NACHNAME           Geburtsname
@@ -341,8 +343,8 @@ OPTIONS:
   -V, --version                    Die Version ausgeben und beenden
 
 Getippt wird alles verlangt: nach dem zu fragen, was fehlt, ist Sache
-dessen, der jemanden zum Fragen hat. Aus einem Pass lohnt allein
---birth-date, wenn zwei Ziffern nicht reichen.
+dessen, der jemanden zum Fragen hat. Aus einem Pass nichts — und
+--birth-date lohnt dennoch, wenn zwei Ziffern nicht reichen.
 
 Etwa jeder fünfte Pass ergibt die falsche Kennung: ein Nachname, der zum
 Passen gekürzt wurde, ein seit der Geburt geänderter Name, eine andere
@@ -437,7 +439,8 @@ OPTIONS:
   -E, --all-emails              Auch jede uid mit Adresse beglaubigen,
                                 für Software, die sie dort erwartet
   -R, --revoke                  Ihre früheren Beglaubigungen widerrufen
-  -o, --ownertrust WERT         Wie weit sie ihrerseits andere beglaubigen
+  -o, --credibility WERT        Wie weit sie ihrerseits andere beglaubigen
+      --ownertrust WERT         Dasselbe, unter dem Namen, den gpg ihm gibt
                                 {undefined,marginal,full,never} — Vorgabe: marginal
   -l, --local                   Beglaubigen ohne Export — nützlich zum Prüfen
   -K, --keyservers SERVER       Ergebnis an diese senden, durch Leerzeichen

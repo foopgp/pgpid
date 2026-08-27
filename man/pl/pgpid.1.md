@@ -325,7 +325,9 @@ nazwiska, dwa pierwsze imiona, datę urodzenia i kraj.
 
 Przy --from-passport-mrz te cztery czyta się ze strefy do odczytu
 maszynowego paszportu — 88 znaków w dwóch wierszach, spacje i końce
-wierszy pomijane, można ją więc wkleić tak, jak odczytano.
+wierszy pomijane, można ją więc wkleić tak, jak odczytano. Cztery opcje
+powyżej działają obok niej i zastępują to, co mówi strefa: tak poprawia
+się nazwisko skrócone, by się zmieściło, bez przepisywania reszty.
 
 OPTIONS:
   -s, --surname NAZWISKO           Nazwisko rodowe
@@ -338,8 +340,8 @@ OPTIONS:
   -V, --version                    Wypisać wersję i zakończyć
 
 Wpisywane — wszystko jest wymagane: pytanie o to, czego brak, należy do
-tego, kto ma kogo zapytać. Z paszportu warto dodać tylko --birth-date,
-gdy dwie cyfry nie wystarczą.
+tego, kto ma kogo zapytać. Z paszportu nic nie jest — a --birth-date i tak
+warto dodać, gdy dwie cyfry nie wystarczą.
 
 Mniej więcej co piąty paszport daje błędny identyfikator: nazwisko
 skrócone, by się zmieściło, imię zmienione od urodzenia, inna
@@ -433,7 +435,8 @@ OPTIONS:
   -E, --all-emails              Poświadczyć też każdy uid z adresem,
                                 dla programów, które go tam oczekują
   -R, --revoke                  Unieważnić swoje wcześniejsze poświadczenia
-  -o, --ownertrust WARTOŚĆ      Jak dalece oni z kolei poświadczają innych
+  -o, --credibility WARTOŚĆ     Jak dalece oni z kolei poświadczają innych
+      --ownertrust WARTOŚĆ      To samo, pod nazwą, którą daje mu gpg
                                 {undefined,marginal,full,never} — domyśl.: marginal
   -l, --local                   Poświadczyć bez eksportu — przydatne do prób
   -K, --keyservers SERWERY      Wysłać wynik na te, rozdzielone spacjami

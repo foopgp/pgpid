@@ -324,7 +324,9 @@ the country.
 
 With --from-passport-mrz the four are read off the machine readable
 zone of a passport instead — 88 characters over two lines, spaces and
-newlines ignored, so it can be pasted as it was read.
+newlines ignored, so it can be pasted as it was read. The four options
+above still work beside it, and replace what the zone says: that is how
+a surname truncated to fit gets corrected without typing the rest.
 
 OPTIONS:
   -s, --surname SURNAME            Surname at birth
@@ -337,8 +339,9 @@ OPTIONS:
   -V, --version                    Print the version and exit
 
 Typed in, everything is required: asking for what is missing belongs
-to whoever has somebody to ask. From a passport, only --birth-date is
-worth adding, for anyone the two digits cannot place.
+to whoever has somebody to ask. From a passport, nothing is — and
+--birth-date is the one worth adding anyway, for anyone the zone's two
+digits cannot place.
 
 Roughly one passport in five gives the wrong identifier: a surname
 truncated to fit, a name changed since birth, another transliteration,
@@ -430,7 +433,8 @@ OPTIONS:
   -E, --all-emails              Also certify every uid carrying an email,
                                 for software that expects it there
   -R, --revoke                  Revoke your earlier certifications on it
-  -o, --ownertrust VALUE        How well they certify others, in turn
+  -o, --credibility VALUE       How well they certify others, in turn
+      --ownertrust VALUE        The same, under the name gpg gives it
                                 {undefined,marginal,full,never} - Default: marginal
   -l, --local                   Certify without exporting — useful for testing
   -K, --keyservers SERVERS      Send the result to these, space separated

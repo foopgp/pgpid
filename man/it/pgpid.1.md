@@ -324,7 +324,9 @@ elemento del cognome, i primi due nomi, la data di nascita, e il paese.
 
 Con --from-passport-mrz i quattro si leggono nella zona a lettura ottica
 di un passaporto — 88 caratteri su due righe, spazi e a capo ignorati,
-può quindi essere incollata così com'è.
+può quindi essere incollata così com'è. Le quattro opzioni sopra valgono
+ancora accanto, e sostituiscono ciò che dice la zona: così un cognome
+troncato per stare si corregge senza riscrivere il resto.
 
 OPTIONS:
   -s, --surname COGNOME            Cognome di nascita
@@ -337,8 +339,8 @@ OPTIONS:
   -V, --version                    Stampare la versione e uscire
 
 Digitato, tutto è esigito: chiedere ciò che manca spetta a chi ha
-qualcuno a cui chiederlo. Da un passaporto, solo --birth-date vale la
-pena aggiungere, se due cifre non bastano.
+qualcuno a cui chiederlo. Da un passaporto, nulla lo è — e --birth-date
+resta quella che vale la pena aggiungere, se due cifre non bastano.
 
 Circa un passaporto su cinque dà l'identificativo sbagliato: un cognome
 troncato per stare, un nome cambiato dalla nascita, un'altra
@@ -431,7 +433,8 @@ OPTIONS:
   -E, --all-emails              Certificare anche ogni uid con indirizzo,
                                 per i programmi che se lo aspettano lì
   -R, --revoke                  Revocare le sue certificazioni precedenti
-  -o, --ownertrust VALORE       Fin dove certificano gli altri, a loro volta
+  -o, --credibility VALORE      Fin dove certificano gli altri, a loro volta
+      --ownertrust VALORE       Lo stesso, col nome che gpg le dà
                                 {undefined,marginal,full,never} — default: marginal
   -l, --local                   Certificare senza esportare — utile per provare
   -K, --keyservers SERVER       Inviare il risultato a questi, separati da

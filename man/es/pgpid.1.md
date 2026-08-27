@@ -327,7 +327,9 @@ y el país.
 
 Con --from-passport-mrz los cuatro se leen en la zona de lectura mecánica
 de un pasaporte — 88 caracteres en dos líneas, espacios y saltos de línea
-ignorados, así que puede pegarse tal cual.
+ignorados, así que puede pegarse tal cual. Las cuatro opciones de arriba
+siguen valiendo a su lado, y reemplazan lo que dice la zona: así se corrige
+un apellido truncado para caber sin volver a escribir el resto.
 
 OPTIONS:
   -s, --surname APELLIDO           Apellido de nacimiento
@@ -340,8 +342,8 @@ OPTIONS:
   -V, --version                    Mostrar la versión y salir
 
 Escrito a mano, todo se exige: pedir lo que falta corresponde a quien
-tiene a alguien a quien pedírselo. Desde un pasaporte, solo --birth-date
-vale la pena añadir, si dos dígitos no bastan.
+tiene a alguien a quien pedírselo. Desde un pasaporte, nada lo es — y
+--birth-date sigue siendo la que vale añadir, si dos dígitos no bastan.
 
 Cerca de un pasaporte de cada cinco da el identificador equivocado: un
 apellido truncado para caber, un nombre cambiado desde el nacimiento,
@@ -434,7 +436,8 @@ OPTIONS:
   -E, --all-emails              Certificar también todo uid con dirección,
                                 para los programas que la esperan ahí
   -R, --revoke                  Revocar sus certificaciones anteriores
-  -o, --ownertrust VALOR        Hasta dónde certifican a otros, a su vez
+  -o, --credibility VALOR       Hasta dónde certifican a otros, a su vez
+      --ownertrust VALOR        Lo mismo, con el nombre que gpg le da
                                 {undefined,marginal,full,never} — omisión: marginal
   -l, --local                   Certificar sin exportar — útil para probar
   -K, --keyservers SERVIDORES   Enviar el resultado a estos, separados por

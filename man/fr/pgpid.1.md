@@ -327,7 +327,10 @@ le pays.
 
 Avec --from-passport-mrz, les quatre sont lus dans la zone de lecture
 automatique d'un passeport — 88 caractères sur deux lignes, espaces et
-retours à la ligne ignorés, elle peut donc être collée telle quelle.
+retours à la ligne ignorés, elle peut donc être collée telle quelle. Les
+quatre options ci-dessus marchent toujours à côté, et remplacent ce que dit
+la zone : c'est ainsi qu'un nom tronqué pour tenir se corrige sans retaper
+le reste.
 
 OPTIONS:
   -s, --surname NOM                Nom de naissance
@@ -340,8 +343,8 @@ OPTIONS:
   -V, --version                    Afficher la version et quitter
 
 Tapé, tout est exigé : demander ce qui manque revient à qui a quelqu'un
-à qui le demander. Depuis un passeport, seule --birth-date vaut d'être
-ajoutée, si deux chiffres ne suffisent pas.
+à qui le demander. Depuis un passeport, rien ne l'est — et --birth-date
+reste celle qui vaut d'être ajoutée, pour qui deux chiffres ne placent pas.
 
 Environ un passeport sur cinq donne le mauvais identifiant : un nom
 tronqué pour tenir, un nom changé depuis la naissance, une autre
@@ -434,7 +437,8 @@ OPTIONS:
   -E, --all-emails              Certifier aussi tout uid portant une adresse,
                                 pour les logiciels qui l'attendent là
   -R, --revoke                  Révoquer vos certifications antérieures
-  -o, --ownertrust VALEUR       Jusqu'où ils certifient les autres, à leur tour
+  -o, --credibility VALEUR      Jusqu'où ils certifient les autres, à leur tour
+      --ownertrust VALEUR       Le même, sous le nom que gpg lui donne
                                 {undefined,marginal,full,never} — défaut : marginal
   -l, --local                   Certifier sans exporter — utile pour essayer
   -K, --keyservers SERVEURS     Envoyer le résultat à ceux-ci, séparés par des
