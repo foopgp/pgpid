@@ -443,7 +443,7 @@ is "which is the one taken"       "$(gpg --decrypt "$GNUPGHOME/ot.gpg" 2>/dev/nu
 is "takes no positional argument" "$?" "2"
 
 printf '\ntrustdb import\n'
-# Everything here is weighed offline: --import-no-fetch, so a check never
+# Everything here is weighed offline: --keyservers '', so a check never
 # reaches for a keyserver. The anchor first — the local block left this
 # certificate undecided, and without an anchor an import is refused outright.
 "$BIN" trustdb local --replace-to ultimate "$FPR" >/dev/null 2>&1
@@ -454,7 +454,7 @@ deleg() {
     printf '%s\n' "$@" > "$GNUPGHOME/d.txt"
     gpg --batch --yes --quiet --passphrase '' --pinentry-mode loopback \
         --default-key "$SFPR" --output "$GNUPGHOME/d.gpg" --sign "$GNUPGHOME/d.txt" 2>/dev/null
-    "$BIN" trustdb import --import-no-fetch "$GNUPGHOME/d.gpg" 2>&1
+    "$BIN" trustdb import --keyservers '' "$GNUPGHOME/d.gpg" 2>&1
 }
 level() { "$BIN" trustdb local "$1" | awk '{print $2}' ; }
 
@@ -479,6 +479,20 @@ is "and is said"                  "$(grep --count 'credit with nothing' <<<"$out
 out=$(deleg "$WFPR:5:")
 is "nothing lifts it afterwards"  "$(level "$WFPR")" "never"
 is "which is said, not swallowed" "$(grep --count 'ruled never' <<<"$out")" "1"
+
+# Order is part of what a chain means, and now for the weighing too: the
+# second file is judged against what the first decided, not against the state
+# before either ran.
+"$BIN" trustdb local --replace-to full "$WFPR" >/dev/null 2>&1
+printf '%s:3:\n' "$WFPR" > "$GNUPGHOME/a.txt"
+printf '%s:5:\n' "$WFPR" > "$GNUPGHOME/b.txt"
+for f in a b ; do
+    gpg --batch --yes --quiet --passphrase '' --pinentry-mode loopback \
+        --default-key "$SFPR" --output "$GNUPGHOME/$f.gpg" --sign "$GNUPGHOME/$f.txt" 2>/dev/null
+done
+out=$("$BIN" trustdb import --keyservers '' "$GNUPGHOME/a.gpg" "$GNUPGHOME/b.gpg" 2>&1)
+is "the second file is weighed after the first" "$(level "$WFPR")" "never"
+is "and says what it left alone"   "$(grep --count 'ruled never' <<<"$out")" "1"
 
 printf '\ndel\n'
 "$BIN" del "not-a-fingerprint" >/dev/null 2>&1

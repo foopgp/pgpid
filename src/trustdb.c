@@ -59,10 +59,10 @@ static void usage(FILE *out)
         "  -u, --use-privkey NAME|KEYID  export: sign with this key\n"
         "      --export-all            export: include ultimate and unknown too\n"
         "      --armor                 export: ASCII rather than binary, to commit it\n"
-        "      --import-no-fetch       import: do not ask anyone for the keys it names\n"
         "      --import-fetch-all      import: fetch or refresh every key it names,\n"
         "                              not only the ones missing here\n"
-        "  -K, --keyservers SERVERS    import: ask these, space separated\n"
+        "  -K, --keyservers SERVERS    import: ask these, space separated — empty\n"
+        "                              for none\n"
         "      --check                 recompute without asking about the rest\n"
         "      --update                recompute, asking about the rest\n"
         "  -q, --quiet                 Only errors and warnings\n"
@@ -89,20 +89,45 @@ static void usage(FILE *out)
  * the order of the files is part of what they mean: file N+1 must be judged
  * against what file N decided, not against the state before either ran.
  */
-#define LOCAL_MAX 1024
-
 struct local_table {
     /* Wide enough for a v5 fingerprint, which is sixty-four characters where
      * a v4 one is forty. */
-    char fpr[LOCAL_MAX][128];
-    char level[LOCAL_MAX];
-    size_t n;
-    bool full;
+    char (*fpr)[128];
+    char *level;
+    size_t n, cap;
 };
+
+static bool table_room(struct local_table *t, size_t want)
+{
+    if (want <= t->cap)
+        return true;
+    size_t cap = t->cap ? t->cap : 256;
+    while (cap < want)
+        cap *= 2;
+    void *f = realloc(t->fpr, cap * sizeof *t->fpr);
+    if (!f)
+        return false;
+    t->fpr = f;
+    void *l = realloc(t->level, cap);
+    if (!l)
+        return false;
+    t->level = l;
+    t->cap = cap;
+    return true;
+}
+
+static void table_free(struct local_table *t)
+{
+    free(t->fpr);
+    free(t->level);
+    t->fpr = NULL;
+    t->level = NULL;
+    t->n = t->cap = 0;
+}
 
 static bool local_levels(struct local_table *t)
 {
-    static char raw[262144];
+    static char raw[1048576];
     const char *argv[] = { "--export-ownertrust", NULL };
     t->n = 0;
     if (pgpid_capture_engine(argv, raw, sizeof raw) <= 0)
@@ -113,15 +138,8 @@ static bool local_levels(struct local_table *t)
         char *colon = strchr(line, ':');
         if (!colon || !colon[1])
             continue;
-        if (t->n == LOCAL_MAX) {
-            /* Said rather than swallowed: past here the weighing would judge
-             * a key against an opinion it cannot see. */
-            if (!t->full)
-                pgpid_error(_("Warning: More than %d keys have a credibility here; "
-                            "the rest are weighed as though undecided."), LOCAL_MAX);
-            t->full = true;
-            break;
-        }
+        if (!table_room(t, t->n + 1))
+            return false;
         t->level[t->n] = colon[1];
         *colon = '\0';
         snprintf(t->fpr[t->n], sizeof t->fpr[0], "%s", line);
@@ -146,7 +164,7 @@ static void local_set(struct local_table *t, const char *fpr, char level)
             t->level[i] = level;
             return;
         }
-    if (t->n < LOCAL_MAX) {
+    if (table_room(t, t->n + 1)) {
         snprintf(t->fpr[t->n], sizeof t->fpr[0], "%s", fpr);
         t->level[t->n++] = level;
     }
@@ -249,9 +267,18 @@ static char *export_ownertrust(void)
     if (pgpid_capture_engine(argv, raw, sizeof raw) < 0)
         return NULL;
 
-    char *lines[8192];
+    /* One slot per line of the export. Sized from the text rather than fixed:
+     * this snapshot is what the backup is written from, and a backup missing
+     * the lines past an arbitrary number is not a way back. */
+    size_t room = 1;
+    for (const char *c = raw; *c; c++)
+        if (*c == '\n')
+            room++;
+    char **lines = calloc(room, sizeof *lines);
+    if (!lines)
+        return NULL;
     size_t n = 0;
-    for (char *l = raw, *save; (l = strtok_r(l, "\n", &save)) && n < 8192; l = NULL)
+    for (char *l = raw, *save; (l = strtok_r(l, "\n", &save)); l = NULL)
         if (*l && *l != '#')
             lines[n++] = l;
     for (size_t i = 1; i < n; i++)          /* small and nearly sorted already */
@@ -264,13 +291,16 @@ static char *export_ownertrust(void)
     for (size_t i = 0; i < n; i++)
         total += strlen(lines[i]) + 1;
     char *out = malloc(total);
-    if (!out)
+    if (!out) {
+        free(lines);
         return NULL;
+    }
     *out = '\0';
     for (size_t i = 0; i < n; i++) {
         strcat(out, lines[i]);
         strcat(out, "\n");
     }
+    free(lines);
     return out;
 }
 
@@ -393,10 +423,20 @@ static void fetch_named(const struct delegation *d, bool all,
     /* Gathered first, then asked for in one go per keyserver. A merged
      * registry names hundreds of keys, and a process apiece would be the
      * slowest part of the import by a long way. */
-    const char *want[LOCAL_MAX];
+    /* As many as the file has lines, counted before asking for room: a
+     * delegation naming more keys than a fixed array holds must not have the
+     * rest quietly dropped. */
+    size_t lines = 1;
+    for (const char *c = copy; *c; c++)
+        if (*c == '\n')
+            lines++;
+    const char **want = calloc(lines, sizeof *want);
+    if (!want) {
+        free(copy);
+        return;
+    }
     size_t n = 0;
-    for (char *line = copy, *save; (line = strtok_r(line, "\n", &save)) && n < LOCAL_MAX;
-         line = NULL) {
+    for (char *line = copy, *save; (line = strtok_r(line, "\n", &save)); line = NULL) {
         if (!*line || *line == '#')
             continue;
         char *colon = strchr(line, ':');
@@ -408,6 +448,7 @@ static void fetch_named(const struct delegation *d, bool all,
         want[n++] = line;
     }
     if (!n) {
+        free(want);
         free(copy);
         return;
     }
@@ -417,6 +458,7 @@ static void fetch_named(const struct delegation *d, bool all,
     if (!servers || !argv) {
         free(servers);
         free(argv);
+        free(want);
         free(copy);
         return;
     }
@@ -435,6 +477,7 @@ static void fetch_named(const struct delegation *d, bool all,
     }
     free(argv);
     free(servers);
+    free(want);
     free(copy);
 }
 
@@ -816,6 +859,143 @@ static int do_export(int argc, char **argv)
     return PGPID_OK;
 }
 
+/*
+ * Read the files, weigh them, and apply what survives — in that order and in
+ * the order they were given, since a delegation is judged against what the
+ * one before it decided.
+ *
+ * The table is the caller's so that it is freed once, whichever way this
+ * returns.
+ */
+static int weigh_and_apply(const char *files[], size_t nfiles, bool quiet,
+                           bool fetch_all, const char *servers,
+                           struct local_table *table)
+{
+    if (!local_levels(table)) {
+        pgpid_error(_("Error: Cannot read what this machine already says."));
+        return PGPID_FAIL;
+    }
+
+    /* Without an anchor there is nothing for the delegations to hang
+     * from: gpg would compute validity out of a chain with no first
+     * link, and every verdict it returned would be meaningless. */
+    bool anchored = false;
+    for (size_t i = 0; i < table->n && !anchored; i++)
+        anchored = table->level[i] == '6';
+    if (!anchored) {
+        pgpid_error(_("Error: No key here is ultimate, so there is no anchor to "
+                    "extend from."));
+        pgpid_error(_("Notice: Mark your own certificate ultimate first: "
+                    "%s trustdb local --replace-to ultimate FINGERPRINT"),
+                    PGPID_NAME);
+        return PGPID_FAIL;
+    }
+
+    /* One listing rather than one question per key. */
+    static char known[1048576];
+    if (*servers && !fetch_all) {
+        const char *listing[] = { "--with-colons", "--list-keys", NULL };
+        if (pgpid_capture_engine(listing, known, sizeof known) <= 0)
+            *known = '\0';
+    }
+
+    struct delegation d[MAX_FILES];
+    memset(d, 0, sizeof d);
+    for (size_t i = 0; i < nfiles; i++) {
+        d[i].path = files[i];
+        if (!read_delegation(&d[i]))
+            return PGPID_FAIL;
+        /* Between reading and weighing, so that a key this file names may
+         * be the one signing the next. An empty server list asks nobody, and
+         * that is the whole of not fetching. */
+        fetch_named(&d[i], fetch_all, fetch_all ? NULL : known, servers);
+        filter_delegation(&d[i], table, quiet);
+    }
+
+    char *before = export_ownertrust();
+    if (!before)
+        return PGPID_FAIL;
+
+    /* Would anything change? Later files override earlier ones for the
+     * same fingerprint, so the answer is the merged set, not the sum. */
+    bool differs = false;
+    for (size_t i = 0; i < nfiles && !differs; i++) {
+        char *copy = strdup(d[i].content);
+        if (!copy)
+            continue;
+        for (char *line = copy, *save; (line = strtok_r(line, "\n", &save)); line = NULL) {
+            if (!*line || *line == '#')
+                continue;
+            if (!strstr(before, line)) {
+                differs = true;
+                break;
+            }
+        }
+        free(copy);
+    }
+
+    if (!differs) {
+        if (!quiet)
+            pgpid_error(_("Info: The delegations are already applied — credibility "
+                        "left unchanged."));
+    } else {
+        char dir[512], path[600];
+        const char *home = pgpid_homedir;
+        if (!home)
+            home = getenv("GNUPGHOME");
+        if (!home)
+            home = ".";
+        snprintf(dir, sizeof dir, "%s/ownertrust-backups", home);
+        mkdir(dir, 0700);
+        time_t now = time(NULL);
+        struct tm tm;
+        gmtime_r(&now, &tm);
+        char stamp[32];
+        strftime(stamp, sizeof stamp, "%Y%m%dT%H%M%SZ", &tm);
+        snprintf(path, sizeof path, "%s/ownertrust-%s.txt", dir, stamp);
+        FILE *bk = fopen(path, "w");
+        if (bk) {
+            fputs(before, bk);
+            fclose(bk);
+            pgpid_error(_("Notice: Current credibility backed up in %s."), path);
+        } else {
+            pgpid_error(_("Warning: Cannot write the backup %s — going ahead "
+                        "anyway would leave no way back. Stopping."), path);
+            free(before);
+            return PGPID_FAIL;
+        }
+
+        for (size_t i = 0; i < nfiles; i++) {
+            if (!signer_is_valid(d[i].signer)) {
+                pgpid_error(_("Error: Delegation chain broken: the signer of %s is "
+                            "not (yet) valid."), d[i].path);
+                free(before);
+                return PGPID_FAIL;
+            }
+            const char *imp[] = { "--import-ownertrust", NULL };
+            if (pgpid_run_engine_input(imp, d[i].content)) {
+                pgpid_error(_("Error: gpg would not import the delegation from %s."),
+                            d[i].path);
+                free(before);
+                return PGPID_FAIL;
+            }
+        }
+
+        if (!quiet) {
+            char *after = export_ownertrust();
+            if (after) {
+                report_change(before, after);
+                free(after);
+            }
+        }
+        pgpid_error(_("Notice: To restore the previous credibility: "
+                    "gpg --import-ownertrust %s"), path);
+    }
+    free(before);
+
+    return PGPID_OK;
+}
+
 static int do_import(int argc, char **argv)
 {
     /* Silent by default: this is called from other programs — foodjis shells
@@ -823,8 +1003,10 @@ static int do_import(int argc, char **argv)
      * hangs. A human who wants to be asked about the rest says --update. */
     bool interactive = false, quiet = false;
     /* Fetching what a delegation names is the default: a file explaining a
-     * tree is worth little beside a keyring that has not got the branches. */
-    bool fetch = true, fetch_all = false;
+     * tree is worth little beside a keyring that has not got the branches.
+     * `--keyservers ''` is how one asks nobody — the same empty list that
+     * means the same thing in every other action here. */
+    bool fetch_all = false;
     const char *keyservers = NULL;
     const char *files[MAX_FILES];
     size_t nfiles = 0;
@@ -835,8 +1017,6 @@ static int do_import(int argc, char **argv)
             interactive = false;
         } else if (!strcmp(a, "--update")) {
             interactive = true;
-        } else if (!strcmp(a, "--import-no-fetch")) {
-            fetch = false;
         } else if (!strcmp(a, "--import-fetch-all")) {
             fetch_all = true;
         } else if (!strcmp(a, "-K") || !strcmp(a, "--keyservers")) {
@@ -868,129 +1048,13 @@ static int do_import(int argc, char **argv)
     }
 
     if (nfiles) {
-        static struct local_table table;
-        if (!local_levels(&table)) {
-            pgpid_error(_("Error: Cannot read what this machine already says."));
-            return PGPID_FAIL;
-        }
-
-        /* Without an anchor there is nothing for the delegations to hang
-         * from: gpg would compute validity out of a chain with no first
-         * link, and every verdict it returned would be meaningless. */
-        bool anchored = false;
-        for (size_t i = 0; i < table.n && !anchored; i++)
-            anchored = table.level[i] == '6';
-        if (!anchored) {
-            pgpid_error(_("Error: No key here is ultimate, so there is no anchor to "
-                        "extend from."));
-            pgpid_error(_("Notice: Mark your own certificate ultimate first: "
-                        "%s trustdb local --replace-to ultimate FINGERPRINT"),
-                        PGPID_NAME);
-            return PGPID_FAIL;
-        }
-
-        /* One listing rather than one question per key. */
-        static char known[1048576];
-        if (fetch && !fetch_all) {
-            const char *listing[] = { "--with-colons", "--list-keys", NULL };
-            if (pgpid_capture_engine(listing, known, sizeof known) <= 0)
-                *known = '\0';
-        }
-
-        struct delegation d[MAX_FILES];
-        memset(d, 0, sizeof d);
-        for (size_t i = 0; i < nfiles; i++) {
-            d[i].path = files[i];
-            if (!read_delegation(&d[i]))
-                return PGPID_FAIL;
-            /* Between reading and weighing, so that a key this file names may
-             * be the one signing the next. */
-            if (fetch || fetch_all)
-                fetch_named(&d[i], fetch_all, fetch_all ? NULL : known,
-                            keyservers ? keyservers : PGPID_KEYSERVERS);
-            filter_delegation(&d[i], &table, quiet);
-        }
-
-        char *before = export_ownertrust();
-        if (!before)
-            return PGPID_FAIL;
-
-        /* Would anything change? Later files override earlier ones for the
-         * same fingerprint, so the answer is the merged set, not the sum. */
-        bool differs = false;
-        for (size_t i = 0; i < nfiles && !differs; i++) {
-            char *copy = strdup(d[i].content);
-            if (!copy)
-                continue;
-            for (char *line = copy, *save; (line = strtok_r(line, "\n", &save)); line = NULL) {
-                if (!*line || *line == '#')
-                    continue;
-                if (!strstr(before, line)) {
-                    differs = true;
-                    break;
-                }
-            }
-            free(copy);
-        }
-
-        if (!differs) {
-            if (!quiet)
-                pgpid_error(_("Info: The delegations are already applied — credibility "
-                            "left unchanged."));
-        } else {
-            char dir[512], path[600];
-            const char *home = pgpid_homedir;
-            if (!home)
-                home = getenv("GNUPGHOME");
-            if (!home)
-                home = ".";
-            snprintf(dir, sizeof dir, "%s/ownertrust-backups", home);
-            mkdir(dir, 0700);
-            time_t now = time(NULL);
-            struct tm tm;
-            gmtime_r(&now, &tm);
-            char stamp[32];
-            strftime(stamp, sizeof stamp, "%Y%m%dT%H%M%SZ", &tm);
-            snprintf(path, sizeof path, "%s/ownertrust-%s.txt", dir, stamp);
-            FILE *bk = fopen(path, "w");
-            if (bk) {
-                fputs(before, bk);
-                fclose(bk);
-                pgpid_error(_("Notice: Current credibility backed up in %s."), path);
-            } else {
-                pgpid_error(_("Warning: Cannot write the backup %s — going ahead "
-                            "anyway would leave no way back. Stopping."), path);
-                free(before);
-                return PGPID_FAIL;
-            }
-
-            for (size_t i = 0; i < nfiles; i++) {
-                if (!signer_is_valid(d[i].signer)) {
-                    pgpid_error(_("Error: Delegation chain broken: the signer of %s is "
-                                "not (yet) valid."), d[i].path);
-                    free(before);
-                    return PGPID_FAIL;
-                }
-                const char *imp[] = { "--import-ownertrust", NULL };
-                if (pgpid_run_engine_input(imp, d[i].content)) {
-                    pgpid_error(_("Error: gpg would not import the delegation from %s."),
-                                d[i].path);
-                    free(before);
-                    return PGPID_FAIL;
-                }
-            }
-
-            if (!quiet) {
-                char *after = export_ownertrust();
-                if (after) {
-                    report_change(before, after);
-                    free(after);
-                }
-            }
-            pgpid_error(_("Notice: To restore the previous credibility: "
-                        "gpg --import-ownertrust %s"), path);
-        }
-        free(before);
+        struct local_table table = { NULL, NULL, 0, 0 };
+        int rc = weigh_and_apply(files, nfiles, quiet, fetch_all,
+                                 keyservers ? keyservers : PGPID_KEYSERVERS,
+                                 &table);
+        table_free(&table);
+        if (rc != PGPID_OK)
+            return rc;
     }
 
     /* Recompute. --check takes the answers already on file; --update has gpg
