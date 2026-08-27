@@ -494,6 +494,17 @@ out=$("$BIN" trustdb import --keyservers '' "$GNUPGHOME/a.gpg" "$GNUPGHOME/b.gpg
 is "the second file is weighed after the first" "$(level "$WFPR")" "never"
 is "and says what it left alone"   "$(grep --count 'ruled never' <<<"$out")" "1"
 
+printf '\nprint_secret\n'
+# The QR header spells the fragment's number as a single digit — `scan` reads
+# it back that way — so more than ten fragments make sheets nobody can put
+# together. Refused here rather than found out on paper.
+"$BIN" print_secret --printer '' --split 11 --passphrase '' \
+    --workdir "$GNUPGHOME" "$FPR" >/dev/null 2>&1
+is "more fragments than a header can number is refused" "$?" "2"
+"$BIN" print_secret --printer '' --split 2 --passphrase '' \
+    --workdir "$GNUPGHOME" "$FPR" >/dev/null 2>&1
+is "and fewer than three, as before"  "$?" "2"
+
 printf '\ndel\n'
 "$BIN" del "not-a-fingerprint" >/dev/null 2>&1
 is "refuses anything but a fingerprint" "$?" "2"

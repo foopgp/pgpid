@@ -56,6 +56,14 @@
  * to configure — a different server, a delayed publication, none at all —
  * does it above, by passing --keyservers, and an empty list means nothing
  * is sent. */
+/* How many fragments a printed secret can be cut into.
+ *
+ * Not a buffer size: the QR header is four characters — '~', the version, the
+ * threshold less one, and the fragment's number — so the number and the
+ * threshold each get exactly one digit. `print_secret` writes it and `scan`
+ * reads it back that way, and a sheet nobody can read is discovered on paper. */
+#define PGPID_MAX_FRAGMENTS 10
+
 #define PGPID_KEYSERVERS "hkps://keys.foopgp.org hkps://keys.openpgp.org"
 
 /* The one a fresh certificate names as its own. */

@@ -314,6 +314,14 @@ int pgpid_action_print_secret(int argc, char **argv)
         pgpid_error(_("Error: Splits number (%d) can't be lower than 3."), splits);
         return PGPID_USAGE;
     }
+    /* Refused here rather than found out on paper: the QR header spells the
+     * fragment's number as a single digit, so `scan` cannot read back more
+     * than ten of them. */
+    if (splits > PGPID_MAX_FRAGMENTS) {
+        pgpid_error(_("Error: Splits number (%d) can't be higher than %d: the QR header "
+                    "spells it as one digit."), splits, PGPID_MAX_FRAGMENTS);
+        return PGPID_USAGE;
+    }
     if (splits < threshold) {
         pgpid_error(_("Warning: Threshold can't be greater than the number of splits, "
                     "reducing threshold to %d."), splits);
@@ -463,16 +471,42 @@ int pgpid_action_print_secret(int argc, char **argv)
                     splits, workdir);
 
     /* The fragments in order: gfsplit numbers them, and reading the directory
-     * gives them back in whatever order the filesystem feels like. */
-    char names[64][64];
+     * gives them back in whatever order the filesystem feels like.
+     *
+     * Counted before they are collected. --split takes any number, and with
+     * --workdir the directory belongs to the caller besides — a fragment left
+     * out of the sheet is a secret nobody will put back together. */
     size_t nfrag = 0;
     DIR *d = opendir(workdir);
     if (!d)
         return PGPID_FAIL;
-    for (struct dirent *e; (e = readdir(d)) && nfrag < 64;)
+    for (struct dirent *e; (e = readdir(d));)
         if (!strncmp(e->d_name, "SECRET-", 7))
-            snprintf(names[nfrag++], sizeof names[0], "%.63s", e->d_name);
+            nfrag++;
+    if (!nfrag) {
+        closedir(d);
+        pgpid_error(_("Error: No fragment was produced."));
+        return PGPID_FAIL;
+    }
+    char (*names)[64] = calloc(nfrag, sizeof *names);
+    if (!names) {
+        closedir(d);
+        pgpid_error(_("Error: Out of memory."));
+        return PGPID_FAIL;
+    }
+    rewinddir(d);
+    size_t got = 0;
+    for (struct dirent *e; (e = readdir(d)) && got < nfrag;)
+        if (!strncmp(e->d_name, "SECRET-", 7))
+            snprintf(names[got++], sizeof names[0], "%.63s", e->d_name);
     closedir(d);
+    nfrag = got;
+    if (nfrag > PGPID_MAX_FRAGMENTS) {
+        pgpid_error(_("Error: %zu fragments in %s, and a QR header can only number "
+                    "%d."), nfrag, workdir, PGPID_MAX_FRAGMENTS);
+        free(names);
+        return PGPID_FAIL;
+    }
     for (size_t i = 1; i < nfrag; i++)
         for (size_t k = i; k && strcmp(names[k - 1], names[k]) > 0; k--) {
             char t[64];
@@ -480,10 +514,6 @@ int pgpid_action_print_secret(int argc, char **argv)
             snprintf(names[k - 1], sizeof names[0], "%.63s", names[k]);
             snprintf(names[k], sizeof names[0], "%.63s", t);
         }
-    if (!nfrag) {
-        pgpid_error(_("Error: No fragment was produced."));
-        return PGPID_FAIL;
-    }
 
     for (size_t i = 0; i < nfrag; i++) {
         char frag[600], png[620], pdf[620], header[16];
@@ -503,6 +533,7 @@ int pgpid_action_print_secret(int argc, char **argv)
         FILE *in = fopen(frag, "r");
         if (!in) {
             pgpid_error(_("Error: Cannot read the fragment %s."), frag);
+            free(names);
             return PGPID_FAIL;
         }
         static char payload[262144];
@@ -516,6 +547,7 @@ int pgpid_action_print_secret(int argc, char **argv)
                              "--dpi=50", "--output", png, NULL };
         if (pgpid_run_program(qr, payload, NULL)) {
             pgpid_error(_("Error: qrencode would not draw fragment %zu."), i + 1);
+            free(names);
             return PGPID_FAIL;
         }
 
@@ -542,11 +574,13 @@ int pgpid_action_print_secret(int argc, char **argv)
                               "-fmarkdown-implicit_figures", NULL };
         if (pgpid_run_program(doc, sheet, rough)) {
             pgpid_error(_("Error: pandoc would not lay fragment %zu out."), i + 1);
+            free(names);
             return PGPID_FAIL;
         }
         const char *crop[] = { "pdfcrop", "--quiet", "--margins", "4", rough, pdf, NULL };
         if (pgpid_run_program(crop, NULL, NULL)) {
             pgpid_error(_("Error: pdfcrop would not trim fragment %zu."), i + 1);
+            free(names);
             return PGPID_FAIL;
         }
         unlink(rough);
@@ -555,7 +589,8 @@ int pgpid_action_print_secret(int argc, char **argv)
             const char *print[] = { "lpr", "-#", "1", "-P", printer, pdf, NULL };
             if (pgpid_run_program(print, NULL, NULL)) {
                 pgpid_error(_("Error: lpr would not print fragment %zu."), i + 1);
-                return PGPID_FAIL;
+                free(names);
+            return PGPID_FAIL;
             }
         }
     }
@@ -578,5 +613,6 @@ int pgpid_action_print_secret(int argc, char **argv)
         pgpid_error(_("Notice: The fragments are in %s. Shred it once they are on "
                     "paper: bl-security shred_path --remove '%s'"), workdir, workdir);
     }
+    free(names);
     return PGPID_OK;
 }
