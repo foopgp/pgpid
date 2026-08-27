@@ -20,6 +20,11 @@ les commits d'avant cette date disent l'autre nom.
 Vingt-et-une actions, environ 2 900 lignes de bash. Sept sont déjà passées :
 `list`, `property` (lecture), `sigs`, `ownertrust`, `del`, `avatar`, `push`.
 
+`ownertrust` et `update_trustdb` ont fusionné depuis en une seule action,
+`trustdb`, avec ses trois verbes `local`, `export` et `import`. Les noms qui
+suivent sont ceux d'alors : ce texte raconte le portage, il ne décrit pas
+l'interface d'aujourd'hui.
+
 ## Le critère qui décide de l'ordre
 
 Sur Android il n'y a **ni bash ni gpg**. Ce qui s'y porte n'est donc pas le
