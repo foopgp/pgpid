@@ -383,10 +383,20 @@ static bool read_delegation(struct delegation *d)
 static void fetch_named(const struct delegation *d, bool all,
                         const char *known, const char *keyservers)
 {
+    if (!keyservers || !*keyservers)
+        return;
+
     char *copy = strdup(d->content);
     if (!copy)
         return;
-    for (char *line = copy, *save; (line = strtok_r(line, "\n", &save)); line = NULL) {
+
+    /* Gathered first, then asked for in one go per keyserver. A merged
+     * registry names hundreds of keys, and a process apiece would be the
+     * slowest part of the import by a long way. */
+    const char *want[LOCAL_MAX];
+    size_t n = 0;
+    for (char *line = copy, *save; (line = strtok_r(line, "\n", &save)) && n < LOCAL_MAX;
+         line = NULL) {
         if (!*line || *line == '#')
             continue;
         char *colon = strchr(line, ':');
@@ -395,8 +405,36 @@ static void fetch_named(const struct delegation *d, bool all,
         *colon = '\0';
         if (!all && known && strstr(known, line))
             continue;
-        pgpid_refresh(line, keyservers);
+        want[n++] = line;
     }
+    if (!n) {
+        free(copy);
+        return;
+    }
+
+    char *servers = strdup(keyservers);
+    const char **argv = calloc(n + 5, sizeof *argv);
+    if (!servers || !argv) {
+        free(servers);
+        free(argv);
+        free(copy);
+        return;
+    }
+    for (char *save = NULL, *ks = strtok_r(servers, " \t,", &save); ks;
+         ks = strtok_r(NULL, " \t,", &save)) {
+        size_t k = 0;
+        argv[k++] = "--keyserver";
+        argv[k++] = ks;
+        argv[k++] = "--recv-keys";
+        for (size_t i = 0; i < n; i++)
+            argv[k++] = want[i];
+        argv[k] = NULL;
+        /* Failure is ordinary — a server down, a key absent — and it must not
+         * stop the import: what the file says still stands. */
+        pgpid_run_engine(argv);
+    }
+    free(argv);
+    free(servers);
     free(copy);
 }
 
