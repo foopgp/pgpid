@@ -49,7 +49,7 @@ static void usage(FILE *out)
         "                                 Easier to use, and no longer a split secret\n"
         "  -W, --workdir DIRECTORY        Work here instead of a temporary directory\n"
         "                                 Its contents must be shredded afterwards\n"
-        "  -S, --split NUM                Fragments to produce - Default: 5\n"
+        "  -S, --split NUM                Fragments to produce, 3 to %d - Default: 5\n"
         "  -T, --threshold NUM            Fragments needed to rebuild - Default: 3\n"
         "  -h, --help                     Print this help and exit\n"
         "  -V, --version                  Print the version and exit\n"
@@ -60,7 +60,7 @@ static void usage(FILE *out)
         "\n"
         "Photographs are left out of what is printed. A backup does not need your\n"
         "face, and paper is handled by whoever finds it.\n"),
-            PGPID_NAME);
+            PGPID_NAME, PGPID_SPLIT_MAX);
 }
 
 /* Is there anything called SECRET* here already? Reusing a directory that
@@ -317,9 +317,9 @@ int pgpid_action_print_secret(int argc, char **argv)
     /* Refused here rather than found out on paper: the QR header spells the
      * fragment's number as a single digit, so `scan` cannot read back more
      * than ten of them. */
-    if (splits > PGPID_MAX_FRAGMENTS) {
+    if (splits > PGPID_SPLIT_MAX) {
         pgpid_error(_("Error: Splits number (%d) can't be higher than %d: the QR header "
-                    "spells it as one digit."), splits, PGPID_MAX_FRAGMENTS);
+                    "spells it as one digit."), splits, PGPID_SPLIT_MAX);
         return PGPID_USAGE;
     }
     if (splits < threshold) {
@@ -501,9 +501,9 @@ int pgpid_action_print_secret(int argc, char **argv)
             snprintf(names[got++], sizeof names[0], "%.63s", e->d_name);
     closedir(d);
     nfrag = got;
-    if (nfrag > PGPID_MAX_FRAGMENTS) {
+    if (nfrag > PGPID_SPLIT_MAX) {
         pgpid_error(_("Error: %zu fragments in %s, and a QR header can only number "
-                    "%d."), nfrag, workdir, PGPID_MAX_FRAGMENTS);
+                    "%d."), nfrag, workdir, PGPID_SPLIT_MAX);
         free(names);
         return PGPID_FAIL;
     }

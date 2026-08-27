@@ -26,7 +26,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#define MAX_PARTS PGPID_MAX_FRAGMENTS
+#define MAX_PARTS PGPID_SPLIT_MAX
 
 static void usage(FILE *out)
 {
