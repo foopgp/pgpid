@@ -443,24 +443,21 @@ static void usage(FILE *out)
         "%s"
         " avatar [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
         "\n"
-        "Extract the image an OpenPGP certificate wears and print its path.\n"
-        "The image that stands today comes first, so the first line is the\n"
-        "avatar. Missing selector means the first secret certificate.\n"
-        "\n"
-        "Writing needs the certificate\'s secret key, and takes a fingerprint\n"
-        "only: revoking cannot be undone, so a search must never become a\n"
-        "target. A new image is brought to 180x180 first, and the changed\n"
-        "certificate is sent to the default keyservers unless told otherwise.\n"
+        "Extract or add image inside OpenPGP certificate.\n"
+        "Missing NAME|EMAIL|KEYID|U4|U5 => the first secret certificate.\n"
+        "A selector matching more than one certificate is refused: taking\n"
+        "images back cannot be undone, so a search must never become a target.\n"
+        "New IMAGE should be 180x180 pixels, or it will be resized.\n"
+        "Output the path of the image that stands today, newest first when several do.\n"
         "\n"
         "OPTIONS:\n"
-        "  -E, --extract-all           Print every image, revoked ones included\n"
-        "  -A, --replace-to IMAGE      Take back every image that stands and put IMAGE on\n"
-        "  -R, --revoke                Just take back every image that stands\n"
-        "  -K, --keyservers SERVERS    Send the changed certificate to these, space separated\n"
-        "                              Empty for none. Default: "
+        "  -E, --extract-all           Output every image, revoked and expired ones included, newest first\n"
+        "  -A, --replace-to IMAGE      Resize and add new IMAGE inside OpenPGP certificate (revoking any previous image)\n"
+        "  -R, --revoke                Just revoke all existing images inside OpenPGP certificate\n"
+        "  -W, --workdir DIRECTORY     Working directory. Will contain previous and new resized images\n"
+        "  -K, --keyservers KEYSERVERS If non-empty, send updated certificate to this keyservers - Default: "
         "%s"
         "\n"
-        "  -W, --workdir DIRECTORY     Where the images are written\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"),
             PGPID_NAME, PGPID_KEYSERVERS);
@@ -614,14 +611,22 @@ int pgpid_action_avatar(int argc, char **argv)
     gpgme_key_t key = NULL;
 
     if (selector) {
-        /* The listing is closed before anything else is asked of this
+        /*
+         * One certificate, or nothing at all.
+         *
+         * Taking every image back cannot be undone, so a selector that finds
+         * two is not a target — it is a question nobody answered, and acting
+         * on the first of them would answer it by accident. Reading obeys the
+         * same rule: the output is a list of paths with nothing in it to say
+         * which certificate each came from.
+         *
+         * The listing is closed before anything else is asked of this
          * context: gpgme carries one operation at a time, and starting an
          * edit while the enumeration is still open leaves both waiting on
-         * each other with nothing said. */
-        /* However many the selector matches. A fixed few would have --revoke
-         * act on some of them and leave the rest without a word. */
-        gpgme_key_t *found = NULL;
-        size_t nfound = 0, cap = 0;
+         * each other with nothing said.
+         */
+        gpgme_key_t found = NULL;
+        size_t nfound = 0;
         err = gpgme_op_keylist_start(ctx, selector, 0);
         if (err) {
             gpgme_release(ctx);
@@ -629,38 +634,30 @@ int pgpid_action_avatar(int argc, char **argv)
             return PGPID_FAIL;
         }
         while (!gpgme_op_keylist_next(ctx, &key)) {
-            if (nfound == cap) {
-                size_t grown = cap ? cap * 2 : 32;
-                gpgme_key_t *bigger = realloc(found, grown * sizeof *bigger);
-                if (!bigger) {
-                    pgpid_error(_("Error: Out of memory."));
-                    gpgme_key_unref(key);
-                    for (size_t k = 0; k < nfound; k++)
-                        gpgme_key_unref(found[k]);
-                    free(found);
-                    gpgme_op_keylist_end(ctx);
-                    gpgme_release(ctx);
-                    return PGPID_FAIL;
-                }
-                found = bigger;
-                cap = grown;
-            }
-            found[nfound++] = key;
+            if (nfound++)
+                gpgme_key_unref(key);
+            else
+                found = key;
         }
         gpgme_op_keylist_end(ctx);
 
-        for (size_t k = 0; k < nfound; k++) {
-            int r = (image || revoke)
-                  ? replace_avatar(ctx, found[k], image, workdir, revoke,
-                                   keyservers)
-                  : one_key(ctx, found[k], workdir, all);
-            gpgme_key_unref(found[k]);
-            if (r == PGPID_FAIL)
-                ret = PGPID_FAIL;
-            else if (r == PGPID_OK && ret != PGPID_FAIL)
-                ret = PGPID_OK;
+        if (nfound > 1) {
+            pgpid_error(_("Error: '%s' matches %zu certificates. Name one."),
+                        selector, nfound);
+            gpgme_key_unref(found);
+            gpgme_release(ctx);
+            return PGPID_FAIL;
         }
-        free(found);
+        if (!nfound) {
+            pgpid_error(_("Error: No certificate matches '%s'."), selector);
+            gpgme_release(ctx);
+            return PGPID_NOTHING;
+        }
+
+        ret = (image || revoke)
+            ? replace_avatar(ctx, found, image, workdir, revoke, keyservers)
+            : one_key(ctx, found, workdir, all);
+        gpgme_key_unref(found);
     } else if (!(err = first_secret(ctx, &key))) {
         ret = one_key(ctx, key, workdir, all);
         gpgme_key_unref(key);
