@@ -16,7 +16,7 @@ footer: pgpid 0.0.7
 
 # NAME
 
-pgpid - Lire et agir sur des certificats OpenPGP selon le modèle pgpid : identifiants d'entité, validité, ownertrust.
+pgpid - Lire et agir sur des certificats OpenPGP selon le modèle pgpid : identifiants d'entité, validité, crédibilité.
 
 # SYNOPSIS
 
@@ -25,7 +25,7 @@ pgpid - Lire et agir sur des certificats OpenPGP selon le modèle pgpid : identi
 # DESCRIPTION
 
 Lire et agir sur des certificats OpenPGP selon le modèle pgpid :
-identifiants d\'entité, validité, ownertrust.
+identifiants d\'entité, validité, crédibilité.
 
 ## ACTIONS:
 
@@ -59,11 +59,7 @@ push
 
 gen_u4
 
-:   Afficher l\'identifiant que donne un état civil
-
-mrz_to_u4
-
-:   Afficher celui que donne la zone d\'un passeport
+:   Afficher l\'identifiant que donne un état civil ou un passeport
 
 gen_uid
 
@@ -83,7 +79,7 @@ certify
 
 trustdb
 
-:   Lire, publier et appliquer la confiance faite aux autres
+:   Lire, publier et appliquer la crédibilité faite aux autres
 
 gen_key
 
@@ -323,37 +319,29 @@ OPTIONS:
 
 ```
 Usage: pgpid gen_u4 [OPTIONS]...
+   or: pgpid gen_u4 --from-passport-mrz [OPTIONS]... MRZ...
 
 Afficher l'identifiant d'entité que donne un état civil : le dernier
 élément du nom, les deux premiers prénoms, la date de naissance, et
 le pays.
+
+Avec --from-passport-mrz, les quatre sont lus dans la zone de lecture
+automatique d'un passeport — 88 caractères sur deux lignes, espaces et
+retours à la ligne ignorés, elle peut donc être collée telle quelle.
 
 OPTIONS:
   -s, --surname NOM                Nom de naissance
   -g, --given-names PRÉNOMS        Prénoms de naissance, séparés par espace, virgule, tiret
   -d, --birth-date AAAA-MM-JJ      Date de naissance
   -c, --birth-country CODE         Code pays à trois lettres du lieu de naissance
+      --from-passport-mrz          Lire l'état civil dans une zone de passeport en arguments
+  -u, --uncheck                    Avec une zone : signaler un chiffre de contrôle fautif
   -h, --help                       Afficher cette aide et quitter
   -V, --version                    Afficher la version et quitter
 
-Tout est exigé : demander ce qui manque revient à qui a quelqu'un à
-qui le demander.
-```
-
-## pgpid mrz_to_u4
-
-```
-Usage: pgpid mrz_to_u4 [OPTIONS]... MRZ...
-
-Afficher l'identifiant d'entité que donne la zone de lecture automatique
-d'un passeport. La zone fait 88 caractères sur deux lignes ; espaces et
-retours à la ligne sont ignorés, elle peut donc être collée telle quelle.
-
-OPTIONS:
-  -d, --birth-date AAAA-MM-JJ  Date de naissance, si deux chiffres ne suffisent pas
-  -u, --uncheck                Signaler un chiffre de contrôle fautif, sans refuser
-  -h, --help                   Afficher cette aide et quitter
-  -V, --version                Afficher la version et quitter
+Tapé, tout est exigé : demander ce qui manque revient à qui a quelqu'un
+à qui le demander. Depuis un passeport, seule --birth-date vaut d'être
+ajoutée, si deux chiffres ne suffisent pas.
 
 Environ un passeport sur cinq donne le mauvais identifiant : un nom
 tronqué pour tenir, un nom changé depuis la naissance, une autre
@@ -468,7 +456,7 @@ Valeur de retour :
 ```
 Usage: pgpid trustdb local|export|import [OPTIONS]... [EMPREINTE|OWNERTRUSTS.GPG]...
 
-Lire et déplacer la confiance faite aux autres pour certifier.
+Lire et déplacer la crédibilité faite aux autres pour certifier.
 
   local    Ce que cette machine dit des certificats donnés, ou de chacun
            d'eux quand aucun n'est nommé.
@@ -483,6 +471,7 @@ OPTIONS:
       --export-file FICHIER   export : y écrire au lieu de stdout
   -u, --use-privkey NOM|KEYID  export : signer avec cette clé
       --export-all            export : inclure aussi ultimate et unknown
+      --armor                 export : ASCII plutôt que binaire, pour le commiter
       --check                 Recalculer sans questionner sur les autres
       --update                Recalculer, en questionnant sur les autres
   -q, --quiet                 Seulement les erreurs et les avertissements

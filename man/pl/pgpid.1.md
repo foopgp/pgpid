@@ -16,7 +16,7 @@ footer: pgpid 0.0.7
 
 # NAME
 
-pgpid - Czyta certyfikaty OpenPGP i działa na nich wedle modelu pgpid: identyfikatory jednostek, ważność, ownertrust.
+pgpid - Czyta certyfikaty OpenPGP i działa na nich wedle modelu pgpid: identyfikatory jednostek, ważność, wiarygodność.
 
 # SYNOPSIS
 
@@ -25,7 +25,7 @@ pgpid - Czyta certyfikaty OpenPGP i działa na nich wedle modelu pgpid: identyfi
 # DESCRIPTION
 
 Czyta certyfikaty OpenPGP i działa na nich wedle modelu pgpid:
-identyfikatory jednostek, ważność, ownertrust.
+identyfikatory jednostek, ważność, wiarygodność.
 
 ## ACTIONS:
 
@@ -59,11 +59,7 @@ push
 
 gen_u4
 
-:   Wypisać identyfikator, który daje stan cywilny
-
-mrz_to_u4
-
-:   Ten, który daje strefa paszportu
+:   Wypisać identyfikator ze stanu cywilnego lub paszportu
 
 gen_uid
 
@@ -83,7 +79,7 @@ certify
 
 trustdb
 
-:   Czytać, publikować i stosować zaufanie do innych
+:   Czytać, publikować i stosować wiarygodność innych
 
 gen_key
 
@@ -322,36 +318,28 @@ OPTIONS:
 
 ```
 Usage: pgpid gen_u4 [OPTIONS]...
+   or: pgpid gen_u4 --from-passport-mrz [OPTIONS]... MRZ...
 
 Wypisuje identyfikator jednostki, który daje stan cywilny: ostatni człon
 nazwiska, dwa pierwsze imiona, datę urodzenia i kraj.
+
+Przy --from-passport-mrz te cztery czyta się ze strefy do odczytu
+maszynowego paszportu — 88 znaków w dwóch wierszach, spacje i końce
+wierszy pomijane, można ją więc wkleić tak, jak odczytano.
 
 OPTIONS:
   -s, --surname NAZWISKO           Nazwisko rodowe
   -g, --given-names IMIONA         Imiona nadane, rozdzielone spacją lub przecinkiem
   -d, --birth-date RRRR-MM-DD      Data urodzenia
   -c, --birth-country KOD          Trzyliterowy kod kraju miejsca urodzenia
+      --from-passport-mrz          Czytać stan cywilny ze strefy podanej w argumentach
+  -u, --uncheck                    Przy strefie: zgłosić błędną cyfrę kontrolną
   -h, --help                       Wypisać tę pomoc i zakończyć
   -V, --version                    Wypisać wersję i zakończyć
 
-Wszystko jest wymagane: pytanie o to, czego brak, należy do tego, kto ma
-kogo zapytać.
-```
-
-## pgpid mrz_to_u4
-
-```
-Usage: pgpid mrz_to_u4 [OPTIONS]... MRZ...
-
-Wypisuje identyfikator jednostki, który daje strefa do odczytu
-maszynowego paszportu. Strefa ma 88 znaków w dwóch wierszach; spacje
-i końce wierszy są pomijane, można ją więc wkleić tak, jak odczytano.
-
-OPTIONS:
-  -d, --birth-date RRRR-MM-DD  Data urodzenia, gdy dwie cyfry nie wystarczą
-  -u, --uncheck                Zgłosić błędną cyfrę kontrolną, bez odmowy
-  -h, --help                   Wypisać tę pomoc i zakończyć
-  -V, --version                Wypisać wersję i zakończyć
+Wpisywane — wszystko jest wymagane: pytanie o to, czego brak, należy do
+tego, kto ma kogo zapytać. Z paszportu warto dodać tylko --birth-date,
+gdy dwie cyfry nie wystarczą.
 
 Mniej więcej co piąty paszport daje błędny identyfikator: nazwisko
 skrócone, by się zmieściło, imię zmienione od urodzenia, inna
@@ -467,7 +455,7 @@ Wartość zwracana:
 ```
 Usage: pgpid trustdb local|export|import [OPTIONS]... [ODCISK|OWNERTRUSTS.GPG]...
 
-Czyta zaufanie pokładane w innych i przenosi je dalej.
+Czyta wiarygodność innych i przenosi ją dalej.
 
   local    Co ta maszyna mówi o podanych certyfikatach, albo o każdym z
            nich, gdy nie podano żadnego.
@@ -482,6 +470,7 @@ OPTIONS:
       --export-file PLIK      export: pisać tam zamiast na stdout
   -u, --use-privkey NAZWA|KEYID  export: podpisać tym kluczem
       --export-all            export: objąć także ultimate i unknown
+      --armor                 export: ASCII zamiast binarnego, by go wersjonować
       --check                 Przeliczyć bez pytania o pozostałe
       --update                Przeliczyć, pytając o pozostałe
   -q, --quiet                 Tylko błędy i ostrzeżenia

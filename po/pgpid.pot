@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-08-27 13:55+0200\n"
+"POT-Creation-Date: 2026-08-27 15:06+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -130,7 +130,7 @@ msgstr ""
 msgid "Error: '%s' wants a list of servers, empty for none."
 msgstr ""
 
-#: ../src/avatar.c:558 ../src/main.c:83 ../src/printsecret.c:260
+#: ../src/avatar.c:558 ../src/main.c:82 ../src/printsecret.c:260
 #: ../src/scan.c:121
 #, c-format
 msgid "Error: '%s' wants a directory."
@@ -138,12 +138,12 @@ msgstr ""
 
 #: ../src/avatar.c:573 ../src/certify.c:322 ../src/changepass.c:110
 #: ../src/changetokencode.c:126 ../src/changetokenmeta.c:153 ../src/del.c:93
-#: ../src/email.c:372 ../src/genkey.c:209 ../src/genu4.c:82 ../src/genuid.c:147
-#: ../src/get.c:150 ../src/list.c:377 ../src/main.c:111 ../src/mrz.c:174
+#: ../src/email.c:372 ../src/genkey.c:209 ../src/genu4.c:199
+#: ../src/genuid.c:147 ../src/get.c:150 ../src/list.c:377 ../src/main.c:110
 #: ../src/printcard.c:143 ../src/printsecret.c:290 ../src/property.c:383
 #: ../src/push.c:70 ../src/scan.c:139 ../src/sigs.c:124 ../src/token.c:129
 #: ../src/tokencheck.c:268 ../src/totoken.c:152 ../src/tovcard.c:385
-#: ../src/trustdb.c:435 ../src/trustdb.c:563 ../src/trustdb.c:655
+#: ../src/trustdb.c:438 ../src/trustdb.c:568 ../src/trustdb.c:664
 #, c-format
 msgid "Error: Unrecognized option '%s'."
 msgstr ""
@@ -303,20 +303,20 @@ msgstr ""
 msgid "Error: '%s' names %s secret key."
 msgstr ""
 
-#: ../src/certify.c:285 ../src/trustdb.c:549
+#: ../src/certify.c:285 ../src/trustdb.c:552
 #, c-format
 msgid "Error: '%s' wants a key."
 msgstr ""
 
-#: ../src/certify.c:298 ../src/genu4.c:88 ../src/property.c:354
-#: ../src/trustdb.c:416
+#: ../src/certify.c:298 ../src/genu4.c:208 ../src/property.c:354
+#: ../src/trustdb.c:419
 #, c-format
 msgid "Error: '%s' wants a value."
 msgstr ""
 
-#: ../src/certify.c:304 ../src/trustdb.c:456
+#: ../src/certify.c:304 ../src/trustdb.c:459
 #, c-format
-msgid "Error: Unknown ownertrust value '%s'."
+msgid "Error: Unknown credibility value '%s'."
 msgstr ""
 
 #: ../src/certify.c:309 ../src/email.c:357 ../src/property.c:370
@@ -661,20 +661,20 @@ msgid ""
 "  -h, --help                  Print this help and exit\n"
 msgstr ""
 
-#: ../src/del.c:48 ../src/property.c:178 ../src/sigs.c:148 ../src/trustdb.c:106
+#: ../src/del.c:48 ../src/property.c:178 ../src/sigs.c:148 ../src/trustdb.c:109
 msgid "looking the certificate up"
 msgstr ""
 
-#: ../src/del.c:55 ../src/sigs.c:156 ../src/trustdb.c:113
+#: ../src/del.c:55 ../src/sigs.c:156 ../src/trustdb.c:116
 #, c-format
 msgid "Error: No certificate matching '%s'."
 msgstr ""
 
-#: ../src/del.c:60 ../src/property.c:194 ../src/sigs.c:161 ../src/trustdb.c:118
+#: ../src/del.c:60 ../src/property.c:194 ../src/sigs.c:161 ../src/trustdb.c:121
 msgid "reading the certificate"
 msgstr ""
 
-#: ../src/del.c:69 ../src/trustdb.c:127
+#: ../src/del.c:69 ../src/trustdb.c:130
 #, c-format
 msgid "Error: '%s' matches more than one certificate."
 msgstr ""
@@ -693,7 +693,7 @@ msgid "Notice: 40 or 64 hexadecimal characters, nothing else."
 msgstr ""
 
 #: ../src/del.c:120 ../src/list.c:403 ../src/property.c:173 ../src/sigs.c:142
-#: ../src/trustdb.c:474
+#: ../src/trustdb.c:477
 msgid "opening the engine"
 msgstr ""
 
@@ -930,51 +930,104 @@ msgstr ""
 msgid "Error: gpg would not add the authentication key."
 msgstr ""
 
-#: ../src/genu4.c:27
+#: ../src/genu4.c:32
 #, c-format
 msgid ""
 "Usage: %s gen_u4 [OPTIONS]...\n"
+"   or: %s gen_u4 --from-passport-mrz [OPTIONS]... MRZ...\n"
 "\n"
 "Print the entity identifier a civil status gives: the last component\n"
 "of the surname, the first two given names, the date of birth, and\n"
 "the country.\n"
+"\n"
+"With --from-passport-mrz the four are read off the machine readable\n"
+"zone of a passport instead — 88 characters over two lines, spaces and\n"
+"newlines ignored, so it can be pasted as it was read.\n"
 "\n"
 "OPTIONS:\n"
 "  -s, --surname SURNAME            Surname at birth\n"
 "  -g, --given-names NAMES          Given names at birth, separated by space, comma or hyphen\n"
 "  -d, --birth-date YYYY-MM-DD      Date of birth\n"
 "  -c, --birth-country CODE         Three-letter country code of the place of birth\n"
+"      --from-passport-mrz          Read the civil status off a passport zone given as arguments\n"
+"  -u, --uncheck                    With a zone: report a failing check digit rather than refusing\n"
 "  -h, --help                       Print this help and exit\n"
 "  -V, --version                    Print the version and exit\n"
 "\n"
-"Everything is required: asking for what is missing belongs to whoever\n"
-"has somebody to ask.\n"
+"Typed in, everything is required: asking for what is missing belongs\n"
+"to whoever has somebody to ask. From a passport, only --birth-date is\n"
+"worth adding, for anyone the two digits cannot place.\n"
+"\n"
+"Roughly one passport in five gives the wrong identifier: a surname\n"
+"truncated to fit, a name changed since birth, another transliteration,\n"
+"or a year of birth two digits cannot place. It has to be checked.\n"
 msgstr ""
 
-#: ../src/genu4.c:96
-msgid "Error: Surname, given names, date and country are all needed."
+#: ../src/genu4.c:109
+msgid "Error: Only a passport zone is read, and this does not begin with 'P'."
 msgstr ""
 
-#: ../src/genu4.c:101
+#: ../src/genu4.c:113
 #, c-format
-msgid "Error: '%s' is not a date of the shape YYYY-MM-DD."
+msgid "%s: The zone is %zu characters, not 88."
 msgstr ""
 
-#: ../src/genu4.c:106 ../src/mrz.c:257
+#: ../src/genu4.c:126
+#, c-format
+msgid "%s: The check digit for %s does not agree."
+msgstr ""
+
+#: ../src/genu4.c:133
+#, c-format
+msgid "Error: No complete surname and given names in '%s'."
+msgstr ""
+
+#: ../src/genu4.c:151
+#, c-format
+msgid "Error: '%s' is not a date this can read."
+msgstr ""
+
+#: ../src/genu4.c:160 ../src/genu4.c:255
 #, c-format
 msgid "Error: '%s' is not a three-letter country code we know."
 msgstr ""
 
-#: ../src/genu4.c:115
+#: ../src/genu4.c:220
+msgid "Error: With --from-passport-mrz the name and the country come from the zone."
+msgstr ""
+
+#: ../src/genu4.c:225
+msgid "Error: Where is the machine readable zone?"
+msgstr ""
+
+#: ../src/genu4.c:233
+msgid "Error: '--uncheck' is about a passport's check digits; it needs --from-passport-mrz."
+msgstr ""
+
+#: ../src/genu4.c:238
+#, c-format
+msgid "Error: A civil status is given by options; '%s' is not one."
+msgstr ""
+
+#: ../src/genu4.c:245
+msgid "Error: Surname, given names, date and country are all needed."
+msgstr ""
+
+#: ../src/genu4.c:250
+#, c-format
+msgid "Error: '%s' is not a date of the shape YYYY-MM-DD."
+msgstr ""
+
+#: ../src/genu4.c:264
 msgid "Error: The name is not valid UTF-8."
 msgstr ""
 
-#: ../src/genu4.c:120
+#: ../src/genu4.c:269
 #, c-format
 msgid "Error: No surname and given names could be read from '%s'."
 msgstr ""
 
-#: ../src/genu4.c:121
+#: ../src/genu4.c:270
 msgid "Notice: Both need at least one letter once reduced to A-Z."
 msgstr ""
 
@@ -1113,7 +1166,7 @@ msgid ""
 "Usage: %s [OPTIONS]... ACTION [ARGS]...\n"
 "\n"
 "Read and act on OpenPGP certificates through the pgpid model: entity\n"
-"identifiers, validity, ownertrust.\n"
+"identifiers, validity, credibility.\n"
 "\n"
 "ACTIONS:\n"
 "  list                        List the certificates of the keyring\n"
@@ -1123,13 +1176,12 @@ msgid ""
 "  del                         Delete certificates, by fingerprint only\n"
 "  avatar                      Extract the image a certificate wears\n"
 "  push                        Send certificates to the keyservers\n"
-"  gen_u4                      Print the identifier a civil status gives\n"
-"  mrz_to_u4                   Print the identifier a passport's machine zone gives\n"
+"  gen_u4                      Print the identifier a civil status or a passport gives\n"
 "  gen_uid                     Print the Unix account number an identifier gives\n"
 "  to_vcard                    Print a certificate as a vCard\n"
 "  email                       Show, add or revoke the addresses a certificate carries\n"
 "  certify                     Vouch for somebody else\n"
-"  trustdb                     Read, publish and apply trust in others to certify\n"
+"  trustdb                     Read, publish and apply the credibility of others\n"
 "  gen_key                     Generate a key pair the PGP ID way\n"
 "  change_passphrase           Change what protects a secret key here\n"
 "  token_check                 Check what the connected security key carries\n"
@@ -1150,71 +1202,18 @@ msgid ""
 "Every action takes --help of its own.\n"
 msgstr ""
 
-#: ../src/main.c:96
+#: ../src/main.c:95
 #, c-format
 msgid "Error: Unknown output format '%s'."
 msgstr ""
 
-#: ../src/main.c:97
+#: ../src/main.c:96
 msgid "Notice: One of raw, info, md."
 msgstr ""
 
-#: ../src/main.c:177
+#: ../src/main.c:174
 #, c-format
 msgid "Error: Unknown action '%s'."
-msgstr ""
-
-#: ../src/mrz.c:128
-#, c-format
-msgid ""
-"Usage: %s mrz_to_u4 [OPTIONS]... MRZ...\n"
-"\n"
-"Print the entity identifier the machine readable zone of a passport\n"
-"gives. The zone is 88 characters over two lines; spaces and newlines\n"
-"are ignored, so it can be pasted as it was read.\n"
-"\n"
-"OPTIONS:\n"
-"  -d, --birth-date YYYY-MM-DD  Date of birth, for anyone the two digits cannot place\n"
-"  -u, --uncheck                Report a failing check digit rather than refusing\n"
-"  -h, --help                   Print this help and exit\n"
-"  -V, --version                Print the version and exit\n"
-"\n"
-"Roughly one passport in five gives the wrong identifier: a surname\n"
-"truncated to fit, a name changed since birth, another transliteration,\n"
-"or a year of birth two digits cannot place. It has to be checked.\n"
-msgstr ""
-
-#: ../src/mrz.c:158
-#, c-format
-msgid "Error: '%s' wants a date."
-msgstr ""
-
-#: ../src/mrz.c:184
-msgid "Error: Where is the machine readable zone?"
-msgstr ""
-
-#: ../src/mrz.c:202
-msgid "Error: Only a passport zone is read, and this does not begin with 'P'."
-msgstr ""
-
-#: ../src/mrz.c:206
-#, c-format
-msgid "%s: The zone is %zu characters, not 88."
-msgstr ""
-
-#: ../src/mrz.c:219
-#, c-format
-msgid "%s: The check digit for %s does not agree."
-msgstr ""
-
-#: ../src/mrz.c:230
-#, c-format
-msgid "Error: No complete surname and given names in '%s'."
-msgstr ""
-
-#: ../src/mrz.c:248
-#, c-format
-msgid "Error: '%s' is not a date this can read."
 msgstr ""
 
 #: ../src/printcard.c:31
@@ -2035,12 +2034,12 @@ msgstr ""
 msgid "Notice: Written into '%s'."
 msgstr ""
 
-#: ../src/trustdb.c:38
+#: ../src/trustdb.c:40
 #, c-format
 msgid ""
 "Usage: %s trustdb local|export|import [OPTIONS]... [FINGERPRINT|OWNERTRUSTS.GPG]...\n"
 "\n"
-"Read and move the trust you place in others to certify.\n"
+"Read and move the credibility you grant others to certify.\n"
 "\n"
 "  local    What this machine says about the given certificates, or about\n"
 "           every one of them when none is named.\n"
@@ -2055,6 +2054,7 @@ msgid ""
 "      --export-file FILE      export: write there instead of stdout\n"
 "  -u, --use-privkey NAME|KEYID  export: sign with this key\n"
 "      --export-all            export: include ultimate and unknown too\n"
+"      --armor                 export: ASCII rather than binary, to commit it\n"
 "      --check                 recompute without asking about the rest\n"
 "      --update                recompute, asking about the rest\n"
 "  -q, --quiet                 Only errors and warnings\n"
@@ -2062,161 +2062,161 @@ msgid ""
 "  -V, --version               Print the version and exit\n"
 msgstr ""
 
-#: ../src/trustdb.c:191
+#: ../src/trustdb.c:194
 msgid "Error: Cannot make a temporary file."
 msgstr ""
 
-#: ../src/trustdb.c:210
+#: ../src/trustdb.c:213
 #, c-format
 msgid "Error: Cannot read or verify %s (missing, not signed, or bad signature?)."
 msgstr ""
 
-#: ../src/trustdb.c:232
+#: ../src/trustdb.c:235
 #, c-format
 msgid "Error: %s carries no verifiable signature (signer key missing?)."
 msgstr ""
 
-#: ../src/trustdb.c:244
+#: ../src/trustdb.c:247
 #, c-format
 msgid "Warning: %s is signed in the future (%s) — is the local clock right?"
 msgstr ""
 
-#: ../src/trustdb.c:252
+#: ../src/trustdb.c:255
 #, c-format
 msgid "Warning: %s carries a delegation older than a year (%s)."
 msgstr ""
 
-#: ../src/trustdb.c:266 ../src/trustdb.c:272
+#: ../src/trustdb.c:269 ../src/trustdb.c:275
 #, c-format
 msgid "Error: %s is not a valid ownertrust file."
 msgstr ""
 
-#: ../src/trustdb.c:318
+#: ../src/trustdb.c:321
 #, c-format
 msgid "Info: %s: %zu line(s) about your own anchors, left alone."
 msgstr ""
 
-#: ../src/trustdb.c:321
+#: ../src/trustdb.c:324
 #, c-format
 msgid "Info: %s: %zu line(s) beyond full, brought back to it."
 msgstr ""
 
-#: ../src/trustdb.c:324
+#: ../src/trustdb.c:327
 #, c-format
-msgid "Info: %s: %zu key(s) it would have you trust for nothing."
-msgstr ""
-
-#: ../src/trustdb.c:351
-msgid "Info: ownertrust changes:"
+msgid "Info: %s: %zu key(s) it would have you credit with nothing."
 msgstr ""
 
 #: ../src/trustdb.c:354
-#, c-format
-msgid "  - %s"
+msgid "Info: credibility changes:"
 msgstr ""
 
 #: ../src/trustdb.c:357
 #, c-format
+msgid "  - %s"
+msgstr ""
+
+#: ../src/trustdb.c:360
+#, c-format
 msgid "  + %s"
 msgstr ""
 
-#: ../src/trustdb.c:386
+#: ../src/trustdb.c:389
 msgid "listing the certificates"
 msgstr ""
 
-#: ../src/trustdb.c:408
+#: ../src/trustdb.c:411
 msgid "Error: Out of memory."
 msgstr ""
 
-#: ../src/trustdb.c:451
-msgid "Error: A fingerprint is required to set an ownertrust."
+#: ../src/trustdb.c:454
+msgid "Error: A fingerprint is required to set a credibility."
 msgstr ""
 
-#: ../src/trustdb.c:457
+#: ../src/trustdb.c:460
 msgid "Notice: One of undefined, never, marginal, full, ultimate."
 msgstr ""
 
-#: ../src/trustdb.c:464
+#: ../src/trustdb.c:467
 msgid "Error: 'unknown' cannot be set; it is what a certificate"
 msgstr ""
 
-#: ../src/trustdb.c:465
+#: ../src/trustdb.c:468
 msgid "Notice: no one has ruled on already reads as."
 msgstr ""
 
-#: ../src/trustdb.c:498
-msgid "setting the ownertrust"
+#: ../src/trustdb.c:501
+msgid "setting the credibility"
 msgstr ""
 
-#: ../src/trustdb.c:543
+#: ../src/trustdb.c:546
 #, c-format
 msgid "Error: '%s' wants a path."
 msgstr ""
 
-#: ../src/trustdb.c:567
+#: ../src/trustdb.c:572
 msgid "Error: 'export' takes no argument; the path goes to --export-file."
 msgstr ""
 
-#: ../src/trustdb.c:599
+#: ../src/trustdb.c:604
 msgid "Error: Nothing to export: no decision worth signing."
 msgstr ""
 
-#: ../src/trustdb.c:621
+#: ../src/trustdb.c:630
 msgid "Error: gpg would not sign the export."
 msgstr ""
 
-#: ../src/trustdb.c:624
+#: ../src/trustdb.c:633
 #, c-format
 msgid "Notice: %zu delegation(s) signed. Publish it beside the tree it explains, so that anyone can replay it."
 msgstr ""
 
-#: ../src/trustdb.c:661
+#: ../src/trustdb.c:670
 msgid "Error: Too many files at once."
 msgstr ""
 
-#: ../src/trustdb.c:677
+#: ../src/trustdb.c:686
 msgid "Error: No key here is ultimate, so there is no anchor to extend from."
 msgstr ""
 
-#: ../src/trustdb.c:679
+#: ../src/trustdb.c:688
 #, c-format
 msgid "Notice: Mark your own certificate ultimate first: %s trustdb local --replace-to ultimate FINGERPRINT"
 msgstr ""
 
-#: ../src/trustdb.c:717
-msgid "Info: The delegations are already applied — ownertrust left unchanged."
+#: ../src/trustdb.c:726
+msgid "Info: The delegations are already applied — credibility left unchanged."
 msgstr ""
 
-#: ../src/trustdb.c:738
+#: ../src/trustdb.c:747
 #, c-format
-msgid "Notice: Current ownertrust backed up in %s."
+msgid "Notice: Current credibility backed up in %s."
 msgstr ""
 
-#: ../src/trustdb.c:740
+#: ../src/trustdb.c:749
 #, c-format
 msgid "Warning: Cannot write the backup %s — going ahead anyway would leave no way back. Stopping."
 msgstr ""
 
-#: ../src/trustdb.c:748
+#: ../src/trustdb.c:757
 #, c-format
 msgid "Error: Delegation chain broken: the signer of %s is not (yet) valid."
 msgstr ""
 
-#: ../src/trustdb.c:755
+#: ../src/trustdb.c:764
 #, c-format
 msgid "Error: gpg would not import the delegation from %s."
 msgstr ""
 
-#: ../src/trustdb.c:769
+#: ../src/trustdb.c:778
 #, c-format
-msgid "Notice: To restore the previous trust: gpg --import-ownertrust %s"
+msgid "Notice: To restore the previous credibility: gpg --import-ownertrust %s"
 msgstr ""
 
-#: ../src/trustdb.c:788
+#: ../src/trustdb.c:797
 msgid "Error: One of local, export or import is required."
 msgstr ""
 
-#: ../src/trustdb.c:812
+#: ../src/trustdb.c:821
 #, c-format
 msgid "Error: '%s' is not one of local, export or import."
 msgstr ""

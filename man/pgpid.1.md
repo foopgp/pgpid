@@ -16,7 +16,7 @@ footer: pgpid 0.0.7
 
 # NAME
 
-pgpid - Read and act on OpenPGP certificates through the pgpid model: entity identifiers, validity, ownertrust.
+pgpid - Read and act on OpenPGP certificates through the pgpid model: entity identifiers, validity, credibility.
 
 # SYNOPSIS
 
@@ -25,7 +25,7 @@ pgpid - Read and act on OpenPGP certificates through the pgpid model: entity ide
 # DESCRIPTION
 
 Read and act on OpenPGP certificates through the pgpid model: entity
-identifiers, validity, ownertrust.
+identifiers, validity, credibility.
 
 ## ACTIONS:
 
@@ -59,11 +59,7 @@ push
 
 gen_u4
 
-:   Print the identifier a civil status gives
-
-mrz_to_u4
-
-:   Print the identifier a passport\'s machine zone gives
+:   Print the identifier a civil status or a passport gives
 
 gen_uid
 
@@ -83,7 +79,7 @@ certify
 
 trustdb
 
-:   Read, publish and apply trust in others to certify
+:   Read, publish and apply the credibility of others
 
 gen_key
 
@@ -320,37 +316,29 @@ OPTIONS:
 
 ```
 Usage: pgpid gen_u4 [OPTIONS]...
+   or: pgpid gen_u4 --from-passport-mrz [OPTIONS]... MRZ...
 
 Print the entity identifier a civil status gives: the last component
 of the surname, the first two given names, the date of birth, and
 the country.
+
+With --from-passport-mrz the four are read off the machine readable
+zone of a passport instead — 88 characters over two lines, spaces and
+newlines ignored, so it can be pasted as it was read.
 
 OPTIONS:
   -s, --surname SURNAME            Surname at birth
   -g, --given-names NAMES          Given names at birth, separated by space, comma or hyphen
   -d, --birth-date YYYY-MM-DD      Date of birth
   -c, --birth-country CODE         Three-letter country code of the place of birth
+      --from-passport-mrz          Read the civil status off a passport zone given as arguments
+  -u, --uncheck                    With a zone: report a failing check digit rather than refusing
   -h, --help                       Print this help and exit
   -V, --version                    Print the version and exit
 
-Everything is required: asking for what is missing belongs to whoever
-has somebody to ask.
-```
-
-## pgpid mrz_to_u4
-
-```
-Usage: pgpid mrz_to_u4 [OPTIONS]... MRZ...
-
-Print the entity identifier the machine readable zone of a passport
-gives. The zone is 88 characters over two lines; spaces and newlines
-are ignored, so it can be pasted as it was read.
-
-OPTIONS:
-  -d, --birth-date YYYY-MM-DD  Date of birth, for anyone the two digits cannot place
-  -u, --uncheck                Report a failing check digit rather than refusing
-  -h, --help                   Print this help and exit
-  -V, --version                Print the version and exit
+Typed in, everything is required: asking for what is missing belongs
+to whoever has somebody to ask. From a passport, only --birth-date is
+worth adding, for anyone the two digits cannot place.
 
 Roughly one passport in five gives the wrong identifier: a surname
 truncated to fit, a name changed since birth, another transliteration,
@@ -464,7 +452,7 @@ Return value:
 ```
 Usage: pgpid trustdb local|export|import [OPTIONS]... [FINGERPRINT|OWNERTRUSTS.GPG]...
 
-Read and move the trust you place in others to certify.
+Read and move the credibility you grant others to certify.
 
   local    What this machine says about the given certificates, or about
            every one of them when none is named.
@@ -479,6 +467,7 @@ OPTIONS:
       --export-file FILE      export: write there instead of stdout
   -u, --use-privkey NAME|KEYID  export: sign with this key
       --export-all            export: include ultimate and unknown too
+      --armor                 export: ASCII rather than binary, to commit it
       --check                 recompute without asking about the rest
       --update                recompute, asking about the rest
   -q, --quiet                 Only errors and warnings

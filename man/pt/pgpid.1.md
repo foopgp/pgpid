@@ -16,7 +16,7 @@ footer: pgpid 0.0.7
 
 # NAME
 
-pgpid - Ler e agir sobre certificados OpenPGP segundo o modelo pgpid: identificadores de entidade, validade, ownertrust.
+pgpid - Ler e agir sobre certificados OpenPGP segundo o modelo pgpid: identificadores de entidade, validade, credibilidade.
 
 # SYNOPSIS
 
@@ -25,7 +25,7 @@ pgpid - Ler e agir sobre certificados OpenPGP segundo o modelo pgpid: identifica
 # DESCRIPTION
 
 Ler e agir sobre certificados OpenPGP segundo o modelo pgpid:
-identificadores de entidade, validade, ownertrust.
+identificadores de entidade, validade, credibilidade.
 
 ## ACTIONS:
 
@@ -59,11 +59,7 @@ push
 
 gen_u4
 
-:   Imprimir o identificador que um estado civil dá
-
-mrz_to_u4
-
-:   O que a zona de um passaporte dá
+:   Imprimir o identificador de um estado civil ou passaporte
 
 gen_uid
 
@@ -83,7 +79,7 @@ certify
 
 trustdb
 
-:   Ler, publicar e aplicar a confiança posta em outros
+:   Ler, publicar e aplicar a credibilidade dada a outros
 
 gen_key
 
@@ -322,36 +318,29 @@ OPTIONS:
 
 ```
 Usage: pgpid gen_u4 [OPTIONS]...
+   or: pgpid gen_u4 --from-passport-mrz [OPTIONS]... MRZ...
 
 Imprimir o identificador de entidade que um estado civil dá: o último
 elemento do apelido, os dois primeiros nomes, a data de nascimento, e o
 país.
+
+Com --from-passport-mrz os quatro são lidos na zona de leitura ótica de
+um passaporte — 88 carateres em duas linhas, espaços e mudanças de linha
+ignorados, pode pois ser colada tal como foi lida.
 
 OPTIONS:
   -s, --surname APELIDO            Apelido de nascimento
   -g, --given-names NOMES          Nomes de nascimento, separados por espaço ou vírgula
   -d, --birth-date AAAA-MM-DD      Data de nascimento
   -c, --birth-country CÓDIGO       Código de país de três letras do local de nascimento
+      --from-passport-mrz          Ler o estado civil de uma zona dada em argumentos
+  -u, --uncheck                    Com uma zona: assinalar um dígito de controlo errado
   -h, --help                       Imprimir esta ajuda e sair
   -V, --version                    Imprimir a versão e sair
 
-Tudo é exigido: pedir o que falta cabe a quem tem alguém a quem pedir.
-```
-
-## pgpid mrz_to_u4
-
-```
-Usage: pgpid mrz_to_u4 [OPTIONS]... MRZ...
-
-Imprimir o identificador de entidade que a zona de leitura ótica de um
-passaporte dá. A zona tem 88 carateres em duas linhas; espaços e mudanças
-de linha são ignorados, pode pois ser colada tal como foi lida.
-
-OPTIONS:
-  -d, --birth-date AAAA-MM-DD  Data de nascimento, se dois dígitos não bastarem
-  -u, --uncheck                Assinalar um dígito de controlo errado, sem recusar
-  -h, --help                   Imprimir esta ajuda e sair
-  -V, --version                Imprimir a versão e sair
+Escrito à mão, tudo é exigido: pedir o que falta cabe a quem tem alguém a
+quem pedir. De um passaporte, só --birth-date vale a pena acrescentar, se
+dois dígitos não bastarem.
 
 Cerca de um passaporte em cinco dá o identificador errado: um apelido
 truncado para caber, um nome mudado desde o nascimento, outra
@@ -467,7 +456,7 @@ Valor de retorno:
 ```
 Usage: pgpid trustdb local|export|import [OPTIONS]... [IMPRESSÃO|OWNERTRUSTS.GPG]...
 
-Ler e mover a confiança posta em outros para certificar.
+Ler e mover a credibilidade dada a outros para certificar.
 
   local    O que esta máquina diz dos certificados dados, ou de cada um
            deles quando nenhum é nomeado.
@@ -482,6 +471,7 @@ OPTIONS:
       --export-file FICHEIRO  export: escrever aí em vez de em stdout
   -u, --use-privkey NOME|KEYID  export: assinar com esta chave
       --export-all            export: incluir também ultimate e unknown
+      --armor                 export: ASCII em vez de binário, para versioná-lo
       --check                 Recalcular sem perguntar pelas outras
       --update                Recalcular, perguntando pelas outras
   -q, --quiet                 Só erros e avisos

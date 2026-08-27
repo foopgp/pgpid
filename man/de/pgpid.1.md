@@ -16,7 +16,7 @@ footer: pgpid 0.0.7
 
 # NAME
 
-pgpid - Liest OpenPGP-Zertifikate und handelt an ihnen nach dem pgpid-Modell: Entitätskennungen, Gültigkeit, ownertrust.
+pgpid - Liest OpenPGP-Zertifikate und handelt an ihnen nach dem pgpid-Modell: Entitätskennungen, Gültigkeit, Glaubwürdigkeit.
 
 # SYNOPSIS
 
@@ -25,7 +25,7 @@ pgpid - Liest OpenPGP-Zertifikate und handelt an ihnen nach dem pgpid-Modell: En
 # DESCRIPTION
 
 Liest OpenPGP-Zertifikate und handelt an ihnen nach dem pgpid-Modell:
-Entitätskennungen, Gültigkeit, ownertrust.
+Entitätskennungen, Gültigkeit, Glaubwürdigkeit.
 
 ## ACTIONS:
 
@@ -59,11 +59,7 @@ push
 
 gen_u4
 
-:   Die Kennung ausgeben, die ein Personenstand ergibt
-
-mrz_to_u4
-
-:   Die, die eine Passzone ergibt
+:   Kennung aus Personenstand oder Pass ausgeben
 
 gen_uid
 
@@ -83,7 +79,7 @@ certify
 
 trustdb
 
-:   Vertrauen in andere lesen, veröffentlichen und anwenden
+:   Glaubwürdigkeit anderer lesen, veröffentlichen und anwenden
 
 gen_key
 
@@ -324,37 +320,29 @@ OPTIONS:
 
 ```
 Usage: pgpid gen_u4 [OPTIONS]...
+   or: pgpid gen_u4 --from-passport-mrz [OPTIONS]... MRZ...
 
 Gibt die Entitätskennung aus, die ein Personenstand ergibt: den letzten
 Bestandteil des Nachnamens, die ersten zwei Vornamen, das Geburtsdatum
 und das Land.
+
+Mit --from-passport-mrz werden die vier stattdessen aus der
+maschinenlesbaren Zone eines Passes gelesen — 88 Zeichen auf zwei Zeilen,
+Leerzeichen und Zeilenumbrüche übergangen, unverändert einfügbar.
 
 OPTIONS:
   -s, --surname NACHNAME           Geburtsname
   -g, --given-names VORNAMEN       Vornamen bei Geburt, getrennt durch Leerzeichen, Komma
   -d, --birth-date JJJJ-MM-TT      Geburtsdatum
   -c, --birth-country CODE         Dreibuchstabiger Ländercode des Geburtsorts
+      --from-passport-mrz          Personenstand aus einer als Argument gegebenen Zone lesen
+  -u, --uncheck                    Mit einer Zone: falsche Prüfziffer melden
   -h, --help                       Diese Hilfe ausgeben und beenden
   -V, --version                    Die Version ausgeben und beenden
 
-Alles wird verlangt: nach dem zu fragen, was fehlt, ist Sache dessen, der
-jemanden zum Fragen hat.
-```
-
-## pgpid mrz_to_u4
-
-```
-Usage: pgpid mrz_to_u4 [OPTIONS]... MRZ...
-
-Gibt die Entitätskennung aus, die die maschinenlesbare Zone eines Passes
-ergibt. Die Zone hat 88 Zeichen auf zwei Zeilen; Leerzeichen und
-Zeilenumbrüche werden übergangen, sie lässt sich also unverändert einfügen.
-
-OPTIONS:
-  -d, --birth-date JJJJ-MM-TT  Geburtsdatum, wenn zwei Ziffern nicht reichen
-  -u, --uncheck                Falsche Prüfziffer melden, statt abzulehnen
-  -h, --help                   Diese Hilfe ausgeben und beenden
-  -V, --version                Die Version ausgeben und beenden
+Getippt wird alles verlangt: nach dem zu fragen, was fehlt, ist Sache
+dessen, der jemanden zum Fragen hat. Aus einem Pass lohnt allein
+--birth-date, wenn zwei Ziffern nicht reichen.
 
 Etwa jeder fünfte Pass ergibt die falsche Kennung: ein Nachname, der zum
 Passen gekürzt wurde, ein seit der Geburt geänderter Name, eine andere
@@ -471,7 +459,7 @@ Rückgabewert:
 ```
 Usage: pgpid trustdb local|export|import [OPTIONS]... [ABDRUCK|OWNERTRUSTS.GPG]...
 
-Liest das Vertrauen in andere und trägt es weiter.
+Liest die Glaubwürdigkeit anderer und trägt sie weiter.
 
   local    Was diese Maschine über die angegebenen Zertifikate sagt, oder
            über jedes von ihnen, wenn keines genannt wird.
@@ -486,6 +474,7 @@ OPTIONS:
       --export-file DATEI     export: dorthin schreiben statt nach stdout
   -u, --use-privkey NAME|KEYID  export: mit diesem Schlüssel signieren
       --export-all            export: auch ultimate und unknown mitnehmen
+      --armor                 export: ASCII statt binär, um es zu versionieren
       --check                 Neu berechnen, ohne nach den übrigen zu fragen
       --update                Neu berechnen und nach den übrigen fragen
   -q, --quiet                 Nur Fehler und Warnungen

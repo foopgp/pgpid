@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid 0.0.7-35-g8512aa6\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-08-27 13:55+0200\n"
+"POT-Creation-Date: 2026-08-27 15:06+0200\n"
 "PO-Revision-Date: 2026-08-22 22:58+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -152,7 +152,7 @@ msgstr "Error: «%s» espera una imagen."
 msgid "Error: '%s' wants a list of servers, empty for none."
 msgstr "Error: «%s» espera una lista de servidores, vacía para ninguno."
 
-#: ../src/avatar.c:558 ../src/main.c:83 ../src/printsecret.c:260
+#: ../src/avatar.c:558 ../src/main.c:82 ../src/printsecret.c:260
 #: ../src/scan.c:121
 #, c-format
 msgid "Error: '%s' wants a directory."
@@ -160,12 +160,12 @@ msgstr "Error: «%s» espera un directorio."
 
 #: ../src/avatar.c:573 ../src/certify.c:322 ../src/changepass.c:110
 #: ../src/changetokencode.c:126 ../src/changetokenmeta.c:153 ../src/del.c:93
-#: ../src/email.c:372 ../src/genkey.c:209 ../src/genu4.c:82 ../src/genuid.c:147
-#: ../src/get.c:150 ../src/list.c:377 ../src/main.c:111 ../src/mrz.c:174
+#: ../src/email.c:372 ../src/genkey.c:209 ../src/genu4.c:199
+#: ../src/genuid.c:147 ../src/get.c:150 ../src/list.c:377 ../src/main.c:110
 #: ../src/printcard.c:143 ../src/printsecret.c:290 ../src/property.c:383
 #: ../src/push.c:70 ../src/scan.c:139 ../src/sigs.c:124 ../src/token.c:129
 #: ../src/tokencheck.c:268 ../src/totoken.c:152 ../src/tovcard.c:385
-#: ../src/trustdb.c:435 ../src/trustdb.c:563 ../src/trustdb.c:655
+#: ../src/trustdb.c:438 ../src/trustdb.c:568 ../src/trustdb.c:664
 #, c-format
 msgid "Error: Unrecognized option '%s'."
 msgstr "Error: Opción desconocida «%s»."
@@ -358,21 +358,21 @@ msgstr "Error: No se pueden listar las claves secretas."
 msgid "Error: '%s' names %s secret key."
 msgstr "Error: «%s» nombra %s clave secreta."
 
-#: ../src/certify.c:285 ../src/trustdb.c:549
+#: ../src/certify.c:285 ../src/trustdb.c:552
 #, c-format
 msgid "Error: '%s' wants a key."
 msgstr "Error: «%s» espera una clave."
 
-#: ../src/certify.c:298 ../src/genu4.c:88 ../src/property.c:354
-#: ../src/trustdb.c:416
+#: ../src/certify.c:298 ../src/genu4.c:208 ../src/property.c:354
+#: ../src/trustdb.c:419
 #, c-format
 msgid "Error: '%s' wants a value."
 msgstr "Error: «%s» espera un valor."
 
-#: ../src/certify.c:304 ../src/trustdb.c:456
+#: ../src/certify.c:304 ../src/trustdb.c:459
 #, c-format
-msgid "Error: Unknown ownertrust value '%s'."
-msgstr "Error: Valor de ownertrust desconocido «%s»."
+msgid "Error: Unknown credibility value '%s'."
+msgstr "Error: Valor de credibilidad desconocido «%s»."
 
 #: ../src/certify.c:309 ../src/email.c:357 ../src/property.c:370
 #, c-format
@@ -785,20 +785,20 @@ msgstr ""
 "  -s, --secret                Borrar solo el secreto, conservar el certificado\n"
 "  -h, --help                  Mostrar esta ayuda y salir\n"
 
-#: ../src/del.c:48 ../src/property.c:178 ../src/sigs.c:148 ../src/trustdb.c:106
+#: ../src/del.c:48 ../src/property.c:178 ../src/sigs.c:148 ../src/trustdb.c:109
 msgid "looking the certificate up"
 msgstr "buscando el certificado"
 
-#: ../src/del.c:55 ../src/sigs.c:156 ../src/trustdb.c:113
+#: ../src/del.c:55 ../src/sigs.c:156 ../src/trustdb.c:116
 #, c-format
 msgid "Error: No certificate matching '%s'."
 msgstr "Error: Ningún certificado corresponde a «%s»."
 
-#: ../src/del.c:60 ../src/property.c:194 ../src/sigs.c:161 ../src/trustdb.c:118
+#: ../src/del.c:60 ../src/property.c:194 ../src/sigs.c:161 ../src/trustdb.c:121
 msgid "reading the certificate"
 msgstr "leyendo el certificado"
 
-#: ../src/del.c:69 ../src/trustdb.c:127
+#: ../src/del.c:69 ../src/trustdb.c:130
 #, c-format
 msgid "Error: '%s' matches more than one certificate."
 msgstr "Error: «%s» corresponde a más de un certificado."
@@ -817,7 +817,7 @@ msgid "Notice: 40 or 64 hexadecimal characters, nothing else."
 msgstr "Notice: 40 o 64 caracteres hexadecimales, nada más."
 
 #: ../src/del.c:120 ../src/list.c:403 ../src/property.c:173 ../src/sigs.c:142
-#: ../src/trustdb.c:474
+#: ../src/trustdb.c:477
 msgid "opening the engine"
 msgstr "abriendo el motor"
 
@@ -1104,67 +1104,133 @@ msgstr "Warning: No se puede poner el uid principal en %s."
 msgid "Error: gpg would not add the authentication key."
 msgstr "Error: gpg se negó a añadir la clave de autenticación."
 
-#: ../src/genu4.c:27
+#: ../src/genu4.c:32
 #, c-format
 msgid ""
 "Usage: %s gen_u4 [OPTIONS]...\n"
+"   or: %s gen_u4 --from-passport-mrz [OPTIONS]... MRZ...\n"
 "\n"
 "Print the entity identifier a civil status gives: the last component\n"
 "of the surname, the first two given names, the date of birth, and\n"
 "the country.\n"
+"\n"
+"With --from-passport-mrz the four are read off the machine readable\n"
+"zone of a passport instead — 88 characters over two lines, spaces and\n"
+"newlines ignored, so it can be pasted as it was read.\n"
 "\n"
 "OPTIONS:\n"
 "  -s, --surname SURNAME            Surname at birth\n"
 "  -g, --given-names NAMES          Given names at birth, separated by space, comma or hyphen\n"
 "  -d, --birth-date YYYY-MM-DD      Date of birth\n"
 "  -c, --birth-country CODE         Three-letter country code of the place of birth\n"
+"      --from-passport-mrz          Read the civil status off a passport zone given as arguments\n"
+"  -u, --uncheck                    With a zone: report a failing check digit rather than refusing\n"
 "  -h, --help                       Print this help and exit\n"
 "  -V, --version                    Print the version and exit\n"
 "\n"
-"Everything is required: asking for what is missing belongs to whoever\n"
-"has somebody to ask.\n"
+"Typed in, everything is required: asking for what is missing belongs\n"
+"to whoever has somebody to ask. From a passport, only --birth-date is\n"
+"worth adding, for anyone the two digits cannot place.\n"
+"\n"
+"Roughly one passport in five gives the wrong identifier: a surname\n"
+"truncated to fit, a name changed since birth, another transliteration,\n"
+"or a year of birth two digits cannot place. It has to be checked.\n"
 msgstr ""
 "Usage: %s gen_u4 [OPTIONS]...\n"
+"   or: %s gen_u4 --from-passport-mrz [OPTIONS]... MRZ...\n"
 "\n"
 "Mostrar el identificador de entidad que da un estado civil: el último\n"
 "elemento del apellido, los dos primeros nombres, la fecha de nacimiento,\n"
 "y el país.\n"
+"\n"
+"Con --from-passport-mrz los cuatro se leen en la zona de lectura mecánica\n"
+"de un pasaporte — 88 caracteres en dos líneas, espacios y saltos de línea\n"
+"ignorados, así que puede pegarse tal cual.\n"
 "\n"
 "OPTIONS:\n"
 "  -s, --surname APELLIDO           Apellido de nacimiento\n"
 "  -g, --given-names NOMBRES        Nombres de nacimiento, separados por espacio, coma, guion\n"
 "  -d, --birth-date AAAA-MM-DD      Fecha de nacimiento\n"
 "  -c, --birth-country CÓDIGO       Código de país de tres letras del lugar de nacimiento\n"
+"      --from-passport-mrz          Leer el estado civil de una zona dada en argumentos\n"
+"  -u, --uncheck                    Con una zona: señalar un dígito de control erróneo\n"
 "  -h, --help                       Mostrar esta ayuda y salir\n"
 "  -V, --version                    Mostrar la versión y salir\n"
 "\n"
-"Todo se exige: pedir lo que falta corresponde a quien tiene a alguien a\n"
-"quien pedírselo.\n"
+"Escrito a mano, todo se exige: pedir lo que falta corresponde a quien\n"
+"tiene a alguien a quien pedírselo. Desde un pasaporte, solo --birth-date\n"
+"vale la pena añadir, si dos dígitos no bastan.\n"
+"\n"
+"Cerca de un pasaporte de cada cinco da el identificador equivocado: un\n"
+"apellido truncado para caber, un nombre cambiado desde el nacimiento,\n"
+"otra transliteración, o un año que dos dígitos no sitúan. Hay que\n"
+"comprobarlo.\n"
 
-#: ../src/genu4.c:96
-msgid "Error: Surname, given names, date and country are all needed."
-msgstr "Error: Hacen falta el apellido, los nombres, la fecha y el país."
+#: ../src/genu4.c:109
+msgid "Error: Only a passport zone is read, and this does not begin with 'P'."
+msgstr "Error: Solo se lee una zona de pasaporte, y esta no empieza por «P»."
 
-#: ../src/genu4.c:101
+#: ../src/genu4.c:113
 #, c-format
-msgid "Error: '%s' is not a date of the shape YYYY-MM-DD."
-msgstr "Error: «%s» no es una fecha con la forma AAAA-MM-DD."
+msgid "%s: The zone is %zu characters, not 88."
+msgstr "%s: La zona tiene %zu caracteres, no 88."
 
-#: ../src/genu4.c:106 ../src/mrz.c:257
+#: ../src/genu4.c:126
+#, c-format
+msgid "%s: The check digit for %s does not agree."
+msgstr "%s: El dígito de control de %s no concuerda."
+
+#: ../src/genu4.c:133
+#, c-format
+msgid "Error: No complete surname and given names in '%s'."
+msgstr "Error: No hay apellido y nombres completos en «%s»."
+
+#: ../src/genu4.c:151
+#, c-format
+msgid "Error: '%s' is not a date this can read."
+msgstr "Error: «%s» no es una fecha legible aquí."
+
+#: ../src/genu4.c:160 ../src/genu4.c:255
 #, c-format
 msgid "Error: '%s' is not a three-letter country code we know."
 msgstr "Error: «%s» no es un código de país de tres letras que conozcamos."
 
-#: ../src/genu4.c:115
+#: ../src/genu4.c:220
+msgid "Error: With --from-passport-mrz the name and the country come from the zone."
+msgstr "Error: Con --from-passport-mrz, el nombre y el país vienen de la zona."
+
+#: ../src/genu4.c:225
+msgid "Error: Where is the machine readable zone?"
+msgstr "Error: ¿Dónde está la zona de lectura mecánica?"
+
+#: ../src/genu4.c:233
+msgid "Error: '--uncheck' is about a passport's check digits; it needs --from-passport-mrz."
+msgstr "Error: «--uncheck» trata de los dígitos de control de un pasaporte; necesita --from-passport-mrz."
+
+#: ../src/genu4.c:238
+#, c-format
+msgid "Error: A civil status is given by options; '%s' is not one."
+msgstr "Error: Un estado civil se da por opciones; «%s» no es una."
+
+#: ../src/genu4.c:245
+msgid "Error: Surname, given names, date and country are all needed."
+msgstr "Error: Hacen falta el apellido, los nombres, la fecha y el país."
+
+#: ../src/genu4.c:250
+#, c-format
+msgid "Error: '%s' is not a date of the shape YYYY-MM-DD."
+msgstr "Error: «%s» no es una fecha con la forma AAAA-MM-DD."
+
+#: ../src/genu4.c:264
 msgid "Error: The name is not valid UTF-8."
 msgstr "Error: El nombre no es UTF-8 válido."
 
-#: ../src/genu4.c:120
+#: ../src/genu4.c:269
 #, c-format
 msgid "Error: No surname and given names could be read from '%s'."
 msgstr "Error: No se pudieron leer apellido y nombres en «%s»."
 
-#: ../src/genu4.c:121
+#: ../src/genu4.c:270
 msgid "Notice: Both need at least one letter once reduced to A-Z."
 msgstr "Notice: Ambos necesitan al menos una letra una vez reducidos a A-Z."
 
@@ -1365,7 +1431,7 @@ msgid ""
 "Usage: %s [OPTIONS]... ACTION [ARGS]...\n"
 "\n"
 "Read and act on OpenPGP certificates through the pgpid model: entity\n"
-"identifiers, validity, ownertrust.\n"
+"identifiers, validity, credibility.\n"
 "\n"
 "ACTIONS:\n"
 "  list                        List the certificates of the keyring\n"
@@ -1375,13 +1441,12 @@ msgid ""
 "  del                         Delete certificates, by fingerprint only\n"
 "  avatar                      Extract the image a certificate wears\n"
 "  push                        Send certificates to the keyservers\n"
-"  gen_u4                      Print the identifier a civil status gives\n"
-"  mrz_to_u4                   Print the identifier a passport's machine zone gives\n"
+"  gen_u4                      Print the identifier a civil status or a passport gives\n"
 "  gen_uid                     Print the Unix account number an identifier gives\n"
 "  to_vcard                    Print a certificate as a vCard\n"
 "  email                       Show, add or revoke the addresses a certificate carries\n"
 "  certify                     Vouch for somebody else\n"
-"  trustdb                     Read, publish and apply trust in others to certify\n"
+"  trustdb                     Read, publish and apply the credibility of others\n"
 "  gen_key                     Generate a key pair the PGP ID way\n"
 "  change_passphrase           Change what protects a secret key here\n"
 "  token_check                 Check what the connected security key carries\n"
@@ -1404,7 +1469,7 @@ msgstr ""
 "Usage: %s [OPTIONS]... ACTION [ARGS]...\n"
 "\n"
 "Leer y actuar sobre certificados OpenPGP según el modelo pgpid:\n"
-"identificadores de entidad, validez, ownertrust.\n"
+"identificadores de entidad, validez, credibilidad.\n"
 "\n"
 "ACTIONS:\n"
 "  list                        Listar los certificados del llavero\n"
@@ -1414,13 +1479,12 @@ msgstr ""
 "  del                         Borrar certificados, solo por huella\n"
 "  avatar                      Extraer la imagen que lleva un certificado\n"
 "  push                        Enviar certificados a los servidores de claves\n"
-"  gen_u4                      Mostrar el identificador que da un estado civil\n"
-"  mrz_to_u4                   Mostrar el que da la zona de un pasaporte\n"
+"  gen_u4                      Mostrar el identificador que da un estado civil o un pasaporte\n"
 "  gen_uid                     Mostrar el número de cuenta Unix de un identificador\n"
 "  to_vcard                    Mostrar un certificado como vCard\n"
 "  email                       Mostrar, añadir o revocar las direcciones llevadas\n"
 "  certify                     Responder por otra persona\n"
-"  trustdb                     Leer, publicar y aplicar la confianza puesta en otros\n"
+"  trustdb                     Leer, publicar y aplicar la credibilidad dada a otros\n"
 "  gen_key                     Generar un par de claves a la manera PGP ID\n"
 "  change_passphrase           Cambiar lo que protege una clave secreta aquí\n"
 "  token_check                 Comprobar qué lleva la llave de seguridad conectada\n"
@@ -1440,88 +1504,19 @@ msgstr ""
 "\n"
 "Cada acción tiene su propio --help.\n"
 
-#: ../src/main.c:96
+#: ../src/main.c:95
 #, c-format
 msgid "Error: Unknown output format '%s'."
 msgstr "Error: Formato de salida desconocido «%s»."
 
-#: ../src/main.c:97
+#: ../src/main.c:96
 msgid "Notice: One of raw, info, md."
 msgstr "Notice: A elegir: raw, info, md."
 
-#: ../src/main.c:177
+#: ../src/main.c:174
 #, c-format
 msgid "Error: Unknown action '%s'."
 msgstr "Error: Acción desconocida «%s»."
-
-#: ../src/mrz.c:128
-#, c-format
-msgid ""
-"Usage: %s mrz_to_u4 [OPTIONS]... MRZ...\n"
-"\n"
-"Print the entity identifier the machine readable zone of a passport\n"
-"gives. The zone is 88 characters over two lines; spaces and newlines\n"
-"are ignored, so it can be pasted as it was read.\n"
-"\n"
-"OPTIONS:\n"
-"  -d, --birth-date YYYY-MM-DD  Date of birth, for anyone the two digits cannot place\n"
-"  -u, --uncheck                Report a failing check digit rather than refusing\n"
-"  -h, --help                   Print this help and exit\n"
-"  -V, --version                Print the version and exit\n"
-"\n"
-"Roughly one passport in five gives the wrong identifier: a surname\n"
-"truncated to fit, a name changed since birth, another transliteration,\n"
-"or a year of birth two digits cannot place. It has to be checked.\n"
-msgstr ""
-"Usage: %s mrz_to_u4 [OPTIONS]... MRZ...\n"
-"\n"
-"Mostrar el identificador de entidad que da la zona de lectura mecánica de\n"
-"un pasaporte. La zona tiene 88 caracteres en dos líneas; espacios y\n"
-"saltos de línea se ignoran, así que puede pegarse tal cual.\n"
-"\n"
-"OPTIONS:\n"
-"  -d, --birth-date AAAA-MM-DD  Fecha de nacimiento, si dos dígitos no bastan\n"
-"  -u, --uncheck                Señalar un dígito de control erróneo, sin rechazar\n"
-"  -h, --help                   Mostrar esta ayuda y salir\n"
-"  -V, --version                Mostrar la versión y salir\n"
-"\n"
-"Cerca de un pasaporte de cada cinco da el identificador equivocado: un\n"
-"apellido truncado para caber, un nombre cambiado desde el nacimiento,\n"
-"otra transliteración, o un año que dos dígitos no sitúan. Hay que\n"
-"comprobarlo.\n"
-
-#: ../src/mrz.c:158
-#, c-format
-msgid "Error: '%s' wants a date."
-msgstr "Error: «%s» espera una fecha."
-
-#: ../src/mrz.c:184
-msgid "Error: Where is the machine readable zone?"
-msgstr "Error: ¿Dónde está la zona de lectura mecánica?"
-
-#: ../src/mrz.c:202
-msgid "Error: Only a passport zone is read, and this does not begin with 'P'."
-msgstr "Error: Solo se lee una zona de pasaporte, y esta no empieza por «P»."
-
-#: ../src/mrz.c:206
-#, c-format
-msgid "%s: The zone is %zu characters, not 88."
-msgstr "%s: La zona tiene %zu caracteres, no 88."
-
-#: ../src/mrz.c:219
-#, c-format
-msgid "%s: The check digit for %s does not agree."
-msgstr "%s: El dígito de control de %s no concuerda."
-
-#: ../src/mrz.c:230
-#, c-format
-msgid "Error: No complete surname and given names in '%s'."
-msgstr "Error: No hay apellido y nombres completos en «%s»."
-
-#: ../src/mrz.c:248
-#, c-format
-msgid "Error: '%s' is not a date this can read."
-msgstr "Error: «%s» no es una fecha legible aquí."
 
 #: ../src/printcard.c:31
 #, c-format
@@ -2520,12 +2515,12 @@ msgstr "Notice: Una vCard exige FN; no hay tarjeta que escribir."
 msgid "Notice: Written into '%s'."
 msgstr "Notice: Escrito en «%s»."
 
-#: ../src/trustdb.c:38
+#: ../src/trustdb.c:40
 #, c-format
 msgid ""
 "Usage: %s trustdb local|export|import [OPTIONS]... [FINGERPRINT|OWNERTRUSTS.GPG]...\n"
 "\n"
-"Read and move the trust you place in others to certify.\n"
+"Read and move the credibility you grant others to certify.\n"
 "\n"
 "  local    What this machine says about the given certificates, or about\n"
 "           every one of them when none is named.\n"
@@ -2540,6 +2535,7 @@ msgid ""
 "      --export-file FILE      export: write there instead of stdout\n"
 "  -u, --use-privkey NAME|KEYID  export: sign with this key\n"
 "      --export-all            export: include ultimate and unknown too\n"
+"      --armor                 export: ASCII rather than binary, to commit it\n"
 "      --check                 recompute without asking about the rest\n"
 "      --update                recompute, asking about the rest\n"
 "  -q, --quiet                 Only errors and warnings\n"
@@ -2548,7 +2544,7 @@ msgid ""
 msgstr ""
 "Usage: %s trustdb local|export|import [OPTIONS]... [HUELLA|OWNERTRUSTS.GPG]...\n"
 "\n"
-"Leer y mover la confianza puesta en otros para certificar.\n"
+"Leer y mover la credibilidad dada a otros para certificar.\n"
 "\n"
 "  local    Lo que esta máquina dice de los certificados dados, o de todos\n"
 "           ellos cuando no se nombra ninguno.\n"
@@ -2563,167 +2559,168 @@ msgstr ""
 "      --export-file FICHERO   export: escribir ahí en vez de en stdout\n"
 "  -u, --use-privkey NOMBRE|KEYID  export: firmar con esa clave\n"
 "      --export-all            export: incluir también ultimate y unknown\n"
+"      --armor                 export: ASCII en vez de binario, para versionarlo\n"
 "      --check                 Recalcular sin preguntar por las demás\n"
 "      --update                Recalcular, preguntando por las demás\n"
 "  -q, --quiet                 Solo errores y advertencias\n"
 "  -h, --help                  Mostrar esta ayuda y salir\n"
 "  -V, --version               Mostrar la versión y salir\n"
 
-#: ../src/trustdb.c:191
+#: ../src/trustdb.c:194
 msgid "Error: Cannot make a temporary file."
 msgstr "Error: No se puede crear un fichero temporal."
 
-#: ../src/trustdb.c:210
+#: ../src/trustdb.c:213
 #, c-format
 msgid "Error: Cannot read or verify %s (missing, not signed, or bad signature?)."
 msgstr "Error: No se puede leer ni verificar %s (¿ausente, sin firmar, o firma incorrecta?)."
 
-#: ../src/trustdb.c:232
+#: ../src/trustdb.c:235
 #, c-format
 msgid "Error: %s carries no verifiable signature (signer key missing?)."
 msgstr "Error: %s no lleva firma verificable (¿falta la clave del firmante?)."
 
-#: ../src/trustdb.c:244
+#: ../src/trustdb.c:247
 #, c-format
 msgid "Warning: %s is signed in the future (%s) — is the local clock right?"
 msgstr "Warning: %s está firmado en el futuro (%s) — ¿es correcto el reloj local?"
 
-#: ../src/trustdb.c:252
+#: ../src/trustdb.c:255
 #, c-format
 msgid "Warning: %s carries a delegation older than a year (%s)."
 msgstr "Warning: %s lleva una delegación de más de un año (%s)."
 
-#: ../src/trustdb.c:266 ../src/trustdb.c:272
+#: ../src/trustdb.c:269 ../src/trustdb.c:275
 #, c-format
 msgid "Error: %s is not a valid ownertrust file."
 msgstr "Error: %s no es un fichero de ownertrust válido."
 
-#: ../src/trustdb.c:318
+#: ../src/trustdb.c:321
 #, c-format
 msgid "Info: %s: %zu line(s) about your own anchors, left alone."
 msgstr "Info: %s: %zu línea(s) sobre sus propias anclas, dejadas tal cual."
 
-#: ../src/trustdb.c:321
+#: ../src/trustdb.c:324
 #, c-format
 msgid "Info: %s: %zu line(s) beyond full, brought back to it."
 msgstr "Info: %s: %zu línea(s) más allá de full, devueltas a full."
 
-#: ../src/trustdb.c:324
+#: ../src/trustdb.c:327
 #, c-format
-msgid "Info: %s: %zu key(s) it would have you trust for nothing."
-msgstr "Info: %s: %zu clave(s) que le pide no contar para nada."
-
-#: ../src/trustdb.c:351
-msgid "Info: ownertrust changes:"
-msgstr "Info: cambios de ownertrust:"
+msgid "Info: %s: %zu key(s) it would have you credit with nothing."
+msgstr "Info: %s: %zu clave(s) que le pide no acreditar en nada."
 
 #: ../src/trustdb.c:354
+msgid "Info: credibility changes:"
+msgstr "Info: cambios de credibilidad:"
+
+#: ../src/trustdb.c:357
 #, c-format
 msgid "  - %s"
 msgstr "  - %s"
 
-#: ../src/trustdb.c:357
+#: ../src/trustdb.c:360
 #, c-format
 msgid "  + %s"
 msgstr "  + %s"
 
-#: ../src/trustdb.c:386
+#: ../src/trustdb.c:389
 msgid "listing the certificates"
 msgstr "listando los certificados"
 
-#: ../src/trustdb.c:408
+#: ../src/trustdb.c:411
 msgid "Error: Out of memory."
 msgstr "Error: Sin memoria."
 
-#: ../src/trustdb.c:451
-msgid "Error: A fingerprint is required to set an ownertrust."
-msgstr "Error: Hace falta una huella para poner un ownertrust."
+#: ../src/trustdb.c:454
+msgid "Error: A fingerprint is required to set a credibility."
+msgstr "Error: Hace falta una huella para poner una credibilidad."
 
-#: ../src/trustdb.c:457
+#: ../src/trustdb.c:460
 msgid "Notice: One of undefined, never, marginal, full, ultimate."
 msgstr "Notice: A elegir: undefined, never, marginal, full, ultimate."
 
-#: ../src/trustdb.c:464
+#: ../src/trustdb.c:467
 msgid "Error: 'unknown' cannot be set; it is what a certificate"
 msgstr "Error: «unknown» no se pone; es como se lee un certificado"
 
-#: ../src/trustdb.c:465
+#: ../src/trustdb.c:468
 msgid "Notice: no one has ruled on already reads as."
 msgstr "Notice: sobre el que nadie se ha pronunciado todavía."
 
-#: ../src/trustdb.c:498
-msgid "setting the ownertrust"
-msgstr "poniendo el ownertrust"
+#: ../src/trustdb.c:501
+msgid "setting the credibility"
+msgstr "poniendo la credibilidad"
 
-#: ../src/trustdb.c:543
+#: ../src/trustdb.c:546
 #, c-format
 msgid "Error: '%s' wants a path."
 msgstr "Error: «%s» espera una ruta."
 
-#: ../src/trustdb.c:567
+#: ../src/trustdb.c:572
 msgid "Error: 'export' takes no argument; the path goes to --export-file."
 msgstr "Error: «export» no toma argumento; la ruta va a --export-file."
 
-#: ../src/trustdb.c:599
+#: ../src/trustdb.c:604
 msgid "Error: Nothing to export: no decision worth signing."
 msgstr "Error: Nada que exportar: ninguna decisión que valga una firma."
 
-#: ../src/trustdb.c:621
+#: ../src/trustdb.c:630
 msgid "Error: gpg would not sign the export."
 msgstr "Error: gpg no quiso firmar la exportación."
 
-#: ../src/trustdb.c:624
+#: ../src/trustdb.c:633
 #, c-format
 msgid "Notice: %zu delegation(s) signed. Publish it beside the tree it explains, so that anyone can replay it."
 msgstr "Notice: %zu delegación(es) firmada(s). Publíquela junto al árbol que explica, para que cualquiera pueda rehacerla."
 
-#: ../src/trustdb.c:661
+#: ../src/trustdb.c:670
 msgid "Error: Too many files at once."
 msgstr "Error: Demasiados ficheros a la vez."
 
-#: ../src/trustdb.c:677
+#: ../src/trustdb.c:686
 msgid "Error: No key here is ultimate, so there is no anchor to extend from."
 msgstr "Error: Aquí ninguna clave es ultimate, así que no hay ancla que extender."
 
-#: ../src/trustdb.c:679
+#: ../src/trustdb.c:688
 #, c-format
 msgid "Notice: Mark your own certificate ultimate first: %s trustdb local --replace-to ultimate FINGERPRINT"
 msgstr "Notice: Marque primero su propio certificado como ultimate: %s trustdb local --replace-to ultimate HUELLA"
 
-#: ../src/trustdb.c:717
-msgid "Info: The delegations are already applied — ownertrust left unchanged."
-msgstr "Info: Las delegaciones ya están aplicadas — el ownertrust queda sin cambios."
+#: ../src/trustdb.c:726
+msgid "Info: The delegations are already applied — credibility left unchanged."
+msgstr "Info: Las delegaciones ya están aplicadas — la credibilidad queda sin cambios."
 
-#: ../src/trustdb.c:738
+#: ../src/trustdb.c:747
 #, c-format
-msgid "Notice: Current ownertrust backed up in %s."
-msgstr "Notice: Ownertrust actual respaldado en %s."
+msgid "Notice: Current credibility backed up in %s."
+msgstr "Notice: Credibilidad actual guardada en %s."
 
-#: ../src/trustdb.c:740
+#: ../src/trustdb.c:749
 #, c-format
 msgid "Warning: Cannot write the backup %s — going ahead anyway would leave no way back. Stopping."
 msgstr "Warning: No se puede escribir el respaldo %s — seguir de todos modos no dejaría vuelta atrás. Se detiene."
 
-#: ../src/trustdb.c:748
+#: ../src/trustdb.c:757
 #, c-format
 msgid "Error: Delegation chain broken: the signer of %s is not (yet) valid."
 msgstr "Error: Cadena de delegaciones rota: el firmante de %s no es (todavía) válido."
 
-#: ../src/trustdb.c:755
+#: ../src/trustdb.c:764
 #, c-format
 msgid "Error: gpg would not import the delegation from %s."
 msgstr "Error: gpg se negó a importar la delegación de %s."
 
-#: ../src/trustdb.c:769
+#: ../src/trustdb.c:778
 #, c-format
-msgid "Notice: To restore the previous trust: gpg --import-ownertrust %s"
-msgstr "Notice: Para restablecer la confianza anterior: gpg --import-ownertrust %s"
+msgid "Notice: To restore the previous credibility: gpg --import-ownertrust %s"
+msgstr "Notice: Para restablecer la credibilidad anterior: gpg --import-ownertrust %s"
 
-#: ../src/trustdb.c:788
+#: ../src/trustdb.c:797
 msgid "Error: One of local, export or import is required."
 msgstr "Error: Hace falta uno de local, export o import."
 
-#: ../src/trustdb.c:812
+#: ../src/trustdb.c:821
 #, c-format
 msgid "Error: '%s' is not one of local, export or import."
 msgstr "Error: «%s» no es local, ni export, ni import."
@@ -2783,6 +2780,48 @@ msgstr "Error: gpg se negó a añadir %s."
 #, c-format
 msgid "Warning: gpg would not add %s."
 msgstr "Warning: gpg se negó a añadir %s."
+
+#, c-format
+#~ msgid ""
+#~ "Usage: %s mrz_to_u4 [OPTIONS]... MRZ...\n"
+#~ "\n"
+#~ "Print the entity identifier the machine readable zone of a passport\n"
+#~ "gives. The zone is 88 characters over two lines; spaces and newlines\n"
+#~ "are ignored, so it can be pasted as it was read.\n"
+#~ "\n"
+#~ "OPTIONS:\n"
+#~ "  -d, --birth-date YYYY-MM-DD  Date of birth, for anyone the two digits cannot place\n"
+#~ "  -u, --uncheck                Report a failing check digit rather than refusing\n"
+#~ "  -h, --help                   Print this help and exit\n"
+#~ "  -V, --version                Print the version and exit\n"
+#~ "\n"
+#~ "Roughly one passport in five gives the wrong identifier: a surname\n"
+#~ "truncated to fit, a name changed since birth, another transliteration,\n"
+#~ "or a year of birth two digits cannot place. It has to be checked.\n"
+#~ msgstr ""
+#~ "Usage: %s mrz_to_u4 [OPTIONS]... MRZ...\n"
+#~ "\n"
+#~ "Mostrar el identificador de entidad que da la zona de lectura mecánica de\n"
+#~ "un pasaporte. La zona tiene 88 caracteres en dos líneas; espacios y\n"
+#~ "saltos de línea se ignoran, así que puede pegarse tal cual.\n"
+#~ "\n"
+#~ "OPTIONS:\n"
+#~ "  -d, --birth-date AAAA-MM-DD  Fecha de nacimiento, si dos dígitos no bastan\n"
+#~ "  -u, --uncheck                Señalar un dígito de control erróneo, sin rechazar\n"
+#~ "  -h, --help                   Mostrar esta ayuda y salir\n"
+#~ "  -V, --version                Mostrar la versión y salir\n"
+#~ "\n"
+#~ "Cerca de un pasaporte de cada cinco da el identificador equivocado: un\n"
+#~ "apellido truncado para caber, un nombre cambiado desde el nacimiento,\n"
+#~ "otra transliteración, o un año que dos dígitos no sitúan. Hay que\n"
+#~ "comprobarlo.\n"
+
+#, c-format
+#~ msgid "Error: '%s' wants a date."
+#~ msgstr "Error: «%s» espera una fecha."
+
+#~ msgid "setting the ownertrust"
+#~ msgstr "poniendo el ownertrust"
 
 #, c-format
 #~ msgid ""
