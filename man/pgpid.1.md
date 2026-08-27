@@ -166,7 +166,7 @@ SEARCH, when given, is passed to the engine as a pattern; without it
 the whole keyring is listed.
 
 OPTIONS:
-  -S, --short                 One line per address: fingerprint, entity identifier, address
+  -S, --short                 One line per address: fingerprint, identifier, address
                               What 'pgpid get --no-fetch' answers, to the column
   -L, --no-check-eid          Legacy: don't consider certificate as 'broken' if there is no consistent eid inside
       --count-certs           Count the distinct certifiers of each certificates and fill *certifications* column (may take time !)
@@ -178,22 +178,19 @@ OPTIONS:
 ## pgpid get
 
 ```
-Usage: pgpid get [OPTIONS]... NAME|EMAIL|KEYID|U4|U5|'*'
+Usage: pgpid get [OPTIONS]... NAME|U4|U5|EMAIL...
 
-Print the fingerprints, addresses and entity identifiers of the
-certificates matching what is asked for, one line per address.
-Refreshes them from the keyservers first, unless told otherwise.
-
-A search term is required — '*' for the whole keyring. `list` is the
-one that shows everything when asked nothing.
+Output fingerprints, emails and eid of certificates matching NAME|U4|U5|EMAIL.
+May also get or refresh certificates from keyservers.
+'*' matches the whole keyring; `list` is the one that shows everything
+when asked nothing.
 
 OPTIONS:
-  -F, --fingerprint           Print only fingerprints
-  -E, --email                 Print only addresses
-  -f, --no-fetch              Do not refresh from keyservers or Web Key Directories
-  -m, --errexit-g=N           Fail if more than N certificates match
-  -K, --keyservers SERVERS    Refresh from these, space separated
-                              Empty for none, same as --no-fetch. Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -F, --fingerprint           Output only fingerprints
+  -E, --email                 Output only emails
+  -f, --no-fetch              Don't refresh certificates from keyservers or Web Key Directories
+  -m, --errexit-g=1           Return an error if there is more than one (1) entry - You may replace '1' by an other number
+  -K, --keyservers KEYSERVERS Search and refresh certificates from this keyservers - Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Print this help and exit
   -V, --version               Print the version and exit
 
@@ -203,32 +200,27 @@ There is no 'cert_check': `list` answers what it answered, for less.
 ## pgpid property
 
 ```
-Usage: pgpid property NAME [OPTIONS]... [SEARCH]
+Usage: pgpid property PROPERTY [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]
 
-Show the values of one vCard property carried by a certificate, one per
-line, or add and revoke them. Without SEARCH, the certificate is the one
-whose secret key is at hand — the plugged security key.
-
-NAME is one of: name, note, phone, address, url, lang, geo, ksprefrd.
-name and note hold a single value: adding one revokes the one before.
-A certificate always keeps at least one name.
-
-Addresses are not vCard properties — they keep the 'Name <addr>' shape
-every mail client reads. Use 'pgpid email' for those.
-
-'ksprefrd' is the certificate server this certificate names as its own.
-It is a signature subpacket rather than a uid, so it can be replaced but
+Display and add or revoke vCard-property uids inside OpenPGP certificate.
+PROPERTY is one of: { name, note, address, phone, url, lang, geo, ksprefrd }.
+Email addresses are not vCard-property uids (they keep the 'Name <addr>' shape
+every mail client understands): manage them with 'pgpid email'.
+'ksprefrd' is preferred certificate server. This is not stored as a
+vCard-property uid, but used when generating vCard: it can be replaced,
 never revoked.
+Missing NAME|EMAIL|KEYID|U4|U5 => the certificate whose secret key is at hand.
+Free-text values (name, note) with , ; \ or newlines are stored RFC 6350-escaped
+and decoded back on display (address keeps its structural ';')
 
 OPTIONS:
-  -A, --add VALUE             Add a value (repeatable)
-      --replace-to VALUE      The same word, for the properties that hold one
-  -R, --revoke VALUE          Revoke the uid carrying VALUE (repeatable)
-      --revoke-all            Revoke every value, bar the newest where one is kept
-  -y, --yes                   Assume yes: skip the irreversibility warning
-      --show-unusable         Also show the values that no longer stand
-  -K, --keyservers SERVERS    Send the changed certificate to these
-                              Empty for none. Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -A, --add VALUE             Add ({name,note,ksprefrd} ⇒ replace) a PROPERTY uid (may be used more than once)
+      --replace-to VALUE      Exact synonym of --add — terminology is just more relevant for {name,note,ksprefrd}
+  -R, --revoke VALUE          Revoke the PROPERTY uid carrying VALUE (may be used more than once)
+      --revoke-all            Revoke every usable PROPERTY uid — all but the newest for {name,email}
+  -y, --yes                   Assume yes: skip the irreversible-revocation confirmation
+      --show-unusable         Also display the uids that no longer stand: revoked, expired, or without a valid self-signature
+  -K, --keyservers KEYSERVERS If non-empty, send updated certificate to this keyservers - Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Print this help and exit
   -V, --version               Print the version and exit
 
@@ -279,8 +271,8 @@ Usage: pgpid avatar [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]
 
 Extract or add image inside OpenPGP certificate.
 Missing NAME|EMAIL|KEYID|U4|U5 => the first secret certificate.
-A selector matching more than one certificate is refused: taking
-images back cannot be undone, so a search must never become a target.
+Writing takes a fingerprint and nothing else: revoking cannot be
+undone, so a search must never become a target.
 New IMAGE should be 180x180 pixels, or it will be resized.
 Output the path of the image that stands today, newest first when several do.
 
@@ -315,34 +307,32 @@ OPTIONS:
 Usage: pgpid gen_u4 [OPTIONS]...
    or: pgpid gen_u4 --from-passport-mrz [OPTIONS]... MRZ...
 
-Print the entity identifier a civil status gives: the last component
-of the surname, the first two given names, the date of birth, and
-the country.
+Generate an eid u4 string, from a civil status: the last component of the
+surname, the first two given names, the date of birth, and the country.
 
-With --from-passport-mrz the four are read off the machine readable
-zone of a passport instead — 88 characters over two lines, spaces and
+With --from-passport-mrz you pass the Machine Readable Zone of an
+international passport instead — 88 characters over two lines, spaces and
 newlines ignored, so it can be pasted as it was read. The four options
-above still work beside it, and replace what the zone says: that is how
-a surname truncated to fit gets corrected without typing the rest.
+below still work beside it and replace what the zone says: that is how a
+surname truncated to fit gets corrected without typing the rest.
 
 OPTIONS:
-  -s, --surname SURNAME            Surname at birth
-  -g, --given-names NAMES          Given names at birth, separated by space, comma or hyphen
-  -d, --birth-date YYYY-MM-DD      Date of birth
-  -c, --birth-country CODE         Three-letter country code of the place of birth
+  -s, --surname SURNAME            Surname/family name at birth
+  -g, --given-names GIVEN_NAMES    Given names at birth, separated by space ' ' or comma ',' or hyphen '-'
+  -d, --birth-date YYYY-MM-DD      Birth date, expected format : Year-Month-Day
+  -c, --birth-country COUNTRY_CODE 3 letters country code of birth place: GBR, NGA, FRA, …
       --from-passport-mrz          Read the civil status off a passport zone given as arguments
   -u, --uncheck                    With a zone: report a failing check digit rather than refusing
   -h, --help                       Print this help and exit
   -V, --version                    Print the version and exit
 
-Typed in, everything is required: asking for what is missing belongs
-to whoever has somebody to ask. From a passport, nothing is — and
---birth-date is the one worth adding anyway, for anyone the zone's two
-digits cannot place.
+Typed in, everything is required: asking for what is missing belongs to
+whoever has somebody to ask. From a passport, nothing is — and only
+--birth-date is worth adding, for anyone the zone's two digits cannot place.
 
-Roughly one passport in five gives the wrong identifier: a surname
-truncated to fit, a name changed since birth, another transliteration,
-or a year of birth two digits cannot place. It has to be checked.
+There are ~20% chances that a *u4* generated from a passport is incorrect:
+a surname truncated to fit, a name changed since birth, another
+transliteration, or a year of birth two digits cannot place. Check it.
 ```
 
 ## pgpid gen_uid
@@ -350,18 +340,18 @@ or a year of birth two digits cannot place. It has to be checked.
 ```
 Usage: pgpid gen_uid [OPTIONS]... U4|U5|STRING
 
-Print the Unix account number an entity identifier gives, between
-262144 and 2147483646. The same identifier always gives the same number, on
-any machine — which is what lets an account be opened again
-elsewhere from the certificate alone.
+Generate a 32bit Unix User ID, from 2^18 to (2^31)-2 ([262144,2147483646]).
+The same identifier always gives the same number, on any machine — which
+is what lets an account be opened again elsewhere from the certificate
+alone.
 
 OPTIONS:
-  -f, --free-input            Accept any string, not only an identifier
+  -f, --free-input            Accept any input, not only valid PGPID U4 string
   -h, --help                  Print this help and exit
   -V, --version               Print the version and exit
 
-Asking interactively for a civil status is the caller's business:
-this reads what it is given and nothing else.
+An argument is required: asking interactively for a civil status is the
+caller's business.
 ```
 
 ## pgpid to_vcard
@@ -369,12 +359,13 @@ this reads what it is given and nothing else.
 ```
 Usage: pgpid to_vcard [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]
 
-Write a certificate as a vCard 4.0, which an address book can read.
-Without a selector, the certificate whose secret key is at hand.
+Convert OpenPGP certificate to vCard (format 4.0).
+Missing NAME|EMAIL|KEYID|U4|U5 => the certificate whose secret key is at
+hand.
 
 OPTIONS:
-  -o, --output FILE           Write there rather than to standard output
-      --raw                   Print every uid instead, one per paragraph
+  -o, --output FILE           Write into given FILE instead of standard output
+      --raw                   Don't convert, but raw output all OpenPGP uids strings, separated by empty lines
   -h, --help                  Print this help and exit
   -V, --version               Print the version and exit
 ```
@@ -384,24 +375,22 @@ OPTIONS:
 ```
 Usage: pgpid email [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]
 
-Show the addresses a certificate carries, or add and revoke them.
-Without a target, the one the connected card belongs to.
-
-Only the addresses that still stand are shown — not the revoked, the
-expired, or those whose self-signature no longer holds.
+Display and add or revoke emails inside OpenPGP certificate.
+Missing NAME|EMAIL|KEYID|U4|U5 => the certificate the connected security
+token belongs to.
+Output usable emails (non-revoked and non-expired).
 
 OPTIONS:
-  -A, --add EMAIL             Add it as a 'Name <EMAIL>' uid (repeatable)
-  -R, --revoke EMAIL          Revoke the uid carrying it (repeatable)
-      --revoke-all            Revoke every address but the newest
-  -y, --yes                   Assume yes: skip the irreversibility warning
+  -R, --revoke EMAIL          Revoke existing EMAIL (may be used more than once)
+      --revoke-all            Revoke every usable email uid but the newest
+  -A, --add EMAIL             Add EMAIL as a 'Name <EMAIL>' uid. Enable the --name option
   -N, --name NAME             The name in front of an added address
                               Default: the certificate's own FN:, else the local part
-  -c, --certs-count           Also count the certifications each address carries
-      --show-unusable         Also show the addresses that no longer stand
-      --info                  Output pairs key=value ready to be evaluated in bash
-  -K, --keyservers SERVERS    Send the changed certificate to these
-                              Empty for none. Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -y, --yes                   Assume yes: skip the irreversible-revocation confirmation
+  -c, --certs-count           Also output the count of external valid certifications per email (tab-separated)
+      --show-unusable         Also display the uids that no longer stand: revoked, expired, or without a valid self-signature
+      --info                  Output the emails as pairs key=value ready to be evaluated in bash
+  -K, --keyservers KEYSERVERS If non-empty, send updated certificate to this keyservers - Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Print this help and exit
   -V, --version               Print the version and exit
 
@@ -412,32 +401,30 @@ forever, marked revoked, and an identical one can never be added again.
 ## pgpid certify
 
 ```
-Usage: pgpid certify [OPTIONS]... KEYFPR [U4|U5]
+Usage: pgpid certify [OPTIONS]... TARGET_KEYFPR [TARGET_U4|TARGET_U5]
 
-Vouch for somebody else: state that this certificate is theirs.
+Certify somebody else, identified by its key fingerprint TARGET_KEYFPR.
+The whole forty characters, read off the other person's card and checked
+against it — never a search pattern, because a certification cannot be
+taken back. Giving TARGET_U4 as well asks that the certificate carry it,
+and refuses otherwise.
 
-KEYFPR is the whole forty-character fingerprint, read off the other
-person's card and checked against it — never a search pattern, because
-a certification cannot be taken back. Giving the identifier as well
-asks that the certificate carry it, and refuses otherwise.
-
-Certifying is a commitment. It builds your standing, and spends it if
-you do it without looking.
+Certification means : I know this other certificate belongs to this real person.
+This implies verifying the civil status and the public key fingerprint of the TARGET.
+This allows you to expand and strengthen your web of trust and those of your close ones.
+This is a commitment: the more you certify, the more you increase your reputation,
+but if you do it wrong, you will ruin your credibility.
 
 OPTIONS:
-  -u, --use-privkey NAME|KEYID  Certify with this key
-                                Default: the one the connected card belongs to
-  -E, --all-emails              Also certify every uid carrying an email,
-                                for software that expects it there
-  -R, --revoke                  Revoke your earlier certifications on it
-  -o, --credibility VALUE       How well they certify others, in turn
-      --ownertrust VALUE        The same, under the name gpg gives it
-                                {undefined,marginal,full,never} - Default: marginal
-  -l, --local                   Certify without exporting — useful for testing
-  -K, --keyservers SERVERS      Send the result to these, space separated
-                                Empty for none. Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -h, --help                    Print this help and exit
-  -V, --version                 Print the version and exit
+  -u, --use-privkey NAME|KEYID Select private key to use. Default: Guess it from connected token
+  -E, --all-emails             Also certify every OpenPGP uid containing an email. For compatibility with some legacy software.
+  -R, --revoke                 Revoke your previous certifications on someone else's certificate
+  -o, --credibility VALUE      What credibility do you assign to the target to correctly certify others {undefined,marginal,full,never}
+      --ownertrust VALUE       The same, under the name gpg gives it - Default: marginal
+  -l, --local                  « Non-exportable » certification. Pretty useless, except for testing
+  -K, --keyservers KEYSERVERS  If non-empty, receive and send updated certificate from and to this keyservers - Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -h, --help                   Print this help and exit
+  -V, --version                Print the version and exit
 
 Return value:
 -   0 No error
@@ -487,46 +474,42 @@ OPTIONS:
 ```
 Usage: pgpid gen_key [OPTIONS]... EMAIL
 
-Generate an OpenPGP key pair the PGP ID way, and print the three
-fingerprints it ends up with: the main key that signs and certifies,
-the one that decrypts, and the one that authenticates.
+Generate an OpenPGP key pair (public and secret) according to PGP ID standards.
+Output 3 lines for each fingerprints:
+* main key (Sign Certify)
+* decryption key (Encrypt)
+* authentication key (Auth)
 
 OPTIONS:
-  -N, --name PSEUDONYM             Common name or pseudonym
-                                   Default: the part of EMAIL before the '@'
-  -c, --eid U4|U5                  Entity identifier. Required: deriving one
-                                   needs a civil status somebody has to be asked for
-  -C, --extra-comment NOTE         A note about the entity
-  -p, --passphrase PASSPHRASE      The passphrase. Visible to anything that can
-                                   read this machine's process list
-  -P, --passfrom FILE              Read it from the first line of FILE instead
-                                   (a fifo, something on tmpfs, /dev/stdin)
-  -e, --expiration YEARS           Years before the certificate expires - Default: 11
-  -k, --keyserver KEYSERVER        The certificate server this one names as its own
-                                   Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -N, --name PSEUDONYM             Common name or pseudonym. Default: first part of email
+  -c, --eid U4|U5                  Entity ID. Worldwide and decentralised entity identifier. Required here
+  -C, --extra-comment NOTE         Supplemental information or comment associated with the entity
+  -p, --passphrase PASSPHRASE      Passphrase to (symetric) encrypt secret part of OpenPGP key. CAN'T BE EMPTY (at this stage)
+  -P, --passfrom FILE              Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin …)
+  -e, --expiration YEARS           Number of years before certificate expiration. Default: 11
+  -k, --keyserver KEYSERVER        Prefered OpenPGP certificate server. Default: hkps://keys.foopgp.org
   -h, --help                       Print this help and exit
   -V, --version                    Print the version and exit
 
-Both ways of giving the passphrase have their drawback, and the second
-has fewer: an argument is visible to every process on the machine for as
-long as this one runs.
+Both ways of giving the passphrase have their drawback, and the second has
+fewer: an argument is visible to every process on the machine for as long
+as this one runs.
 ```
 
 ## pgpid change_passphrase
 
 ```
-Usage: pgpid change_passphrase [OPTIONS]... KEY
+Usage: pgpid change_passphrase [OPTIONS]... KEY_ID|FPR|EMAIL|NAME
 
-Change the passphrase protecting the secret parts of an OpenPGP key on
-this machine. KEY is a fingerprint, a key id, an address or a name.
+Change GnuPG passphrase protecting secret parts of an OpenPGP key.
 
 OPTIONS:
-  -p, --passphrase PASSPHRASE     The current one, "" when there is none
-  -P, --passfrom FILE             Read it from the first line of FILE instead
-  -n, --newpassphrase PASSPHRASE  The new one, "" for none
-  -N, --newpassfrom FILE          Read it from the first line of FILE instead
-  -h, --help                      Print this help and exit
-  -V, --version                   Print the version and exit
+  -p, --passphrase PASSPHRASE    Current passphrase protecting secret parts of OpenPGP key (empty "" for none)
+  -P, --passfrom FILE            Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)
+  -n, --newpassphrase PASSPHRASE New passphrase to protect secret parts of OpenPGP key (empty "" for none)
+  -N, --newpassfrom FILE         Get new passphrase from the first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)
+  -h, --help                     Print this help and exit
+  -V, --version                  Print the version and exit
 
 Passing a passphrase as an argument shows it to everything that can read
 this machine's process list. The file forms exist for that reason.
@@ -537,21 +520,22 @@ this machine's process list. The file forms exist for that reason.
 ```
 Usage: pgpid token_check [OPTIONS]...
 
-Say whether the connected security key is configured to carry a PGP
-ID, and what it holds. Tries to fetch the certificate named in the
-key's own metadata unless told not to.
+Check if security token is correctly configured for PGP ID ; may output informations.
+Will try to import cleaned certificate indicated in 'URL of public key' field.
 
 OPTIONS:
-  -f, --no-fetch              Do not fetch the certificate from the key's URL
-  -p, --cert-fpr              Print the certification key's fingerprint
-  -i, --info                  Print every field as key='value'
-  -q, --quiet                 Say nothing on the error stream
+  -f, --no-fetch              Don't try to fetch public certificate (from URL indicated in token metadata)
+  -q, --quiet                 Don't errput 'Info' or 'Notice' messages
+  -p, --cert-fpr              Output certificate fingerprint (Certification key fpr)
+  -i, --info                  Output the metadata as pairs key='value' ready to be evaluated in bash
   -h, --help                  Print this help and exit
   -V, --version               Print the version and exit
 
-Returns 0 when the key carries a complete identity, otherwise 100 plus
-the number of fields missing — so 107 is a key that carries nothing,
-which is a blank key rather than a broken one.
+Return value:
+-   0 if no error and security token is correctly configured for PGP ID.
+- 100 + number of missing PGP ID data fields.
+- then 107 if all required data are missing (OpenPGP card is probably empty).
+- Other non-zero on other errors.
 ```
 
 ## pgpid token_retries
@@ -559,14 +543,14 @@ which is a blank key rather than a broken one.
 ```
 Usage: pgpid token_retries [OPTIONS]...
 
-Print how many attempts remain on the connected security key's codes,
-before each one locks. All three unless one is asked for.
+Output remaining retry counter of PIN code, Reset Code or Admin code from
+connected OpenPGP card. All three unless one is asked for.
 
 OPTIONS:
-  -P, --pin                   The PIN, usually six digits
-  -R, --rc                    The reset code, usually unused
-  -A, --admin                 The admin code, usually eight digits
-  -q, --quiet                 The numbers alone, one per line
+  -P, --pin                   Output remaining retries for PIN code (usually 6 digits)
+  -R, --rc                    Output remaining retries for Reset Code (usually unused)
+  -A, --admin                 Output remaining retries for Admin code (usually 8 digits)
+  -q, --quiet                 Decrease verbosity (stdout)
   -h, --help                  Print this help and exit
   -V, --version               Print the version and exit
 ```
@@ -574,25 +558,23 @@ OPTIONS:
 ## pgpid totoken
 
 ```
-Usage: pgpid totoken [OPTIONS]... KEY
+Usage: pgpid totoken [OPTIONS]... KEY_ID|FPR
 
-Move an OpenPGP secret key onto the connected security key, and print the
-certificate, the new PIN and the new Admin code.
+Move OpenPGP secrets to security token (OpenPGP smartcard).
+Security token (OpenPGP smartcard) must be connected.
+Output ASCII armored OpenPGP certificate, PIN code and admin code.
 
 This wipes the card and takes the secret parts off this machine. Both are
 final. Print the key first if it is not printed: pgpid print_secret.
 
 OPTIONS:
-  -p, --passphrase PASSPHRASE  The passphrase protecting the secret parts
-  -P, --passfrom FILE          Read it from the first line of FILE instead
-  -U, --certurl URL            Where the certificate can be fetched
-                               Default: the keyserver's lookup for this key
-  -L, --lang LANG              The card's language preference - Default: the locale's
-  -k, --keyserver KEYSERVER    Send the certificate there, and build the
-                               default URL from it. Empty to send it
-                               nowhere and keep the default URL
-  -K, --pubkey FILE            Also write the armored certificate to FILE
-      --force                  Wipe a card that is not blank
+  -p, --passphrase PASSPHRASE  Passphrase to access secret parts of OpenPGP key
+  -P, --passfrom FILE          Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)
+  -U, --certurl URL            URL to retrieve your OpenPGP certificate (default: the keyserver's lookup for this key)
+  -L, --lang LANG              Security token (OpenPGP smartcard) prefered language (default: the locale's)
+  -k, --keyserver KEYSERVER    Send OpenPGP certificate to this public keys server. Also modify default URL (see --certurl)
+  -K, --pubkey FILE            Also write armored OpenPGP certificate to given FILE
+      --force                  Don't ask before resetting unempty security token (OpenPGP smartcard)
   -h, --help                   Print this help and exit
   -V, --version                Print the version and exit
 ```
@@ -602,28 +584,26 @@ OPTIONS:
 ```
 Usage: pgpid change_token_code [OPTIONS]...
 
-Check or change the PIN, or the Admin code, of the connected security
-key. Both are needed in full: nothing here asks for what it is missing.
+Check and change PIN (or Admin) code protecting use of a security token
+(OpenPGP smartcard). Both codes are needed in full: nothing here asks for
+what it is missing.
 
 OPTIONS:
-  -p, --code CURRENTCODE    The code as it stands
-  -P, --codefrom FILE       Read it from the first line of FILE instead
-  -n, --newcode NEWCODE     What it should become
-  -N, --newcodefrom FILE    Read that from the first line of FILE instead
-  -C, --onlycheck           Only check the current code, change nothing
-  -A, --admin               The Admin code rather than the PIN
-  -U, --unblock             Unblock the PIN: --code is then the Admin code
-                            and --newcode the PIN to set
+  -p, --code CURRENTCODE    Current PIN (or Admin) code protecting use of security token (empty "" for none)
+  -P, --codefrom FILE       Get current PIN (or Admin) code from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)
+  -n, --newcode NEWCODE     New PIN (or Admin) code to protect use of security token
+  -N, --newcodefrom FILE    Get new PIN (or Admin) code from the first line of FILE (eg: fifo, tmpfs ...)
+  -C, --onlycheck           Only check current PIN (or Admin) code, don't change it
+  -A, --admin               Change (or check) Admin code instead of PIN code
+  -U, --unblock             Unblock PIN. Need Admin code to be passed to --code, and new PIN code to be passed to --newcode
   -h, --help                Print this help and exit
   -V, --version             Print the version and exit
 
 Return value:
--   0 No error
--   2 Input/Usage error
-- 194 Wrong code — two attempts left
-- 193 Wrong code — one attempt left
-- 192 The code is blocked
-- other non-zero on other errors
+- 194 (0xC2) if only 2 remaining attempt.
+- 193 (0xC1) if only 1 remaining attempt.
+- 192 (0xC0) if code is blocked.
+- other non-zero value on other errors.
 ```
 
 ## pgpid change_token_meta
@@ -631,8 +611,8 @@ Return value:
 ```
 Usage: pgpid change_token_meta [OPTIONS]... NEW_METADATA
 
-Write one of the three things a security key says about its holder. Which
-one is read off NEW_METADATA:
+Change a textual metadata of a security token (OpenPGP smartcard).
+Detect if NEW_METADATA is an email, a certurl or a lang:
 
   an address        the cardholder name (DO 5B)
   an http(s) URL    where the public certificate lives (DO 5F50)
@@ -643,8 +623,8 @@ certificate still stands by, and the URL must serve a certificate
 carrying this key's three subkeys.
 
 OPTIONS:
-  -A, --admincode CODE         The Admin code, usually eight digits
-  -p, --admincodefrom FILE     Read it from the first line of FILE instead
+  -A, --admincode CODE         Admin code (usually 8 digits) protecting writes to security token metadata
+  -p, --admincodefrom FILE     Get admin code from first line of FILE (eg: fifo, tmpfs, /dev/stdin)
   -h, --help                   Print this help and exit
   -V, --version                Print the version and exit
 ```
@@ -652,28 +632,27 @@ OPTIONS:
 ## pgpid print_secret
 
 ```
-Usage: pgpid print_secret [OPTIONS]... KEY
+Usage: pgpid print_secret [OPTIONS]... KEY_ID|FPR
 
-Print an OpenPGP secret key as QR codes, split so that no single sheet
-carries it. By default five fragments of which any three rebuild it.
+Export and print OpenPGP secrets on multiple QRcode using Shamir's secret
+sharing, split so that no single sheet carries the key.
 
 OPTIONS:
-  -p, --passphrase PASSPHRASE    The passphrase protecting the secret parts
-  -P, --passfrom FILE            Read it from the first line of FILE instead
-  -t, --printer PRINTER          Where to print. Empty to produce the sheets
-                                 and send nothing — they stay in the workdir
-  -w, --with-passphrase          Print the passphrase beside the QR codes
-                                 Easier to use, and no longer a split secret
-  -W, --workdir DIRECTORY        Work here instead of a temporary directory
-                                 Its contents must be shredded afterwards
-  -S, --split NUM                Fragments to produce, 3 to 10 - Default: 5
-  -T, --threshold NUM            Fragments needed to rebuild - Default: 3
+  -p, --passphrase PASSPHRASE    Passphrase to access secret parts of OpenPGP key
+  -P, --passfrom FILE            Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)
+  -t, --printer PRINTER          Name of printer to use. Empty to produce the sheets and send nothing
+  -w, --with-passphrase          Also print passphrase beside QR codes (INCREASE UX, DECREASE SECURITY)
+  -W, --workdir DIRECTORY        Use given working directory instead of a temporary directory (don't forget to shred its content)
+  -S, --split NUM                Number of shares to be generated, 3 to 10 - Default: 5
+  -T, --threshold NUM            Number of shares necessary to reconstruct the secret - Default: 3
   -h, --help                     Print this help and exit
   -V, --version                  Print the version and exit
 
-With --split equal to --threshold there is no secret sharing: the
-fragments are consecutive pieces and each one leaks its part. Everything
-then rests on the passphrase, and printing it alongside leaves nothing.
+Note: Split number should be greater than threshold number.
+      If they are equal, a simple split is used instead of Shamir's secret sharing,
+      and all secret protection relies on the passphrase.
+      In other terms: if (split_NUM == threshold_NUM), then no passphrase or
+      printing passphrase is VERY UNSECURE.
 
 Photographs are left out of what is printed. A backup does not need your
 face, and paper is handled by whoever finds it.
@@ -682,17 +661,16 @@ face, and paper is handled by whoever finds it.
 ## pgpid scan
 
 ```
-Usage: pgpid scan [OPTIONS]... IMAGE...
+Usage: pgpid scan [OPTIONS]... IMAGES...
 
-Rebuild an OpenPGP secret key from the QR codes in IMAGE..., import it,
-and print the fingerprint of the certification key that came back.
+Reconstitute OpenPGP secrets from QRcodes scanned from IMAGES.
+Output OpenPGP certification key fingerprint.
 Images may be PNG, JPEG, or PDF.
 
 OPTIONS:
-  -p, --passphrase PASSPHRASE   The passphrase the secret parts are under
-  -P, --passfrom FILE           Read it from the first line of FILE instead
-  -W, --workdir DIRECTORY       Work here instead of a temporary directory
-                                Its contents must be shredded afterwards
+  -p, --passphrase PASSPHRASE   Passphrase to access secret parts of OpenPGP key
+  -P, --passfrom FILE           Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)
+  -W, --workdir DIRECTORY       Use given working directory instead of a temporary directory (don't forget to shred its content)
   -h, --help                    Print this help and exit
   -V, --version                 Print the version and exit
 
@@ -705,18 +683,18 @@ is given, and does not open a camera to go looking.
 ```
 Usage: pgpid print_card [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]
 
-Produce or print a PGP ID sticker or business card. Without a target,
-the certificate the connected card belongs to.
-
-One address appears on it: the argument itself when that is what was
-given, otherwise the most recent one the certificate still stands by.
+Produce or print a PGP ID stamp or business card.
+Missing NAME|EMAIL|KEYID|U4|U5 => the certificate the connected security
+token belongs to.
+A single email appears on the output: if the argument is an email it is used
+verbatim; otherwise the most recent non-revoked email of the certificate is
+picked.
 
 OPTIONS:
-  -P, --print PRINTER|FILE.svg  Printer to send to, or an SVG file to write
-                                when the name ends in '.svg'
-  -t, --template FILE.svg       Use this template instead of the sticker
-  -N, --name NAME               Override the displayed name
-  -g, --no-color                Grayscale instead of colour
+  -P, --print PRINTER|FILE.svg  Printer name to send to, or output SVG file if it ends with '.svg'
+  -t, --template FILE.svg       Use this template to produce business card
+  -N, --name NAME               Override the displayed name (default: guessed from OpenPGP certificate and email)
+  -g, --no-color                Output in grayscale instead of color
   -h, --help                    Print this help and exit
   -V, --version                 Print the version and exit
 ```

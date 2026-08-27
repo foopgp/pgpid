@@ -177,64 +177,58 @@ OPTIONS:
 ## pgpid get
 
 ```
-Usage: pgpid get [OPTIONS]... NOME|INDIRIZZO|KEYID|U4|U5|'*'
+Usage: pgpid get [OPTIONS]... NOME|U4|U5|INDIRIZZO...
 
-Stampare impronte, indirizzi e identificativi d'entità dei certificati
-che corrispondono a quanto richiesto, una riga per indirizzo. Li aggiorna
-prima dai server di chiavi, salvo indicazione contraria.
-
-Si esige un motivo di ricerca — «*» per tutto il portachiavi. È `list`
-che mostra tutto quando non gli si chiede nulla.
+Stampa le impronte, le email e gli eid dei certificati corrispondenti a
+NOME|U4|U5|INDIRIZZO.
+Può anche recuperare o aggiornare i certificati dai server di chiavi.
+'*' vale tutto il portachiavi; `list` è quella che mostra tutto quando non le
+si chiede nulla.
 
 OPTIONS:
   -F, --fingerprint           Stampare solo le impronte
   -E, --email                 Stampare solo gli indirizzi
   -f, --no-fetch              Non aggiornare dai server di chiavi né dai WKD
-  -m, --errexit-g=N           Fallire se corrispondono più di N certificati
-  -K, --keyservers SERVER     Aggiornare da questi, separati da spazi
-                              Vuoto per nessuno, come --no-fetch. Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -m, --errexit-g=1           Fallire se corrispondono più di N certificati
+  -K, --keyservers KEYSERVERS Aggiornare da questi, separati da spazi - Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Stampare questo aiuto e uscire
   -V, --version               Stampare la versione e uscire
 
 Non c'è «cert_check»: `list` risponde ciò che rispondeva, per meno.
+
 ```
 
 ## pgpid property
 
 ```
-Usage: pgpid property NOME [OPTIONS]... [MOTIVO]
+Usage: pgpid property PROPERTY [OPTIONS]... [NOME|INDIRIZZO|KEYID|U4|U5]
 
-Mostrare i valori di una proprietà vCard che porta un certificato, uno
-per riga, o aggiungerne e revocarne. Senza MOTIVO, il certificato la cui
-chiave segreta è a portata — la chiave di sicurezza collegata.
-
-NOME è uno tra: name, note, phone, address, url, lang, geo, ksprefrd.
-name e note portano un solo valore: aggiungerne uno revoca il precedente.
-Un certificato conserva sempre almeno un nome.
-
-Gli indirizzi non sono proprietà vCard — conservano la forma
-«Nome <indirizzo>» che legge ogni programma di posta. Veda «pgpid email».
-
-«ksprefrd» è il server di certificati che questo certificato dice suo. È
-un sottopacchetto di firma e non un uid: si sostituisce, non si revoca
-mai.
+Mostrare, aggiungere o revocare gli uid di proprietà vCard del certificato OpenPGP.
+PROPERTY è una tra: { name, note, address, phone, url, lang, geo, ksprefrd }.
+Gli indirizzi email non sono uid di proprietà vCard (mantengono la forma
+'Nome <indirizzo>' che ogni client di posta capisce): gestiteli con 'pgpid email'.
+'ksprefrd' è il server di certificati preferito. Non è memorizzato come uid di
+proprietà vCard, ma usato nel generare la vCard: si sostituisce, mai si revoca.
+NOME|INDIRIZZO|KEYID|U4|U5 mancante ⇒ il certificato la cui chiave segreta è a portata.
+I valori liberi (name, note) con , ; \ o a capo sono memorizzati con escape
+secondo la RFC 6350 e decodificati alla stampa (address tiene il suo ';'
+strutturale)
 
 OPTIONS:
-  -A, --add VALORE            Aggiungere un valore (ripetibile)
-      --replace-to VALORE     La stessa parola, per quelle a valore unico
-  -R, --revoke VALORE         Revocare l'uid che porta VALORE (ripetibile)
+  -A, --add VALUE             Aggiungere un valore (ripetibile)
+      --replace-to VALUE      La stessa parola, per quelle a valore unico
+  -R, --revoke VALUE          Revocare l'uid che porta VALORE (ripetibile)
       --revoke-all            Revocare tutti i valori, salvo il più recente
-                              dove uno deve restare
   -y, --yes                   Assumere sì: saltare l'avviso
       --show-unusable         Mostrare anche i valori che non valgono più
-  -K, --keyservers SERVER     Inviare il certificato modificato a questi
-                              Vuoto per nessuno. Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -K, --keyservers KEYSERVERS Inviare il certificato modificato a questi - Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Stampare questo aiuto e uscire
   -V, --version               Stampare la versione e uscire
 
 Revocare è irreversibile: OpenPGP conserva per sempre l'uid sul
 certificato, marcato revocato, e uno identico non potrà più essere
 aggiunto.
+
 ```
 
 ## pgpid sigs
@@ -275,12 +269,12 @@ OPTIONS:
 ## pgpid avatar
 
 ```
-Usage: pgpid avatar [OPTIONS]... [NOME|EMAIL|KEYID|U4|U5]
+Usage: pgpid avatar [OPTIONS]... [NOME|INDIRIZZO|KEYID|U4|U5]
 
 Estrarre o aggiungere un'immagine nel certificato OpenPGP.
-NOME|EMAIL|KEYID|U4|U5 mancante ⇒ il primo certificato segreto.
-Un motivo che trova più di un certificato è rifiutato: riprendersi le
-immagini non si disfa, e una ricerca non deve mai diventare un bersaglio.
+NOME|INDIRIZZO|KEYID|U4|U5 mancante ⇒ il primo certificato segreto.
+Scrivere richiede un'impronta e nient'altro: revocare non si disfa, e una
+ricerca non deve mai diventare un bersaglio.
 La nuova IMMAGINE dev'essere 180×180 pixel, altrimenti sarà ridimensionata.
 Stampa il percorso dell'immagine che vale oggi, la più recente per prima.
 
@@ -292,6 +286,7 @@ OPTIONS:
   -K, --keyservers SERVER     Se non vuoto, inviare il certificato aggiornato a questi server - Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Stampare questo aiuto e uscire
   -V, --version               Stampare la versione e uscire
+
 ```
 
 ## pgpid push
@@ -315,32 +310,33 @@ OPTIONS:
 Usage: pgpid gen_u4 [OPTIONS]...
    or: pgpid gen_u4 --from-passport-mrz [OPTIONS]... MRZ...
 
-Stampare l'identificativo d'entità che dà uno stato civile: l'ultimo
-elemento del cognome, i primi due nomi, la data di nascita, e il paese.
+Generare una stringa eid u4, da uno stato civile: l'ultimo elemento del
+cognome, i primi due nomi, la data di nascita e il paese.
 
-Con --from-passport-mrz i quattro si leggono nella zona a lettura ottica
-di un passaporto — 88 caratteri su due righe, spazi e a capo ignorati,
-può quindi essere incollata così com'è. Le quattro opzioni sopra valgono
-ancora accanto, e sostituiscono ciò che dice la zona: così un cognome
+Con --from-passport-mrz si passa invece la zona a lettura ottica di un
+passaporto internazionale — 88 caratteri su due righe, spazi e a capo
+ignorati, può quindi essere incollata così com'è. Le quattro opzioni sotto
+valgono ancora accanto e sostituiscono ciò che dice la zona: così un cognome
 troncato per stare si corregge senza riscrivere il resto.
 
 OPTIONS:
-  -s, --surname COGNOME            Cognome di nascita
-  -g, --given-names NOMI           Nomi di nascita, separati da spazio o virgola
-  -d, --birth-date AAAA-MM-GG      Data di nascita
-  -c, --birth-country CODICE       Codice paese di tre lettere del luogo di nascita
-      --from-passport-mrz          Leggere lo stato civile da una zona data in argomenti
-  -u, --uncheck                    Con una zona: segnalare una cifra di controllo errata
-  -h, --help                       Stampare questo aiuto e uscire
-  -V, --version                    Stampare la versione e uscire
+  -s, --surname SURNAME       Cognome di nascita
+  -g, --given-names GIVEN_NAMES Nomi di nascita, separati da spazio o virgola
+  -d, --birth-date            AAAA-MM-GG      Data di nascita
+  -c, --birth-country COUNTRY_CODE Codice paese di tre lettere del luogo di nascita
+      --from-passport-mrz     Leggere lo stato civile da una zona data in argomenti
+  -u, --uncheck               Con una zona: segnalare una cifra di controllo errata
+  -h, --help                  Stampare questo aiuto e uscire
+  -V, --version               Stampare la versione e uscire
 
-Digitato, tutto è esigito: chiedere ciò che manca spetta a chi ha
-qualcuno a cui chiederlo. Da un passaporto, nulla lo è — e --birth-date
-resta quella che vale la pena aggiungere, se due cifre non bastano.
+Digitato, tutto è esigito: chiedere ciò che manca spetta a chi ha qualcuno a
+cui chiederlo. Da un passaporto, nulla lo è — e vale la pena aggiungere solo
+--birth-date, se due cifre non bastano.
 
-Circa un passaporto su cinque dà l'identificativo sbagliato: un cognome
-troncato per stare, un nome cambiato dalla nascita, un'altra
-traslitterazione, o un anno che due cifre non collocano. Va verificato.
+C'è ~20% di probabilità che un *u4* generato da un passaporto sia sbagliato:
+un cognome troncato per stare, un nome cambiato dalla nascita, un'altra
+traslitterazione, o un anno di nascita che due cifre non collocano.
+Verificatelo.
 ```
 
 ## pgpid gen_uid
@@ -348,18 +344,18 @@ traslitterazione, o un anno che due cifre non collocano. Va verificato.
 ```
 Usage: pgpid gen_uid [OPTIONS]... U4|U5|STRINGA
 
-Stampare il numero di conto Unix che dà un identificativo d'entità, tra
-262144 e 2147483646. Lo stesso identificativo dà sempre lo stesso numero, su
-qualunque macchina — è ciò che permette di riaprire un conto altrove a
-partire dal solo certificato.
+Generare un identificativo utente Unix a 32 bit, da 2^18 a (2^31)-2
+([262144,2147483646]).
+Lo stesso identificativo dà sempre lo stesso numero, su qualunque macchina —
+ed è ciò che permette di riaprire un conto altrove col solo certificato.
 
 OPTIONS:
   -f, --free-input            Accettare qualsiasi stringa, non solo un id
   -h, --help                  Stampare questo aiuto e uscire
   -V, --version               Stampare la versione e uscire
 
-Chiedere uno stato civile in modo interattivo spetta al chiamante: questo
-legge ciò che gli si dà e nient'altro.
+Un argomento è esigito: chiedere uno stato civile in modo interattivo
+spetta al chiamante.
 ```
 
 ## pgpid to_vcard
@@ -367,14 +363,15 @@ legge ciò che gli si dà e nient'altro.
 ```
 Usage: pgpid to_vcard [OPTIONS]... [NOME|INDIRIZZO|KEYID|U4|U5]
 
-Scrivere un certificato come vCard 4.0, che una rubrica sa leggere. Senza
-selettore, il certificato la cui chiave segreta è a portata.
+Convertire il certificato OpenPGP in vCard (formato 4.0).
+NOME|INDIRIZZO|KEYID|U4|U5 mancante ⇒ il certificato la cui chiave segreta è a portata.
 
 OPTIONS:
   -o, --output FILE           Scrivervi anziché sull'uscita standard
       --raw                   Stampare invece ogni uid, uno per paragrafo
   -h, --help                  Stampare questo aiuto e uscire
   -V, --version               Stampare la versione e uscire
+
 ```
 
 ## pgpid email
@@ -382,61 +379,58 @@ OPTIONS:
 ```
 Usage: pgpid email [OPTIONS]... [NOME|INDIRIZZO|KEYID|U4|U5]
 
-Mostrare gli indirizzi che porta un certificato, o aggiungerne e
-revocarne. Senza bersaglio, quello da cui dipende la carta collegata.
-
-Si mostrano solo gli indirizzi che valgono ancora — né i revocati, né gli
-scaduti, né quelli la cui autofirma non regge più.
+Mostrare, aggiungere o revocare le email del certificato OpenPGP.
+NOME|INDIRIZZO|KEYID|U4|U5 mancante ⇒ il certificato a cui appartiene la chiave
+di sicurezza collegata.
+Stampa le email utilizzabili (non revocate e non scadute).
 
 OPTIONS:
-  -A, --add INDIRIZZO         Aggiungerlo come uid «Nome <INDIRIZZO>» (ripetibile)
-  -R, --revoke INDIRIZZO      Revocare l'uid che lo porta (ripetibile)
+  -R, --revoke EMAIL          Revocare l'uid che lo porta (ripetibile)
       --revoke-all            Revocare tutti gli indirizzi salvo il più recente
+  -A, --add EMAIL             Aggiungerlo come uid «Nome <INDIRIZZO>» (ripetibile)
+  -N, --name NAME             Il nome davanti a un indirizzo aggiunto
+                              Default: il FN: del certificato, altrimenti la parte locale
   -y, --yes                   Assumere sì: saltare l'avviso
-  -N, --name NOME             Il nome davanti a un indirizzo aggiunto
-                              Default: l'FN: del certificato, o la parte locale
   -c, --certs-count           Contare anche le certificazioni di ogni indirizzo
       --show-unusable         Mostrare anche gli indirizzi che non valgono più
       --info                  Emettere coppie chiave=valore valutabili in bash
-  -K, --keyservers SERVER     Inviare il certificato modificato a questi
-                              Vuoto per nessuno. Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -K, --keyservers KEYSERVERS Inviare il certificato modificato a questi - Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Stampare questo aiuto e uscire
   -V, --version               Stampare la versione e uscire
 
 Revocare è irreversibile: OpenPGP conserva per sempre l'indirizzo sul
 certificato, marcato revocato, e uno identico non potrà più essere
 aggiunto.
+
 ```
 
 ## pgpid certify
 
 ```
-Usage: pgpid certify [OPTIONS]... IMPRONTA [U4|U5]
+Usage: pgpid certify [OPTIONS]... TARGET_KEYFPR [TARGET_U4|TARGET_U5]
 
-Farsi garanti di qualcun altro: dichiarare che questo certificato è suo.
+Certificare qualcun altro, identificato dall'impronta della sua chiave TARGET_KEYFPR.
+I quaranta caratteri interi, letti sulla carta dell'altro e verificati
+contro di essa — mai un motivo di ricerca, perché una certificazione non
+si ritira. Dare anche TARGET_U4 esige che il certificato lo porti, e
+rifiuta altrimenti.
 
-IMPRONTA è l'impronta intera, quaranta caratteri, letta sulla carta
-dell'altra persona e verificata contro di essa — mai un motivo di
-ricerca, perché una certificazione non si ritira. Indicare anche
-l'identificativo esige che il certificato lo porti, e rifiuta altrimenti.
-
-Certificare impegna. Costruisce il suo credito, e lo spende se lo fa
-senza guardare.
+Certificare significa: so che quest'altro certificato appartiene a questa persona reale.
+Ciò implica verificare lo stato civile e l'impronta della chiave pubblica del BERSAGLIO.
+Ciò permette di estendere e rafforzare la sua rete di fiducia e quelle dei suoi cari.
+È un impegno: più certifica, più accresce la sua reputazione,
+ma se lo fa male, rovinerà la sua credibilità.
 
 OPTIONS:
-  -u, --use-privkey NOME|KEYID  Certificare con questa chiave
-                                Default: quella da cui dipende la carta
-  -E, --all-emails              Certificare anche ogni uid con indirizzo,
-                                per i programmi che se lo aspettano lì
-  -R, --revoke                  Revocare le sue certificazioni precedenti
-  -o, --credibility VALORE      Fin dove certificano gli altri, a loro volta
-      --ownertrust VALORE       Lo stesso, col nome che gpg le dà
-                                {undefined,marginal,full,never} — default: marginal
-  -l, --local                   Certificare senza esportare — utile per provare
-  -K, --keyservers SERVER       Inviare il risultato a questi, separati da
-                                spazi. Vuoto per nessuno. Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -h, --help                    Stampare questo aiuto e uscire
-  -V, --version                 Stampare la versione e uscire
+  -u, --use-privkey NAME|KEYID Certificare con questa chiave
+  -E, --all-emails            Certificare anche ogni uid con indirizzo,
+  -R, --revoke                Revocare le sue certificazioni precedenti
+  -o, --credibility VALUE     Fin dove certificano gli altri, a loro volta
+      --ownertrust VALUE      Lo stesso, col nome che gpg le dà
+  -l, --local                 Certificare senza esportare — utile per provare
+  -K, --keyservers KEYSERVERS Inviare il risultato a questi, separati da - Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -h, --help                  Stampare questo aiuto e uscire
+  -V, --version               Stampare la versione e uscire
 
 Valore di ritorno:
 -   0 Nessun errore
@@ -445,6 +439,7 @@ Valore di ritorno:
 - 141 Nessun certificato porta quell'impronta
 - 142 Autocertificarsi non ha nulla di nuovo! ;-)
 - 143 Quel certificato non porta quell'identificativo
+
 ```
 
 ## pgpid trustdb
@@ -486,51 +481,47 @@ OPTIONS:
 ```
 Usage: pgpid gen_key [OPTIONS]... INDIRIZZO
 
-Generare una coppia di chiavi OpenPGP alla maniera PGP ID, e stampare le
-tre impronte ottenute: la chiave principale che firma e certifica, quella
-che decifra, e quella che autentica.
+Generare una coppia di chiavi OpenPGP (pubblica e segreta) secondo le norme PGP ID.
+Stampa 3 righe, una per impronta:
+* chiave principale (Firma Certificazione)
+* chiave di decifratura (Cifratura)
+* chiave di autenticazione (Auth)
 
 OPTIONS:
-  -N, --name PSEUDONIMO            Nome comune o pseudonimo
-                                   Default: la parte di INDIRIZZO prima della «@»
-  -c, --eid U4|U5                  Identificativo d'entità. Esigito: calcolarne uno
-                                   richiede uno stato civile da chiedere a qualcuno
-  -C, --extra-comment NOTA         Una nota sull'entità
-  -p, --passphrase FRASE           La frase d'accesso. Visibile a tutto ciò che può
-                                   leggere l'elenco dei processi di questa macchina
-  -P, --passfrom FILE              Leggerla sulla prima riga di FILE
-                                   (una fifo, qualcosa su tmpfs, /dev/stdin)
-  -e, --expiration ANNI            Anni prima della scadenza - Default: 11
-  -k, --keyserver SERVER           Il server che questo certificato dice suo
-                                   Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -h, --help                       Stampare questo aiuto e uscire
-  -V, --version                    Stampare la versione e uscire
+  -N, --name PSEUDONYM        Nome comune o pseudonimo
+  -c, --eid U4|U5             Identificativo d'entità. Esigito: calcolarne uno
+  -C, --extra-comment NOTE    Una nota sull'entità
+  -p, --passphrase PASSPHRASE La frase d'accesso. Visibile a tutto ciò che può
+  -P, --passfrom FILE         Leggerla sulla prima riga di FILE
+  -e, --expiration YEARS      Anni prima della scadenza - Default: 11
+  -k, --keyserver KEYSERVER   Il server che questo certificato dice suo - Default: hkps://keys.foopgp.org
+  -h, --help                  Stampare questo aiuto e uscire
+  -V, --version               Stampare la versione e uscire
 
-Entrambi i modi di dare la frase d'accesso hanno il loro difetto, e il
-secondo ne ha meno: un argomento è visibile a tutti i processi della
-macchina finché questo dura.
+Entrambi i modi di dare la frase segreta hanno il loro difetto, e il secondo
+ne ha meno: un argomento è visibile a ogni processo della macchina finché
+questo dura.
 ```
 
 ## pgpid change_passphrase
 
 ```
-Usage: pgpid change_passphrase [OPTIONS]... CHIAVE
+Usage: pgpid change_passphrase [OPTIONS]... KEY_ID|FPR|INDIRIZZO|NOME
 
-Cambiare la frase d'accesso che protegge le parti segrete di una chiave
-OpenPGP su questa macchina. CHIAVE è un'impronta, un identificativo di
-chiave, un indirizzo o un nome.
+Cambiare la frase segreta GnuPG che protegge le parti segrete di una chiave OpenPGP.
 
 OPTIONS:
-  -p, --passphrase FRASE          L'attuale, "" se non ce n'è alcuna
-  -P, --passfrom FILE             Leggerla sulla prima riga di FILE
-  -n, --newpassphrase FRASE       La nuova, "" per nessuna
-  -N, --newpassfrom FILE          Leggerla sulla prima riga di FILE
-  -h, --help                      Stampare questo aiuto e uscire
-  -V, --version                   Stampare la versione e uscire
+  -p, --passphrase PASSPHRASE L'attuale, "" se non ce n'è alcuna
+  -P, --passfrom FILE         Leggerla sulla prima riga di FILE
+  -n, --newpassphrase PASSPHRASE La nuova, "" per nessuna
+  -N, --newpassfrom FILE      Leggerla sulla prima riga di FILE
+  -h, --help                  Stampare questo aiuto e uscire
+  -V, --version               Stampare la versione e uscire
 
 Passare una frase d'accesso come argomento la mostra a tutto ciò che può
 leggere l'elenco dei processi di questa macchina. Le forme su file
 esistono per questo.
+
 ```
 
 ## pgpid token_check
@@ -538,21 +529,23 @@ esistono per questo.
 ```
 Usage: pgpid token_check [OPTIONS]...
 
-Dire se la chiave di sicurezza collegata è configurata per portare un
-PGP ID, e cosa contiene. Tenta di recuperare il certificato nominato nei
-metadati della chiave, salvo indicazione contraria.
+Verificare se la chiave di sicurezza è configurata correttamente per PGP ID ;
+può stampare informazioni.
+Proverà a importare il certificato ripulito indicato nel campo «URL of public key».
 
 OPTIONS:
   -f, --no-fetch              Non recuperare il certificato dalla URL
+  -q, --quiet                 Non dire nulla sul flusso d'errore
   -p, --cert-fpr              Impronta della chiave di certificazione
   -i, --info                  Stampare ogni campo come chiave='valore'
-  -q, --quiet                 Non dire nulla sul flusso d'errore
   -h, --help                  Stampare questo aiuto e uscire
   -V, --version               Stampare la versione e uscire
 
-Restituisce 0 quando la chiave porta un'identità completa, altrimenti 100
-più il numero di campi mancanti — 107 è dunque una chiave che non porta
-nulla, cioè una chiave vergine e non una guasta.
+Valore di ritorno:
+-   0 se nessun errore e la chiave di sicurezza è configurata correttamente per PGP ID.
+- 100 + il numero di campi PGP ID mancanti.
+- quindi 107 se mancano tutti i dati richiesti (la carta OpenPGP è probabilmente vuota).
+- un altro valore non nullo sugli altri errori.
 ```
 
 ## pgpid token_retries
@@ -560,8 +553,8 @@ nulla, cioè una chiave vergine e non una guasta.
 ```
 Usage: pgpid token_retries [OPTIONS]...
 
-Stampare quanti tentativi restano sui codici della chiave di sicurezza
-collegata, prima che ciascuno si blocchi. Tutti e tre, salvo che se ne
+Stampare i tentativi rimasti per il codice PIN, il codice di ripristino o il
+codice Admin della carta OpenPGP collegata. Tutti e tre, salvo che se ne
 chieda uno.
 
 OPTIONS:
@@ -571,33 +564,33 @@ OPTIONS:
   -q, --quiet                 I soli numeri, uno per riga
   -h, --help                  Stampare questo aiuto e uscire
   -V, --version               Stampare la versione e uscire
+
 ```
 
 ## pgpid totoken
 
 ```
-Usage: pgpid totoken [OPTIONS]... CHIAVE
+Usage: pgpid totoken [OPTIONS]... KEY_ID|FPR
 
-Spostare una chiave segreta OpenPGP sulla chiave di sicurezza collegata,
-e stampare il certificato, il nuovo PIN e il nuovo codice Admin.
+Spostare i segreti OpenPGP su una chiave di sicurezza (carta OpenPGP).
+La chiave di sicurezza (carta OpenPGP) dev'essere collegata.
+Stampa il certificato OpenPGP in armatura ASCII, il codice PIN e il codice admin.
 
 Questo cancella la carta e ritira le parti segrete da questa macchina.
 Entrambe le cose sono definitive. Stampi prima la chiave se non lo è:
 pgpid print_secret.
 
 OPTIONS:
-  -p, --passphrase FRASE       La frase che protegge le parti segrete
-  -P, --passfrom FILE          Leggerla sulla prima riga di FILE
-  -U, --certurl URL            Dove il certificato può essere recuperato
-                               Default: la ricerca del server per questa chiave
-  -L, --lang LINGUA            Lingua preferita della carta - Default: la locale
-  -k, --keyserver SERVER       Inviarvi il certificato, e costruirne la URL
-                               predefinita. Vuoto per non inviarlo da nessuna
-                               parte e mantenere la URL predefinita
-  -K, --pubkey FILE            Scrivere anche il certificato in armatura lì
-      --force                  Cancellare una carta che non è vergine
-  -h, --help                   Stampare questo aiuto e uscire
-  -V, --version                Stampare la versione e uscire
+  -p, --passphrase PASSPHRASE La frase che protegge le parti segrete
+  -P, --passfrom FILE         Leggerla sulla prima riga di FILE
+  -U, --certurl URL           Dove il certificato può essere recuperato
+  -L, --lang LANG             Lingua preferita della carta - Default: la locale
+  -k, --keyserver KEYSERVER   Inviarvi il certificato, e costruirne la URL
+  -K, --pubkey FILE           Scrivere anche il certificato in armatura lì
+      --force                 Cancellare una carta che non è vergine
+  -h, --help                  Stampare questo aiuto e uscire
+  -V, --version               Stampare la versione e uscire
+
 ```
 
 ## pgpid change_token_code
@@ -605,29 +598,26 @@ OPTIONS:
 ```
 Usage: pgpid change_token_code [OPTIONS]...
 
-Verificare o cambiare il PIN, o il codice Admin, della chiave di
-sicurezza collegata. Entrambi si esigono interi: nulla qui chiede ciò che
-manca.
+Verificare e cambiare il codice PIN (o Admin) che protegge l'uso di una
+chiave di sicurezza (carta OpenPGP). Entrambi i codici sono attesi per
+intero: qui nulla chiede ciò che manca.
 
 OPTIONS:
-  -p, --code CODICE         Il codice così com'è
-  -P, --codefrom FILE       Leggerlo sulla prima riga di FILE
-  -n, --newcode CODICE      In che cosa deve diventare
-  -N, --newcodefrom FILE    Leggere quello sulla prima riga di FILE
-  -C, --onlycheck           Solo verificare il codice, non cambiare nulla
-  -A, --admin               Il codice Admin anziché il PIN
-  -U, --unblock             Sbloccare il PIN: --code è allora il codice Admin
-                            e --newcode il PIN da porre
-  -h, --help                Stampare questo aiuto e uscire
-  -V, --version             Stampare la versione e uscire
+  -p, --code CURRENTCODE      Il codice così com'è
+  -P, --codefrom FILE         Leggerlo sulla prima riga di FILE
+  -n, --newcode NEWCODE       In che cosa deve diventare
+  -N, --newcodefrom FILE      Leggere quello sulla prima riga di FILE
+  -C, --onlycheck             Solo verificare il codice, non cambiare nulla
+  -A, --admin                 Il codice Admin anziché il PIN
+  -U, --unblock               Sbloccare il PIN: --code è allora il codice Admin
+  -h, --help                  Stampare questo aiuto e uscire
+  -V, --version               Stampare la versione e uscire
 
 Valore di ritorno:
--   0 Nessun errore
--   2 Errore di argomento o d'uso
-- 194 Codice errato — restano due tentativi
-- 193 Codice errato — resta un tentativo
-- 192 Il codice è bloccato
-- altro valore non nullo per gli altri errori
+- 194 (0xC2) se restano solo 2 tentativi.
+- 193 (0xC1) se resta un solo tentativo.
+- 192 (0xC0) se il codice è bloccato.
+- un altro valore non nullo sugli altri errori.
 ```
 
 ## pgpid change_token_meta
@@ -635,8 +625,8 @@ Valore di ritorno:
 ```
 Usage: pgpid change_token_meta [OPTIONS]... METADATO
 
-Scrivere una delle tre cose che una chiave di sicurezza dice del suo
-portatore. Quale si legge su METADATO:
+Cambiare un metadato testuale di una chiave di sicurezza (carta OpenPGP).
+Rileva se NEW_METADATA è un'email, una certurl o una lingua:
 
   un indirizzo      il nome del portatore (DO 5B)
   una URL http(s)   dove vive il certificato pubblico (DO 5F50)
@@ -647,63 +637,62 @@ uno di quelli che il certificato porta ancora, e la URL deve servire un
 certificato che porti le tre sottochiavi di questa carta.
 
 OPTIONS:
-  -A, --admincode CODICE       Il codice Admin, otto cifre di solito
-  -p, --admincodefrom FILE     Leggerlo sulla prima riga di FILE
-  -h, --help                   Stampare questo aiuto e uscire
-  -V, --version                Stampare la versione e uscire
+  -A, --admincode CODE        Il codice Admin, otto cifre di solito
+  -p, --admincodefrom FILE    Leggerlo sulla prima riga di FILE
+  -h, --help                  Stampare questo aiuto e uscire
+  -V, --version               Stampare la versione e uscire
+
 ```
 
 ## pgpid print_secret
 
 ```
-Usage: pgpid print_secret [OPTIONS]... CHIAVE
+Usage: pgpid print_secret [OPTIONS]... KEY_ID|FPR
 
-Stampare una chiave segreta OpenPGP come codici QR, ripartita perché
-nessun foglio la porti da solo. Per default cinque frammenti dei quali
-tre qualsiasi la ricostruiscono.
+Esportare e stampare i segreti OpenPGP su più codici QR con la condivisione
+di segreto di Shamir, divisi in modo che nessun foglio porti la chiave.
 
 OPTIONS:
-  -p, --passphrase FRASE         La frase che protegge le parti segrete
-  -P, --passfrom FILE            Leggerla sulla prima riga di FILE
-  -t, --printer STAMPANTE        Dove stampare. Vuoto per fare i fogli
-                                 senza inviare nulla — restano sul posto
-  -w, --with-passphrase          Stampare la frase accanto ai codici QR
-                                 Più comodo, il segreto non è più ripartito
-  -W, --workdir DIRECTORY        Lavorare qui anziché in una temporanea
-                                 Il suo contenuto andrà triturato dopo
-  -S, --split NUMERO             Frammenti da produrre, da 3 a 10 - Default: 5
-  -T, --threshold NUMERO         Frammenti per ricomporre - Default: 3
-  -h, --help                     Stampare questo aiuto e uscire
-  -V, --version                  Stampare la versione e uscire
+  -p, --passphrase PASSPHRASE La frase che protegge le parti segrete
+  -P, --passfrom FILE         Leggerla sulla prima riga di FILE
+  -t, --printer PRINTER       Dove stampare. Vuoto per fare i fogli
+  -w, --with-passphrase       Stampare la frase accanto ai codici QR
+  -W, --workdir DIRECTORY     Lavorare qui anziché in una temporanea
+  -S, --split NUM             Frammenti da produrre, da 3 a 10 - Default: 5
+  -T, --threshold NUM         Frammenti per ricomporre - Default: 3
+  -h, --help                  Stampare questo aiuto e uscire
+  -V, --version               Stampare la versione e uscire
 
-Con --split uguale a --threshold non c'è ripartizione del segreto: i
-frammenti sono pezzi consecutivi e ciascuno lascia trapelare la sua
-parte. Tutto riposa allora sulla frase d'accesso, e stamparla accanto non
-lascia più nulla.
+Nota: il numero di frammenti dev'essere maggiore della soglia.
+      Se sono uguali, un semplice taglio sostituisce la condivisione di Shamir,
+      e tutta la protezione del segreto poggia sulla frase segreta.
+      In altri termini: se (frammenti == soglia), allora non mettere frase
+      segreta, o stamparla, è MOLTO POCO SICURO.
 
 Le fotografie non vanno in stampa. Un salvataggio non ha bisogno del suo
 volto, e la carta la maneggia chi la trova.
+
 ```
 
 ## pgpid scan
 
 ```
-Usage: pgpid scan [OPTIONS]... IMMAGINE...
+Usage: pgpid scan [OPTIONS]... IMAGES...
 
-Ricomporre una chiave segreta OpenPGP dai codici QR delle IMMAGINE...,
-importarla, e stampare l'impronta della chiave di certificazione tornata.
+Ricostituire i segreti OpenPGP dai codici QR scansionati in IMAGES.
+Stampa l'impronta della chiave di certificazione OpenPGP.
 Le immagini possono essere PNG, JPEG o PDF.
 
 OPTIONS:
-  -p, --passphrase FRASE        La frase che protegge le parti segrete
-  -P, --passfrom FILE           Leggerla sulla prima riga di FILE
-  -W, --workdir DIRECTORY       Lavorare qui anziché in una temporanea
-                                Il suo contenuto andrà triturato dopo
-  -h, --help                    Stampare questo aiuto e uscire
-  -V, --version                 Stampare la versione e uscire
+  -p, --passphrase PASSPHRASE La frase che protegge le parti segrete
+  -P, --passfrom FILE         Leggerla sulla prima riga di FILE
+  -W, --workdir DIRECTORY     Lavorare qui anziché in una temporanea
+  -h, --help                  Stampare questo aiuto e uscire
+  -V, --version               Stampare la versione e uscire
 
 I frammenti mancanti sono nominati anziché aggirati: questo legge ciò che
 gli si dà, e non apre una telecamera per andare a cercare.
+
 ```
 
 ## pgpid print_card
@@ -711,20 +700,20 @@ gli si dà, e non apre una telecamera per andare a cercare.
 ```
 Usage: pgpid print_card [OPTIONS]... [NOME|INDIRIZZO|KEYID|U4|U5]
 
-Produrre o stampare un adesivo o un biglietto da visita PGP ID. Senza
-bersaglio, il certificato da cui dipende la carta collegata.
-
-Vi figura un solo indirizzo: quello dato come argomento se lo è,
-altrimenti il più recente che il certificato porta ancora.
+Produrre o stampare un francobollo o un biglietto da visita PGP ID.
+NOME|INDIRIZZO|KEYID|U4|U5 mancante ⇒ il certificato a cui appartiene la chiave di
+sicurezza collegata.
+Una sola email compare in uscita: se l'argomento è un'email è ripresa così
+com'è; altrimenti si sceglie l'email non revocata più recente del certificato.
 
 OPTIONS:
-  -P, --print STAMPANTE|F.svg   Stampante, o file SVG da scrivere
-                                se il nome finisce in «.svg»
-  -t, --template FILE.svg       Usare questo modello anziché l'adesivo
-  -N, --name NOME               Forzare il nome mostrato
-  -g, --no-color                Scala di grigi anziché colore
-  -h, --help                    Stampare questo aiuto e uscire
-  -V, --version                 Stampare la versione e uscire
+  -P, --print PRINTER|FILE.svg Stampante, o file SVG da scrivere
+  -t, --template FILE.svg     Usare questo modello anziché l'adesivo
+  -N, --name NAME             Forzare il nome mostrato
+  -g, --no-color              Scala di grigi anziché colore
+  -h, --help                  Stampare questo aiuto e uscire
+  -V, --version               Stampare la versione e uscire
+
 ```
 
 # DIAGNOSTICS

@@ -178,64 +178,59 @@ OPTIONS:
 ## pgpid get
 
 ```
-Usage: pgpid get [OPTIONS]... NAME|ADRESSE|KEYID|U4|U5|'*'
+Usage: pgpid get [OPTIONS]... NAME|U4|U5|ADRESSE...
 
-Gibt Fingerabdrücke, Adressen und Entitätskennungen der Zertifikate aus,
-die zum Gefragten passen, eine Zeile je Adresse. Frischt sie zuvor von
-den Schlüsselservern auf, sofern nicht anders gesagt.
-
-Ein Suchmuster wird verlangt — „*“ für den ganzen Schlüsselbund. `list`
-ist das, was alles zeigt, wenn man es nach nichts fragt.
+Gibt Fingerabdrücke, E-Mails und eid der Zertifikate aus, die auf
+NAME|U4|U5|ADRESSE passen.
+Kann die Zertifikate auch von den Schlüsselservern holen oder auffrischen.
+'*' meint den ganzen Schlüsselbund; `list` ist die, die alles zeigt, wenn man
+sie nichts fragt.
 
 OPTIONS:
   -F, --fingerprint           Nur die Fingerabdrücke ausgeben
   -E, --email                 Nur die Adressen ausgeben
   -f, --no-fetch              Nicht von Schlüsselservern oder WKD auffrischen
-  -m, --errexit-g=N           Scheitern, wenn mehr als N Zertifikate passen
-  -K, --keyservers SERVER     Von diesen auffrischen, durch Leerzeichen getrennt
-                              Leer für keinen, wie --no-fetch. Vorgabe: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -m, --errexit-g=1           Scheitern, wenn mehr als N Zertifikate passen
+  -K, --keyservers KEYSERVERS Von diesen auffrischen, durch Leerzeichen getrennt - Voreinstellung: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Diese Hilfe ausgeben und beenden
   -V, --version               Die Version ausgeben und beenden
 
 Es gibt kein „cert_check“: `list` antwortet, was es antwortete, für weniger.
+
 ```
 
 ## pgpid property
 
 ```
-Usage: pgpid property NAME [OPTIONS]... [MUSTER]
+Usage: pgpid property PROPERTY [OPTIONS]... [NAME|ADRESSE|KEYID|U4|U5]
 
-Zeigt die Werte einer vCard-Eigenschaft, die ein Zertifikat trägt, einen
-je Zeile, oder fügt welche hinzu und widerruft sie. Ohne MUSTER das
-Zertifikat, dessen geheimer Schlüssel zur Hand ist — der angesteckte.
-
-NAME ist eines von: name, note, phone, address, url, lang, geo, ksprefrd.
-name und note tragen einen einzigen Wert: einen hinzuzufügen widerruft
-den vorigen. Ein Zertifikat behält immer mindestens einen Namen.
-
-Adressen sind keine vCard-Eigenschaften — sie behalten die Form
-„Name <Adresse>“, die jedes Mailprogramm liest. Dafür „pgpid email“.
-
-„ksprefrd“ ist der Zertifikatserver, den dieses Zertifikat seinen nennt.
-Es ist ein Unterpaket einer Signatur und keine uid: es lässt sich
-ersetzen, nie widerrufen.
+Die vCard-Eigenschafts-uids des OpenPGP-Zertifikats anzeigen, hinzufügen oder widerrufen.
+PROPERTY ist eines von: { name, note, address, phone, url, lang, geo, ksprefrd }.
+E-Mail-Adressen sind keine vCard-Eigenschafts-uids (sie behalten die Form
+'Name <Adresse>', die jedes Mailprogramm versteht): dafür ist 'pgpid email' da.
+'ksprefrd' ist der bevorzugte Zertifikatsserver. Er wird nicht als
+vCard-Eigenschafts-uid abgelegt, sondern beim Erzeugen der vCard verwendet: er
+lässt sich ersetzen, nie widerrufen.
+Fehlt NAME|ADRESSE|KEYID|U4|U5 ⇒ das Zertifikat, dessen geheimer Schlüssel da ist.
+Freie Werte (name, note) mit , ; \ oder Zeilenumbrüchen werden nach RFC 6350
+maskiert abgelegt und bei der Anzeige zurückgewandelt (address behält sein
+strukturelles ';')
 
 OPTIONS:
-  -A, --add WERT              Einen Wert hinzufügen (wiederholbar)
-      --replace-to WERT       Dasselbe Wort, für die mit einem einzigen Wert
-  -R, --revoke WERT           Die uid widerrufen, die WERT trägt (wiederholbar)
+  -A, --add VALUE             Einen Wert hinzufügen (wiederholbar)
+      --replace-to VALUE      Dasselbe Wort, für die mit einem einzigen Wert
+  -R, --revoke VALUE          Die uid widerrufen, die WERT trägt (wiederholbar)
       --revoke-all            Alle Werte widerrufen, bis auf den jüngsten,
-                              wo einer bleiben muss
   -y, --yes                   Ja annehmen: die Warnung überspringen
       --show-unusable         Auch die Werte zeigen, die nicht mehr gelten
-  -K, --keyservers SERVER     Geändertes Zertifikat an diese senden
-                              Leer für keinen. Vorgabe: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -K, --keyservers KEYSERVERS Geändertes Zertifikat an diese senden - Voreinstellung: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Diese Hilfe ausgeben und beenden
   -V, --version               Die Version ausgeben und beenden
 
 Widerrufen ist unumkehrbar: OpenPGP behält die uid für immer auf dem
 Zertifikat, als widerrufen markiert, und eine gleiche kann nie wieder
 hinzugefügt werden.
+
 ```
 
 ## pgpid sigs
@@ -278,13 +273,12 @@ OPTIONS:
 ## pgpid avatar
 
 ```
-Usage: pgpid avatar [OPTIONS]... [NAME|E-MAIL|KEYID|U4|U5]
+Usage: pgpid avatar [OPTIONS]... [NAME|ADRESSE|KEYID|U4|U5]
 
 Ein Bild aus dem OpenPGP-Zertifikat holen oder hineinlegen.
-Fehlt NAME|E-MAIL|KEYID|U4|U5 ⇒ das erste geheime Zertifikat.
-Ein Muster, das mehr als ein Zertifikat findet, wird abgelehnt: Bilder
-zurückzunehmen lässt sich nicht rückgängig machen, und eine Suche darf
-nie zum Ziel werden.
+Fehlt NAME|ADRESSE|KEYID|U4|U5 ⇒ das erste geheime Zertifikat.
+Schreiben nimmt einen Fingerabdruck und sonst nichts: ein Widerruf lässt
+sich nicht rückgängig machen, eine Suche darf nie zum Ziel werden.
 Das neue BILD sollte 180×180 Pixel haben, sonst wird es umgerechnet.
 Gibt den Pfad des heute geltenden Bildes aus, das neueste zuerst.
 
@@ -296,6 +290,7 @@ OPTIONS:
   -K, --keyservers SERVER     Wenn nicht leer, das geänderte Zertifikat an diese senden - Voreinstellung: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Diese Hilfe ausgeben und beenden
   -V, --version               Die Version ausgeben und beenden
+
 ```
 
 ## pgpid push
@@ -319,34 +314,34 @@ OPTIONS:
 Usage: pgpid gen_u4 [OPTIONS]...
    or: pgpid gen_u4 --from-passport-mrz [OPTIONS]... MRZ...
 
-Gibt die Entitätskennung aus, die ein Personenstand ergibt: den letzten
-Bestandteil des Nachnamens, die ersten zwei Vornamen, das Geburtsdatum
-und das Land.
+Eine eid-u4-Zeichenkette aus einem Personenstand erzeugen: den letzten
+Bestandteil des Nachnamens, die ersten zwei Vornamen, das Geburtsdatum und
+das Land.
 
-Mit --from-passport-mrz werden die vier stattdessen aus der
-maschinenlesbaren Zone eines Passes gelesen — 88 Zeichen auf zwei Zeilen,
-Leerzeichen und Zeilenumbrüche übergangen, unverändert einfügbar. Die vier
-Optionen oben gelten daneben weiter und ersetzen, was die Zone sagt: so
-wird ein zum Passen gekürzter Nachname berichtigt, ohne den Rest zu tippen.
+Mit --from-passport-mrz gibt man stattdessen die maschinenlesbare Zone eines
+internationalen Passes an — 88 Zeichen auf zwei Zeilen, Leerzeichen und
+Zeilenumbrüche übergangen, unverändert einfügbar. Die vier Optionen unten
+gelten daneben weiter und ersetzen, was die Zone sagt: so wird ein zum Passen
+gekürzter Nachname berichtigt, ohne den Rest zu tippen.
 
 OPTIONS:
-  -s, --surname NACHNAME           Geburtsname
-  -g, --given-names VORNAMEN       Vornamen bei Geburt, getrennt durch Leerzeichen, Komma
-  -d, --birth-date JJJJ-MM-TT      Geburtsdatum
-  -c, --birth-country CODE         Dreibuchstabiger Ländercode des Geburtsorts
-      --from-passport-mrz          Personenstand aus einer als Argument gegebenen Zone lesen
-  -u, --uncheck                    Mit einer Zone: falsche Prüfziffer melden
-  -h, --help                       Diese Hilfe ausgeben und beenden
-  -V, --version                    Die Version ausgeben und beenden
+  -s, --surname SURNAME       Geburtsname
+  -g, --given-names GIVEN_NAMES Vornamen bei Geburt, getrennt durch Leerzeichen, Komma
+  -d, --birth-date            JJJJ-MM-TT      Geburtsdatum
+  -c, --birth-country COUNTRY_CODE Dreibuchstabiger Ländercode des Geburtsorts
+      --from-passport-mrz     Personenstand aus einer als Argument gegebenen Zone lesen
+  -u, --uncheck               Mit einer Zone: falsche Prüfziffer melden
+  -h, --help                  Diese Hilfe ausgeben und beenden
+  -V, --version               Die Version ausgeben und beenden
 
-Getippt wird alles verlangt: nach dem zu fragen, was fehlt, ist Sache
-dessen, der jemanden zum Fragen hat. Aus einem Pass nichts — und
---birth-date lohnt dennoch, wenn zwei Ziffern nicht reichen.
+Getippt wird alles verlangt: nach dem zu fragen, was fehlt, ist Sache dessen,
+der jemanden zum Fragen hat. Aus einem Pass nichts — und allein --birth-date
+lohnt, wenn zwei Ziffern nicht reichen.
 
-Etwa jeder fünfte Pass ergibt die falsche Kennung: ein Nachname, der zum
-Passen gekürzt wurde, ein seit der Geburt geänderter Name, eine andere
-Umschrift, oder ein Jahr, das zwei Ziffern nicht einordnen. Es muss
-geprüft werden.
+Mit ~20% Wahrscheinlichkeit ist eine aus einem Pass erzeugte *u4* falsch: ein
+zum Passen gekürzter Nachname, ein seit der Geburt geänderter Name, eine
+andere Umschrift, oder ein Geburtsjahr, das zwei Ziffern nicht einordnen.
+Prüfen Sie sie.
 ```
 
 ## pgpid gen_uid
@@ -354,18 +349,18 @@ geprüft werden.
 ```
 Usage: pgpid gen_uid [OPTIONS]... U4|U5|ZEICHENKETTE
 
-Gibt die Unix-Kontonummer aus, die eine Entitätskennung ergibt, zwischen
-262144 und 2147483646. Dieselbe Kennung ergibt immer dieselbe Nummer, auf jeder
-Maschine — das ist es, was erlaubt, ein Konto anderswo allein aus dem
-Zertifikat wieder zu eröffnen.
+Eine 32-Bit-Unix-Benutzerkennung erzeugen, von 2^18 bis (2^31)-2
+([262144,2147483646]).
+Dieselbe Kennung ergibt immer dieselbe Zahl, auf jeder Maschine — und genau
+das lässt ein Konto anderswo allein aus dem Zertifikat wieder eröffnen.
 
 OPTIONS:
   -f, --free-input            Jede Zeichenkette annehmen, nicht nur Kennungen
   -h, --help                  Diese Hilfe ausgeben und beenden
   -V, --version               Die Version ausgeben und beenden
 
-Interaktiv nach einem Personenstand zu fragen ist Sache des Aufrufers:
-dies liest, was man ihm gibt, und sonst nichts.
+Ein Argument wird verlangt: nach einem Personenstand interaktiv zu fragen
+ist Sache des Aufrufers.
 ```
 
 ## pgpid to_vcard
@@ -373,14 +368,15 @@ dies liest, was man ihm gibt, und sonst nichts.
 ```
 Usage: pgpid to_vcard [OPTIONS]... [NAME|ADRESSE|KEYID|U4|U5]
 
-Schreibt ein Zertifikat als vCard 4.0, die ein Adressbuch lesen kann.
-Ohne Auswahl das Zertifikat, dessen geheimer Schlüssel zur Hand ist.
+Das OpenPGP-Zertifikat in eine vCard (Format 4.0) umwandeln.
+Fehlt NAME|ADRESSE|KEYID|U4|U5 ⇒ das Zertifikat, dessen geheimer Schlüssel da ist.
 
 OPTIONS:
-  -o, --output DATEI          Dorthin schreiben statt auf die Standardausgabe
+  -o, --output FILE           Dorthin schreiben statt auf die Standardausgabe
       --raw                   Stattdessen jede uid ausgeben, eine je Absatz
   -h, --help                  Diese Hilfe ausgeben und beenden
   -V, --version               Die Version ausgeben und beenden
+
 ```
 
 ## pgpid email
@@ -388,62 +384,58 @@ OPTIONS:
 ```
 Usage: pgpid email [OPTIONS]... [NAME|ADRESSE|KEYID|U4|U5]
 
-Zeigt die Adressen, die ein Zertifikat trägt, oder fügt welche hinzu und
-widerruft sie. Ohne Ziel jenes, zu dem die angesteckte Karte gehört.
-
-Nur die Adressen, die noch gelten, werden gezeigt — nicht die
-widerrufenen, nicht die abgelaufenen, und keine, deren Selbstsignatur
-nicht mehr trägt.
+Die E-Mails des OpenPGP-Zertifikats anzeigen, hinzufügen oder widerrufen.
+Fehlt NAME|ADRESSE|KEYID|U4|U5 ⇒ das Zertifikat, zu dem der angeschlossene
+Sicherheitsschlüssel gehört.
+Gibt die brauchbaren E-Mails aus (nicht widerrufen, nicht abgelaufen).
 
 OPTIONS:
-  -A, --add ADRESSE           Als uid „Name <ADRESSE>“ hinzufügen (wiederholbar)
-  -R, --revoke ADRESSE        Die uid widerrufen, die sie trägt (wiederholbar)
+  -R, --revoke EMAIL          Die uid widerrufen, die sie trägt (wiederholbar)
       --revoke-all            Alle Adressen bis auf die jüngste widerrufen
-  -y, --yes                   Ja annehmen: die Warnung überspringen
+  -A, --add EMAIL             Als uid „Name <ADRESSE>“ hinzufügen (wiederholbar)
   -N, --name NAME             Der Name vor einer hinzugefügten Adresse
-                              Vorgabe: das FN: des Zertifikats, sonst der lokale Teil
+                              Voreinstellung: das FN: des Zertifikats, sonst der lokale Teil
+  -y, --yes                   Ja annehmen: die Warnung überspringen
   -c, --certs-count           Auch die Beglaubigungen jeder Adresse zählen
       --show-unusable         Auch die Adressen zeigen, die nicht mehr gelten
       --info                  Paare Schlüssel=Wert ausgeben, in bash auswertbar
-  -K, --keyservers SERVER     Geändertes Zertifikat an diese senden
-                              Leer für keinen. Vorgabe: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -K, --keyservers KEYSERVERS Geändertes Zertifikat an diese senden - Voreinstellung: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Diese Hilfe ausgeben und beenden
   -V, --version               Die Version ausgeben und beenden
 
 Widerrufen ist unumkehrbar: OpenPGP behält die Adresse für immer auf dem
 Zertifikat, als widerrufen markiert, und eine gleiche kann nie wieder
 hinzugefügt werden.
+
 ```
 
 ## pgpid certify
 
 ```
-Usage: pgpid certify [OPTIONS]... FINGERABDRUCK [U4|U5]
+Usage: pgpid certify [OPTIONS]... TARGET_KEYFPR [TARGET_U4|TARGET_U5]
 
-Für jemand anderen einstehen: erklären, dass dieses Zertifikat ihm gehört.
+Jemand anderen beglaubigen, kenntlich am Fingerabdruck seines Schlüssels TARGET_KEYFPR.
+Alle vierzig Zeichen, von der Karte des anderen abgelesen und gegen sie
+geprüft — nie ein Suchmuster, denn eine Beglaubigung lässt sich nicht
+zurücknehmen. Wird TARGET_U4 mitgegeben, muss das Zertifikat sie tragen,
+sonst wird abgelehnt.
 
-FINGERABDRUCK ist der vollständige, vierzig Zeichen, von der Karte der
-anderen Person abgelesen und dagegen geprüft — nie ein Suchmuster, denn
-eine Beglaubigung lässt sich nicht zurücknehmen. Auch die Kennung
-anzugeben verlangt, dass das Zertifikat sie trägt, und lehnt sonst ab.
-
-Beglaubigen verpflichtet. Es baut Ihr Ansehen auf und verbraucht es, wenn
-Sie es ungeprüft tun.
+Beglaubigen heißt: ich weiß, dass dieses andere Zertifikat dieser wirklichen Person gehört.
+Das verlangt, den Personenstand und den Fingerabdruck des öffentlichen Schlüssels des ZIELS zu prüfen.
+So lässt sich Ihr Vertrauensnetz und das Ihrer Nächsten ausdehnen und stärken.
+Es ist eine Verpflichtung: je mehr Sie beglaubigen, desto mehr wächst Ihr Ansehen,
+doch machen Sie es falsch, ruinieren Sie Ihre Glaubwürdigkeit.
 
 OPTIONS:
-  -u, --use-privkey NAME|KEYID  Mit diesem Schlüssel beglaubigen
-                                Vorgabe: der, zu dem die Karte gehört
-  -E, --all-emails              Auch jede uid mit Adresse beglaubigen,
-                                für Software, die sie dort erwartet
-  -R, --revoke                  Ihre früheren Beglaubigungen widerrufen
-  -o, --credibility WERT        Wie weit sie ihrerseits andere beglaubigen
-      --ownertrust WERT         Dasselbe, unter dem Namen, den gpg ihm gibt
-                                {undefined,marginal,full,never} — Vorgabe: marginal
-  -l, --local                   Beglaubigen ohne Export — nützlich zum Prüfen
-  -K, --keyservers SERVER       Ergebnis an diese senden, durch Leerzeichen
-                                getrennt. Leer für keinen. Vorgabe: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -h, --help                    Diese Hilfe ausgeben und beenden
-  -V, --version                 Die Version ausgeben und beenden
+  -u, --use-privkey NAME|KEYID Mit diesem Schlüssel beglaubigen
+  -E, --all-emails            Auch jede uid mit Adresse beglaubigen,
+  -R, --revoke                Ihre früheren Beglaubigungen widerrufen
+  -o, --credibility VALUE     Wie weit sie ihrerseits andere beglaubigen
+      --ownertrust VALUE      Dasselbe, unter dem Namen, den gpg ihm gibt
+  -l, --local                 Beglaubigen ohne Export — nützlich zum Prüfen
+  -K, --keyservers KEYSERVERS Ergebnis an diese senden, durch Leerzeichen - Voreinstellung: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -h, --help                  Diese Hilfe ausgeben und beenden
+  -V, --version               Die Version ausgeben und beenden
 
 Rückgabewert:
 -   0 Kein Fehler
@@ -452,6 +444,7 @@ Rückgabewert:
 - 141 Kein Zertifikat trägt diesen Fingerabdruck
 - 142 Sich selbst zu beglaubigen ist nichts Neues! ;-)
 - 143 Dieses Zertifikat trägt diese Kennung nicht
+
 ```
 
 ## pgpid trustdb
@@ -493,50 +486,46 @@ OPTIONS:
 ```
 Usage: pgpid gen_key [OPTIONS]... ADRESSE
 
-Erzeugt ein OpenPGP-Schlüsselpaar nach Art von PGP ID und gibt die drei
-Fingerabdrücke aus: den Hauptschlüssel, der signiert und beglaubigt, den,
-der entschlüsselt, und den, der authentisiert.
+Ein OpenPGP-Schlüsselpaar (öffentlich und geheim) nach den PGP-ID-Normen erzeugen.
+Gibt 3 Zeilen aus, eine je Fingerabdruck:
+* Hauptschlüssel (Signieren Beglaubigen)
+* Entschlüsselungsschlüssel (Verschlüsseln)
+* Authentisierungsschlüssel (Auth)
 
 OPTIONS:
-  -N, --name PSEUDONYM             Rufname oder Pseudonym
-                                   Vorgabe: der Teil von ADRESSE vor dem „@“
-  -c, --eid U4|U5                  Entitätskennung. Verlangt: eine zu berechnen
-                                   braucht einen Personenstand, den jemand gibt
-  -C, --extra-comment NOTIZ        Eine Notiz zur Entität
-  -p, --passphrase PHRASE          Die Passphrase. Sichtbar für alles, was die
-                                   Prozessliste dieser Maschine lesen kann
-  -P, --passfrom DATEI             Sie aus der ersten Zeile von DATEI lesen
-                                   (eine fifo, etwas auf tmpfs, /dev/stdin)
-  -e, --expiration JAHRE           Jahre bis zum Ablauf - Vorgabe: 11
-  -k, --keyserver SERVER           Der Zertifikatserver, den dieses seinen nennt
-                                   Vorgabe: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -h, --help                       Diese Hilfe ausgeben und beenden
-  -V, --version                    Die Version ausgeben und beenden
+  -N, --name PSEUDONYM        Rufname oder Pseudonym
+  -c, --eid U4|U5             Entitätskennung. Verlangt: eine zu berechnen
+  -C, --extra-comment NOTE    Eine Notiz zur Entität
+  -p, --passphrase PASSPHRASE Die Passphrase. Sichtbar für alles, was die
+  -P, --passfrom FILE         Sie aus der ersten Zeile von DATEI lesen
+  -e, --expiration YEARS      Jahre bis zum Ablauf - Vorgabe: 11
+  -k, --keyserver KEYSERVER   Der Zertifikatserver, den dieses seinen nennt - Voreinstellung: hkps://keys.foopgp.org
+  -h, --help                  Diese Hilfe ausgeben und beenden
+  -V, --version               Die Version ausgeben und beenden
 
-Beide Wege, die Passphrase zu übergeben, haben ihren Nachteil, und der
-zweite hat weniger: ein Argument ist für jeden Prozess der Maschine
-sichtbar, solange dieser läuft.
+Beide Wege, die Passphrase zu übergeben, haben ihren Haken, und der zweite
+weniger: ein Argument ist jedem Prozess der Maschine sichtbar, solange dieser
+läuft.
 ```
 
 ## pgpid change_passphrase
 
 ```
-Usage: pgpid change_passphrase [OPTIONS]... SCHLÜSSEL
+Usage: pgpid change_passphrase [OPTIONS]... KEY_ID|FPR|ADRESSE|NAME
 
-Ändert die Passphrase, die die geheimen Teile eines OpenPGP-Schlüssels auf
-dieser Maschine schützt. SCHLÜSSEL ist ein Fingerabdruck, eine
-Schlüsselkennung, eine Adresse oder ein Name.
+Die GnuPG-Passphrase ändern, die die geheimen Teile eines OpenPGP-Schlüssels schützt.
 
 OPTIONS:
-  -p, --passphrase PHRASE         Die aktuelle, "" wenn es keine gibt
-  -P, --passfrom DATEI            Sie aus der ersten Zeile von DATEI lesen
-  -n, --newpassphrase PHRASE      Die neue, "" für keine
-  -N, --newpassfrom DATEI         Sie aus der ersten Zeile von DATEI lesen
-  -h, --help                      Diese Hilfe ausgeben und beenden
-  -V, --version                   Die Version ausgeben und beenden
+  -p, --passphrase PASSPHRASE Die aktuelle, "" wenn es keine gibt
+  -P, --passfrom FILE         Sie aus der ersten Zeile von DATEI lesen
+  -n, --newpassphrase PASSPHRASE Die neue, "" für keine
+  -N, --newpassfrom FILE      Sie aus der ersten Zeile von DATEI lesen
+  -h, --help                  Diese Hilfe ausgeben und beenden
+  -V, --version               Die Version ausgeben und beenden
 
 Eine Passphrase als Argument zu übergeben zeigt sie allem, was die
 Prozessliste dieser Maschine lesen kann. Dafür gibt es die Dateiformen.
+
 ```
 
 ## pgpid token_check
@@ -544,21 +533,23 @@ Prozessliste dieser Maschine lesen kann. Dafür gibt es die Dateiformen.
 ```
 Usage: pgpid token_check [OPTIONS]...
 
-Sagt, ob der angesteckte Sicherheitsschlüssel eingerichtet ist, eine
-PGP ID zu tragen, und was er enthält. Versucht, das in den Metadaten des
-Schlüssels genannte Zertifikat zu holen, sofern nicht anders gesagt.
+Prüfen, ob der Sicherheitsschlüssel richtig für PGP ID eingerichtet ist ;
+kann Angaben ausgeben.
+Versucht, das im Feld „URL of public key“ genannte, gesäuberte Zertifikat einzulesen.
 
 OPTIONS:
   -f, --no-fetch              Das Zertifikat nicht von der URL holen
+  -q, --quiet                 Nichts auf dem Fehlerstrom sagen
   -p, --cert-fpr              Fingerabdruck des Beglaubigungsschlüssels
   -i, --info                  Jedes Feld als Schlüssel='Wert' ausgeben
-  -q, --quiet                 Nichts auf dem Fehlerstrom sagen
   -h, --help                  Diese Hilfe ausgeben und beenden
   -V, --version               Die Version ausgeben und beenden
 
-Gibt 0 zurück, wenn der Schlüssel eine vollständige Identität trägt,
-sonst 100 plus die Zahl der fehlenden Felder — 107 ist also ein
-Schlüssel, der nichts trägt, ein leerer und kein beschädigter.
+Rückgabewert:
+-   0 wenn kein Fehler und der Sicherheitsschlüssel richtig für PGP ID eingerichtet ist.
+- 100 + die Zahl der fehlenden PGP-ID-Felder.
+- also 107, wenn alle verlangten Daten fehlen (die OpenPGP-Karte ist wohl leer).
+- ein anderer Wert ungleich null bei anderen Fehlern.
 ```
 
 ## pgpid token_retries
@@ -566,8 +557,8 @@ Schlüssel, der nichts trägt, ein leerer und kein beschädigter.
 ```
 Usage: pgpid token_retries [OPTIONS]...
 
-Gibt aus, wie viele Versuche auf den Codes des angesteckten
-Sicherheitsschlüssels bleiben, bevor jeder sperrt. Alle drei, sofern
+Die verbleibenden Versuche für den PIN-Code, den Rücksetzcode oder den
+Admin-Code der angeschlossenen OpenPGP-Karte ausgeben. Alle drei, sofern
 nicht einer verlangt wird.
 
 OPTIONS:
@@ -577,34 +568,33 @@ OPTIONS:
   -q, --quiet                 Nur die Zahlen, eine je Zeile
   -h, --help                  Diese Hilfe ausgeben und beenden
   -V, --version               Die Version ausgeben und beenden
+
 ```
 
 ## pgpid totoken
 
 ```
-Usage: pgpid totoken [OPTIONS]... SCHLÜSSEL
+Usage: pgpid totoken [OPTIONS]... KEY_ID|FPR
 
-Verschiebt einen geheimen OpenPGP-Schlüssel auf den angesteckten
-Sicherheitsschlüssel und gibt das Zertifikat, die neue PIN und den neuen
-Admin-Code aus.
+Die OpenPGP-Geheimnisse auf einen Sicherheitsschlüssel (OpenPGP-Karte) verschieben.
+Der Sicherheitsschlüssel (OpenPGP-Karte) muss angeschlossen sein.
+Gibt das OpenPGP-Zertifikat in ASCII-Panzerung, den PIN- und den Admin-Code aus.
 
 Dies löscht die Karte und nimmt die geheimen Teile von dieser Maschine.
 Beides ist endgültig. Drucken Sie den Schlüssel zuvor, falls nicht
 geschehen: pgpid print_secret.
 
 OPTIONS:
-  -p, --passphrase PHRASE      Die Phrase, die die geheimen Teile schützt
-  -P, --passfrom DATEI         Sie aus der ersten Zeile von DATEI lesen
-  -U, --certurl URL            Wo das Zertifikat zu holen ist
-                               Vorgabe: die Serversuche für diesen Schlüssel
-  -L, --lang SPRACHE           Bevorzugte Sprache der Karte - Vorgabe: die Locale
-  -k, --keyserver SERVER       Das Zertifikat dorthin senden und daraus die
-                               Vorgabe-URL bauen. Leer, um nichts zu senden
-                               und die Vorgabe-URL zu behalten
-  -K, --pubkey DATEI           Das gepanzerte Zertifikat auch dorthin schreiben
-      --force                  Eine Karte löschen, die nicht leer ist
-  -h, --help                   Diese Hilfe ausgeben und beenden
-  -V, --version                Die Version ausgeben und beenden
+  -p, --passphrase PASSPHRASE Die Phrase, die die geheimen Teile schützt
+  -P, --passfrom FILE         Sie aus der ersten Zeile von DATEI lesen
+  -U, --certurl URL           Wo das Zertifikat zu holen ist
+  -L, --lang LANG             Bevorzugte Sprache der Karte - Vorgabe: die Locale
+  -k, --keyserver KEYSERVER   Das Zertifikat dorthin senden und daraus die
+  -K, --pubkey FILE           Das gepanzerte Zertifikat auch dorthin schreiben
+      --force                 Eine Karte löschen, die nicht leer ist
+  -h, --help                  Diese Hilfe ausgeben und beenden
+  -V, --version               Die Version ausgeben und beenden
+
 ```
 
 ## pgpid change_token_code
@@ -612,29 +602,26 @@ OPTIONS:
 ```
 Usage: pgpid change_token_code [OPTIONS]...
 
-Prüft oder ändert die PIN oder den Admin-Code des angesteckten
-Sicherheitsschlüssels. Beide werden vollständig verlangt: nichts hier
-fragt nach dem, was fehlt.
+Den PIN- (oder Admin-)Code prüfen und ändern, der die Nutzung eines
+Sicherheitsschlüssels (OpenPGP-Karte) schützt. Beide Codes werden ganz
+erwartet: hier fragt nichts nach dem, was fehlt.
 
 OPTIONS:
-  -p, --code CODE           Der Code, wie er ist
-  -P, --codefrom DATEI      Ihn aus der ersten Zeile von DATEI lesen
-  -n, --newcode CODE        Was aus ihm werden soll
-  -N, --newcodefrom DATEI   Das aus der ersten Zeile von DATEI lesen
-  -C, --onlycheck           Nur den aktuellen Code prüfen, nichts ändern
-  -A, --admin               Der Admin-Code statt der PIN
-  -U, --unblock             Die PIN entsperren: --code ist dann der
-                            Admin-Code und --newcode die zu setzende PIN
-  -h, --help                Diese Hilfe ausgeben und beenden
-  -V, --version             Die Version ausgeben und beenden
+  -p, --code CURRENTCODE      Der Code, wie er ist
+  -P, --codefrom FILE         Ihn aus der ersten Zeile von DATEI lesen
+  -n, --newcode NEWCODE       Was aus ihm werden soll
+  -N, --newcodefrom FILE      Das aus der ersten Zeile von DATEI lesen
+  -C, --onlycheck             Nur den aktuellen Code prüfen, nichts ändern
+  -A, --admin                 Der Admin-Code statt der PIN
+  -U, --unblock               Die PIN entsperren: --code ist dann der
+  -h, --help                  Diese Hilfe ausgeben und beenden
+  -V, --version               Die Version ausgeben und beenden
 
 Rückgabewert:
--   0 Kein Fehler
--   2 Argument- oder Aufruffehler
-- 194 Falscher Code — zwei Versuche bleiben
-- 193 Falscher Code — ein Versuch bleibt
-- 192 Der Code ist gesperrt
-- anderer Wert ungleich null bei anderen Fehlern
+- 194 (0xC2) wenn nur noch 2 Versuche bleiben.
+- 193 (0xC1) wenn nur noch 1 Versuch bleibt.
+- 192 (0xC0) wenn der Code gesperrt ist.
+- ein anderer Wert ungleich null bei anderen Fehlern.
 ```
 
 ## pgpid change_token_meta
@@ -642,8 +629,8 @@ Rückgabewert:
 ```
 Usage: pgpid change_token_meta [OPTIONS]... METADATUM
 
-Schreibt eines der drei Dinge, die ein Sicherheitsschlüssel über seinen
-Inhaber sagt. Welches, wird an METADATUM abgelesen:
+Ein Text-Metadatum eines Sicherheitsschlüssels (OpenPGP-Karte) ändern.
+Erkennt, ob NEW_METADATA eine E-Mail, eine certurl oder eine Sprache ist:
 
   eine Adresse      der Name des Inhabers (DO 5B)
   eine http(s)-URL  wo das öffentliche Zertifikat liegt (DO 5F50)
@@ -654,63 +641,62 @@ Zertifikat noch trägt, und die URL muss ein Zertifikat liefern, das die
 drei Unterschlüssel dieser Karte trägt.
 
 OPTIONS:
-  -A, --admincode CODE         Der Admin-Code, gewöhnlich acht Ziffern
-  -p, --admincodefrom DATEI    Ihn aus der ersten Zeile von DATEI lesen
-  -h, --help                   Diese Hilfe ausgeben und beenden
-  -V, --version                Die Version ausgeben und beenden
+  -A, --admincode CODE        Der Admin-Code, gewöhnlich acht Ziffern
+  -p, --admincodefrom FILE    Ihn aus der ersten Zeile von DATEI lesen
+  -h, --help                  Diese Hilfe ausgeben und beenden
+  -V, --version               Die Version ausgeben und beenden
+
 ```
 
 ## pgpid print_secret
 
 ```
-Usage: pgpid print_secret [OPTIONS]... SCHLÜSSEL
+Usage: pgpid print_secret [OPTIONS]... KEY_ID|FPR
 
-Druckt einen geheimen OpenPGP-Schlüssel als QR-Codes, so aufgeteilt, dass
-kein Blatt ihn allein trägt. Vorgabe: fünf Fragmente, von denen drei
-beliebige ihn wiederherstellen.
+Die OpenPGP-Geheimnisse auf mehrere QR-Codes ausgeben und drucken, mit
+Shamirs Secret Sharing so geteilt, dass kein einzelnes Blatt den Schlüssel trägt.
 
 OPTIONS:
-  -p, --passphrase PHRASE        Die Phrase, die die geheimen Teile schützt
-  -P, --passfrom DATEI           Sie aus der ersten Zeile von DATEI lesen
-  -t, --printer DRUCKER          Wohin drucken. Leer, um die Blätter zu machen
-                                 und nichts zu senden — sie bleiben liegen
-  -w, --with-passphrase          Die Phrase neben die QR-Codes drucken
-                                 Bequemer, das Geheimnis ist nicht mehr geteilt
-  -W, --workdir VERZEICHNIS      Hier arbeiten statt in einem temporären
-                                 Sein Inhalt muss danach geschreddert werden
-  -S, --split ANZAHL             Zu erzeugende Fragmente, 3 bis 10 - Vorgabe: 5
-  -T, --threshold ANZAHL         Nötige Fragmente - Vorgabe: 3
-  -h, --help                     Diese Hilfe ausgeben und beenden
-  -V, --version                  Die Version ausgeben und beenden
+  -p, --passphrase PASSPHRASE Die Phrase, die die geheimen Teile schützt
+  -P, --passfrom FILE         Sie aus der ersten Zeile von DATEI lesen
+  -t, --printer PRINTER       Wohin drucken. Leer, um die Blätter zu machen
+  -w, --with-passphrase       Die Phrase neben die QR-Codes drucken
+  -W, --workdir DIRECTORY     Hier arbeiten statt in einem temporären
+  -S, --split NUM             Zu erzeugende Fragmente, 3 bis 10 - Vorgabe: 5
+  -T, --threshold NUM         Nötige Fragmente - Vorgabe: 3
+  -h, --help                  Diese Hilfe ausgeben und beenden
+  -V, --version               Die Version ausgeben und beenden
 
-Ist --split gleich --threshold, gibt es keine Geheimnisteilung: die
-Fragmente sind aufeinanderfolgende Stücke und jedes verrät seinen Teil.
-Alles ruht dann auf der Passphrase, und sie danebenzudrucken lässt nichts
-übrig.
+Hinweis: die Zahl der Bruchstücke sollte über der Schwelle liegen.
+      Sind sie gleich, tritt ein einfaches Zerteilen an die Stelle von Shamirs
+      Verfahren, und aller Schutz des Geheimnisses ruht auf der Passphrase.
+      Anders gesagt: ist (Bruchstücke == Schwelle), dann ist keine Passphrase
+      zu setzen, oder sie zu drucken, SEHR UNSICHER.
 
 Fotografien gehen nicht mit in den Druck. Eine Sicherung braucht Ihr
 Gesicht nicht, und Papier hält der in Händen, der es findet.
+
 ```
 
 ## pgpid scan
 
 ```
-Usage: pgpid scan [OPTIONS]... BILD...
+Usage: pgpid scan [OPTIONS]... IMAGES...
 
-Setzt einen geheimen OpenPGP-Schlüssel aus den QR-Codes in BILD... wieder
-zusammen, liest ihn ein und gibt den Fingerabdruck des zurückgekommenen
-Beglaubigungsschlüssels aus. Bilder dürfen PNG, JPEG oder PDF sein.
+Die OpenPGP-Geheimnisse aus den in IMAGES eingelesenen QR-Codes wiederherstellen.
+Gibt den Fingerabdruck des OpenPGP-Beglaubigungsschlüssels aus.
+Die Bilder dürfen PNG, JPEG oder PDF sein.
 
 OPTIONS:
-  -p, --passphrase PHRASE       Die Phrase, unter der die geheimen Teile liegen
-  -P, --passfrom DATEI          Sie aus der ersten Zeile von DATEI lesen
-  -W, --workdir VERZEICHNIS     Hier arbeiten statt in einem temporären
-                                Sein Inhalt muss danach geschreddert werden
-  -h, --help                    Diese Hilfe ausgeben und beenden
-  -V, --version                 Die Version ausgeben und beenden
+  -p, --passphrase PASSPHRASE Die Phrase, unter der die geheimen Teile liegen
+  -P, --passfrom FILE         Sie aus der ersten Zeile von DATEI lesen
+  -W, --workdir DIRECTORY     Hier arbeiten statt in einem temporären
+  -h, --help                  Diese Hilfe ausgeben und beenden
+  -V, --version               Die Version ausgeben und beenden
 
 Fehlende Fragmente werden benannt statt umgangen: dies liest, was man ihm
 gibt, und öffnet keine Kamera, um suchen zu gehen.
+
 ```
 
 ## pgpid print_card
@@ -718,20 +704,20 @@ gibt, und öffnet keine Kamera, um suchen zu gehen.
 ```
 Usage: pgpid print_card [OPTIONS]... [NAME|ADRESSE|KEYID|U4|U5]
 
-Erzeugt oder druckt einen PGP-ID-Aufkleber oder eine Visitenkarte. Ohne
-Ziel das Zertifikat, zu dem die angesteckte Karte gehört.
-
-Eine einzige Adresse steht darauf: die als Argument gegebene, wenn es
-eine ist, sonst die jüngste, die das Zertifikat noch trägt.
+Eine PGP-ID-Marke oder Visitenkarte erzeugen oder drucken.
+Fehlt NAME|ADRESSE|KEYID|U4|U5 ⇒ das Zertifikat, zu dem der angeschlossene
+Sicherheitsschlüssel gehört.
+Eine einzige E-Mail erscheint darauf: ist das Argument eine E-Mail, wird sie
+unverändert genommen; sonst die neueste nicht widerrufene des Zertifikats.
 
 OPTIONS:
-  -P, --print DRUCKER|D.svg     Drucker, oder zu schreibende SVG-Datei,
-                                wenn der Name auf „.svg“ endet
-  -t, --template DATEI.svg      Diese Vorlage statt des Aufklebers
-  -N, --name NAME               Den angezeigten Namen erzwingen
-  -g, --no-color                Graustufen statt Farbe
-  -h, --help                    Diese Hilfe ausgeben und beenden
-  -V, --version                 Die Version ausgeben und beenden
+  -P, --print PRINTER|FILE.svg Drucker, oder zu schreibende SVG-Datei,
+  -t, --template FILE.svg     Diese Vorlage statt des Aufklebers
+  -N, --name NAME             Den angezeigten Namen erzwingen
+  -g, --no-color              Graustufen statt Farbe
+  -h, --help                  Diese Hilfe ausgeben und beenden
+  -V, --version               Die Version ausgeben und beenden
+
 ```
 
 # DIAGNOSTICS
