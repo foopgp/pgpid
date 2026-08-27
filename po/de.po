@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid 0.0.7-35-g8512aa6\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-08-27 17:11+0200\n"
+"POT-Creation-Date: 2026-08-27 17:35+0200\n"
 "PO-Revision-Date: 2026-08-22 22:58+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -37,62 +37,62 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ../src/avatar.c:169
+#: ../src/avatar.c:165
 #, c-format
 msgid "Error: Cannot create '%s': %s."
 msgstr "Error: „%s“ kann nicht angelegt werden: %s."
 
-#: ../src/avatar.c:174
+#: ../src/avatar.c:170
 #, c-format
 msgid "Error: Cannot read '%s': %s."
 msgstr "Error: „%s“ kann nicht gelesen werden: %s."
 
-#: ../src/avatar.c:178
+#: ../src/avatar.c:174
 #, c-format
 msgid "Error: '%s' is not a directory of yours."
 msgstr "Error: „%s“ ist kein Verzeichnis von Ihnen."
 
-#: ../src/avatar.c:193 ../src/avatar.c:198
+#: ../src/avatar.c:189 ../src/avatar.c:194
 #, c-format
 msgid "Error: Cannot write '%s': %s."
 msgstr "Error: „%s“ kann nicht geschrieben werden: %s."
 
-#: ../src/avatar.c:256
+#: ../src/avatar.c:252
 msgid "Error: graphicsmagick is needed to resize an image - install 'graphicsmagick'."
 msgstr "Error: graphicsmagick wird zum Skalieren eines Bildes gebraucht — „graphicsmagick“ installieren."
 
-#: ../src/avatar.c:260
+#: ../src/avatar.c:256
 #, c-format
 msgid "Error: Cannot read '%s' as an image."
 msgstr "Error: „%s“ kann nicht als Bild gelesen werden."
 
-#: ../src/avatar.c:406
+#: ../src/avatar.c:402
 msgid "Notice: No image to take back."
 msgstr "Notice: Kein Bild zum Zurücknehmen."
 
-#: ../src/avatar.c:422 ../src/avatar.c:495
+#: ../src/avatar.c:418 ../src/avatar.c:491
 msgid "gpgme_data_new"
 msgstr "gpgme_data_new"
 
-#: ../src/avatar.c:426
+#: ../src/avatar.c:422
 #, c-format
 msgid "Info: Taking back %zu image(s) on %s…"
 msgstr "Info: %zu Bild(er) auf %s werden zurückgenommen…"
 
-#: ../src/avatar.c:428
+#: ../src/avatar.c:424
 #, c-format
 msgid "Info: Putting %s on %s…"
 msgstr "Info: %s wird auf %s gelegt…"
 
-#: ../src/avatar.c:433
+#: ../src/avatar.c:429
 msgid "gpgme_op_interact"
 msgstr "gpgme_op_interact"
 
-#: ../src/avatar.c:434
+#: ../src/avatar.c:430
 msgid "Notice: A certificate is edited with its secret key - is the right one at hand?"
 msgstr "Notice: Ein Zertifikat wird mit seinem geheimen Schlüssel geändert — ist der richtige zur Hand?"
 
-#: ../src/avatar.c:446
+#: ../src/avatar.c:442
 #, c-format
 msgid ""
 "Usage: %s avatar [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
@@ -138,72 +138,76 @@ msgstr ""
 "  -h, --help                  Diese Hilfe ausgeben und beenden\n"
 "  -V, --version               Die Version ausgeben und beenden\n"
 
-#: ../src/avatar.c:501
+#: ../src/avatar.c:497
 msgid "gpgme_op_export"
 msgstr "gpgme_op_export"
 
-#: ../src/avatar.c:543
+#: ../src/avatar.c:539
 #, c-format
 msgid "Error: '%s' wants an image."
 msgstr "Error: „%s“ erwartet ein Bild."
 
-#: ../src/avatar.c:551 ../src/get.c:128 ../src/push.c:56
+#: ../src/avatar.c:547 ../src/get.c:128 ../src/push.c:56
 #, c-format
 msgid "Error: '%s' wants a list of servers, empty for none."
 msgstr "Error: „%s“ erwartet eine Serverliste, leer für keinen."
 
-#: ../src/avatar.c:558 ../src/main.c:82 ../src/printsecret.c:260
-#: ../src/scan.c:121
+#: ../src/avatar.c:554 ../src/main.c:82 ../src/printsecret.c:260
+#: ../src/scan.c:124
 #, c-format
 msgid "Error: '%s' wants a directory."
 msgstr "Error: „%s“ erwartet ein Verzeichnis."
 
-#: ../src/avatar.c:573 ../src/certify.c:324 ../src/changepass.c:110
+#: ../src/avatar.c:569 ../src/certify.c:337 ../src/changepass.c:110
 #: ../src/changetokencode.c:126 ../src/changetokenmeta.c:153 ../src/del.c:93
 #: ../src/email.c:372 ../src/genkey.c:209 ../src/genu4.c:283
 #: ../src/genuid.c:147 ../src/get.c:150 ../src/list.c:377 ../src/main.c:110
 #: ../src/printcard.c:143 ../src/printsecret.c:290 ../src/property.c:383
-#: ../src/push.c:70 ../src/scan.c:139 ../src/sigs.c:124 ../src/token.c:129
+#: ../src/push.c:70 ../src/scan.c:142 ../src/sigs.c:124 ../src/token.c:129
 #: ../src/tokencheck.c:268 ../src/totoken.c:152 ../src/tovcard.c:385
 #: ../src/trustdb.c:662 ../src/trustdb.c:792 ../src/trustdb.c:1039
 #, c-format
 msgid "Error: Unrecognized option '%s'."
 msgstr "Error: Unbekannte Option „%s“."
 
-#: ../src/avatar.c:579
+#: ../src/avatar.c:575
 msgid "Error: One certificate at a time."
 msgstr "Error: Nur ein Zertifikat auf einmal."
 
-#: ../src/avatar.c:596
+#: ../src/avatar.c:592
 msgid "Error: Changing an image wants a fingerprint, not a search."
 msgstr "Error: Ein Bild zu ändern verlangt einen Fingerabdruck, keine Suche."
 
-#: ../src/avatar.c:600
+#: ../src/avatar.c:596
 msgid "Error: '--keyservers' publishes a change; there is none to make."
 msgstr "Error: „--keyservers“ veröffentlicht eine Änderung; es gibt keine zu machen."
 
-#: ../src/avatar.c:601
+#: ../src/avatar.c:597
 #, c-format
 msgid "Notice: To publish a certificate as it stands, see '%s push'."
 msgstr "Notice: Um ein Zertifikat unverändert zu veröffentlichen, siehe „%s push“."
 
-#: ../src/avatar.c:606
+#: ../src/avatar.c:602
 msgid "Error: '--revoke' takes every image back; '--replace-to' already does."
 msgstr "Error: „--revoke“ nimmt alle Bilder zurück; „--replace-to“ tut das bereits."
 
-#: ../src/avatar.c:613 ../src/list.c:266 ../src/tovcard.c:397
+#: ../src/avatar.c:609 ../src/list.c:266 ../src/tovcard.c:397
 msgid "gpgme_new"
 msgstr "gpgme_new"
 
-#: ../src/avatar.c:630 ../src/list.c:272
+#: ../src/avatar.c:628 ../src/list.c:272
 msgid "gpgme_op_keylist_start"
 msgstr "gpgme_op_keylist_start"
 
-#: ../src/avatar.c:652
+#: ../src/avatar.c:636 ../src/printsecret.c:494 ../src/trustdb.c:635
+msgid "Error: Out of memory."
+msgstr "Error: Kein Speicher mehr."
+
+#: ../src/avatar.c:668
 msgid "Error: No secret certificate to read - name one."
 msgstr "Error: Kein geheimes Zertifikat zu lesen — nennen Sie eines."
 
-#: ../src/avatar.c:657
+#: ../src/avatar.c:673
 msgid "Notice: No image in that certificate."
 msgstr "Notice: Kein Bild in diesem Zertifikat."
 
@@ -360,79 +364,79 @@ msgstr "Error: Die geheimen Schlüssel können nicht aufgelistet werden."
 msgid "Error: '%s' names %s secret key."
 msgstr "Error: „%s“ benennt %s geheimen Schlüssel."
 
-#: ../src/certify.c:286 ../src/trustdb.c:776
+#: ../src/certify.c:299 ../src/trustdb.c:776
 #, c-format
 msgid "Error: '%s' wants a key."
 msgstr "Error: „%s“ erwartet einen Schlüssel."
 
-#: ../src/certify.c:300 ../src/genu4.c:292 ../src/property.c:354
+#: ../src/certify.c:313 ../src/genu4.c:292 ../src/property.c:354
 #: ../src/trustdb.c:643
 #, c-format
 msgid "Error: '%s' wants a value."
 msgstr "Error: „%s“ erwartet einen Wert."
 
-#: ../src/certify.c:306 ../src/trustdb.c:683
+#: ../src/certify.c:319 ../src/trustdb.c:683
 #, c-format
 msgid "Error: Unknown credibility value '%s'."
 msgstr "Error: Unbekannter Glaubwürdigkeitswert „%s“."
 
-#: ../src/certify.c:311 ../src/email.c:357 ../src/property.c:370
+#: ../src/certify.c:324 ../src/email.c:357 ../src/property.c:370
 #: ../src/trustdb.c:1024
 #, c-format
 msgid "Error: '%s' wants a list, empty for none."
 msgstr "Error: „%s“ erwartet eine Liste, leer für keine."
 
-#: ../src/certify.c:334
+#: ../src/certify.c:347
 #, c-format
 msgid "Error: '%s' is neither a fingerprint nor an identifier."
 msgstr "Error: „%s“ ist weder ein Fingerabdruck noch eine Kennung."
 
-#: ../src/certify.c:340
+#: ../src/certify.c:353
 msgid "Error: Which certificate? A whole fingerprint is required —"
 msgstr "Error: Welches Zertifikat? Ein vollständiger Fingerabdruck wird verlangt —"
 
-#: ../src/certify.c:341
+#: ../src/certify.c:354
 msgid "a certification cannot be taken back, so it is never guessed."
 msgstr "eine Beglaubigung lässt sich nicht zurücknehmen, sie wird daher nie erraten."
 
-#: ../src/certify.c:372
+#: ../src/certify.c:385
 #, c-format
 msgid "Error: Nobody here carries '%s'."
 msgstr "Error: Niemand hier trägt „%s“."
 
-#: ../src/certify.c:380
+#: ../src/certify.c:389
 #, c-format
 msgid "Error: %s carries '%s', and %s does not."
 msgstr "Error: %s trägt „%s“, und %s nicht."
 
-#: ../src/certify.c:386
+#: ../src/certify.c:395
 #, c-format
 msgid "Error: No certificate here carries %s."
 msgstr "Error: Kein Zertifikat hier trägt %s."
 
-#: ../src/certify.c:391
+#: ../src/certify.c:400
 msgid "Warning: Self-certification is not innovative! ;-)"
 msgstr "Warning: Sich selbst zu beglaubigen ist nichts Neues! ;-)"
 
-#: ../src/certify.c:400
+#: ../src/certify.c:409
 #, c-format
 msgid "Error: %s carries no usable uid for '%s'."
 msgstr "Error: %s trägt keine brauchbare uid für „%s“."
 
-#: ../src/certify.c:403
+#: ../src/certify.c:412
 #, c-format
 msgid "Crit: %s carries no identity uid — the certificate looks broken."
 msgstr "Crit: %s trägt keine Identitäts-uid — das Zertifikat wirkt beschädigt."
 
-#: ../src/certify.c:416
+#: ../src/certify.c:425
 msgid "Info: --credibility means nothing when revoking; ignored."
 msgstr "Info: --credibility bedeutet beim Widerrufen nichts; ignoriert."
 
-#: ../src/certify.c:436
+#: ../src/certify.c:445
 msgid "Notice: gpg reported no error, which does not mean it found a certification to revoke."
 msgstr "Notice: gpg meldete keinen Fehler, was nicht heißt, dass es eine Beglaubigung zum Widerrufen fand."
 
-#: ../src/certify.c:439
+#: ../src/certify.c:448
 #, c-format
 msgid "Notice: Signed %zu uid(s) of certificate %s."
 msgstr "Notice: %zu uid des Zertifikats %s signiert."
@@ -501,7 +505,7 @@ msgstr "Error: Beide Passphrasen werden gebraucht — die aktuelle mit --passphr
 msgid "--newpassphrase or --newpassfrom. Empty strings mean none."
 msgstr "--newpassphrase oder --newpassfrom. Eine leere Zeichenkette heißt keine."
 
-#: ../src/changepass.c:135 ../src/printsecret.c:362 ../src/totoken.c:188
+#: ../src/changepass.c:135 ../src/printsecret.c:370 ../src/totoken.c:188
 #, c-format
 msgid "Error: No secret for '%s' here."
 msgstr "Error: Kein Geheimnis für „%s“ hier."
@@ -586,7 +590,7 @@ msgstr "Error: „%s“ erwartet einen Code."
 
 #: ../src/changetokencode.c:94 ../src/changetokencode.c:104
 #: ../src/changetokenmeta.c:140 ../src/genkey.c:161 ../src/printsecret.c:242
-#: ../src/scan.c:113 ../src/totoken.c:120 ../src/totoken.c:135
+#: ../src/scan.c:116 ../src/totoken.c:120 ../src/totoken.c:135
 #: ../src/tovcard.c:368
 #, c-format
 msgid "Error: '%s' wants a file."
@@ -1040,7 +1044,7 @@ msgstr ""
 msgid "Error: '%s' wants an identifier."
 msgstr "Error: „%s“ erwartet eine Kennung."
 
-#: ../src/genkey.c:154 ../src/printsecret.c:234 ../src/scan.c:106
+#: ../src/genkey.c:154 ../src/printsecret.c:234 ../src/scan.c:109
 #: ../src/totoken.c:117
 #, c-format
 msgid "Error: '%s' wants a passphrase."
@@ -1560,101 +1564,101 @@ msgstr "Error: „%s“ erwartet einen Drucker oder eine SVG-Datei."
 msgid "Error: '%s' wants a template."
 msgstr "Error: „%s“ erwartet eine Vorlage."
 
-#: ../src/printcard.c:166
+#: ../src/printcard.c:167
 msgid "Error: No card answered, so there is no certificate to print."
 msgstr "Error: Keine Karte antwortete, es gibt also kein Zertifikat zu drucken."
 
-#: ../src/printcard.c:167
+#: ../src/printcard.c:168
 msgid "Name one instead."
 msgstr "Nennen Sie stattdessen eines."
 
-#: ../src/printcard.c:203
+#: ../src/printcard.c:218
 #, c-format
 msgid "Error: No usable certificate for %s."
 msgstr "Error: Kein brauchbares Zertifikat für %s."
 
-#: ../src/printcard.c:207
+#: ../src/printcard.c:223
 #, c-format
 msgid "Error: Email %s matches several certificates that still stand by it (%zu)."
 msgstr "Error: Die Adresse %s passt auf mehrere Zertifikate, die sie noch tragen (%zu)."
 
-#: ../src/printcard.c:214
+#: ../src/printcard.c:231
 #, c-format
 msgid "Error: No certificate matches '%s'."
 msgstr "Error: Kein Zertifikat passt zu „%s“."
 
-#: ../src/printcard.c:218
+#: ../src/printcard.c:236
 #, c-format
 msgid "Error: '%s' matches %zu certificates. Name one."
 msgstr "Error: „%s“ passt auf %zu Zertifikate. Nennen Sie eines."
 
-#: ../src/printcard.c:242
+#: ../src/printcard.c:262
 #, c-format
 msgid "Error: No usable (non-revoked) email in certificate %s."
 msgstr "Error: Keine brauchbare (nicht widerrufene) Adresse in Zertifikat %s."
 
-#: ../src/printcard.c:245
+#: ../src/printcard.c:265
 #, c-format
 msgid "Notice: Picking most recent email %s."
 msgstr "Notice: Jüngste Adresse gewählt: %s."
 
-#: ../src/printcard.c:296 ../src/printsecret.c:333 ../src/scan.c:159
+#: ../src/printcard.c:316 ../src/printsecret.c:341 ../src/scan.c:162
 msgid "Error: Cannot make a working directory."
 msgstr "Error: Ein Arbeitsverzeichnis kann nicht angelegt werden."
 
-#: ../src/printcard.c:308
+#: ../src/printcard.c:328
 msgid "Error: qrencode would not draw the code."
 msgstr "Error: qrencode weigerte sich, den Code zu zeichnen."
 
-#: ../src/printcard.c:313
+#: ../src/printcard.c:333
 msgid "Error: Cannot read the code back."
 msgstr "Error: Der Code lässt sich nicht zurücklesen."
 
-#: ../src/printcard.c:327
+#: ../src/printcard.c:347
 #, c-format
 msgid "Error: Card template '%s' is not readable."
 msgstr "Error: Die Kartenvorlage „%s“ ist nicht lesbar."
 
-#: ../src/printcard.c:384
+#: ../src/printcard.c:404
 msgid "Error: Cannot write the card."
 msgstr "Error: Die Karte kann nicht geschrieben werden."
 
-#: ../src/printcard.c:398
+#: ../src/printcard.c:418
 #, c-format
 msgid "Error: Cannot write %s."
 msgstr "Error: %s kann nicht geschrieben werden."
 
-#: ../src/printcard.c:406
+#: ../src/printcard.c:426
 #, c-format
 msgid "Notice: Wrote SVG to %s."
 msgstr "Notice: SVG nach %s geschrieben."
 
-#: ../src/printcard.c:411
+#: ../src/printcard.c:431
 msgid "Error: Where should this go? Name a printer, or a file ending"
 msgstr "Error: Wohin soll das? Nennen Sie einen Drucker, oder eine Datei, die"
 
-#: ../src/printcard.c:412
+#: ../src/printcard.c:432
 msgid "in '.svg' to keep it."
 msgstr "auf „.svg“ endet, um es zu behalten."
 
-#: ../src/printcard.c:423
+#: ../src/printcard.c:443
 msgid "Error: rsvg-convert would not render the card."
 msgstr "Error: rsvg-convert weigerte sich, die Karte zu setzen."
 
-#: ../src/printcard.c:441
+#: ../src/printcard.c:461
 msgid "Error: pdfunite would not repeat the card."
 msgstr "Error: pdfunite weigerte sich, die Karte zu wiederholen."
 
-#: ../src/printcard.c:448
+#: ../src/printcard.c:468
 msgid "Error: pdfjam would not lay the page out."
 msgstr "Error: pdfjam weigerte sich, die Seite zu setzen."
 
-#: ../src/printcard.c:452
+#: ../src/printcard.c:472
 #, c-format
 msgid "Notice: Printing %s %s on %s…"
 msgstr "Notice: %s %s wird auf %s gedruckt…"
 
-#: ../src/printcard.c:456
+#: ../src/printcard.c:476
 msgid "Error: lpr would not print the page."
 msgstr "Error: lpr weigerte sich, die Seite zu drucken."
 
@@ -1720,7 +1724,7 @@ msgstr ""
 msgid "Error: '%s' wants a printer, empty for none."
 msgstr "Error: „%s“ erwartet einen Drucker, leer für keinen."
 
-#: ../src/printsecret.c:265 ../src/scan.c:126
+#: ../src/printsecret.c:265 ../src/scan.c:129
 #, c-format
 msgid "Error: Nonexistent or unattainable directory (%s)."
 msgstr "Error: Nicht vorhandenes oder unerreichbares Verzeichnis (%s)."
@@ -1755,101 +1759,111 @@ msgstr "--printer '' an, um die Blätter zu erzeugen, ohne etwas zu senden."
 msgid "Error: Splits number (%d) can't be lower than 3."
 msgstr "Error: Die Anzahl der Fragmente (%d) darf nicht kleiner als 3 sein."
 
-#: ../src/printsecret.c:318
+#: ../src/printsecret.c:321
+#, c-format
+msgid "Error: Splits number (%d) can't be higher than %d: the QR header spells it as one digit."
+msgstr "Error: Die Zahl der Bruchstücke (%d) darf %d nicht übersteigen: der QR-Kopf schreibt sie mit einer Ziffer."
+
+#: ../src/printsecret.c:326
 #, c-format
 msgid "Warning: Threshold can't be greater than the number of splits, reducing threshold to %d."
 msgstr "Warning: Die Schwelle darf die Anzahl der Fragmente nicht übersteigen; Schwelle auf %d gesenkt."
 
-#: ../src/printsecret.c:338 ../src/scan.c:164
+#: ../src/printsecret.c:346 ../src/scan.c:167
 msgid "Error: Working directory is unclean (it holds SECRET*)."
 msgstr "Error: Das Arbeitsverzeichnis ist nicht sauber (es enthält SECRET*)."
 
-#: ../src/printsecret.c:339 ../src/scan.c:165
+#: ../src/printsecret.c:347 ../src/scan.c:168
 #, c-format
 msgid "Suggestion: bl-security shred_path --remove '%s'"
 msgstr "Suggestion: bl-security shred_path --remove '%s'"
 
-#: ../src/printsecret.c:376
+#: ../src/printsecret.c:384
 msgid "Error: gpg would not export the secret key — right passphrase?"
 msgstr "Error: gpg weigerte sich, den geheimen Schlüssel auszuführen — die richtige Passphrase?"
 
-#: ../src/printsecret.c:389
+#: ../src/printsecret.c:397
 #, c-format
 msgid "Error: %s carries no uid worth printing."
 msgstr "Error: %s trägt keine uid, die zu drucken lohnt."
 
-#: ../src/printsecret.c:393
+#: ../src/printsecret.c:401
 msgid "Error: Cannot trim the export down to its three uids."
 msgstr "Error: Der Export lässt sich nicht auf seine drei uids kürzen."
 
-#: ../src/printsecret.c:396
+#: ../src/printsecret.c:404
 #, c-format
 msgid "Notice: Printing %zu uid(s) of %zu — the rest comes back from a keyring."
 msgstr "Notice: %zu von %zu uid gedruckt — der Rest kommt aus einem Schlüsselbund zurück."
 
-#: ../src/printsecret.c:407
+#: ../src/printsecret.c:415
 msgid "Error: basenc would not encode the export."
 msgstr "Error: basenc weigerte sich, den Export zu kodieren."
 
-#: ../src/printsecret.c:414
+#: ../src/printsecret.c:422
 #, c-format
 msgid "Error: split would not cut the export in %d."
 msgstr "Error: split weigerte sich, den Export in %d zu schneiden."
 
-#: ../src/printsecret.c:424
+#: ../src/printsecret.c:432
 msgid "Error: gfsplit would not share the secret out."
 msgstr "Error: gfsplit weigerte sich, das Geheimnis aufzuteilen."
 
-#: ../src/printsecret.c:439
+#: ../src/printsecret.c:447
 #, c-format
 msgid "Error: basenc would not encode %s."
 msgstr "Error: basenc weigerte sich, %s zu kodieren."
 
-#: ../src/printsecret.c:459
+#: ../src/printsecret.c:467
 #, c-format
 msgid "Notice: Printing the secret split into %d fragments on %s…"
 msgstr "Notice: Das Geheimnis wird in %d Fragmenten auf %s gedruckt…"
 
-#: ../src/printsecret.c:462
+#: ../src/printsecret.c:470
 #, c-format
 msgid "Notice: Producing %d fragments in %s, sending nothing."
 msgstr "Notice: %d Fragmente werden in %s erzeugt, nichts wird gesendet."
 
-#: ../src/printsecret.c:484
+#: ../src/printsecret.c:488
 msgid "Error: No fragment was produced."
 msgstr "Error: Kein Fragment wurde erzeugt."
 
 #: ../src/printsecret.c:505
 #, c-format
+msgid "Error: %zu fragments in %s, and a QR header can only number %d."
+msgstr "Error: %zu Bruchstücke in %s, und ein QR-Kopf kann nur %d durchnummerieren."
+
+#: ../src/printsecret.c:535
+#, c-format
 msgid "Error: Cannot read the fragment %s."
 msgstr "Error: Das Fragment %s kann nicht gelesen werden."
 
-#: ../src/printsecret.c:518
+#: ../src/printsecret.c:549
 #, c-format
 msgid "Error: qrencode would not draw fragment %zu."
 msgstr "Error: qrencode weigerte sich, Fragment %zu zu zeichnen."
 
-#: ../src/printsecret.c:544
+#: ../src/printsecret.c:576
 #, c-format
 msgid "Error: pandoc would not lay fragment %zu out."
 msgstr "Error: pandoc weigerte sich, Fragment %zu zu setzen."
 
-#: ../src/printsecret.c:549
+#: ../src/printsecret.c:582
 #, c-format
 msgid "Error: pdfcrop would not trim fragment %zu."
 msgstr "Error: pdfcrop weigerte sich, Fragment %zu zu beschneiden."
 
-#: ../src/printsecret.c:557
+#: ../src/printsecret.c:591
 #, c-format
 msgid "Error: lpr would not print fragment %zu."
 msgstr "Error: lpr weigerte sich, Fragment %zu zu drucken."
 
-#: ../src/printsecret.c:575
+#: ../src/printsecret.c:610
 #, c-format
 msgid "Notice: The working copies are removed. Shred %s if anything is left."
 msgstr "Notice: Die Arbeitskopien sind entfernt. Schreddern Sie %s, falls etwas bleibt."
 
-#: ../src/printsecret.c:578
+#: ../src/printsecret.c:613
 #, c-format
 msgid "Notice: The fragments are in %s. Shred it once they are on paper: bl-security shred_path --remove '%s'"
 msgstr "Notice: Die Fragmente liegen in %s. Schreddern Sie es, sobald sie auf Papier sind: bl-security shred_path --remove '%s'"
@@ -2073,72 +2087,72 @@ msgstr ""
 "Fehlende Fragmente werden benannt statt umgangen: dies liest, was man ihm\n"
 "gibt, und öffnet keine Kamera, um suchen zu gehen.\n"
 
-#: ../src/scan.c:148
+#: ../src/scan.c:151
 msgid "Error: Which images? There is no camera to fall back on here."
 msgstr "Error: Welche Bilder? Hier gibt es keine Kamera, auf die zurückzugreifen wäre."
 
-#: ../src/scan.c:182
+#: ../src/scan.c:185
 #, c-format
 msgid "Error: Can't convert pdf %s."
 msgstr "Error: Das pdf %s lässt sich nicht wandeln."
 
-#: ../src/scan.c:193 ../src/scan.c:242
+#: ../src/scan.c:196 ../src/scan.c:245
 #, c-format
 msgid "Error: No QR code with expected data in '%s'."
 msgstr "Error: Kein QR-Code mit den erwarteten Daten in „%s“."
 
-#: ../src/scan.c:224
+#: ../src/scan.c:227
 #, c-format
 msgid "Crit: QR codes don't share the same version (%d != %d)."
 msgstr "Crit: Die QR-Codes teilen nicht dieselbe Version (%d != %d)."
 
-#: ../src/scan.c:229
+#: ../src/scan.c:232
 #, c-format
 msgid "Crit: QR codes don't share the same division (%d != %d)."
 msgstr "Crit: Die QR-Codes teilen nicht dieselbe Aufteilung (%d != %d)."
 
-#: ../src/scan.c:234
+#: ../src/scan.c:237
 #, c-format
 msgid "Crit: Fragment number %d is out of range."
 msgstr "Crit: Die Fragmentnummer %d liegt außerhalb des Bereichs."
 
-#: ../src/scan.c:245
+#: ../src/scan.c:248
 #, c-format
 msgid "Info: QR code(s) with expected data read from '%s'."
 msgstr "Info: QR-Code(s) mit den erwarteten Daten aus „%s“ gelesen."
 
-#: ../src/scan.c:249
+#: ../src/scan.c:252
 #, c-format
 msgid "Crit: Unsupported qrcode version (%d)."
 msgstr "Crit: Nicht unterstützte QR-Code-Version (%d)."
 
-#: ../src/scan.c:250
+#: ../src/scan.c:253
 msgid "Versions 1 to 3 needed an extra passphrase and are long gone."
 msgstr "Die Versionen 1 bis 3 verlangten eine zusätzliche Passphrase und sind längst fort."
 
-#: ../src/scan.c:265
+#: ../src/scan.c:268
 #, c-format
 msgid "Error: %zu fragment(s) of the %d needed; missing: %s."
 msgstr "Error: %zu von %d nötigen Fragment(en); es fehlen: %s."
 
-#: ../src/scan.c:287
+#: ../src/scan.c:290
 msgid "Error: basenc would not decode the fragments."
 msgstr "Error: basenc weigerte sich, die Fragmente zu dekodieren."
 
-#: ../src/scan.c:300
+#: ../src/scan.c:303
 #, c-format
 msgid "Error: basenc would not decode fragment %zu."
 msgstr "Error: basenc weigerte sich, Fragment %zu zu dekodieren."
 
-#: ../src/scan.c:318
+#: ../src/scan.c:321
 msgid "Error: gfcombine would not put the fragments back together."
 msgstr "Error: gfcombine weigerte sich, die Fragmente wieder zusammenzusetzen."
 
-#: ../src/scan.c:328
+#: ../src/scan.c:331
 msgid "Error: gpg would not import what came back."
 msgstr "Error: gpg weigerte sich, das Zurückgekommene einzulesen."
 
-#: ../src/scan.c:329
+#: ../src/scan.c:332
 msgid "A wrong passphrase, or fragments from two different printings."
 msgstr "Eine falsche Passphrase, oder Fragmente aus zwei verschiedenen Drucken."
 
@@ -2647,10 +2661,6 @@ msgstr "  + %s"
 #: ../src/trustdb.c:613
 msgid "listing the certificates"
 msgstr "die Zertifikate werden aufgezählt"
-
-#: ../src/trustdb.c:635
-msgid "Error: Out of memory."
-msgstr "Error: Kein Speicher mehr."
 
 #: ../src/trustdb.c:678
 msgid "Error: A fingerprint is required to set a credibility."
