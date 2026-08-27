@@ -50,10 +50,6 @@ struct image {
  */
 #define MAX_IMAGES        64
 
-/* How many certificates one search may act on at once. A pattern that finds
- * more than this is a pattern, not a target. */
-#define MAX_KEYS          64
-
 /* Every image the certificate carries, in packet order, each one already
  * knowing whether it still stands. Returns how many were found. */
 static size_t walk_images(const unsigned char *buf, size_t buflen,
