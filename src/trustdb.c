@@ -449,6 +449,110 @@ static int do_local(int argc, char **argv)
     return PGPID_OK;
 }
 
+/* What we would have others replay: our own trust decisions, signed.
+ *
+ * Armored rather than binary: these files are meant to be committed next to
+ * the tree they justify, and a git history that cannot diff its own contents
+ * explains nothing. gpg reads either on the way back in.
+ *
+ * Ultimate and unknown are left out by default. Ultimate says "this key is
+ * mine", which means nothing to anybody else and is refused on import anyway;
+ * unknown is the absence of a decision, and there is no point signing one. */
+static int do_export(int argc, char **argv)
+{
+    const char *file = NULL, *user = NULL;
+    bool all = false;
+
+    for (int i = 1; i < argc; i++) {
+        const char *a = argv[i];
+        if (!strcmp(a, "--export-file")) {
+            if (++i >= argc) {
+                pgpid_error(_("Error: '%s' wants a path."), a);
+                return PGPID_USAGE;
+            }
+            file = argv[i];
+        } else if (!strcmp(a, "-u") || !strcmp(a, "--use-privkey")) {
+            if (++i >= argc) {
+                pgpid_error(_("Error: '%s' wants a key."), a);
+                return PGPID_USAGE;
+            }
+            user = argv[i];
+        } else if (!strcmp(a, "--export-all")) {
+            all = true;
+        } else if (!strcmp(a, "-q") || !strcmp(a, "--quiet")) {
+            /* accepted everywhere, nothing to say here */
+        } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
+            usage(stdout);
+            return PGPID_OK;
+        } else if (!strcmp(a, "--")) {
+            continue;
+        } else if (a[0] == '-' && a[1]) {
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("trustdb");
+            return PGPID_USAGE;
+        } else {
+            pgpid_error(_("Error: 'export' takes no argument; the path goes to "
+                        "--export-file."));
+            return PGPID_USAGE;
+        }
+    }
+
+    char *raw = export_ownertrust();
+    if (!raw)
+        return PGPID_FAIL;
+
+    char *kept = malloc(strlen(raw) + 1);
+    if (!kept) {
+        free(raw);
+        return PGPID_FAIL;
+    }
+    *kept = '\0';
+    size_t n = 0;
+    for (char *line = raw, *save; (line = strtok_r(line, "\n", &save)); line = NULL) {
+        if (!*line || *line == '#')
+            continue;
+        const char *colon = strchr(line, ':');
+        if (!colon || !colon[1])
+            continue;
+        if (!all && (colon[1] < '3' || colon[1] > '5'))
+            continue;
+        strcat(kept, line);
+        strcat(kept, "\n");
+        n++;
+    }
+    free(raw);
+
+    if (!n) {
+        pgpid_error(_("Error: Nothing to export: no decision worth signing."));
+        free(kept);
+        return PGPID_NOTHING;
+    }
+
+    const char *a[8];
+    size_t k = 0;
+    a[k++] = "--armor";
+    a[k++] = "--sign";
+    if (user) {
+        a[k++] = "--local-user";
+        a[k++] = user;
+    }
+    a[k] = NULL;
+
+    int rc = pgpid_run_engine_io(a, kept, file);
+    free(kept);
+    if (rc) {
+        /* A signature that failed half-way leaves a file that looks like one
+         * and is not. Better nothing than something to be trusted by mistake. */
+        if (file)
+            unlink(file);
+        pgpid_error(_("Error: gpg would not sign the export."));
+        return PGPID_FAIL;
+    }
+    pgpid_error(_("Notice: %zu delegation(s) signed. Publish it beside the tree "
+                "it explains, so that anyone can replay it."), n);
+    return PGPID_OK;
+}
+
 static int do_import(int argc, char **argv)
 {
     /* Silent by default: this is called from other programs — foodjis shells
@@ -629,10 +733,8 @@ int pgpid_action_trustdb(int argc, char **argv)
         return do_local(argc - 1, argv + 1);
     if (!strcmp(verb, "import"))
         return do_import(argc - 1, argv + 1);
-    if (!strcmp(verb, "export")) {
-        pgpid_error(_("Error: 'export' is not written yet."));
-        return PGPID_FAIL;
-    }
+    if (!strcmp(verb, "export"))
+        return do_export(argc - 1, argv + 1);
 
     pgpid_error(_("Error: '%s' is not one of local, export or import."), verb);
     pgpid_try_help("trustdb");
