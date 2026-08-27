@@ -1,4 +1,4 @@
-/* Recomputing trust, from delegations somebody signed.
+/* Recomputing credibility, from delegations somebody signed.
  *
  * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
@@ -6,9 +6,9 @@
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * An ownertrust file says "these are the people I would follow". Signed, it
- * says who is saying it, and that is the whole mechanism: trust is extended
- * along a chain of signatures each of which can be checked, rather than
- * handed down by a list somebody has to be trusted to maintain.
+ * says who is saying it, and that is the whole mechanism: credibility is
+ * extended along a chain of signatures each of which can be checked, rather
+ * than handed down by a list somebody has to be trusted to maintain.
  *
  * Two rules make the chain hold rather than merely look like it holds.
  *
@@ -16,10 +16,12 @@
  * valid when it is applied — file N+1 sees what file N did. Applying them in
  * any other order breaks the chain silently, which is worse than refusing.
  *
- * And the anchor is inviolable: the user's own keys are stripped out of every
- * delegation before it is applied. A referent may extend trust to others; it
- * may not redefine what somebody thinks of themselves. Without that, one
- * signed file could quietly demote the very key the whole chain hangs from.
+ * And the anchor is inviolable: whatever is ultimate here is stripped out of
+ * every delegation before it is applied. A referent may extend credibility to
+ * others; it may not redefine what somebody thinks of themselves. Without
+ * that, one signed file could quietly demote the very key the whole chain
+ * hangs from. Ultimate, and not "the keys whose secret we hold": somebody
+ * else's security key, plugged in once, leaves a stub behind.
  */
 #include "pgpid.h"
 
@@ -39,7 +41,7 @@ static void usage(FILE *out)
         "%s"
         " trustdb local|export|import [OPTIONS]... [FINGERPRINT|OWNERTRUSTS.GPG]...\n"
         "\n"
-        "Read and move the trust you place in others to certify.\n"
+        "Read and move the credibility you grant others to certify.\n"
         "\n"
         "  local    What this machine says about the given certificates, or about\n"
         "           every one of them when none is named.\n"
@@ -285,7 +287,7 @@ static bool read_delegation(struct delegation *d, char *const own[], size_t nown
             continue;
 
         /* An anchor is what the whole computation stands on. A referent
-         * extends trust to others; it never redefines what we hold in
+         * extends credibility to others; it never redefines what we hold in
          * ourselves. Said aloud rather than dropped in silence: a file that
          * speaks about our anchors is worth knowing about. */
         bool anchor = false;
@@ -322,7 +324,7 @@ static bool read_delegation(struct delegation *d, char *const own[], size_t nown
             pgpid_error(_("Info: %s: %zu line(s) beyond full, brought back to it."),
                         d->path, capped);
         if (nevers)
-            pgpid_error(_("Info: %s: %zu key(s) it would have you trust for nothing."),
+            pgpid_error(_("Info: %s: %zu key(s) it would have you credit with nothing."),
                         d->path, nevers);
     }
     return true;
@@ -349,7 +351,7 @@ static void report_change(const char *before, const char *after)
     char b[1048576], a[1048576];
     snprintf(b, sizeof b, "%s", before);
     snprintf(a, sizeof a, "%s", after);
-    pgpid_error(_("Info: ownertrust changes:"));
+    pgpid_error(_("Info: credibility changes:"));
     for (char *line = b, *save; (line = strtok_r(line, "\n", &save)); line = NULL)
         if (!strstr(after, line))
             pgpid_error(_("  - %s"), line);
@@ -449,12 +451,12 @@ static int do_local(int argc, char **argv)
          * there is nothing to decide about, and "the whole keyring, full"
          * would be a decision nobody meant to take. */
         if (!npatterns) {
-            pgpid_error(_("Error: A fingerprint is required to set an ownertrust."));
+            pgpid_error(_("Error: A fingerprint is required to set a credibility."));
             free(patterns);
             return PGPID_USAGE;
         }
         if (pgpid_validity_from_word(value) < 0) {
-            pgpid_error(_("Error: Unknown ownertrust value '%s'."), value);
+            pgpid_error(_("Error: Unknown credibility value '%s'."), value);
             pgpid_error(_("Notice: One of undefined, never, marginal, full, ultimate."));
             free(patterns);
             return PGPID_USAGE;
@@ -496,7 +498,7 @@ static int do_local(int argc, char **argv)
             if (value) {
                 err = gpgme_op_setownertrust(ctx, key, value);
                 if (err) {
-                    pgpid_gpgme_error(_("setting the ownertrust"), err);
+                    pgpid_gpgme_error(_("setting the credibility"), err);
                     gpgme_key_unref(key);
                     rc = PGPID_FAIL;
                     break;
@@ -523,7 +525,7 @@ static int do_local(int argc, char **argv)
     return rc;
 }
 
-/* What we would have others replay: our own trust decisions, signed.
+/* What we would have others replay: our own decisions, signed.
  *
  * Armored rather than binary: these files are meant to be committed next to
  * the tree they justify, and a git history that cannot diff its own contents
@@ -721,7 +723,7 @@ static int do_import(int argc, char **argv)
 
         if (!differs) {
             if (!quiet)
-                pgpid_error(_("Info: The delegations are already applied — ownertrust "
+                pgpid_error(_("Info: The delegations are already applied — credibility "
                             "left unchanged."));
         } else {
             char dir[512], path[600];
@@ -742,7 +744,7 @@ static int do_import(int argc, char **argv)
             if (bk) {
                 fputs(before, bk);
                 fclose(bk);
-                pgpid_error(_("Notice: Current ownertrust backed up in %s."), path);
+                pgpid_error(_("Notice: Current credibility backed up in %s."), path);
             } else {
                 pgpid_error(_("Warning: Cannot write the backup %s — going ahead "
                             "anyway would leave no way back. Stopping."), path);
@@ -773,7 +775,7 @@ static int do_import(int argc, char **argv)
                     free(after);
                 }
             }
-            pgpid_error(_("Notice: To restore the previous trust: "
+            pgpid_error(_("Notice: To restore the previous credibility: "
                         "gpg --import-ownertrust %s"), path);
         }
         free(before);

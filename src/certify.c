@@ -301,7 +301,7 @@ int pgpid_action_certify(int argc, char **argv)
             ownertrust = argv[i];
             if (strcmp(ownertrust, "undefined") && strcmp(ownertrust, "marginal")
                 && strcmp(ownertrust, "full") && strcmp(ownertrust, "never")) {
-                pgpid_error(_("Error: Unknown ownertrust value '%s'."), ownertrust);
+                pgpid_error(_("Error: Unknown credibility value '%s'."), ownertrust);
                 return PGPID_USAGE;
             }
         } else if (!strcmp(a, "-K") || !strcmp(a, "--keyservers")) {
