@@ -276,25 +276,21 @@ OPTIONS:
 ## pgpid avatar
 
 ```
-Usage: pgpid avatar [OPTIONS]... [NAZWA|ADRES|KEYID|U4|U5]
+Usage: pgpid avatar [OPTIONS]... [NAZWA|EMAIL|KEYID|U4|U5]
 
-Wydobywa obraz, który nosi certyfikat OpenPGP, i wypisuje jego ścieżkę.
-Ten, który obowiązuje dziś, idzie pierwszy: pierwszy wiersz to zatem
-awatar. Bez wskazania — pierwszy tajny certyfikat.
-
-Zapis wymaga klucza tajnego certyfikatu i przyjmuje tylko odcisk palca:
-unieważnienia nie da się cofnąć, wyszukiwanie nigdy więc nie powinno stać
-się celem. Nowy obraz jest wpierw sprowadzany do 180x180, a zmieniony
-certyfikat trafia na domyślne serwery kluczy, o ile nie powiedziano
-inaczej.
+Wydobyć obraz z certyfikatu OpenPGP albo go tam dodać.
+Brak NAZWA|EMAIL|KEYID|U4|U5 ⇒ pierwszy certyfikat tajny.
+Wzorzec, który znajduje więcej niż jeden certyfikat, jest odrzucany:
+odebrania obrazów nie da się cofnąć, a szukanie nie może stać się celem.
+Nowy OBRAZ powinien mieć 180×180 pikseli, inaczej zostanie przeskalowany.
+Wypisuje ścieżkę obrazu, który dziś obowiązuje, najnowszy pierwszy.
 
 OPTIONS:
-  -E, --extract-all           Wypisać wszystkie obrazy, wraz z unieważnionymi
-  -A, --replace-to OBRAZ      Zdjąć obowiązujące obrazy i położyć OBRAZ
-  -R, --revoke                Tylko zdjąć obowiązujące obrazy
-  -K, --keyservers SERWERY    Wysłać zmieniony certyfikat na te, rozdzielone
-                              spacjami. Puste dla żadnego. Domyślnie: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -W, --workdir KATALOG       Gdzie zapisywane są obrazy
+  -E, --extract-all           Wypisać każdy obraz, unieważnione i wygasłe też, najnowszy pierwszy
+  -A, --replace-to OBRAZ      Przeskalować i dodać OBRAZ do certyfikatu OpenPGP (unieważniając poprzednie)
+  -R, --revoke                Tylko unieważnić wszystkie istniejące obrazy w certyfikacie OpenPGP
+  -W, --workdir KATALOG       Katalog roboczy. Będzie zawierał poprzednie i nowe przeskalowane obrazy
+  -K, --keyservers SERWERY    Jeśli niepuste, wysłać zmieniony certyfikat do tych serwerów - Domyślnie: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Wypisać tę pomoc i zakończyć
   -V, --version               Wypisać wersję i zakończyć
 ```

@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid 0.0.7-35-g8512aa6\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-08-27 17:46+0200\n"
+"POT-Creation-Date: 2026-08-27 23:09+0200\n"
 "PO-Revision-Date: 2026-08-22 22:58+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -70,7 +70,7 @@ msgstr "Error: Impossible de lire « %s » comme une image."
 msgid "Notice: No image to take back."
 msgstr "Notice: Aucune image à retirer."
 
-#: ../src/avatar.c:418 ../src/avatar.c:491
+#: ../src/avatar.c:418 ../src/avatar.c:488
 msgid "gpgme_data_new"
 msgstr "gpgme_data_new"
 
@@ -97,68 +97,61 @@ msgstr "Notice: Un certificat se modifie avec sa clé secrète — est-ce la bon
 msgid ""
 "Usage: %s avatar [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
 "\n"
-"Extract the image an OpenPGP certificate wears and print its path.\n"
-"The image that stands today comes first, so the first line is the\n"
-"avatar. Missing selector means the first secret certificate.\n"
-"\n"
-"Writing needs the certificate's secret key, and takes a fingerprint\n"
-"only: revoking cannot be undone, so a search must never become a\n"
-"target. A new image is brought to 180x180 first, and the changed\n"
-"certificate is sent to the default keyservers unless told otherwise.\n"
+"Extract or add image inside OpenPGP certificate.\n"
+"Missing NAME|EMAIL|KEYID|U4|U5 => the first secret certificate.\n"
+"A selector matching more than one certificate is refused: taking\n"
+"images back cannot be undone, so a search must never become a target.\n"
+"New IMAGE should be 180x180 pixels, or it will be resized.\n"
+"Output the path of the image that stands today, newest first when several do.\n"
 "\n"
 "OPTIONS:\n"
-"  -E, --extract-all           Print every image, revoked ones included\n"
-"  -A, --replace-to IMAGE      Take back every image that stands and put IMAGE on\n"
-"  -R, --revoke                Just take back every image that stands\n"
-"  -K, --keyservers SERVERS    Send the changed certificate to these, space separated\n"
-"                              Empty for none. Default: %s\n"
-"  -W, --workdir DIRECTORY     Where the images are written\n"
+"  -E, --extract-all           Output every image, revoked and expired ones included, newest first\n"
+"  -A, --replace-to IMAGE      Resize and add new IMAGE inside OpenPGP certificate (revoking any previous image)\n"
+"  -R, --revoke                Just revoke all existing images inside OpenPGP certificate\n"
+"  -W, --workdir DIRECTORY     Working directory. Will contain previous and new resized images\n"
+"  -K, --keyservers KEYSERVERS If non-empty, send updated certificate to this keyservers - Default: %s\n"
 "  -h, --help                  Print this help and exit\n"
 "  -V, --version               Print the version and exit\n"
 msgstr ""
-"Usage: %s avatar [OPTIONS]... [NOM|ADRESSE|KEYID|U4|U5]\n"
+"Usage: %s avatar [OPTIONS]... [NOM|COURRIEL|KEYID|U4|U5]\n"
 "\n"
-"Extrait l'image que porte un certificat OpenPGP et affiche son chemin.\n"
-"Celle qui vaut aujourd'hui vient en premier : la première ligne est donc\n"
-"l'avatar. Sans sélecteur, le premier certificat secret.\n"
-"\n"
-"Écrire demande la clé secrète du certificat, et n'accepte qu'une\n"
-"empreinte : une révocation ne se défait pas, une recherche ne doit donc\n"
-"jamais devenir une cible. Une nouvelle image est d'abord ramenée à\n"
-"180x180, et le certificat modifié est envoyé aux serveurs de clés par\n"
-"défaut sauf indication contraire.\n"
+"Extraire ou ajouter une image dans le certificat OpenPGP.\n"
+"NOM|COURRIEL|KEYID|U4|U5 manquant ⇒ le premier certificat secret.\n"
+"Un motif qui trouve plus d'un certificat est refusé : reprendre des\n"
+"images ne se défait pas, une recherche ne doit jamais devenir une cible.\n"
+"La nouvelle IMAGE doit être en 180×180 pixels, sinon elle sera redimensionnée.\n"
+"Affiche le chemin de l'image qui tient aujourd'hui, la plus récente d'abord.\n"
 "\n"
 "OPTIONS:\n"
-"  -E, --extract-all           Afficher toutes les images, révoquées comprises\n"
-"  -A, --replace-to IMAGE      Retirer les images qui valent et poser IMAGE\n"
-"  -R, --revoke                Seulement retirer toutes les images qui valent\n"
-"  -K, --keyservers SERVEURS   Envoyer le certificat modifié à ceux-ci, séparés\n"
-"                              par des espaces. Vide pour aucun. Défaut : %s\n"
-"  -W, --workdir RÉPERTOIRE    Où les images sont écrites\n"
+"  -E, --extract-all           Afficher toutes les images, révoquées et expirées comprises, plus récente d'abord\n"
+"  -A, --replace-to IMAGE      Redimensionner et ajouter IMAGE au certificat (révoquant les précédentes)\n"
+"  -R, --revoke                Révoquer uniquement toutes les images existantes dans le certificat OpenPGP\n"
+"  -W, --workdir RÉPERTOIRE    Répertoire de travail. Contiendra les images précédentes et les nouvelles\n"
+"  -K, --keyservers SERVEURS   Si non vide, envoyer le certificat mis à jour à ces serveurs - Défaut : %s\n"
 "  -h, --help                  Afficher cette aide et quitter\n"
 "  -V, --version               Afficher la version et quitter\n"
 
-#: ../src/avatar.c:497
+#: ../src/avatar.c:494
 msgid "gpgme_op_export"
 msgstr "gpgme_op_export"
 
-#: ../src/avatar.c:539
+#: ../src/avatar.c:536
 #, c-format
 msgid "Error: '%s' wants an image."
 msgstr "Error: « %s » attend une image."
 
-#: ../src/avatar.c:547 ../src/get.c:128 ../src/push.c:56
+#: ../src/avatar.c:544 ../src/get.c:128 ../src/push.c:56
 #, c-format
 msgid "Error: '%s' wants a list of servers, empty for none."
 msgstr "Error: « %s » attend une liste de serveurs, vide pour aucun."
 
-#: ../src/avatar.c:554 ../src/main.c:82 ../src/printsecret.c:260
+#: ../src/avatar.c:551 ../src/main.c:82 ../src/printsecret.c:260
 #: ../src/scan.c:124
 #, c-format
 msgid "Error: '%s' wants a directory."
 msgstr "Error: « %s » attend un répertoire."
 
-#: ../src/avatar.c:569 ../src/certify.c:337 ../src/changepass.c:110
+#: ../src/avatar.c:566 ../src/certify.c:337 ../src/changepass.c:110
 #: ../src/changetokencode.c:126 ../src/changetokenmeta.c:153 ../src/del.c:93
 #: ../src/email.c:372 ../src/genkey.c:209 ../src/genu4.c:283
 #: ../src/genuid.c:147 ../src/get.c:150 ../src/list.c:377 ../src/main.c:110
@@ -170,44 +163,50 @@ msgstr "Error: « %s » attend un répertoire."
 msgid "Error: Unrecognized option '%s'."
 msgstr "Error: Option inconnue « %s »."
 
-#: ../src/avatar.c:575
+#: ../src/avatar.c:572
 msgid "Error: One certificate at a time."
 msgstr "Error: Un seul certificat à la fois."
 
-#: ../src/avatar.c:592
+#: ../src/avatar.c:589
 msgid "Error: Changing an image wants a fingerprint, not a search."
 msgstr "Error: Changer une image demande une empreinte, pas une recherche."
 
-#: ../src/avatar.c:596
+#: ../src/avatar.c:593
 msgid "Error: '--keyservers' publishes a change; there is none to make."
 msgstr "Error: « --keyservers » publie un changement ; il n'y en a aucun à faire."
 
-#: ../src/avatar.c:597
+#: ../src/avatar.c:594
 #, c-format
 msgid "Notice: To publish a certificate as it stands, see '%s push'."
 msgstr "Notice: Pour publier un certificat tel quel, voyez « %s push »."
 
-#: ../src/avatar.c:602
+#: ../src/avatar.c:599
 msgid "Error: '--revoke' takes every image back; '--replace-to' already does."
 msgstr "Error: « --revoke » retire toutes les images ; « --replace-to » le fait déjà."
 
-#: ../src/avatar.c:609 ../src/list.c:266 ../src/tovcard.c:397
+#: ../src/avatar.c:606 ../src/list.c:266 ../src/tovcard.c:397
 msgid "gpgme_new"
 msgstr "gpgme_new"
 
-#: ../src/avatar.c:628 ../src/list.c:272
+#: ../src/avatar.c:633 ../src/list.c:272
 msgid "gpgme_op_keylist_start"
 msgstr "gpgme_op_keylist_start"
 
-#: ../src/avatar.c:636 ../src/printsecret.c:494 ../src/trustdb.c:635
-msgid "Error: Out of memory."
-msgstr "Error: Plus de mémoire."
+#: ../src/avatar.c:645 ../src/printcard.c:236
+#, c-format
+msgid "Error: '%s' matches %zu certificates. Name one."
+msgstr "Error: « %s » correspond à %zu certificats. Nommez-en un."
 
-#: ../src/avatar.c:668
+#: ../src/avatar.c:652 ../src/printcard.c:231
+#, c-format
+msgid "Error: No certificate matches '%s'."
+msgstr "Error: Aucun certificat ne correspond à « %s »."
+
+#: ../src/avatar.c:665
 msgid "Error: No secret certificate to read - name one."
 msgstr "Error: Aucun certificat secret à lire — nommez-en un."
 
-#: ../src/avatar.c:673
+#: ../src/avatar.c:670
 msgid "Notice: No image in that certificate."
 msgstr "Notice: Aucune image dans ce certificat."
 
@@ -1583,16 +1582,6 @@ msgstr "Error: Aucun certificat utilisable pour %s."
 msgid "Error: Email %s matches several certificates that still stand by it (%zu)."
 msgstr "Error: L'adresse %s correspond à plusieurs certificats qui la portent encore (%zu)."
 
-#: ../src/printcard.c:231
-#, c-format
-msgid "Error: No certificate matches '%s'."
-msgstr "Error: Aucun certificat ne correspond à « %s »."
-
-#: ../src/printcard.c:236
-#, c-format
-msgid "Error: '%s' matches %zu certificates. Name one."
-msgstr "Error: « %s » correspond à %zu certificats. Nommez-en un."
-
 #: ../src/printcard.c:262
 #, c-format
 msgid "Error: No usable (non-revoked) email in certificate %s."
@@ -1603,7 +1592,7 @@ msgstr "Error: Aucune adresse utilisable (non révoquée) dans le certificat %s.
 msgid "Notice: Picking most recent email %s."
 msgstr "Notice: Adresse la plus récente retenue : %s."
 
-#: ../src/printcard.c:316 ../src/printsecret.c:341 ../src/scan.c:162
+#: ../src/printcard.c:316 ../src/printsecret.c:341 ../src/scan.c:166
 msgid "Error: Cannot make a working directory."
 msgstr "Error: Impossible de créer un répertoire de travail."
 
@@ -1770,11 +1759,11 @@ msgstr "Error: Le nombre de fragments (%d) ne peut dépasser %d : l'en-tête du 
 msgid "Warning: Threshold can't be greater than the number of splits, reducing threshold to %d."
 msgstr "Warning: Le seuil ne peut pas dépasser le nombre de fragments ; seuil ramené à %d."
 
-#: ../src/printsecret.c:346 ../src/scan.c:167
+#: ../src/printsecret.c:346 ../src/scan.c:171
 msgid "Error: Working directory is unclean (it holds SECRET*)."
 msgstr "Error: Le répertoire de travail n'est pas propre (il contient SECRET*)."
 
-#: ../src/printsecret.c:347 ../src/scan.c:168
+#: ../src/printsecret.c:347 ../src/scan.c:172
 #, c-format
 msgid "Suggestion: bl-security shred_path --remove '%s'"
 msgstr "Suggestion: bl-security shred_path --remove '%s'"
@@ -1828,6 +1817,10 @@ msgstr "Notice: Production de %d fragments dans %s, sans rien envoyer."
 #: ../src/printsecret.c:488
 msgid "Error: No fragment was produced."
 msgstr "Error: Aucun fragment n'a été produit."
+
+#: ../src/printsecret.c:494 ../src/trustdb.c:635
+msgid "Error: Out of memory."
+msgstr "Error: Plus de mémoire."
 
 #: ../src/printsecret.c:505
 #, c-format
@@ -2087,72 +2080,77 @@ msgstr ""
 "Les fragments manquants sont nommés plutôt que contournés : ceci lit ce\n"
 "qu'on lui donne, et n'ouvre pas de caméra pour aller chercher.\n"
 
-#: ../src/scan.c:151
+#: ../src/scan.c:148
+#, c-format
+msgid "Error: Too many images given. Maximum: %d."
+msgstr "Error: Trop d'images données. Maximum : %d."
+
+#: ../src/scan.c:155
 msgid "Error: Which images? There is no camera to fall back on here."
 msgstr "Error: Quelles images ? Il n'y a pas de caméra sur laquelle se rabattre ici."
 
-#: ../src/scan.c:185
+#: ../src/scan.c:189
 #, c-format
 msgid "Error: Can't convert pdf %s."
 msgstr "Error: Impossible de convertir le pdf %s."
 
-#: ../src/scan.c:196 ../src/scan.c:245
+#: ../src/scan.c:200 ../src/scan.c:249
 #, c-format
 msgid "Error: No QR code with expected data in '%s'."
 msgstr "Error: Aucun QR code portant les données attendues dans « %s »."
 
-#: ../src/scan.c:227
+#: ../src/scan.c:231
 #, c-format
 msgid "Crit: QR codes don't share the same version (%d != %d)."
 msgstr "Crit: Les QR codes ne partagent pas la même version (%d != %d)."
 
-#: ../src/scan.c:232
+#: ../src/scan.c:236
 #, c-format
 msgid "Crit: QR codes don't share the same division (%d != %d)."
 msgstr "Crit: Les QR codes ne partagent pas le même découpage (%d != %d)."
 
-#: ../src/scan.c:237
+#: ../src/scan.c:241
 #, c-format
 msgid "Crit: Fragment number %d is out of range."
 msgstr "Crit: Le numéro de fragment %d est hors plage."
 
-#: ../src/scan.c:248
+#: ../src/scan.c:252
 #, c-format
 msgid "Info: QR code(s) with expected data read from '%s'."
 msgstr "Info: QR code(s) portant les données attendues lu(s) depuis « %s »."
 
-#: ../src/scan.c:252
+#: ../src/scan.c:256
 #, c-format
 msgid "Crit: Unsupported qrcode version (%d)."
 msgstr "Crit: Version de QR code non prise en charge (%d)."
 
-#: ../src/scan.c:253
+#: ../src/scan.c:257
 msgid "Versions 1 to 3 needed an extra passphrase and are long gone."
 msgstr "Les versions 1 à 3 demandaient une phrase de passe supplémentaire et ont disparu depuis longtemps."
 
-#: ../src/scan.c:268
+#: ../src/scan.c:272
 #, c-format
 msgid "Error: %zu fragment(s) of the %d needed; missing: %s."
 msgstr "Error: %zu fragment(s) sur les %d nécessaires ; manquants : %s."
 
-#: ../src/scan.c:290
+#: ../src/scan.c:294
 msgid "Error: basenc would not decode the fragments."
 msgstr "Error: basenc a refusé de décoder les fragments."
 
-#: ../src/scan.c:303
+#: ../src/scan.c:307
 #, c-format
 msgid "Error: basenc would not decode fragment %zu."
 msgstr "Error: basenc a refusé de décoder le fragment %zu."
 
-#: ../src/scan.c:321
+#: ../src/scan.c:325
 msgid "Error: gfcombine would not put the fragments back together."
 msgstr "Error: gfcombine a refusé de recomposer les fragments."
 
-#: ../src/scan.c:331
+#: ../src/scan.c:335
 msgid "Error: gpg would not import what came back."
 msgstr "Error: gpg a refusé d'importer ce qui est revenu."
 
-#: ../src/scan.c:332
+#: ../src/scan.c:336
 msgid "A wrong passphrase, or fragments from two different printings."
 msgstr "Une mauvaise phrase de passe, ou des fragments issus de deux impressions différentes."
 

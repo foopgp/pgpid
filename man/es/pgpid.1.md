@@ -277,25 +277,21 @@ OPTIONS:
 ## pgpid avatar
 
 ```
-Usage: pgpid avatar [OPTIONS]... [NOMBRE|DIRECCIÓN|KEYID|U4|U5]
+Usage: pgpid avatar [OPTIONS]... [NOMBRE|CORREO|KEYID|U4|U5]
 
-Extrae la imagen que lleva un certificado OpenPGP y muestra su ruta.
-La que vale hoy va primero: la primera línea es, pues, el avatar. Sin
-selector, el primer certificado secreto.
-
-Escribir exige la clave secreta del certificado, y solo acepta una
-huella: una revocación no se deshace, así que una búsqueda no debe
-convertirse en blanco. Una imagen nueva se reduce antes a 180x180, y el
-certificado modificado se envía a los servidores de claves por omisión
-salvo indicación contraria.
+Extraer o añadir una imagen dentro del certificado OpenPGP.
+NOMBRE|CORREO|KEYID|U4|U5 ausente ⇒ el primer certificado secreto.
+Un patrón que encuentra más de un certificado se rechaza: retirar
+imágenes no se deshace, y una búsqueda nunca debe volverse un blanco.
+La nueva IMAGEN debe ser de 180×180 píxeles, o será redimensionada.
+Muestra la ruta de la imagen que hoy se mantiene, la más reciente primero.
 
 OPTIONS:
-  -E, --extract-all           Mostrar todas las imágenes, revocadas incluidas
-  -A, --replace-to IMAGEN     Retirar las imágenes que valen y poner IMAGEN
-  -R, --revoke                Solo retirar las imágenes que valen
-  -K, --keyservers SERVIDORES Enviar el certificado modificado a estos, separados
-                              por espacios. Vacío para ninguno. Por omisión: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -W, --workdir DIRECTORIO    Dónde se escriben las imágenes
+  -E, --extract-all           Mostrar todas las imágenes, revocadas y caducadas incluidas, más reciente primero
+  -A, --replace-to IMAGEN     Redimensionar y añadir IMAGEN al certificado (revocando las anteriores)
+  -R, --revoke                Revocar solamente todas las imágenes existentes dentro del certificado OpenPGP
+  -W, --workdir DIRECTORIO    Directorio de trabajo. Contendrá las imágenes anteriores y las nuevas
+  -K, --keyservers SERVIDORES Si no está vacío, enviar el certificado a estos servidores - Por omisión: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Mostrar esta ayuda y salir
   -V, --version               Mostrar la versión y salir
 ```

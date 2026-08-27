@@ -276,25 +276,21 @@ OPTIONS:
 ## pgpid avatar
 
 ```
-Usage: pgpid avatar [OPTIONS]... [NOME|ENDEREÇO|KEYID|U4|U5]
+Usage: pgpid avatar [OPTIONS]... [NOME|EMAIL|KEYID|U4|U5]
 
-Extrai a imagem que um certificado OpenPGP traz e imprime o seu caminho.
-A que vale hoje vem primeiro: a primeira linha é pois o avatar. Sem
-seletor, o primeiro certificado secreto.
-
-Escrever exige a chave secreta do certificado e só aceita uma impressão
-digital: uma revogação não se desfaz, portanto uma pesquisa nunca deve
-tornar-se um alvo. Uma imagem nova é primeiro levada a 180x180, e o
-certificado alterado é enviado aos servidores de chaves por omissão,
-salvo indicação em contrário.
+Extrair ou acrescentar uma imagem dentro do certificado OpenPGP.
+NOME|EMAIL|KEYID|U4|U5 em falta ⇒ o primeiro certificado secreto.
+Um padrão que encontra mais de um certificado é recusado: retirar
+imagens não se desfaz, e uma busca nunca deve tornar-se um alvo.
+A nova IMAGEM deve ter 180×180 pixéis, ou será redimensionada.
+Imprime o caminho da imagem que hoje se mantém, a mais recente primeiro.
 
 OPTIONS:
-  -E, --extract-all           Imprimir todas as imagens, revogadas incluídas
-  -A, --replace-to IMAGEM     Retirar as imagens que valem e pôr IMAGEM
-  -R, --revoke                Só retirar as imagens que valem
-  -K, --keyservers SERVIDORES Enviar o certificado alterado a estes, separados
-                              por espaços. Vazio para nenhum. Omissão: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -W, --workdir DIRETÓRIO     Onde as imagens são escritas
+  -E, --extract-all           Imprimir todas as imagens, revogadas e expiradas incluídas, mais recente primeiro
+  -A, --replace-to IMAGEM     Redimensionar e acrescentar IMAGEM ao certificado (revogando as anteriores)
+  -R, --revoke                Revogar apenas todas as imagens existentes dentro do certificado OpenPGP
+  -W, --workdir DIRETÓRIO     Diretório de trabalho. Conterá as imagens anteriores e as novas redimensionadas
+  -K, --keyservers SERVIDORES Se não estiver vazio, enviar o certificado a estes servidores - Predefinição: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Imprimir esta ajuda e sair
   -V, --version               Imprimir a versão e sair
 ```

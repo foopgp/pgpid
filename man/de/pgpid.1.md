@@ -278,25 +278,22 @@ OPTIONS:
 ## pgpid avatar
 
 ```
-Usage: pgpid avatar [OPTIONS]... [NAME|ADRESSE|KEYID|U4|U5]
+Usage: pgpid avatar [OPTIONS]... [NAME|E-MAIL|KEYID|U4|U5]
 
-Zeigt das Bild, das ein OpenPGP-Zertifikat trägt, und gibt seinen Pfad
-aus. Das heute gültige kommt zuerst: die erste Zeile ist also der Avatar.
-Ohne Auswahl das erste geheime Zertifikat.
-
-Schreiben verlangt den geheimen Schlüssel des Zertifikats und nimmt nur
-einen Fingerabdruck: ein Widerruf lässt sich nicht rückgängig machen,
-eine Suche darf also nie zum Ziel werden. Ein neues Bild wird zuvor auf
-180x180 gebracht, und das geänderte Zertifikat geht an die
-Standard-Schlüsselserver, sofern nicht anders gesagt.
+Ein Bild aus dem OpenPGP-Zertifikat holen oder hineinlegen.
+Fehlt NAME|E-MAIL|KEYID|U4|U5 ⇒ das erste geheime Zertifikat.
+Ein Muster, das mehr als ein Zertifikat findet, wird abgelehnt: Bilder
+zurückzunehmen lässt sich nicht rückgängig machen, und eine Suche darf
+nie zum Ziel werden.
+Das neue BILD sollte 180×180 Pixel haben, sonst wird es umgerechnet.
+Gibt den Pfad des heute geltenden Bildes aus, das neueste zuerst.
 
 OPTIONS:
-  -E, --extract-all           Alle Bilder ausgeben, widerrufene eingeschlossen
-  -A, --replace-to BILD       Gültige Bilder zurücknehmen und BILD auflegen
-  -R, --revoke                Nur die gültigen Bilder zurücknehmen
-  -K, --keyservers SERVER     Geändertes Zertifikat an diese senden, durch
-                              Leerzeichen getrennt. Leer für keinen. Vorgabe: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -W, --workdir VERZEICHNIS   Wohin die Bilder geschrieben werden
+  -E, --extract-all           Jedes Bild ausgeben, widerrufene und abgelaufene mit, das neueste zuerst
+  -A, --replace-to BILD       BILD umrechnen und ins OpenPGP-Zertifikat legen (jedes vorige widerrufen)
+  -R, --revoke                Nur alle vorhandenen Bilder im OpenPGP-Zertifikat widerrufen
+  -W, --workdir VERZEICHNIS   Arbeitsverzeichnis. Enthält die vorigen und die neu umgerechneten Bilder
+  -K, --keyservers SERVER     Wenn nicht leer, das geänderte Zertifikat an diese senden - Voreinstellung: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Diese Hilfe ausgeben und beenden
   -V, --version               Die Version ausgeben und beenden
 ```

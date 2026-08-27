@@ -277,22 +277,19 @@ OPTIONS:
 ```
 Usage: pgpid avatar [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]
 
-Extract the image an OpenPGP certificate wears and print its path.
-The image that stands today comes first, so the first line is the
-avatar. Missing selector means the first secret certificate.
-
-Writing needs the certificate's secret key, and takes a fingerprint
-only: revoking cannot be undone, so a search must never become a
-target. A new image is brought to 180x180 first, and the changed
-certificate is sent to the default keyservers unless told otherwise.
+Extract or add image inside OpenPGP certificate.
+Missing NAME|EMAIL|KEYID|U4|U5 => the first secret certificate.
+A selector matching more than one certificate is refused: taking
+images back cannot be undone, so a search must never become a target.
+New IMAGE should be 180x180 pixels, or it will be resized.
+Output the path of the image that stands today, newest first when several do.
 
 OPTIONS:
-  -E, --extract-all           Print every image, revoked ones included
-  -A, --replace-to IMAGE      Take back every image that stands and put IMAGE on
-  -R, --revoke                Just take back every image that stands
-  -K, --keyservers SERVERS    Send the changed certificate to these, space separated
-                              Empty for none. Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -W, --workdir DIRECTORY     Where the images are written
+  -E, --extract-all           Output every image, revoked and expired ones included, newest first
+  -A, --replace-to IMAGE      Resize and add new IMAGE inside OpenPGP certificate (revoking any previous image)
+  -R, --revoke                Just revoke all existing images inside OpenPGP certificate
+  -W, --workdir DIRECTORY     Working directory. Will contain previous and new resized images
+  -K, --keyservers KEYSERVERS If non-empty, send updated certificate to this keyservers - Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Print this help and exit
   -V, --version               Print the version and exit
 ```

@@ -277,25 +277,21 @@ OPTIONS:
 ## pgpid avatar
 
 ```
-Usage: pgpid avatar [OPTIONS]... [NOM|ADRESSE|KEYID|U4|U5]
+Usage: pgpid avatar [OPTIONS]... [NOM|COURRIEL|KEYID|U4|U5]
 
-Extrait l'image que porte un certificat OpenPGP et affiche son chemin.
-Celle qui vaut aujourd'hui vient en premier : la première ligne est donc
-l'avatar. Sans sélecteur, le premier certificat secret.
-
-Écrire demande la clé secrète du certificat, et n'accepte qu'une
-empreinte : une révocation ne se défait pas, une recherche ne doit donc
-jamais devenir une cible. Une nouvelle image est d'abord ramenée à
-180x180, et le certificat modifié est envoyé aux serveurs de clés par
-défaut sauf indication contraire.
+Extraire ou ajouter une image dans le certificat OpenPGP.
+NOM|COURRIEL|KEYID|U4|U5 manquant ⇒ le premier certificat secret.
+Un motif qui trouve plus d'un certificat est refusé : reprendre des
+images ne se défait pas, une recherche ne doit jamais devenir une cible.
+La nouvelle IMAGE doit être en 180×180 pixels, sinon elle sera redimensionnée.
+Affiche le chemin de l'image qui tient aujourd'hui, la plus récente d'abord.
 
 OPTIONS:
-  -E, --extract-all           Afficher toutes les images, révoquées comprises
-  -A, --replace-to IMAGE      Retirer les images qui valent et poser IMAGE
-  -R, --revoke                Seulement retirer toutes les images qui valent
-  -K, --keyservers SERVEURS   Envoyer le certificat modifié à ceux-ci, séparés
-                              par des espaces. Vide pour aucun. Défaut : hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -W, --workdir RÉPERTOIRE    Où les images sont écrites
+  -E, --extract-all           Afficher toutes les images, révoquées et expirées comprises, plus récente d'abord
+  -A, --replace-to IMAGE      Redimensionner et ajouter IMAGE au certificat (révoquant les précédentes)
+  -R, --revoke                Révoquer uniquement toutes les images existantes dans le certificat OpenPGP
+  -W, --workdir RÉPERTOIRE    Répertoire de travail. Contiendra les images précédentes et les nouvelles
+  -K, --keyservers SERVEURS   Si non vide, envoyer le certificat mis à jour à ces serveurs - Défaut : hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Afficher cette aide et quitter
   -V, --version               Afficher la version et quitter
 ```
