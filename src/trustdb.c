@@ -62,6 +62,36 @@ static void usage(FILE *out)
             PGPID_NAME);
 }
 
+/** The fingerprints this machine holds at ultimate: its anchors.
+ *
+ * Not "the keys whose secret we hold". A security key belonging to somebody
+ * else, plugged in once, leaves a stub in the secret keyring — so holding a
+ * secret says nothing about whose key it is. What says something is having
+ * decided, here, that a key is ultimate; and that decision is only ever taken
+ * by hand.
+ *
+ * gpg spells the rungs as digits in --export-ownertrust: 2 unknown, 3 never,
+ * 4 marginal, 5 full, 6 ultimate. Measured against `trustdb local`, not
+ * guessed from their order. */
+static size_t local_anchors(char *raw, size_t rawsize, char *out[], size_t max)
+{
+    const char *argv[] = { "--export-ownertrust", NULL };
+    if (pgpid_capture_engine(argv, raw, rawsize) <= 0)
+        return 0;
+    size_t n = 0;
+    for (char *line = raw, *save; (line = strtok_r(line, "\n", &save)) && n < max;
+         line = NULL) {
+        if (!*line || *line == '#')
+            continue;
+        char *colon = strchr(line, ':');
+        if (!colon || colon[1] != '6')
+            continue;
+        *colon = '\0';
+        out[n++] = line;
+    }
+    return n;
+}
+
 struct delegation {
     const char *path;
     char signer[64];
@@ -152,7 +182,8 @@ static char *export_ownertrust(void)
 }
 
 /** Read a signed file: its content, who signed it, and when. */
-static bool read_delegation(struct delegation *d, char *const own[], size_t nown)
+static bool read_delegation(struct delegation *d, char *const own[], size_t nown,
+                            bool quiet)
 {
     char status_path[] = "/tmp/pgpid-status-XXXXXX";
     int fd = mkstemp(status_path);
@@ -247,15 +278,51 @@ static bool read_delegation(struct delegation *d, char *const own[], size_t nown
     if (!d->content)
         return false;
     *d->content = '\0';
+    size_t skipped = 0, capped = 0, nevers = 0;
     for (char *line = content, *save; (line = strtok_r(line, "\n", &save)); line = NULL) {
-        bool ours = false;
+        if (!*line || *line == '#')
+            continue;
+
+        /* An anchor is what the whole computation stands on. A referent
+         * extends trust to others; it never redefines what we hold in
+         * ourselves. Said aloud rather than dropped in silence: a file that
+         * speaks about our anchors is worth knowing about. */
+        bool anchor = false;
         for (size_t i = 0; i < nown; i++)
             if (!strncmp(line, own[i], strlen(own[i])))
-                ours = true;
-        if (ours)
+                anchor = true;
+        if (anchor) {
+            skipped++;
             continue;
-        strcat(d->content, line);
+        }
+
+        char kept[128];
+        snprintf(kept, sizeof kept, "%s", line);
+        char *colon = strchr(kept, ':');
+        if (colon && colon[1]) {
+            if (colon[1] == '3')
+                nevers++;
+            /* Full is as far as a delegation reaches. Ultimate says "this is
+             * mine", and that is not something somebody else gets to say. */
+            if (colon[1] > '5') {
+                colon[1] = '5';
+                capped++;
+            }
+        }
+        strcat(d->content, kept);
         strcat(d->content, "\n");
+    }
+
+    if (!quiet) {
+        if (skipped)
+            pgpid_error(_("Info: %s: %zu line(s) about your own anchors, left alone."),
+                        d->path, skipped);
+        if (capped)
+            pgpid_error(_("Info: %s: %zu line(s) beyond full, brought back to it."),
+                        d->path, capped);
+        if (nevers)
+            pgpid_error(_("Info: %s: %zu key(s) it would have you trust for nothing."),
+                        d->path, nevers);
     }
     return true;
 }
@@ -384,14 +451,19 @@ static int do_local(int argc, char **argv)
 
 static int do_import(int argc, char **argv)
 {
-    bool batch = false, quiet = false;
+    /* Silent by default: this is called from other programs — foodjis shells
+     * out to it — and a prompt in a place with no terminal does not ask, it
+     * hangs. A human who wants to be asked about the rest says --update. */
+    bool interactive = false, quiet = false;
     const char *files[MAX_FILES];
     size_t nfiles = 0;
 
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
-        if (!strcmp(a, "--batch")) {
-            batch = true;
+        if (!strcmp(a, "--check")) {
+            interactive = false;
+        } else if (!strcmp(a, "--update")) {
+            interactive = true;
         } else if (!strcmp(a, "-q") || !strcmp(a, "--quiet")) {
             quiet = true;
         } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
@@ -415,36 +487,29 @@ static int do_import(int argc, char **argv)
     }
 
     if (nfiles) {
-        /* The anchor: our own keys, whatever any delegation says about them. */
+        /* The anchor: what this machine holds at ultimate, whatever any
+         * delegation says about it. */
         char ownraw[262144];
-        const char *ownargv[] = { "--list-secret-keys", "--with-colons", NULL };
         char *own[512];
-        size_t nown = 0;
-        if (pgpid_capture_engine(ownargv, ownraw, sizeof ownraw) > 0)
-            for (char *line = ownraw, *save; (line = strtok_r(line, "\n", &save)) && nown < 512; line = NULL) {
-                if (strncmp(line, "fpr:", 4))
-                    continue;
-                /* The fingerprint is field 10, so nine colons in. Landing on
-                 * the wrong field yields an empty string, and an empty
-                 * anchor matches every line there is — which strips each
-                 * delegation to nothing and reports it as already applied. */
-                char *at = line;
-                unsigned field = 1;
-                for (; *at && field < 10; at++)
-                    if (*at == ':')
-                        field++;
-                char *endcolon = strchr(at, ':');
-                if (endcolon)
-                    *endcolon = '\0';
-                if (field == 10 && strlen(at) >= 16)
-                    own[nown++] = at;
-            }
+        size_t nown = local_anchors(ownraw, sizeof ownraw, own, 512);
+
+        /* Without an anchor there is nothing for the delegations to hang
+         * from: gpg would compute validity out of a chain with no first
+         * link, and every verdict it returned would be meaningless. */
+        if (!nown) {
+            pgpid_error(_("Error: No key here is ultimate, so there is no anchor to "
+                        "extend from."));
+            pgpid_error(_("Notice: Mark your own certificate ultimate first: "
+                        "%s trustdb local --replace-to ultimate FINGERPRINT"),
+                        PGPID_NAME);
+            return PGPID_FAIL;
+        }
 
         struct delegation d[MAX_FILES];
         memset(d, 0, sizeof d);
         for (size_t i = 0; i < nfiles; i++) {
             d[i].path = files[i];
-            if (!read_delegation(&d[i], own, nown))
+            if (!read_delegation(&d[i], own, nown, quiet))
                 return PGPID_FAIL;
         }
 
@@ -530,12 +595,11 @@ static int do_import(int argc, char **argv)
         free(before);
     }
 
-    /* Recompute. --batch takes the answers already on file; without it gpg
-     * asks about the keys nobody has said anything about yet, which is the
-     * point of running this by hand. */
-    const char *interactive[] = { "--update-trustdb", NULL };
+    /* Recompute. --check takes the answers already on file; --update has gpg
+     * ask about the keys nobody has ruled on yet. */
+    const char *asking[] = { "--update-trustdb", NULL };
     const char *silent[] = { "--batch", "--check-trustdb", NULL };
-    return pgpid_run_engine(batch ? silent : interactive) ? PGPID_FAIL : PGPID_OK;
+    return pgpid_run_engine(interactive ? asking : silent) ? PGPID_FAIL : PGPID_OK;
 }
 
 /* One action, three verbs: they read and write the same thing, and share the
