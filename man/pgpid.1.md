@@ -45,10 +45,6 @@ sigs
 
 :   List who has certified one certificate
 
-ownertrust
-
-:   Print or set how far one is trusted to certify
-
 del
 
 :   Delete certificates, by fingerprint only
@@ -85,9 +81,9 @@ certify
 
 :   Vouch for somebody else
 
-update_trustdb
+trustdb
 
-:   Recompute trust from signed delegations
+:   Read, publish and apply trust in others to certify
 
 gen_key
 
@@ -262,23 +258,6 @@ certify anyone.
 
 OPTIONS:
   -a, --all-uids              Merge the signatures of every uid
-  -h, --help                  Print this help and exit
-```
-
-## pgpid ownertrust
-
-```
-Usage: pgpid ownertrust [OPTIONS]... FINGERPRINT
-
-Print how far that certificate is trusted to certify others: one of
-unknown, never, marginal, full, ultimate.
-
-'undefined' can be set and reads back as 'unknown': the engine does not
-keep them apart, and neither does anyone who has had to explain the
-difference. One rung, two spellings.
-
-OPTIONS:
-  -r, --replace-to VALUE      Set it to VALUE instead of printing it
   -h, --help                  Print this help and exit
 ```
 
@@ -480,21 +459,28 @@ Return value:
 - 143 That certificate does not carry that identifier
 ```
 
-## pgpid update_trustdb
+## pgpid trustdb
 
 ```
-Usage: pgpid update_trustdb [OPTIONS]... [OWNERTRUST.GPG]...
+Usage: pgpid trustdb local|export|import [OPTIONS]... [FINGERPRINT|OWNERTRUSTS.GPG]...
 
-Recompute GnuPG's trust database, after applying the delegations the
-given files carry.
+Read and move the trust you place in others to certify.
 
-Every file must be a signed OpenPGP message, and its signer must already
-be valid when its turn comes — which is why the order of the files is
-part of what they mean. Whatever they say about your own keys is
-ignored: somebody may extend trust to others, not redefine yours.
+  local    What this machine says about the given certificates, or about
+           every one of them when none is named.
+  export   The same, signed, for others to replay. Writes to stdout.
+  import   Apply what others signed. Order is part of what it means:
+           a signer must already be valid when its turn comes.
 
 OPTIONS:
-      --batch                 Recompute without asking about the remaining keys
+  -r, --replace-to VALUE      local: set it instead of printing it — needs
+                              at least one fingerprint
+      --long                  local: also the identifier and main address
+      --export-file FILE      export: write there instead of stdout
+  -u, --use-privkey NAME|KEYID  export: sign with this key
+      --export-all            export: include ultimate and unknown too
+      --check                 recompute without asking about the rest
+      --update                recompute, asking about the rest
   -q, --quiet                 Only errors and warnings
   -h, --help                  Print this help and exit
   -V, --version               Print the version and exit

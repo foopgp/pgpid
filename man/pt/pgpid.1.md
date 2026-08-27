@@ -45,10 +45,6 @@ sigs
 
 :   Listar quem certificou um certificado
 
-ownertrust
-
-:   Imprimir ou definir até onde se certifica
-
 del
 
 :   Apagar certificados, só por impressão digital
@@ -85,9 +81,9 @@ certify
 
 :   Responder por outra pessoa
 
-update_trustdb
+trustdb
 
-:   Recalcular a confiança a partir de delegações assinadas
+:   Ler, publicar e aplicar a confiança posta em outros
 
 gen_key
 
@@ -263,22 +259,6 @@ ninguém.
 
 OPTIONS:
   -a, --all-uids              Fundir as assinaturas de todos os uid
-  -h, --help                  Imprimir esta ajuda e sair
-```
-
-## pgpid ownertrust
-
-```
-Usage: pgpid ownertrust [OPTIONS]... IMPRESSÃO
-
-Imprimir até onde se confia nesse certificado para certificar outros: um
-de unknown, never, marginal, full, ultimate.
-
-«undefined» define-se e relê-se «unknown»: o motor não os distingue, e
-quem já teve de explicar a diferença também não. Um degrau, duas grafias.
-
-OPTIONS:
-  -r, --replace-to VALOR      Defini-lo como VALOR em vez de o imprimir
   -h, --help                  Imprimir esta ajuda e sair
 ```
 
@@ -482,22 +462,28 @@ Valor de retorno:
 - 143 Esse certificado não traz esse identificador
 ```
 
-## pgpid update_trustdb
+## pgpid trustdb
 
 ```
-Usage: pgpid update_trustdb [OPTIONS]... [OWNERTRUST.GPG]...
+Usage: pgpid trustdb local|export|import [OPTIONS]... [IMPRESSÃO|OWNERTRUSTS.GPG]...
 
-Recalcular a base de confiança do GnuPG, depois de aplicar as delegações
-que os ficheiros dados trazem.
+Ler e mover a confiança posta em outros para certificar.
 
-Cada ficheiro tem de ser uma mensagem OpenPGP assinada, e quem a assinou
-tem de já ser válido quando chegar a sua vez — por isso a ordem dos
-ficheiros faz parte do que querem dizer. O que digam das suas próprias
-chaves é ignorado: pode estender-se a confiança a outros, não redefinir a
-sua.
+  local    O que esta máquina diz dos certificados dados, ou de cada um
+           deles quando nenhum é nomeado.
+  export   O mesmo, assinado, para outros o repetirem. Escreve em stdout.
+  import   Aplicar o que outros assinaram. A ordem faz parte do sentido:
+           quem assina tem de já ser válido quando chegar a sua vez.
 
 OPTIONS:
-      --batch                 Recalcular sem perguntar pelas outras chaves
+  -r, --replace-to VALOR      local: defini-lo em vez de o imprimir — exige
+                              ao menos uma impressão
+      --long                  local: também o identificador e o endereço
+      --export-file FICHEIRO  export: escrever aí em vez de em stdout
+  -u, --use-privkey NOME|KEYID  export: assinar com esta chave
+      --export-all            export: incluir também ultimate e unknown
+      --check                 Recalcular sem perguntar pelas outras
+      --update                Recalcular, perguntando pelas outras
   -q, --quiet                 Só erros e avisos
   -h, --help                  Imprimir esta ajuda e sair
   -V, --version               Imprimir a versão e sair

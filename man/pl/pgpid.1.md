@@ -45,10 +45,6 @@ sigs
 
 :   Wypisać, kto poświadczył certyfikat
 
-ownertrust
-
-:   Wypisać lub ustawić, jak dalece się poświadcza
-
 del
 
 :   Usunąć certyfikaty, tylko po odcisku palca
@@ -85,9 +81,9 @@ certify
 
 :   Poręczyć za kogoś innego
 
-update_trustdb
+trustdb
 
-:   Przeliczyć zaufanie z podpisanych delegacji
+:   Czytać, publikować i stosować zaufanie do innych
 
 gen_key
 
@@ -263,23 +259,6 @@ poświadczają.
 
 OPTIONS:
   -a, --all-uids              Scalić podpisy wszystkich uid
-  -h, --help                  Wypisać tę pomoc i zakończyć
-```
-
-## pgpid ownertrust
-
-```
-Usage: pgpid ownertrust [OPTIONS]... ODCISK
-
-Wypisuje, jak dalece ufa się temu certyfikatowi w poświadczaniu innych:
-jedno z unknown, never, marginal, full, ultimate.
-
-„undefined” da się ustawić i odczytuje się jako „unknown”: silnik ich nie
-rozróżnia, i nikt, kto musiał kiedyś tłumaczyć różnicę, też nie. Jeden
-szczebel, dwie pisownie.
-
-OPTIONS:
-  -r, --replace-to WARTOŚĆ    Ustawić na WARTOŚĆ zamiast wypisywać
   -h, --help                  Wypisać tę pomoc i zakończyć
 ```
 
@@ -483,21 +462,28 @@ Wartość zwracana:
 - 143 Ten certyfikat nie nosi tego identyfikatora
 ```
 
-## pgpid update_trustdb
+## pgpid trustdb
 
 ```
-Usage: pgpid update_trustdb [OPTIONS]... [OWNERTRUST.GPG]...
+Usage: pgpid trustdb local|export|import [OPTIONS]... [ODCISK|OWNERTRUSTS.GPG]...
 
-Przelicza bazę zaufania GnuPG po zastosowaniu delegacji, które niosą
-podane pliki.
+Czyta zaufanie pokładane w innych i przenosi je dalej.
 
-Każdy plik musi być podpisaną wiadomością OpenPGP, a jego podpisujący
-musi być już ważny, gdy przyjdzie jego kolej — dlatego kolejność plików
-należy do tego, co znaczą. To, co mówią o twoich własnych kluczach, jest
-pomijane: można rozciągnąć zaufanie na innych, nie przedefiniować twojego.
+  local    Co ta maszyna mówi o podanych certyfikatach, albo o każdym z
+           nich, gdy nie podano żadnego.
+  export   To samo, podpisane, by inni mogli to odtworzyć. Pisze na stdout.
+  import   Zastosować to, co podpisali inni. Kolejność należy do znaczenia:
+           podpisujący musi być już ważny, gdy przyjdzie jego kolej.
 
 OPTIONS:
-      --batch                 Przeliczyć bez pytania o pozostałe klucze
+  -r, --replace-to WARTOŚĆ    local: ustawić zamiast wypisywać — wymaga co
+                              najmniej jednego odcisku
+      --long                  local: także identyfikator i główny adres
+      --export-file PLIK      export: pisać tam zamiast na stdout
+  -u, --use-privkey NAZWA|KEYID  export: podpisać tym kluczem
+      --export-all            export: objąć także ultimate i unknown
+      --check                 Przeliczyć bez pytania o pozostałe
+      --update                Przeliczyć, pytając o pozostałe
   -q, --quiet                 Tylko błędy i ostrzeżenia
   -h, --help                  Wypisać tę pomoc i zakończyć
   -V, --version               Wypisać wersję i zakończyć

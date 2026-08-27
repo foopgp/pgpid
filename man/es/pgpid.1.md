@@ -45,10 +45,6 @@ sigs
 
 :   Listar quién ha certificado un certificado
 
-ownertrust
-
-:   Mostrar o poner hasta dónde se certifica
-
 del
 
 :   Borrar certificados, solo por huella
@@ -85,9 +81,9 @@ certify
 
 :   Responder por otra persona
 
-update_trustdb
+trustdb
 
-:   Recalcular la confianza desde delegaciones firmadas
+:   Leer, publicar y aplicar la confianza puesta en otros
 
 gen_key
 
@@ -264,23 +260,6 @@ Las autofirmas quedan fuera: hacen valer un uid, no certifican a nadie.
 
 OPTIONS:
   -a, --all-uids              Fusionar las firmas de todos los uids
-  -h, --help                  Mostrar esta ayuda y salir
-```
-
-## pgpid ownertrust
-
-```
-Usage: pgpid ownertrust [OPTIONS]... HUELLA
-
-Mostrar hasta dónde se confía en ese certificado para certificar a otros:
-a elegir unknown, never, marginal, full, ultimate.
-
-«undefined» se pone y se relee «unknown»: el motor no los distingue, y
-tampoco quien haya tenido que explicar la diferencia. Un peldaño, dos
-grafías.
-
-OPTIONS:
-  -r, --replace-to VALOR      Ponerlo a VALOR en vez de mostrarlo
   -h, --help                  Mostrar esta ayuda y salir
 ```
 
@@ -484,21 +463,28 @@ Valor de retorno:
 - 143 Ese certificado no lleva ese identificador
 ```
 
-## pgpid update_trustdb
+## pgpid trustdb
 
 ```
-Usage: pgpid update_trustdb [OPTIONS]... [OWNERTRUST.GPG]...
+Usage: pgpid trustdb local|export|import [OPTIONS]... [HUELLA|OWNERTRUSTS.GPG]...
 
-Recalcular la base de confianza de GnuPG, tras aplicar las delegaciones
-que llevan los ficheros dados.
+Leer y mover la confianza puesta en otros para certificar.
 
-Cada fichero debe ser un mensaje OpenPGP firmado, y su firmante debe ser
-ya válido cuando llegue su turno — por eso el orden de los ficheros forma
-parte de lo que quieren decir. Lo que digan de sus propias claves se
-ignora: se puede extender la confianza a otros, no redefinir la suya.
+  local    Lo que esta máquina dice de los certificados dados, o de todos
+           ellos cuando no se nombra ninguno.
+  export   Lo mismo, firmado, para que otros lo rehagan. Escribe en stdout.
+  import   Aplicar lo que otros firmaron. El orden forma parte del sentido:
+           un firmante debe ser ya válido cuando llegue su turno.
 
 OPTIONS:
-      --batch                 Recalcular sin preguntar por las demás claves
+  -r, --replace-to VALOR      local: ponerlo en vez de mostrarlo — exige al
+                              menos una huella
+      --long                  local: también el identificador y la dirección
+      --export-file FICHERO   export: escribir ahí en vez de en stdout
+  -u, --use-privkey NOMBRE|KEYID  export: firmar con esa clave
+      --export-all            export: incluir también ultimate y unknown
+      --check                 Recalcular sin preguntar por las demás
+      --update                Recalcular, preguntando por las demás
   -q, --quiet                 Solo errores y advertencias
   -h, --help                  Mostrar esta ayuda y salir
   -V, --version               Mostrar la versión y salir

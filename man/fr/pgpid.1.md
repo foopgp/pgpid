@@ -45,10 +45,6 @@ sigs
 
 :   Lister qui a certifié un certificat
 
-ownertrust
-
-:   Afficher ou poser jusqu\'où on certifie
-
 del
 
 :   Supprimer des certificats, par empreinte seulement
@@ -85,9 +81,9 @@ certify
 
 :   Se porter garant de quelqu\'un
 
-update_trustdb
+trustdb
 
-:   Recalculer la confiance depuis des délégations signées
+:   Lire, publier et appliquer la confiance faite aux autres
 
 gen_key
 
@@ -264,23 +260,6 @@ certifient personne.
 
 OPTIONS:
   -a, --all-uids              Fusionner les signatures de tous les uids
-  -h, --help                  Afficher cette aide et quitter
-```
-
-## pgpid ownertrust
-
-```
-Usage: pgpid ownertrust [OPTIONS]... EMPREINTE
-
-Afficher jusqu'où ce certificat est réputé certifier les autres : au
-choix unknown, never, marginal, full, ultimate.
-
-« undefined » se pose et se relit « unknown » : le moteur ne les
-distingue pas, et personne ayant eu à expliquer la différence non plus.
-Un échelon, deux orthographes.
-
-OPTIONS:
-  -r, --replace-to VALEUR     La poser à VALEUR au lieu de l'afficher
   -h, --help                  Afficher cette aide et quitter
 ```
 
@@ -484,22 +463,28 @@ Valeur de retour :
 - 143 Ce certificat ne porte pas cet identifiant
 ```
 
-## pgpid update_trustdb
+## pgpid trustdb
 
 ```
-Usage: pgpid update_trustdb [OPTIONS]... [OWNERTRUST.GPG]...
+Usage: pgpid trustdb local|export|import [OPTIONS]... [EMPREINTE|OWNERTRUSTS.GPG]...
 
-Recalculer la base de confiance de GnuPG, après avoir appliqué les
-délégations que portent les fichiers donnés.
+Lire et déplacer la confiance faite aux autres pour certifier.
 
-Chaque fichier doit être un message OpenPGP signé, et son signataire doit
-déjà être valide quand vient son tour — c'est pourquoi l'ordre des
-fichiers fait partie de ce qu'ils veulent dire. Ce qu'ils disent de vos
-propres clés est ignoré : on peut étendre sa confiance à d'autres, pas
-redéfinir la vôtre.
+  local    Ce que cette machine dit des certificats donnés, ou de chacun
+           d'eux quand aucun n'est nommé.
+  export   La même chose, signée, pour que d'autres la rejouent. Écrit sur stdout.
+  import   Appliquer ce que d'autres ont signé. L'ordre fait partie du sens :
+           un signataire doit déjà être valide quand vient son tour.
 
 OPTIONS:
-      --batch                 Recalculer sans questionner sur les autres clés
+  -r, --replace-to VALEUR     local : la poser au lieu de l'afficher — exige
+                              au moins une empreinte
+      --long                  local : aussi l'identifiant et l'adresse principale
+      --export-file FICHIER   export : y écrire au lieu de stdout
+  -u, --use-privkey NOM|KEYID  export : signer avec cette clé
+      --export-all            export : inclure aussi ultimate et unknown
+      --check                 Recalculer sans questionner sur les autres
+      --update                Recalculer, en questionnant sur les autres
   -q, --quiet                 Seulement les erreurs et les avertissements
   -h, --help                  Afficher cette aide et quitter
   -V, --version               Afficher la version et quitter

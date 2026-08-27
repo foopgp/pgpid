@@ -45,10 +45,6 @@ sigs
 
 :   Auflisten, wer ein Zertifikat beglaubigt hat
 
-ownertrust
-
-:   Ausgeben oder setzen, wie weit beglaubigt wird
-
 del
 
 :   Zertifikate löschen, nur per Fingerabdruck
@@ -85,9 +81,9 @@ certify
 
 :   Für jemand anderen einstehen
 
-update_trustdb
+trustdb
 
-:   Vertrauen aus signierten Delegationen neu berechnen
+:   Vertrauen in andere lesen, veröffentlichen und anwenden
 
 gen_key
 
@@ -265,23 +261,6 @@ beglaubigen niemanden.
 
 OPTIONS:
   -a, --all-uids              Die Signaturen aller uids zusammenführen
-  -h, --help                  Diese Hilfe ausgeben und beenden
-```
-
-## pgpid ownertrust
-
-```
-Usage: pgpid ownertrust [OPTIONS]... FINGERABDRUCK
-
-Gibt aus, wie weit diesem Zertifikat zugetraut wird, andere zu
-beglaubigen: eines von unknown, never, marginal, full, ultimate.
-
-„undefined“ lässt sich setzen und liest sich als „unknown“ zurück: die
-Maschine hält sie nicht auseinander, und wer die Unterscheidung einmal
-erklären musste, auch nicht. Eine Stufe, zwei Schreibweisen.
-
-OPTIONS:
-  -r, --replace-to WERT       Ihn auf WERT setzen, statt ihn auszugeben
   -h, --help                  Diese Hilfe ausgeben und beenden
 ```
 
@@ -487,22 +466,28 @@ Rückgabewert:
 - 143 Dieses Zertifikat trägt diese Kennung nicht
 ```
 
-## pgpid update_trustdb
+## pgpid trustdb
 
 ```
-Usage: pgpid update_trustdb [OPTIONS]... [OWNERTRUST.GPG]...
+Usage: pgpid trustdb local|export|import [OPTIONS]... [ABDRUCK|OWNERTRUSTS.GPG]...
 
-Berechnet GnuPGs Vertrauensdatenbank neu, nachdem die Delegationen
-angewandt wurden, die die angegebenen Dateien tragen.
+Liest das Vertrauen in andere und trägt es weiter.
 
-Jede Datei muss eine signierte OpenPGP-Nachricht sein, und ihr
-Signierender muss bereits gültig sein, wenn er an der Reihe ist — darum
-gehört die Reihenfolge der Dateien zu dem, was sie sagen. Was sie über
-Ihre eigenen Schlüssel sagen, wird übergangen: man kann sein Vertrauen
-auf andere ausdehnen, nicht Ihres neu bestimmen.
+  local    Was diese Maschine über die angegebenen Zertifikate sagt, oder
+           über jedes von ihnen, wenn keines genannt wird.
+  export   Dasselbe, signiert, damit andere es nachvollziehen. Nach stdout.
+  import   Anwenden, was andere signiert haben. Die Reihenfolge gehört zum
+           Sinn: wer signiert, muss gültig sein, wenn er an der Reihe ist.
 
 OPTIONS:
-      --batch                 Neu berechnen, ohne nach den übrigen zu fragen
+  -r, --replace-to WERT       local: ihn setzen, statt ihn auszugeben — braucht
+                              mindestens einen Fingerabdruck
+      --long                  local: auch die Kennung und die Hauptadresse
+      --export-file DATEI     export: dorthin schreiben statt nach stdout
+  -u, --use-privkey NAME|KEYID  export: mit diesem Schlüssel signieren
+      --export-all            export: auch ultimate und unknown mitnehmen
+      --check                 Neu berechnen, ohne nach den übrigen zu fragen
+      --update                Neu berechnen und nach den übrigen fragen
   -q, --quiet                 Nur Fehler und Warnungen
   -h, --help                  Diese Hilfe ausgeben und beenden
   -V, --version               Die Version ausgeben und beenden

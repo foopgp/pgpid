@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-08-27 12:57+0200\n"
+"POT-Creation-Date: 2026-08-27 13:55+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -130,7 +130,7 @@ msgstr ""
 msgid "Error: '%s' wants a list of servers, empty for none."
 msgstr ""
 
-#: ../src/avatar.c:558 ../src/main.c:84 ../src/printsecret.c:260
+#: ../src/avatar.c:558 ../src/main.c:83 ../src/printsecret.c:260
 #: ../src/scan.c:121
 #, c-format
 msgid "Error: '%s' wants a directory."
@@ -139,11 +139,11 @@ msgstr ""
 #: ../src/avatar.c:573 ../src/certify.c:322 ../src/changepass.c:110
 #: ../src/changetokencode.c:126 ../src/changetokenmeta.c:153 ../src/del.c:93
 #: ../src/email.c:372 ../src/genkey.c:209 ../src/genu4.c:82 ../src/genuid.c:147
-#: ../src/get.c:150 ../src/list.c:384 ../src/main.c:112 ../src/mrz.c:174
-#: ../src/ownertrust.c:96 ../src/printcard.c:143 ../src/printsecret.c:290
-#: ../src/property.c:383 ../src/push.c:70 ../src/scan.c:139 ../src/sigs.c:124
-#: ../src/token.c:129 ../src/tokencheck.c:268 ../src/totoken.c:152
-#: ../src/tovcard.c:385 ../src/trustdb.c:276
+#: ../src/get.c:150 ../src/list.c:377 ../src/main.c:111 ../src/mrz.c:174
+#: ../src/printcard.c:143 ../src/printsecret.c:290 ../src/property.c:383
+#: ../src/push.c:70 ../src/scan.c:139 ../src/sigs.c:124 ../src/token.c:129
+#: ../src/tokencheck.c:268 ../src/totoken.c:152 ../src/tovcard.c:385
+#: ../src/trustdb.c:435 ../src/trustdb.c:563 ../src/trustdb.c:655
 #, c-format
 msgid "Error: Unrecognized option '%s'."
 msgstr ""
@@ -169,11 +169,11 @@ msgstr ""
 msgid "Error: '--revoke' takes every image back; '--replace-to' already does."
 msgstr ""
 
-#: ../src/avatar.c:613 ../src/list.c:273 ../src/tovcard.c:397
+#: ../src/avatar.c:613 ../src/list.c:266 ../src/tovcard.c:397
 msgid "gpgme_new"
 msgstr ""
 
-#: ../src/avatar.c:630 ../src/list.c:279
+#: ../src/avatar.c:630 ../src/list.c:272
 msgid "gpgme_op_keylist_start"
 msgstr ""
 
@@ -303,18 +303,18 @@ msgstr ""
 msgid "Error: '%s' names %s secret key."
 msgstr ""
 
-#: ../src/certify.c:285
+#: ../src/certify.c:285 ../src/trustdb.c:549
 #, c-format
 msgid "Error: '%s' wants a key."
 msgstr ""
 
-#: ../src/certify.c:298 ../src/genu4.c:88 ../src/ownertrust.c:84
-#: ../src/property.c:354
+#: ../src/certify.c:298 ../src/genu4.c:88 ../src/property.c:354
+#: ../src/trustdb.c:416
 #, c-format
 msgid "Error: '%s' wants a value."
 msgstr ""
 
-#: ../src/certify.c:304 ../src/ownertrust.c:111
+#: ../src/certify.c:304 ../src/trustdb.c:456
 #, c-format
 msgid "Error: Unknown ownertrust value '%s'."
 msgstr ""
@@ -661,22 +661,20 @@ msgid ""
 "  -h, --help                  Print this help and exit\n"
 msgstr ""
 
-#: ../src/del.c:48 ../src/ownertrust.c:48 ../src/property.c:178
-#: ../src/sigs.c:148
+#: ../src/del.c:48 ../src/property.c:178 ../src/sigs.c:148 ../src/trustdb.c:106
 msgid "looking the certificate up"
 msgstr ""
 
-#: ../src/del.c:55 ../src/ownertrust.c:55 ../src/sigs.c:156
+#: ../src/del.c:55 ../src/sigs.c:156 ../src/trustdb.c:113
 #, c-format
 msgid "Error: No certificate matching '%s'."
 msgstr ""
 
-#: ../src/del.c:60 ../src/ownertrust.c:60 ../src/property.c:194
-#: ../src/sigs.c:161
+#: ../src/del.c:60 ../src/property.c:194 ../src/sigs.c:161 ../src/trustdb.c:118
 msgid "reading the certificate"
 msgstr ""
 
-#: ../src/del.c:69 ../src/ownertrust.c:69
+#: ../src/del.c:69 ../src/trustdb.c:127
 #, c-format
 msgid "Error: '%s' matches more than one certificate."
 msgstr ""
@@ -694,8 +692,8 @@ msgstr ""
 msgid "Notice: 40 or 64 hexadecimal characters, nothing else."
 msgstr ""
 
-#: ../src/del.c:120 ../src/list.c:406 ../src/ownertrust.c:127
-#: ../src/property.c:173 ../src/sigs.c:142
+#: ../src/del.c:120 ../src/list.c:403 ../src/property.c:173 ../src/sigs.c:142
+#: ../src/trustdb.c:474
 msgid "opening the engine"
 msgstr ""
 
@@ -1055,25 +1053,25 @@ msgstr ""
 msgid "Error: What are you looking for? '*' for everything."
 msgstr ""
 
-#: ../src/get.c:188 ../src/tovcard.c:408
+#: ../src/get.c:190 ../src/tovcard.c:408
 msgid "Error: No certificate for what was asked."
 msgstr ""
 
-#: ../src/get.c:196
+#: ../src/get.c:198
 #, c-format
 msgid "Error: %zu certificates matched, more than the %ld asked for."
 msgstr ""
 
-#: ../src/list.c:291 ../src/list.c:431
+#: ../src/list.c:284 ../src/list.c:428
 msgid "reading a certificate"
 msgstr ""
 
-#: ../src/list.c:304
+#: ../src/list.c:297
 #, c-format
 msgid "Warning: Certificate %s carries more than one identifier."
 msgstr ""
 
-#: ../src/list.c:326
+#: ../src/list.c:319
 #, c-format
 msgid ""
 "Usage: %s list [OPTIONS]... [SEARCH]\n"
@@ -1105,7 +1103,7 @@ msgid ""
 "  -h, --help                  Print this help and exit\n"
 msgstr ""
 
-#: ../src/list.c:412
+#: ../src/list.c:409
 msgid "listing the keyring"
 msgstr ""
 
@@ -1122,7 +1120,6 @@ msgid ""
 "  get                         Look a certificate up, refreshing it first\n"
 "  property                    Print a vCard property of one certificate\n"
 "  sigs                        List who has certified one certificate\n"
-"  ownertrust                  Print or set how far one is trusted to certify\n"
 "  del                         Delete certificates, by fingerprint only\n"
 "  avatar                      Extract the image a certificate wears\n"
 "  push                        Send certificates to the keyservers\n"
@@ -1132,7 +1129,7 @@ msgid ""
 "  to_vcard                    Print a certificate as a vCard\n"
 "  email                       Show, add or revoke the addresses a certificate carries\n"
 "  certify                     Vouch for somebody else\n"
-"  update_trustdb              Recompute trust from signed delegations\n"
+"  trustdb                     Read, publish and apply trust in others to certify\n"
 "  gen_key                     Generate a key pair the PGP ID way\n"
 "  change_passphrase           Change what protects a secret key here\n"
 "  token_check                 Check what the connected security key carries\n"
@@ -1153,16 +1150,16 @@ msgid ""
 "Every action takes --help of its own.\n"
 msgstr ""
 
-#: ../src/main.c:97
+#: ../src/main.c:96
 #, c-format
 msgid "Error: Unknown output format '%s'."
 msgstr ""
 
-#: ../src/main.c:98
+#: ../src/main.c:97
 msgid "Notice: One of raw, info, md."
 msgstr ""
 
-#: ../src/main.c:180
+#: ../src/main.c:177
 #, c-format
 msgid "Error: Unknown action '%s'."
 msgstr ""
@@ -1218,43 +1215,6 @@ msgstr ""
 #: ../src/mrz.c:248
 #, c-format
 msgid "Error: '%s' is not a date this can read."
-msgstr ""
-
-#: ../src/ownertrust.c:25
-#, c-format
-msgid ""
-"Usage: %s ownertrust [OPTIONS]... FINGERPRINT\n"
-"\n"
-"Print how far that certificate is trusted to certify others: one of\n"
-"unknown, never, marginal, full, ultimate.\n"
-"\n"
-"'undefined' can be set and reads back as 'unknown': the engine does not\n"
-"keep them apart, and neither does anyone who has had to explain the\n"
-"difference. One rung, two spellings.\n"
-"\n"
-"OPTIONS:\n"
-"  -r, --replace-to VALUE      Set it to VALUE instead of printing it\n"
-"  -h, --help                  Print this help and exit\n"
-msgstr ""
-
-#: ../src/ownertrust.c:106 ../src/sigs.c:134
-msgid "Error: A fingerprint is required."
-msgstr ""
-
-#: ../src/ownertrust.c:112
-msgid "Notice: One of undefined, never, marginal, full, ultimate."
-msgstr ""
-
-#: ../src/ownertrust.c:118
-msgid "Error: 'unknown' cannot be set; it is what a certificate"
-msgstr ""
-
-#: ../src/ownertrust.c:119
-msgid "Notice: no one has ruled on already reads as."
-msgstr ""
-
-#: ../src/ownertrust.c:141
-msgid "setting the ownertrust"
 msgstr ""
 
 #: ../src/printcard.c:31
@@ -1805,6 +1765,10 @@ msgid ""
 "  -h, --help                  Print this help and exit\n"
 msgstr ""
 
+#: ../src/sigs.c:134
+msgid "Error: A fingerprint is required."
+msgstr ""
+
 #: ../src/sigs.c:174
 msgid "Notice: No identity uid; merging every uid instead."
 msgstr ""
@@ -2074,97 +2038,187 @@ msgstr ""
 #: ../src/trustdb.c:38
 #, c-format
 msgid ""
-"Usage: %s update_trustdb [OPTIONS]... [OWNERTRUST.GPG]...\n"
+"Usage: %s trustdb local|export|import [OPTIONS]... [FINGERPRINT|OWNERTRUSTS.GPG]...\n"
 "\n"
-"Recompute GnuPG's trust database, after applying the delegations the\n"
-"given files carry.\n"
+"Read and move the trust you place in others to certify.\n"
 "\n"
-"Every file must be a signed OpenPGP message, and its signer must already\n"
-"be valid when its turn comes — which is why the order of the files is\n"
-"part of what they mean. Whatever they say about your own keys is\n"
-"ignored: somebody may extend trust to others, not redefine yours.\n"
+"  local    What this machine says about the given certificates, or about\n"
+"           every one of them when none is named.\n"
+"  export   The same, signed, for others to replay. Writes to stdout.\n"
+"  import   Apply what others signed. Order is part of what it means:\n"
+"           a signer must already be valid when its turn comes.\n"
 "\n"
 "OPTIONS:\n"
-"      --batch                 Recompute without asking about the remaining keys\n"
+"  -r, --replace-to VALUE      local: set it instead of printing it — needs\n"
+"                              at least one fingerprint\n"
+"      --long                  local: also the identifier and main address\n"
+"      --export-file FILE      export: write there instead of stdout\n"
+"  -u, --use-privkey NAME|KEYID  export: sign with this key\n"
+"      --export-all            export: include ultimate and unknown too\n"
+"      --check                 recompute without asking about the rest\n"
+"      --update                recompute, asking about the rest\n"
 "  -q, --quiet                 Only errors and warnings\n"
 "  -h, --help                  Print this help and exit\n"
 "  -V, --version               Print the version and exit\n"
 msgstr ""
 
-#: ../src/trustdb.c:122
+#: ../src/trustdb.c:191
 msgid "Error: Cannot make a temporary file."
 msgstr ""
 
-#: ../src/trustdb.c:141
+#: ../src/trustdb.c:210
 #, c-format
 msgid "Error: Cannot read or verify %s (missing, not signed, or bad signature?)."
 msgstr ""
 
-#: ../src/trustdb.c:163
+#: ../src/trustdb.c:232
 #, c-format
 msgid "Error: %s carries no verifiable signature (signer key missing?)."
 msgstr ""
 
-#: ../src/trustdb.c:175
+#: ../src/trustdb.c:244
 #, c-format
 msgid "Warning: %s is signed in the future (%s) — is the local clock right?"
 msgstr ""
 
-#: ../src/trustdb.c:183
+#: ../src/trustdb.c:252
 #, c-format
 msgid "Warning: %s carries a delegation older than a year (%s)."
 msgstr ""
 
-#: ../src/trustdb.c:197 ../src/trustdb.c:203
+#: ../src/trustdb.c:266 ../src/trustdb.c:272
 #, c-format
 msgid "Error: %s is not a valid ownertrust file."
 msgstr ""
 
-#: ../src/trustdb.c:246
+#: ../src/trustdb.c:318
+#, c-format
+msgid "Info: %s: %zu line(s) about your own anchors, left alone."
+msgstr ""
+
+#: ../src/trustdb.c:321
+#, c-format
+msgid "Info: %s: %zu line(s) beyond full, brought back to it."
+msgstr ""
+
+#: ../src/trustdb.c:324
+#, c-format
+msgid "Info: %s: %zu key(s) it would have you trust for nothing."
+msgstr ""
+
+#: ../src/trustdb.c:351
 msgid "Info: ownertrust changes:"
 msgstr ""
 
-#: ../src/trustdb.c:249
+#: ../src/trustdb.c:354
 #, c-format
 msgid "  - %s"
 msgstr ""
 
-#: ../src/trustdb.c:252
+#: ../src/trustdb.c:357
 #, c-format
 msgid "  + %s"
 msgstr ""
 
-#: ../src/trustdb.c:282
+#: ../src/trustdb.c:386
+msgid "listing the certificates"
+msgstr ""
+
+#: ../src/trustdb.c:408
+msgid "Error: Out of memory."
+msgstr ""
+
+#: ../src/trustdb.c:451
+msgid "Error: A fingerprint is required to set an ownertrust."
+msgstr ""
+
+#: ../src/trustdb.c:457
+msgid "Notice: One of undefined, never, marginal, full, ultimate."
+msgstr ""
+
+#: ../src/trustdb.c:464
+msgid "Error: 'unknown' cannot be set; it is what a certificate"
+msgstr ""
+
+#: ../src/trustdb.c:465
+msgid "Notice: no one has ruled on already reads as."
+msgstr ""
+
+#: ../src/trustdb.c:498
+msgid "setting the ownertrust"
+msgstr ""
+
+#: ../src/trustdb.c:543
+#, c-format
+msgid "Error: '%s' wants a path."
+msgstr ""
+
+#: ../src/trustdb.c:567
+msgid "Error: 'export' takes no argument; the path goes to --export-file."
+msgstr ""
+
+#: ../src/trustdb.c:599
+msgid "Error: Nothing to export: no decision worth signing."
+msgstr ""
+
+#: ../src/trustdb.c:621
+msgid "Error: gpg would not sign the export."
+msgstr ""
+
+#: ../src/trustdb.c:624
+#, c-format
+msgid "Notice: %zu delegation(s) signed. Publish it beside the tree it explains, so that anyone can replay it."
+msgstr ""
+
+#: ../src/trustdb.c:661
 msgid "Error: Too many files at once."
 msgstr ""
 
-#: ../src/trustdb.c:345
+#: ../src/trustdb.c:677
+msgid "Error: No key here is ultimate, so there is no anchor to extend from."
+msgstr ""
+
+#: ../src/trustdb.c:679
+#, c-format
+msgid "Notice: Mark your own certificate ultimate first: %s trustdb local --replace-to ultimate FINGERPRINT"
+msgstr ""
+
+#: ../src/trustdb.c:717
 msgid "Info: The delegations are already applied — ownertrust left unchanged."
 msgstr ""
 
-#: ../src/trustdb.c:366
+#: ../src/trustdb.c:738
 #, c-format
 msgid "Notice: Current ownertrust backed up in %s."
 msgstr ""
 
-#: ../src/trustdb.c:368
+#: ../src/trustdb.c:740
 #, c-format
 msgid "Warning: Cannot write the backup %s — going ahead anyway would leave no way back. Stopping."
 msgstr ""
 
-#: ../src/trustdb.c:376
+#: ../src/trustdb.c:748
 #, c-format
 msgid "Error: Delegation chain broken: the signer of %s is not (yet) valid."
 msgstr ""
 
-#: ../src/trustdb.c:383
+#: ../src/trustdb.c:755
 #, c-format
 msgid "Error: gpg would not import the delegation from %s."
 msgstr ""
 
-#: ../src/trustdb.c:397
+#: ../src/trustdb.c:769
 #, c-format
 msgid "Notice: To restore the previous trust: gpg --import-ownertrust %s"
+msgstr ""
+
+#: ../src/trustdb.c:788
+msgid "Error: One of local, export or import is required."
+msgstr ""
+
+#: ../src/trustdb.c:812
+#, c-format
+msgid "Error: '%s' is not one of local, export or import."
 msgstr ""
 
 #: ../src/uidedit.c:69

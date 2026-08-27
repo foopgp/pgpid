@@ -45,10 +45,6 @@ sigs
 
 :   Elencare chi ha certificato un certificato
 
-ownertrust
-
-:   Stampare o porre fin dove si certifica
-
 del
 
 :   Cancellare certificati, solo per impronta
@@ -85,9 +81,9 @@ certify
 
 :   Farsi garanti di qualcun altro
 
-update_trustdb
+trustdb
 
-:   Ricalcolare la fiducia da deleghe firmate
+:   Leggere, pubblicare e applicare la fiducia negli altri
 
 gen_key
 
@@ -262,22 +258,6 @@ Le autofirme restano fuori: fanno valere un uid, non certificano nessuno.
 
 OPTIONS:
   -a, --all-uids              Fondere le firme di tutti gli uid
-  -h, --help                  Stampare questo aiuto e uscire
-```
-
-## pgpid ownertrust
-
-```
-Usage: pgpid ownertrust [OPTIONS]... IMPRONTA
-
-Stampare fin dove si confida in quel certificato per certificare altri:
-uno tra unknown, never, marginal, full, ultimate.
-
-«undefined» si pone e si rilegge «unknown»: il motore non li distingue, e
-nemmeno chi abbia dovuto spiegare la differenza. Un gradino, due grafie.
-
-OPTIONS:
-  -r, --replace-to VALORE     Porlo a VALORE anziché stamparlo
   -h, --help                  Stampare questo aiuto e uscire
 ```
 
@@ -480,22 +460,28 @@ Valore di ritorno:
 - 143 Quel certificato non porta quell'identificativo
 ```
 
-## pgpid update_trustdb
+## pgpid trustdb
 
 ```
-Usage: pgpid update_trustdb [OPTIONS]... [OWNERTRUST.GPG]...
+Usage: pgpid trustdb local|export|import [OPTIONS]... [IMPRONTA|OWNERTRUSTS.GPG]...
 
-Ricalcolare la base di fiducia di GnuPG, dopo aver applicato le deleghe
-che portano i file indicati.
+Leggere e spostare la fiducia riposta negli altri per certificare.
 
-Ogni file deve essere un messaggio OpenPGP firmato, e il suo firmatario
-deve essere già valido quando viene il suo turno — per questo l'ordine
-dei file fa parte di ciò che vogliono dire. Ciò che dicono delle sue
-chiavi è ignorato: si può estendere la fiducia ad altri, non ridefinire
-la sua.
+  local    Ciò che questa macchina dice dei certificati indicati, o di
+           ciascuno di essi quando nessuno è nominato.
+  export   Lo stesso, firmato, perché altri lo rigiochino. Scrive su stdout.
+  import   Applicare ciò che altri hanno firmato. L'ordine fa parte del senso:
+           un firmatario deve essere già valido quando viene il suo turno.
 
 OPTIONS:
-      --batch                 Ricalcolare senza interrogare sulle altre chiavi
+  -r, --replace-to VALORE     local: porlo anziché stamparlo — richiede
+                              almeno un'impronta
+      --long                  local: anche l'identificativo e l'indirizzo
+      --export-file FILE      export: scrivere lì anziché su stdout
+  -u, --use-privkey NOME|KEYID  export: firmare con questa chiave
+      --export-all            export: includere anche ultimate e unknown
+      --check                 Ricalcolare senza interrogare sulle altre
+      --update                Ricalcolare, interrogando sulle altre
   -q, --quiet                 Solo errori e avvisi
   -h, --help                  Stampare questo aiuto e uscire
   -V, --version               Stampare la versione e uscire
