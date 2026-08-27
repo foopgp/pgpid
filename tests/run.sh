@@ -344,11 +344,28 @@ is "wants a zone at all"            "$("$BIN" gen_u4 --from-passport-mrz >/dev/n
 is "--birth-date overrides the two digits" \
    "$("$BIN" gen_u4 --from-passport-mrz --uncheck --birth-date 1930-11-16 "$MRZ")" \
    "$("$BIN" gen_u4 -s ERIKSSON -g 'Anna Maria' -d 1930-11-16 -c FRA)"
-# One action, two sources. An option that belongs to the other source is
-# refused and not ignored: an identifier minted from a passport while a name
-# was typed beside it would be wrong in the way that matters, silently.
-is "refuses a typed name beside a zone" \
-   "$("$BIN" gen_u4 --from-passport-mrz -s ERIKSSON "$MRZ" >/dev/null 2>&1 ; echo $?)" "2"
+# One action, two sources of the same four fields — so an option of the other
+# source completes the zone rather than fighting it. The documented failure is
+# a surname truncated to fit, and correcting it must not mean typing the rest
+# of the document again.
+is "a typed surname replaces the zone's" \
+   "$("$BIN" gen_u4 --from-passport-mrz --uncheck -s ANDERSSON "$MRZ")" \
+   "$("$BIN" gen_u4 -s ANDERSSON -g 'Anna Maria' -d 1974-08-12 -c FRA)"
+is "typed given names replace the zone's" \
+   "$("$BIN" gen_u4 --from-passport-mrz --uncheck -g 'Eva Lisa' "$MRZ")" \
+   "$("$BIN" gen_u4 -s ERIKSSON -g 'Eva Lisa' -d 1974-08-12 -c FRA)"
+is "a typed country replaces the zone's" \
+   "$("$BIN" gen_u4 --from-passport-mrz --uncheck -c DEU "$MRZ")" \
+   "$("$BIN" gen_u4 -s ERIKSSON -g 'Anna Maria' -d 1974-08-12 -c DEU)"
+# All four replaced leaves nothing of the document but the fact that it was
+# read: the same identifier as typing the civil status on its own.
+is "all four typed is the typed way" \
+   "$("$BIN" gen_u4 --from-passport-mrz --uncheck -s DOE -g John -d 1970-01-01 -c FRA "$MRZ")" \
+   "$("$BIN" gen_u4 -s DOE -g John -d 1970-01-01 -c FRA)"
+# --birth-date means one thing whichever way one is minting.
+is "eight bare digits read as a date" \
+   "$("$BIN" gen_u4 -s DOE -g John -d 19700101 -c FRA)" \
+   "$("$BIN" gen_u4 -s DOE -g John -d 1970-01-01 -c FRA)"
 is "refuses --uncheck without a zone" \
    "$("$BIN" gen_u4 --uncheck -s ERIKSSON -g 'Anna Maria' -d 1974-08-12 -c FRA >/dev/null 2>&1 ; echo $?)" "2"
 is "refuses a bare argument without a zone" \

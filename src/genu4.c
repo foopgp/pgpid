@@ -42,7 +42,9 @@ static void usage(FILE *out)
         "\n"
         "With --from-passport-mrz the four are read off the machine readable\n"
         "zone of a passport instead — 88 characters over two lines, spaces and\n"
-        "newlines ignored, so it can be pasted as it was read.\n"
+        "newlines ignored, so it can be pasted as it was read. The four options\n"
+        "above still work beside it, and replace what the zone says: that is how\n"
+        "a surname truncated to fit gets corrected without typing the rest.\n"
         "\n"
         "OPTIONS:\n"
         "  -s, --surname SURNAME            Surname at birth\n"
@@ -55,8 +57,9 @@ static void usage(FILE *out)
         "  -V, --version                    Print the version and exit\n"
         "\n"
         "Typed in, everything is required: asking for what is missing belongs\n"
-        "to whoever has somebody to ask. From a passport, only --birth-date is\n"
-        "worth adding, for anyone the two digits cannot place.\n"
+        "to whoever has somebody to ask. From a passport, nothing is — and\n"
+        "--birth-date is the one worth adding anyway, for anyone the zone's two\n"
+        "digits cannot place.\n"
         "\n"
         "Roughly one passport in five gives the wrong identifier: a surname\n"
         "truncated to fit, a name changed since birth, another transliteration,\n"
@@ -83,15 +86,104 @@ static bool date_is_sound(const char *d)
 }
 
 /*
- * The same identifier, read off a passport rather than typed.
+ * A date as somebody gives it, whichever way they are minting: YYYY-MM-DD,
+ * or the same eight digits bare, or — because that is how a passport writes
+ * it — six, which cannot say which century and is the whole reason
+ * --birth-date exists. One rule for both ways in, so that the option does not
+ * mean two things depending on the flag beside it.
+ */
+static bool read_birth_date(const char *given, char *out, size_t max)
+{
+    char digits[16];
+    size_t n = 0;
+    for (const char *p = given; *p && n < sizeof digits - 1; p++)
+        if (*p >= '0' && *p <= '9')
+            digits[n++] = *p;
+    digits[n] = '\0';
+
+    if (n == 8)
+        snprintf(out, max, "%.4s-%.2s-%.2s", digits, digits + 4, digits + 6);
+    else if (n == 6)
+        pgpid_mrz_expand_year(digits, out, max);
+    else
+        return false;
+    return date_is_sound(out);
+}
+
+/*
+ * The name field the format uses: SURNAME<<GIVEN<GIVEN<. Built from its two
+ * halves rather than as a whole, so that one of them can come off a passport
+ * while the other comes from somebody who can see the document and knows it
+ * was read wrong.
  *
- * Not transliterated on the way through: the zone is already in the format's
- * alphabet, and putting it through the path a typed name takes would squeeze
- * its runs of '<' into one — destroying the double bracket that separates the
- * surname from the given names, which is the only structure it has.
+ * Each half arrives already in the alphabet — transliterated by the caller
+ * when it was typed, lifted as-is when it was read. Putting a read half
+ * through the transliteration would squeeze its runs of '<' into one, and
+ * those runs are the only structure the field has.
+ */
+static void compose_names(const char *surname, const char *given,
+                          char *out, size_t max)
+{
+    snprintf(out, max, "%s<<%s<<", surname, given);
+}
+
+/* The zone's field, split back into the two halves, filler dropped. */
+static void split_zone_names(const char *field, char *surname, size_t sn,
+                             char *given, size_t gn)
+{
+    const char *sep = strstr(field, "<<");
+    size_t len = sep ? (size_t)(sep - field) : strlen(field);
+    if (len >= sn)
+        len = sn - 1;
+    memcpy(surname, field, len);
+    surname[len] = '\0';
+
+    snprintf(given, gn, "%s", sep ? sep + 2 : "");
+    for (size_t i = strlen(given); i > 0 && given[i - 1] == '<'; i--)
+        given[i - 1] = '\0';
+}
+
+/*
+ * What a u4 is made of, whatever it was read from: a name field in the
+ * format's alphabet, a date, and the coordinates of a country. Both ways in
+ * end here, which is what makes them the same identifier.
+ */
+static bool u4_print(const char *field, const char *date, const char *coord)
+{
+    char names[640];
+    if (!pgpid_extract_names(field, names, sizeof names)) {
+        pgpid_error(_("Error: No surname and given names could be read from '%s'."), field);
+        pgpid_error(_("Notice: Both need at least one letter once reduced to A-Z."));
+        return false;
+    }
+
+    /* Hashed without a trailing newline — the shell uses printf here, where
+     * gen_uid uses echo. The difference is invisible and decides everything. */
+    char material[660];
+    int n = snprintf(material, sizeof material, "%s%s", names, date);
+    unsigned char digest[16];
+    pgpid_md5(material, (size_t)n, digest);
+
+    char b64[32];
+    pgpid_base64url(digest, 16, b64);
+    b64[22] = '\0';   /* the padding says nothing; twenty-two characters do */
+
+    printf("%s%s\n", b64, coord);
+    return true;
+}
+
+/*
+ * The same identifier, read off a passport — with whatever the caller knows
+ * better put back over it.
+ *
+ * The zone is one source of the four fields, not a different computation: a
+ * surname truncated to fit gets corrected by naming it, and the other three
+ * still come from the document.
  */
 static int from_passport_mrz(int argc, char **argv, int first,
-                             const char *given_date, bool uncheck)
+                             const char *surname, const char *given,
+                             const char *date_given, const char *country,
+                             bool uncheck)
 {
     /* The two lines arrive as several arguments as often as one. */
     char raw[512] = "";
@@ -128,49 +220,41 @@ static int from_passport_mrz(int argc, char **argv, int first,
             return PGPID_FAIL;
     }
 
-    char extracted[640];
-    if (!pgpid_extract_names(mrz.names, extracted, sizeof extracted)) {
-        pgpid_error(_("Error: No complete surname and given names in '%s'."), mrz.names);
-        return PGPID_FAIL;
+    /* As wide as the typed way's, since either half may now come from there. */
+    char part_surname[300], part_given[300];
+    split_zone_names(mrz.names, part_surname, sizeof part_surname,
+                     part_given, sizeof part_given);
+    if (surname && pgpid_transliterate(surname, part_surname, sizeof part_surname) < 0) {
+        pgpid_error(_("Error: The name is not valid UTF-8."));
+        return PGPID_USAGE;
     }
+    if (given && pgpid_transliterate(given, part_given, sizeof part_given) < 0) {
+        pgpid_error(_("Error: The name is not valid UTF-8."));
+        return PGPID_USAGE;
+    }
+    char field[640];
+    compose_names(part_surname, part_given, field, sizeof field);
 
     char date[16];
-    if (given_date) {
-        /* Digits only, as the shell keeps them, then either shape. */
-        char digits[16];
-        size_t n = 0;
-        for (const char *p = given_date; *p && n < sizeof digits - 1; p++)
-            if (*p >= '0' && *p <= '9')
-                digits[n++] = *p;
-        digits[n] = '\0';
-        if (n == 8)
-            snprintf(date, sizeof date, "%.4s-%.2s-%.2s", digits, digits + 4, digits + 6);
-        else if (n == 6)
-            pgpid_mrz_expand_year(digits, date, sizeof date);
-        else {
-            pgpid_error(_("Error: '%s' is not a date this can read."), given_date);
+    if (date_given) {
+        if (!read_birth_date(date_given, date, sizeof date)) {
+            pgpid_error(_("Error: '%s' is not a date. Give it as YYYY-MM-DD."), date_given);
             return PGPID_USAGE;
         }
     } else {
         pgpid_mrz_expand_year(mrz.birth, date, sizeof date);
     }
 
-    const char *coord = pgpid_country_coordinates(mrz.country);
+    /* Whose mistake it is decides how it is reported: what somebody typed is
+     * a usage error, what a document carries is a failure to read it. */
+    const char *coord = pgpid_country_coordinates(country ? country : mrz.country);
     if (!coord) {
-        pgpid_error(_("Error: '%s' is not a three-letter country code we know."), mrz.country);
-        return PGPID_FAIL;
+        pgpid_error(_("Error: '%s' is not a three-letter country code we know."),
+                    country ? country : mrz.country);
+        return country ? PGPID_USAGE : PGPID_FAIL;
     }
 
-    char material[660];
-    int len = snprintf(material, sizeof material, "%s%s", extracted, date);
-    unsigned char digest[16];
-    pgpid_md5(material, (size_t)len, digest);
-    char b64[32];
-    pgpid_base64url(digest, 16, b64);
-    b64[22] = '\0';
-
-    printf("%s%s\n", b64, coord);
-    return PGPID_OK;
+    return u4_print(field, date, coord) ? PGPID_OK : PGPID_FAIL;
 }
 
 int pgpid_action_gen_u4(int argc, char **argv)
@@ -213,20 +297,13 @@ int pgpid_action_gen_u4(int argc, char **argv)
     }
 
     if (from_mrz) {
-        /* Refused rather than ignored. A name typed beside a passport looks
-         * like it is being used, and an identifier minted from the other one
-         * is wrong in the way that matters: silently. */
-        if (surname || given || country) {
-            pgpid_error(_("Error: With --from-passport-mrz the name and the country "
-                        "come from the zone."));
-            return PGPID_USAGE;
-        }
         if (!first || first >= argc) {
             pgpid_error(_("Error: Where is the machine readable zone?"));
             usage(stderr);
             return PGPID_USAGE;
         }
-        return from_passport_mrz(argc, argv, first, date, uncheck);
+        return from_passport_mrz(argc, argv, first, surname, given, date,
+                                 country, uncheck);
     }
 
     if (uncheck) {
@@ -240,14 +317,15 @@ int pgpid_action_gen_u4(int argc, char **argv)
         pgpid_try_help("gen_u4");
         return PGPID_USAGE;
     }
-
     if (!surname || !given || !date || !country) {
         pgpid_error(_("Error: Surname, given names, date and country are all needed."));
         usage(stderr);
         return PGPID_USAGE;
     }
-    if (!date_is_sound(date)) {
-        pgpid_error(_("Error: '%s' is not a date of the shape YYYY-MM-DD."), date);
+
+    char birth[16];
+    if (!read_birth_date(date, birth, sizeof birth)) {
+        pgpid_error(_("Error: '%s' is not a date. Give it as YYYY-MM-DD."), date);
         return PGPID_USAGE;
     }
     const char *coord = pgpid_country_coordinates(country);
@@ -258,30 +336,13 @@ int pgpid_action_gen_u4(int argc, char **argv)
 
     /* Separators first, then transliteration, then the match — the shell's
      * order, and it is the order that makes a hyphen a boundary. */
-    char s[300], g[300], composed[640], names[640];
+    char s[300], g[300], field[640];
     if (pgpid_transliterate(surname, s, sizeof s) < 0
         || pgpid_transliterate(given, g, sizeof g) < 0) {
         pgpid_error(_("Error: The name is not valid UTF-8."));
         return PGPID_USAGE;
     }
-    snprintf(composed, sizeof composed, "%s<<%s<<", s, g);
-    if (!pgpid_extract_names(composed, names, sizeof names)) {
-        pgpid_error(_("Error: No surname and given names could be read from '%s'."), composed);
-        pgpid_error(_("Notice: Both need at least one letter once reduced to A-Z."));
-        return PGPID_USAGE;
-    }
+    compose_names(s, g, field, sizeof field);
 
-    /* Hashed without a trailing newline — the shell uses printf here, where
-     * gen_uid uses echo. The difference is invisible and decides everything. */
-    char material[640];
-    int n = snprintf(material, sizeof material, "%s%s", names, date);
-    unsigned char digest[16];
-    pgpid_md5(material, (size_t)n, digest);
-
-    char b64[32];
-    pgpid_base64url(digest, 16, b64);
-    b64[22] = '\0';   /* the padding says nothing; twenty-two characters do */
-
-    printf("%s%s\n", b64, coord);
-    return PGPID_OK;
+    return u4_print(field, birth, coord) ? PGPID_OK : PGPID_USAGE;
 }
