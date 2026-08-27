@@ -57,7 +57,8 @@ static void usage(FILE *out)
         "  -E, --all-emails              Also certify every uid carrying an email,\n"
         "                                for software that expects it there\n"
         "  -R, --revoke                  Revoke your earlier certifications on it\n"
-        "  -o, --ownertrust VALUE        How well they certify others, in turn\n"
+        "  -o, --credibility VALUE       How well they certify others, in turn\n"
+        "      --ownertrust VALUE        The same, under the name gpg gives it\n"
         "                                {undefined,marginal,full,never} - Default: marginal\n"
         "  -l, --local                   Certify without exporting — useful for testing\n"
         "  -K, --keyservers SERVERS      Send the result to these, space separated\n"
@@ -274,7 +275,7 @@ static bool key_is_here(const char *fpr)
 
 int pgpid_action_certify(int argc, char **argv)
 {
-    const char *privkey = NULL, *keyservers = NULL, *ownertrust = NULL;
+    const char *privkey = NULL, *keyservers = NULL, *credibility = NULL;
     bool revoke = false, all_emails = false, local = false;
     char target[41] = "", eid[64] = "";
 
@@ -293,15 +294,16 @@ int pgpid_action_certify(int argc, char **argv)
             all_emails = true;
         } else if (!strcmp(a, "-l") || !strcmp(a, "--local")) {
             local = true;
-        } else if (!strcmp(a, "-o") || !strcmp(a, "--ownertrust")) {
+        } else if (!strcmp(a, "-o") || !strcmp(a, "--credibility")
+                   || !strcmp(a, "--ownertrust")) {
             if (++i >= argc) {
                 pgpid_error(_("Error: '%s' wants a value."), a);
                 return PGPID_USAGE;
             }
-            ownertrust = argv[i];
-            if (strcmp(ownertrust, "undefined") && strcmp(ownertrust, "marginal")
-                && strcmp(ownertrust, "full") && strcmp(ownertrust, "never")) {
-                pgpid_error(_("Error: Unknown credibility value '%s'."), ownertrust);
+            credibility = argv[i];
+            if (strcmp(credibility, "undefined") && strcmp(credibility, "marginal")
+                && strcmp(credibility, "full") && strcmp(credibility, "never")) {
+                pgpid_error(_("Error: Unknown credibility value '%s'."), credibility);
                 return PGPID_USAGE;
             }
         } else if (!strcmp(a, "-K") || !strcmp(a, "--keyservers")) {
@@ -410,8 +412,8 @@ int pgpid_action_certify(int argc, char **argv)
     size_t at = 0;
 
     if (revoke) {
-        if (ownertrust)
-            pgpid_error(_("Info: --ownertrust means nothing when revoking; ignored."));
+        if (credibility)
+            pgpid_error(_("Info: --credibility means nothing when revoking; ignored."));
         args[at++] = "--quick-revoke-sig";
         args[at++] = target;
         args[at++] = mine;
@@ -440,7 +442,7 @@ int pgpid_action_certify(int argc, char **argv)
      * others — and is set alongside because nobody remembers to do it after. */
     if (!revoke) {
         const char *ot[] = { "--quick-set-ownertrust", target,
-                             ownertrust ? ownertrust : "marginal", NULL };
+                             credibility ? credibility : "marginal", NULL };
         pgpid_run_engine(ot);
     }
 

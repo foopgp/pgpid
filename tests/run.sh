@@ -406,6 +406,16 @@ is "names the server that refused" "$(grep --count 'would not take it' <<<"$out"
 out=$("$BIN" push --keyservers 'hkp://127.0.0.1:1' "$FPR" notafingerprint 2>&1)
 is "checks every target before sending any" "$(grep --count 'Sending' <<<"$out")" "0"
 
+printf '\ncertify\n'
+# Only the refusals: certifying writes, and a check that writes into somebody
+# else's certificate is a check that has to undo itself. The option carries
+# two names — the clearer one, and the one gpg gave the concept, which is
+# already in people's fingers — and both must reach the same validation.
+for spelling in --credibility --ownertrust -o ; do
+    "$BIN" certify "$spelling" nonsense "$FPR" >/dev/null 2>&1
+    is "$spelling checks its value"  "$?" "2"
+done
+
 printf '\ntrustdb export\n'
 # A signing key of its own: the keyring's certificate can only certify, and
 # gpg will not sign a message with a key that has no signing capability.
