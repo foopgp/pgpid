@@ -174,8 +174,8 @@ SEARCH, when given, is passed to the engine as a pattern; without it
 the whole keyring is listed.
 
 OPTIONS:
-  -S, --short                 One line per address: fingerprint, address, entity identifier
-                              What 'bl-pgpid get --no-fetch' answers, to the column
+  -S, --short                 One line per address: fingerprint, entity identifier, address
+                              What 'pgpid get --no-fetch' answers, to the column
   -L, --no-check-eid          Legacy: don't consider certificate as 'broken' if there is no consistent eid inside
       --count-certs           Count the distinct certifiers of each certificates and fill *certifications* column (may take time !)
       --hide-trust            Credibility (aka ownertrust) is a sensible information used to calculate validity — sometimes both need to stay private

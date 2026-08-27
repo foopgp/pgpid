@@ -173,8 +173,8 @@ MOTIVO, se indicato, è passato tale e quale al motore; senza di esso si
 elenca tutto il portachiavi.
 
 OPTIONS:
-  -S, --short                 Una riga per indirizzo: impronta, indirizzo, identificativo
-                              Ciò che risponde «bl-pgpid get --no-fetch», colonna per colonna
+  -S, --short                 Una riga per indirizzo: impronta, identificativo, indirizzo
+                              Ciò che risponde «pgpid get --no-fetch», colonna per colonna
   -L, --no-check-eid          Vecchio: non considerare «broken» un certificato senza eid coerente
       --count-certs           Contare i certificatori distinti di ogni certificato e riempire la colonna *certifications* (può richiedere tempo!)
       --hide-trust            La credibilità (l'ownertrust) è sensibile e serve alla validità — a volte entrambe devono restare private

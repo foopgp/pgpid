@@ -174,8 +174,8 @@ MUSTER wird, wenn angegeben, unverändert an die Maschine gereicht; ohne
 es wird der ganze Schlüsselbund aufgelistet.
 
 OPTIONS:
-  -S, --short                 Eine Zeile je Adresse: Fingerabdruck, Adresse, Kennung
-                              Was „bl-pgpid get --no-fetch“ antwortet, Spalte für Spalte
+  -S, --short                 Eine Zeile je Adresse: Fingerabdruck, Kennung, Adresse
+                              Was „pgpid get --no-fetch“ antwortet, Spalte für Spalte
   -L, --no-check-eid          Alt: ein Zertifikat ohne stimmige eid nicht als „broken“ ansehen
       --count-certs           Die verschiedenen Beglaubigenden jedes Zertifikats zählen und die Spalte *certifications* füllen (kann dauern!)
       --hide-trust            Die Glaubwürdigkeit (der ownertrust) ist heikel und dient der Gültigkeit — manchmal müssen beide privat bleiben

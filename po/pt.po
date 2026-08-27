@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid 0.0.7-35-g8512aa6\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-08-23 23:26+0200\n"
+"POT-Creation-Date: 2026-08-27 12:57+0200\n"
 "PO-Revision-Date: 2026-08-22 22:58+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -161,7 +161,7 @@ msgstr "Error: «%s» espera um diretório."
 #: ../src/avatar.c:573 ../src/certify.c:322 ../src/changepass.c:110
 #: ../src/changetokencode.c:126 ../src/changetokenmeta.c:153 ../src/del.c:93
 #: ../src/email.c:372 ../src/genkey.c:209 ../src/genu4.c:82 ../src/genuid.c:147
-#: ../src/get.c:150 ../src/list.c:381 ../src/main.c:112 ../src/mrz.c:174
+#: ../src/get.c:150 ../src/list.c:384 ../src/main.c:112 ../src/mrz.c:174
 #: ../src/ownertrust.c:96 ../src/printcard.c:143 ../src/printsecret.c:290
 #: ../src/property.c:383 ../src/push.c:70 ../src/scan.c:139 ../src/sigs.c:124
 #: ../src/token.c:129 ../src/tokencheck.c:268 ../src/totoken.c:152
@@ -191,11 +191,11 @@ msgstr "Notice: Para publicar um certificado tal como está, veja «%s push»."
 msgid "Error: '--revoke' takes every image back; '--replace-to' already does."
 msgstr "Error: «--revoke» retira todas as imagens; «--replace-to» já o faz."
 
-#: ../src/avatar.c:613 ../src/list.c:270 ../src/tovcard.c:397
+#: ../src/avatar.c:613 ../src/list.c:273 ../src/tovcard.c:397
 msgid "gpgme_new"
 msgstr "gpgme_new"
 
-#: ../src/avatar.c:630 ../src/list.c:276
+#: ../src/avatar.c:630 ../src/list.c:279
 msgid "gpgme_op_keylist_start"
 msgstr "gpgme_op_keylist_start"
 
@@ -818,7 +818,7 @@ msgstr "Error: «%s» não é uma impressão digital."
 msgid "Notice: 40 or 64 hexadecimal characters, nothing else."
 msgstr "Notice: 40 ou 64 carateres hexadecimais, nada mais."
 
-#: ../src/del.c:120 ../src/list.c:403 ../src/ownertrust.c:127
+#: ../src/del.c:120 ../src/list.c:406 ../src/ownertrust.c:127
 #: ../src/property.c:173 ../src/sigs.c:142
 msgid "opening the engine"
 msgstr "a abrir o motor"
@@ -1289,16 +1289,16 @@ msgstr "Error: Nenhum certificado para o que foi pedido."
 msgid "Error: %zu certificates matched, more than the %ld asked for."
 msgstr "Error: %zu certificados corresponderam, mais do que os %ld pedidos."
 
-#: ../src/list.c:288 ../src/list.c:428
+#: ../src/list.c:291 ../src/list.c:431
 msgid "reading a certificate"
 msgstr "a ler um certificado"
 
-#: ../src/list.c:301
+#: ../src/list.c:304
 #, c-format
 msgid "Warning: Certificate %s carries more than one identifier."
 msgstr "Warning: O certificado %s traz mais de um identificador."
 
-#: ../src/list.c:323
+#: ../src/list.c:326
 #, c-format
 msgid ""
 "Usage: %s list [OPTIONS]... [SEARCH]\n"
@@ -1321,8 +1321,8 @@ msgid ""
 "the whole keyring is listed.\n"
 "\n"
 "OPTIONS:\n"
-"  -S, --short                 One line per address: fingerprint, address, entity identifier\n"
-"                              What 'bl-pgpid get --no-fetch' answers, to the column\n"
+"  -S, --short                 One line per address: fingerprint, identifier, address\n"
+"                              What 'pgpid get --no-fetch' answers, to the column\n"
 "  -L, --no-check-eid          Legacy: don't consider certificate as 'broken' if there is no consistent eid inside\n"
 "      --count-certs           Count the distinct certifiers of each certificates and fill *certifications* column (may take time !)\n"
 "      --hide-trust            Credibility (aka ownertrust) is a sensible information used to calculate validity — sometimes both need to stay private\n"
@@ -1349,15 +1349,15 @@ msgstr ""
 "porta-chaves.\n"
 "\n"
 "OPTIONS:\n"
-"  -S, --short                 Uma linha por endereço: impressão, endereço, identificador\n"
-"                              O que «bl-pgpid get --no-fetch» responde, coluna a coluna\n"
+"  -S, --short                 Uma linha por endereço: impressão, identificador, endereço\n"
+"                              O que «pgpid get --no-fetch» responde, coluna a coluna\n"
 "  -L, --no-check-eid          Antigo: não considerar «broken» um certificado sem eid coerente\n"
 "      --count-certs           Contar os certificadores distintos de cada certificado e preencher a coluna *certifications* (pode demorar!)\n"
 "      --hide-trust            A credibilidade (o ownertrust) é sensível e serve para calcular a validade — às vezes ambas devem ficar privadas\n"
 "      --machine-readable      Emitir um tempo (segundos desde a época) em vez de uma data (iso-8601), e marcas em vez de palavras legíveis\n"
 "  -h, --help                  Imprimir esta ajuda e sair\n"
 
-#: ../src/list.c:409
+#: ../src/list.c:412
 msgid "listing the keyring"
 msgstr "a listar o porta-chaves"
 

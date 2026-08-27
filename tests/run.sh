@@ -193,20 +193,21 @@ else
 fi
 
 printf '\nlist --short\n'
-# The contract is not "similar to bl-pgpid get --no-fetch" but
-# indistinguishable from it: one line per address, fingerprint and address
-# inside eighty columns, then the identifier — a dash when there is none or
-# more than one. Callers have been reading those columns; the point of the
-# option is that they cannot tell the difference.
+# The contract is not "similar to `get --no-fetch`" but indistinguishable
+# from it: one line per address, fingerprint and identifier inside eighty
+# columns — a dash when there is no identifier, or more than one — then the
+# address. Both come out of one printer, so the two cannot drift apart; these
+# checks pin the shape itself.
 gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
     --quick-add-uid "$FPR" 'Ada <Ada@Example.Invalid>' 2>/dev/null
 out=$("$BIN" list --short "$FPR")
 is "one line per address"          "$(grep --count . <<<"$out")" "1"
 is "fingerprint first"             "$(awk '{print $1}' <<<"$out")" "$FPR"
-is "lowercased, as gpg reports it" "$(awk '{print $2}' <<<"$out")" "ada@example.invalid"
-is "identifier in column 82"       "$(awk '{print index($0, "u5")}' <<<"$out")" "82"
-is "and it is the certificate's"   "$(awk '{print $3}' <<<"$out")" "$EID"
-is "no identifier prints a dash"   "$("$BIN" list --short "$NFPR" | awk '{print $3}')" "-"
+is "identifier second"             "$(awk '{print $2}' <<<"$out")" "$EID"
+is "and it starts at column 42"    "$(awk '{print index($0, "u5")}' <<<"$out")" "42"
+is "address in column 82"          "$(awk '{print index($0, "ada@")}' <<<"$out")" "82"
+is "lowercased, as gpg reports it" "$(awk '{print $3}' <<<"$out")" "ada@example.invalid"
+is "no identifier prints a dash"   "$("$BIN" list --short "$NFPR" | awk '{print $2}')" "-"
 is "a uid without an address is not one" \
    "$("$BIN" list --short "$FPR" | grep --count 'FN:')" "0"
 

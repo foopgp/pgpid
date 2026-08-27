@@ -174,8 +174,8 @@ WZORZEC, jeśli podany, trafia do silnika bez zmian; bez niego wypisywany
 jest cały zbiór kluczy.
 
 OPTIONS:
-  -S, --short                 Wiersz na adres: odcisk palca, adres, identyfikator
-                              To, co odpowiada „bl-pgpid get --no-fetch”, kolumna w kolumnę
+  -S, --short                 Wiersz na adres: odcisk palca, identyfikator, adres
+                              To, co odpowiada „pgpid get --no-fetch”, kolumna w kolumnę
   -L, --no-check-eid          Dawne: nie uznawać certyfikatu bez spójnego eid za „broken”
       --count-certs           Policzyć odrębnych poświadczających każdy certyfikat i wypełnić kolumnę *certifications* (może potrwać!)
       --hide-trust            Wiarygodność (ownertrust) jest wrażliwa i służy do wyliczenia ważności — czasem obie muszą pozostać prywatne

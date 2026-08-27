@@ -174,8 +174,8 @@ MOTIF, s'il est donné, est passé tel quel au moteur ; sans lui, tout le
 trousseau est listé.
 
 OPTIONS:
-  -S, --short                 Une ligne par adresse : empreinte, adresse, identifiant d'entité
-                              Ce que répond « bl-pgpid get --no-fetch », à la colonne près
+  -S, --short                 Une ligne par adresse : empreinte, identifiant d'entité, adresse
+                              Ce que répond « pgpid get --no-fetch », à la colonne près
   -L, --no-check-eid          Ancien : ne pas considérer un certificat comme « broken » faute d'eid cohérent dedans
       --count-certs           Compter les certificateurs distincts de chaque certificat et remplir la colonne *certifications* (peut être long !)
       --hide-trust            La crédibilité (l'ownertrust) est sensible et sert à calculer la validité — parfois les deux doivent rester privées

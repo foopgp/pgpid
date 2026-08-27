@@ -234,10 +234,13 @@ static void short_flush(struct short_lines *s, bool only_fpr, bool only_mbox)
         } else if (only_mbox) {
             puts(r->email);
         } else {
+            /* The identifier comes before the address, as everywhere else
+             * in this tool: what a certificate *is* reads before how one
+             * writes to it. */
             char left[512];
-            snprintf(left, sizeof left, "%s %s", r->fpr, r->email);
-            if (r->eid)
-                printf("%-80s %s\n", left, r->eid);
+            snprintf(left, sizeof left, "%s %s", r->fpr, r->eid ? r->eid : "-");
+            if (r->email)
+                printf("%-80s %s\n", left, r->email);
             else
                 printf("%-80s\n", left);
         }
@@ -342,8 +345,8 @@ static void usage(FILE *out)
         "the whole keyring is listed.\n"
         "\n"
         "OPTIONS:\n"
-        "  -S, --short                 One line per address: fingerprint, address, entity identifier\n"
-        "                              What 'bl-pgpid get --no-fetch' answers, to the column\n"
+        "  -S, --short                 One line per address: fingerprint, identifier, address\n"
+        "                              What 'pgpid get --no-fetch' answers, to the column\n"
         "  -L, --no-check-eid          Legacy: don't consider certificate as 'broken' if there is no consistent eid inside\n"
         "      --count-certs           Count the distinct certifiers of each certificates and fill *certifications* column (may take time !)\n"
         "      --hide-trust            Credibility (aka ownertrust) is a sensible information used to calculate validity — sometimes both need to stay private\n"
@@ -439,7 +442,7 @@ int pgpid_action_list(int argc, char **argv)
         unsigned neids = 0;
         char *eid = eid_of_key(key, &neids, true);
 
-        /* --short answers what `bl-pgpid get --no-fetch` answers: one line
+        /* --short answers what `pgpid get --no-fetch` answers: one line
          * per address rather than per certificate, fingerprint and address
          * inside eighty columns, then the identifier. The shell pads exactly
          * so, and callers have been reading those columns for a year — the

@@ -173,8 +173,8 @@ PATRÓN, si se da, se pasa tal cual al motor; sin él se lista todo el
 llavero.
 
 OPTIONS:
-  -S, --short                 Una línea por dirección: huella, dirección, identificador
-                              Lo que responde «bl-pgpid get --no-fetch», columna a columna
+  -S, --short                 Una línea por dirección: huella, identificador, dirección
+                              Lo que responde «pgpid get --no-fetch», columna a columna
   -L, --no-check-eid          Antiguo: no considerar «broken» un certificado sin eid coherente
       --count-certs           Contar los certificadores distintos de cada certificado y rellenar la columna *certifications* (¡puede tardar!)
       --hide-trust            La credibilidad (el ownertrust) es sensible y sirve para calcular la validez — a veces ambas deben quedar privadas

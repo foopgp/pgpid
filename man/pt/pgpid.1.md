@@ -173,8 +173,8 @@ PADRÃO, se dado, é passado tal e qual ao motor; sem ele lista-se todo o
 porta-chaves.
 
 OPTIONS:
-  -S, --short                 Uma linha por endereço: impressão, endereço, identificador
-                              O que «bl-pgpid get --no-fetch» responde, coluna a coluna
+  -S, --short                 Uma linha por endereço: impressão, identificador, endereço
+                              O que «pgpid get --no-fetch» responde, coluna a coluna
   -L, --no-check-eid          Antigo: não considerar «broken» um certificado sem eid coerente
       --count-certs           Contar os certificadores distintos de cada certificado e preencher a coluna *certifications* (pode demorar!)
       --hide-trust            A credibilidade (o ownertrust) é sensível e serve para calcular a validade — às vezes ambas devem ficar privadas
