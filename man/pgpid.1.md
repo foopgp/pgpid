@@ -461,8 +461,10 @@ Read and move the credibility you grant others to certify.
   local    What this machine says about the given certificates, or about
            every one of them when none is named.
   export   The same, signed, for others to replay. Writes to stdout.
-  import   Apply what others signed. Order is part of what it means:
-           a signer must already be valid when its turn comes.
+  import   Apply what others signed, fetching the keys it names. Order
+           is part of what it means: a signer must already be valid when
+           its turn comes, and each file is weighed against what the
+           one before it decided.
 
 OPTIONS:
   -r, --replace-to VALUE      local: set it instead of printing it — needs
@@ -472,6 +474,10 @@ OPTIONS:
   -u, --use-privkey NAME|KEYID  export: sign with this key
       --export-all            export: include ultimate and unknown too
       --armor                 export: ASCII rather than binary, to commit it
+      --import-no-fetch       import: do not ask anyone for the keys it names
+      --import-fetch-all      import: fetch or refresh every key it names,
+                              not only the ones missing here
+  -K, --keyservers SERVERS    import: ask these, space separated
       --check                 recompute without asking about the rest
       --update                recompute, asking about the rest
   -q, --quiet                 Only errors and warnings

@@ -461,8 +461,10 @@ Leggere e spostare la credibilità data ad altri per certificare.
   local    Ciò che questa macchina dice dei certificati indicati, o di
            ciascuno di essi quando nessuno è nominato.
   export   Lo stesso, firmato, perché altri lo rigiochino. Scrive su stdout.
-  import   Applicare ciò che altri hanno firmato. L'ordine fa parte del senso:
-           un firmatario deve essere già valido quando viene il suo turno.
+  import   Applicare ciò che altri hanno firmato, recuperando le chiavi che
+           nomina. L'ordine fa parte del senso: un firmatario deve essere già
+           valido quando viene il suo turno, e ogni file è pesato rispetto a
+           ciò che il precedente ha deciso.
 
 OPTIONS:
   -r, --replace-to VALORE     local: porlo anziché stamparlo — richiede
@@ -472,6 +474,10 @@ OPTIONS:
   -u, --use-privkey NOME|KEYID  export: firmare con questa chiave
       --export-all            export: includere anche ultimate e unknown
       --armor                 export: ASCII anziché binario, per versionarlo
+      --import-no-fetch       import: non chiedere a nessuno le chiavi nominate
+      --import-fetch-all      import: recuperare o aggiornare tutte le chiavi,
+                              non solo quelle che qui mancano
+  -K, --keyservers SERVER     import: chiedere a questi, separati da spazi
       --check                 Ricalcolare senza interrogare sulle altre
       --update                Ricalcolare, interrogando sulle altre
   -q, --quiet                 Solo errori e avvisi

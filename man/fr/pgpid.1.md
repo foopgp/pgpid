@@ -465,8 +465,10 @@ Lire et déplacer la crédibilité faite aux autres pour certifier.
   local    Ce que cette machine dit des certificats donnés, ou de chacun
            d'eux quand aucun n'est nommé.
   export   La même chose, signée, pour que d'autres la rejouent. Écrit sur stdout.
-  import   Appliquer ce que d'autres ont signé. L'ordre fait partie du sens :
-           un signataire doit déjà être valide quand vient son tour.
+  import   Appliquer ce que d'autres ont signé, en récupérant les clés qu'il
+           nomme. L'ordre fait partie du sens : un signataire doit déjà être
+           valide quand vient son tour, et chaque fichier est pesé au regard
+           de ce que le précédent a décidé.
 
 OPTIONS:
   -r, --replace-to VALEUR     local : la poser au lieu de l'afficher — exige
@@ -476,6 +478,10 @@ OPTIONS:
   -u, --use-privkey NOM|KEYID  export : signer avec cette clé
       --export-all            export : inclure aussi ultimate et unknown
       --armor                 export : ASCII plutôt que binaire, pour le commiter
+      --import-no-fetch       import : ne demander ses clés à personne
+      --import-fetch-all      import : récupérer ou rafraîchir toutes ses clés,
+                              pas seulement celles qui manquent ici
+  -K, --keyservers SERVEURS   import : demander à ceux-ci, séparés par des espaces
       --check                 Recalculer sans questionner sur les autres
       --update                Recalculer, en questionnant sur les autres
   -q, --quiet                 Seulement les erreurs et les avertissements

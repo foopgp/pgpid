@@ -467,8 +467,10 @@ Liest die Glaubwürdigkeit anderer und trägt sie weiter.
   local    Was diese Maschine über die angegebenen Zertifikate sagt, oder
            über jedes von ihnen, wenn keines genannt wird.
   export   Dasselbe, signiert, damit andere es nachvollziehen. Nach stdout.
-  import   Anwenden, was andere signiert haben. Die Reihenfolge gehört zum
-           Sinn: wer signiert, muss gültig sein, wenn er an der Reihe ist.
+  import   Anwenden, was andere signiert haben, und die genannten Schlüssel
+           holen. Die Reihenfolge gehört zum Sinn: wer signiert, muss gültig
+           sein, wenn er an der Reihe ist, und jede Datei wird gegen das
+           gewogen, was die vorige entschied.
 
 OPTIONS:
   -r, --replace-to WERT       local: ihn setzen, statt ihn auszugeben — braucht
@@ -478,6 +480,10 @@ OPTIONS:
   -u, --use-privkey NAME|KEYID  export: mit diesem Schlüssel signieren
       --export-all            export: auch ultimate und unknown mitnehmen
       --armor                 export: ASCII statt binär, um es zu versionieren
+      --import-no-fetch       import: nach keinem genannten Schlüssel fragen
+      --import-fetch-all      import: alle genannten holen oder auffrischen,
+                              nicht nur die hier fehlenden
+  -K, --keyservers SERVER     import: diese fragen, durch Leerzeichen getrennt
       --check                 Neu berechnen, ohne nach den übrigen zu fragen
       --update                Neu berechnen und nach den übrigen fragen
   -q, --quiet                 Nur Fehler und Warnungen

@@ -463,8 +463,10 @@ Czyta wiarygodność innych i przenosi ją dalej.
   local    Co ta maszyna mówi o podanych certyfikatach, albo o każdym z
            nich, gdy nie podano żadnego.
   export   To samo, podpisane, by inni mogli to odtworzyć. Pisze na stdout.
-  import   Zastosować to, co podpisali inni. Kolejność należy do znaczenia:
-           podpisujący musi być już ważny, gdy przyjdzie jego kolej.
+  import   Zastosować to, co podpisali inni, pobierając klucze, które
+           wymienia. Kolejność należy do znaczenia: podpisujący musi być już
+           ważny, gdy przyjdzie jego kolej, a każdy plik waży się wobec
+           tego, co orzekł poprzedni.
 
 OPTIONS:
   -r, --replace-to WARTOŚĆ    local: ustawić zamiast wypisywać — wymaga co
@@ -474,6 +476,10 @@ OPTIONS:
   -u, --use-privkey NAZWA|KEYID  export: podpisać tym kluczem
       --export-all            export: objąć także ultimate i unknown
       --armor                 export: ASCII zamiast binarnego, by go wersjonować
+      --import-no-fetch       import: nie pytać nikogo o wymienione klucze
+      --import-fetch-all      import: pobrać lub odświeżyć wszystkie jego klucze,
+                              nie tylko te, których tu brak
+  -K, --keyservers SERWERY    import: pytać tych, rozdzielonych spacjami
       --check                 Przeliczyć bez pytania o pozostałe
       --update                Przeliczyć, pytając o pozostałe
   -q, --quiet                 Tylko błędy i ostrzeżenia

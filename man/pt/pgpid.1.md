@@ -464,8 +464,10 @@ Ler e mover a credibilidade dada a outros para certificar.
   local    O que esta máquina diz dos certificados dados, ou de cada um
            deles quando nenhum é nomeado.
   export   O mesmo, assinado, para outros o repetirem. Escreve em stdout.
-  import   Aplicar o que outros assinaram. A ordem faz parte do sentido:
-           quem assina tem de já ser válido quando chegar a sua vez.
+  import   Aplicar o que outros assinaram, trazendo as chaves que nomeia. A
+           ordem faz parte do sentido: quem assina tem de já ser válido
+           quando chegar a sua vez, e cada ficheiro é pesado face ao que o
+           anterior decidiu.
 
 OPTIONS:
   -r, --replace-to VALOR      local: defini-lo em vez de o imprimir — exige
@@ -475,6 +477,10 @@ OPTIONS:
   -u, --use-privkey NOME|KEYID  export: assinar com esta chave
       --export-all            export: incluir também ultimate e unknown
       --armor                 export: ASCII em vez de binário, para versioná-lo
+      --import-no-fetch       import: não pedir a ninguém as chaves que nomeia
+      --import-fetch-all      import: trazer ou refrescar todas as suas chaves,
+                              não só as que aqui faltam
+  -K, --keyservers SERVIDORES import: perguntar a estes, separados por espaços
       --check                 Recalcular sem perguntar pelas outras
       --update                Recalcular, perguntando pelas outras
   -q, --quiet                 Só erros e avisos
