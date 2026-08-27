@@ -380,6 +380,32 @@ is "names the server that refused" "$(grep --count 'would not take it' <<<"$out"
 out=$("$BIN" push --keyservers 'hkp://127.0.0.1:1' "$FPR" notafingerprint 2>&1)
 is "checks every target before sending any" "$(grep --count 'Sending' <<<"$out")" "0"
 
+printf '\ntrustdb export\n'
+# A signing key of its own: the keyring's certificate can only certify, and
+# gpg will not sign a message with a key that has no signing capability.
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-generate-key 'signer <signer@example.invalid>' ed25519 sign never 2>/dev/null
+SFPR=$(gpg --with-colons --list-keys signer@example.invalid 2>/dev/null \
+       | awk --field-separator=: '$1=="fpr"{print $10; exit}')
+# Nothing sits at never, marginal or full yet. Ultimate says "this one is
+# mine", which means nothing to anybody else, and unknown is the absence of a
+# decision — neither is worth a signature.
+"$BIN" trustdb export --use-privkey "$SFPR" --export-file "$GNUPGHOME/none.gpg" >/dev/null 2>&1
+is "refuses when nothing was decided" "$?" "141"
+"$BIN" trustdb local --replace-to marginal "$WFPR" >/dev/null 2>&1
+"$BIN" trustdb export --use-privkey "$SFPR" --export-file "$GNUPGHOME/ot.gpg" >/dev/null 2>&1
+is "signs what was decided"       "$?" "0"
+is "binary unless asked"          "$(head --lines=1 "$GNUPGHOME/ot.gpg" | grep --count 'BEGIN PGP')" "0"
+"$BIN" trustdb export --armor --use-privkey "$SFPR" --export-file "$GNUPGHOME/ot.asc" >/dev/null 2>&1
+is "--armor gives the ASCII form" "$(head --lines=1 "$GNUPGHOME/ot.asc")" "-----BEGIN PGP MESSAGE-----"
+# The two shapes carry the same thing; what changes is whether a git history
+# can say what moved between two revisions of the file.
+is "both carry the same decision" \
+   "$(gpg --decrypt "$GNUPGHOME/ot.gpg" 2>/dev/null)" "$(gpg --decrypt "$GNUPGHOME/ot.asc" 2>/dev/null)"
+is "which is the one taken"       "$(gpg --decrypt "$GNUPGHOME/ot.gpg" 2>/dev/null)" "$WFPR:4:"
+"$BIN" trustdb export --use-privkey "$SFPR" somewhere.gpg >/dev/null 2>&1
+is "takes no positional argument" "$?" "2"
+
 printf '\ndel\n'
 "$BIN" del "not-a-fingerprint" >/dev/null 2>&1
 is "refuses anything but a fingerprint" "$?" "2"

@@ -54,6 +54,7 @@ static void usage(FILE *out)
         "      --export-file FILE      export: write there instead of stdout\n"
         "  -u, --use-privkey NAME|KEYID  export: sign with this key\n"
         "      --export-all            export: include ultimate and unknown too\n"
+        "      --armor                 export: ASCII rather than binary, to commit it\n"
         "      --check                 recompute without asking about the rest\n"
         "      --update                recompute, asking about the rest\n"
         "  -q, --quiet                 Only errors and warnings\n"
@@ -534,7 +535,7 @@ static int do_local(int argc, char **argv)
 static int do_export(int argc, char **argv)
 {
     const char *file = NULL, *user = NULL;
-    bool all = false;
+    bool all = false, armor = false;
 
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
@@ -552,6 +553,8 @@ static int do_export(int argc, char **argv)
             user = argv[i];
         } else if (!strcmp(a, "--export-all")) {
             all = true;
+        } else if (!strcmp(a, "--armor")) {
+            armor = true;
         } else if (!strcmp(a, "-q") || !strcmp(a, "--quiet")) {
             /* accepted everywhere, nothing to say here */
         } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
@@ -603,7 +606,11 @@ static int do_export(int argc, char **argv)
 
     const char *a[8];
     size_t k = 0;
-    a[k++] = "--armor";
+    /* Binary unless asked, as gpg itself does. --armor is for the file one
+     * commits: a git history that cannot diff its own contents explains
+     * nothing. Either reads back the same. */
+    if (armor)
+        a[k++] = "--armor";
     a[k++] = "--sign";
     if (user) {
         a[k++] = "--local-user";
