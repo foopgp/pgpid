@@ -146,3 +146,40 @@ bool pgpid_eid_body_is_sound(const char *at)
     }
     return true;
 }
+
+/*
+ * The identifier a certificate carries, and how many distinct ones it claims.
+ *
+ * Two identifiers on one certificate is not more information than one: it is a
+ * certificate saying two things about whose it is. The caller reads that as
+ * broken.
+ *
+ * `standing_only` is the difference between the two questions one can ask. It
+ * asks what the certificate asserts *today*, so a revoked uid carrying an old
+ * identifier must not count — otherwise replacing one's identifier would make
+ * the certificate read as broken ever after. Without it every uid is read
+ * whatever its validity, which is what the shell's `get` has always answered.
+ *
+ * Caller frees.
+ */
+char *pgpid_eid_of_key(gpgme_key_t key, unsigned *count, bool standing_only)
+{
+    char *found = NULL;
+    *count = 0;
+    for (gpgme_user_id_t u = key->uids; u; u = u->next) {
+        if (standing_only && (u->revoked || u->invalid))
+            continue;
+        char *eid = pgpid_eid_of_uid(u->uid);
+        if (!eid)
+            continue;
+        if (!found) {
+            found = eid;
+            *count = 1;
+        } else {
+            if (strcmp(found, eid))
+                (*count)++;
+            free(eid);
+        }
+    }
+    return found;
+}

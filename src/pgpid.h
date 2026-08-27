@@ -105,6 +105,15 @@ int pgpid_validity_from_word(const char *word);
  * Caller frees. Both shapes are recognised — see eid.c. */
 char *pgpid_eid_of_uid(const char *uid);
 
+/* The identifier a certificate carries, and how many distinct ones it claims.
+ * `standing_only` ignores revoked uids: what it asserts today, not ever.
+ * Caller frees. */
+char *pgpid_eid_of_key(gpgme_key_t key, unsigned *count, bool standing_only);
+
+/* The first address on a uid that still stands, or NULL. Borrowed from the
+ * key. */
+const char *pgpid_first_mbox(gpgme_key_t key);
+
 /* Does an identifier written bare — as the card's "Login data" holds it —
  * start at this position? */
 bool pgpid_eid_body_is_sound(const char *at);

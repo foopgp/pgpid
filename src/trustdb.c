@@ -357,43 +357,105 @@ static void report_change(const char *before, const char *after)
             pgpid_error(_("  + %s"), line);
 }
 
+/* One line of the answer. `--long` adds columns rather than moving them, so
+ * whatever a script already reads at $2 stays at $2. */
+static void local_row(gpgme_key_t key, bool long_form)
+{
+    const char *fpr = key->fpr ? key->fpr : "-";
+    const char *word = pgpid_validity_word(key->owner_trust);
+
+    if (!long_form) {
+        const char *values[] = { fpr, word };
+        pgpid_table_row(values);
+        return;
+    }
+
+    unsigned neids = 0;
+    char *eid = pgpid_eid_of_key(key, &neids, true);
+    const char *mbox = pgpid_first_mbox(key);
+    const char *values[] = { fpr, word, neids == 1 ? eid : "-", mbox ? mbox : "-" };
+    pgpid_table_row(values);
+    free(eid);
+}
+
+/* Every certificate this keyring holds, in the engine's own order. */
+static int local_all(gpgme_ctx_t ctx, bool long_form)
+{
+    gpgme_error_t err = gpgme_op_keylist_start(ctx, NULL, 0);
+    if (err) {
+        pgpid_gpgme_error(_("listing the certificates"), err);
+        return PGPID_FAIL;
+    }
+    gpgme_key_t key = NULL;
+    while (!gpgme_op_keylist_next(ctx, &key)) {
+        local_row(key, long_form);
+        gpgme_key_unref(key);
+    }
+    gpgme_op_keylist_end(ctx);
+    return PGPID_OK;
+}
+
 static int do_local(int argc, char **argv)
 {
-    const char *value = NULL, *pattern = NULL;
+    const char *value = NULL;
+    bool long_form = false;
+    const char **patterns = NULL;
+    size_t npatterns = 0;
+    int i = 1;
 
-    for (int i = 1; i < argc; i++) {
+    patterns = calloc((size_t)argc, sizeof *patterns);
+    if (!patterns) {
+        pgpid_error(_("Error: Out of memory."));
+        return PGPID_FAIL;
+    }
+
+    for (; i < argc; i++) {
         const char *a = argv[i];
         if (!strcmp(a, "-r") || !strcmp(a, "--replace-to")) {
             if (++i >= argc) {
                 pgpid_error(_("Error: '%s' wants a value."), a);
+                free(patterns);
                 return PGPID_USAGE;
             }
             value = argv[i];
+        } else if (!strcmp(a, "--long")) {
+            long_form = true;
+        } else if (!strcmp(a, "-q") || !strcmp(a, "--quiet")) {
+            /* Taken for symmetry with the other two verbs. `local` says
+             * nothing but its table and its errors, so there is nothing here
+             * to silence. */
         } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             usage(stdout);
+            free(patterns);
             return PGPID_OK;
         } else if (!strcmp(a, "--")) {
-            if (i + 1 < argc)
-                pattern = argv[i + 1];
+            i++;
             break;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
             pgpid_try_help("trustdb");
+            free(patterns);
             return PGPID_USAGE;
         } else {
-            pattern = a;
-            break;
+            patterns[npatterns++] = a;
         }
     }
+    for (; i < argc; i++)
+        patterns[npatterns++] = argv[i];
 
-    if (!pattern) {
-        pgpid_error(_("Error: A fingerprint is required."));
-        return PGPID_USAGE;
-    }
     if (value) {
+        /* Setting is a decision about a named certificate. Without a name
+         * there is nothing to decide about, and "the whole keyring, full"
+         * would be a decision nobody meant to take. */
+        if (!npatterns) {
+            pgpid_error(_("Error: A fingerprint is required to set an ownertrust."));
+            free(patterns);
+            return PGPID_USAGE;
+        }
         if (pgpid_validity_from_word(value) < 0) {
             pgpid_error(_("Error: Unknown ownertrust value '%s'."), value);
             pgpid_error(_("Notice: One of undefined, never, marginal, full, ultimate."));
+            free(patterns);
             return PGPID_USAGE;
         }
         /* The engine refuses this one, and it is right to: unknown is the
@@ -401,6 +463,7 @@ static int do_local(int argc, char **argv)
         if (!strcmp(value, "unknown")) {
             pgpid_error(_("Error: 'unknown' cannot be set; it is what a certificate"));
             pgpid_error(_("Notice: no one has ruled on already reads as."));
+            free(patterns);
             return PGPID_USAGE;
         }
     }
@@ -409,44 +472,54 @@ static int do_local(int argc, char **argv)
     gpgme_error_t err = pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL);
     if (err) {
         pgpid_gpgme_error(_("opening the engine"), err);
+        free(patterns);
         return PGPID_FAIL;
     }
 
-    gpgme_key_t key = NULL;
-    int rc = one_key(ctx, pattern, &key);
-    if (rc != PGPID_OK) {
-        gpgme_release(ctx);
-        return rc;
-    }
+    static const char *const SHORT_COLUMNS[] = { "fingerprint", "credibility" };
+    static const char *const LONG_COLUMNS[] = {
+        "fingerprint", "credibility", "eid", "email",
+    };
+    pgpid_table_start(long_form ? LONG_COLUMNS : SHORT_COLUMNS, long_form ? 4 : 2);
 
-    if (value) {
-        err = gpgme_op_setownertrust(ctx, key, value);
-        if (err) {
-            pgpid_gpgme_error(_("setting the ownertrust"), err);
+    int rc = PGPID_OK;
+    if (!npatterns) {
+        rc = local_all(ctx, long_form);
+    } else {
+        for (size_t n = 0; n < npatterns && rc == PGPID_OK; n++) {
+            gpgme_key_t key = NULL;
+            rc = one_key(ctx, patterns[n], &key);
+            if (rc != PGPID_OK)
+                break;
+
+            if (value) {
+                err = gpgme_op_setownertrust(ctx, key, value);
+                if (err) {
+                    pgpid_gpgme_error(_("setting the ownertrust"), err);
+                    gpgme_key_unref(key);
+                    rc = PGPID_FAIL;
+                    break;
+                }
+                /* Read it back rather than echo what was asked: the engine is
+                 * what decides, and a write that did not take should not look
+                 * like one that did. */
+                gpgme_key_unref(key);
+                key = NULL;
+                rc = one_key(ctx, patterns[n], &key);
+                if (rc != PGPID_OK)
+                    break;
+            }
+
+            local_row(key, long_form);
             gpgme_key_unref(key);
-            gpgme_release(ctx);
-            return PGPID_FAIL;
-        }
-        /* Read it back rather than echo what was asked: the engine is what
-         * decides, and a write that did not take should not look like one
-         * that did. */
-        gpgme_key_unref(key);
-        rc = one_key(ctx, pattern, &key);
-        if (rc != PGPID_OK) {
-            gpgme_release(ctx);
-            return rc;
         }
     }
 
-    static const char *const COLUMNS[] = { "credibility" };
-    const char *values[] = { pgpid_validity_word(key->owner_trust) };
-    pgpid_table_start(COLUMNS, 1);
-    pgpid_table_row(values);
-    pgpid_table_end();
-
-    gpgme_key_unref(key);
+    if (rc == PGPID_OK)
+        pgpid_table_end();
     gpgme_release(ctx);
-    return PGPID_OK;
+    free(patterns);
+    return rc;
 }
 
 /* What we would have others replay: our own trust decisions, signed.

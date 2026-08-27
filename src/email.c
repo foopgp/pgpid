@@ -551,3 +551,17 @@ int pgpid_action_email(int argc, char **argv)
     }
     return ret;
 }
+
+/* The first address on a uid that still stands. A certificate carries its
+ * name and its identifier on uids of their own, so the first uid is rarely
+ * the one with an address on it. */
+const char *pgpid_first_mbox(gpgme_key_t key)
+{
+    for (gpgme_user_id_t u = key->uids; u; u = u->next) {
+        if (u->revoked || u->invalid)
+            continue;
+        if (u->email && *u->email)
+            return u->email;
+    }
+    return NULL;
+}

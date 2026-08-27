@@ -40,59 +40,6 @@ static gpgme_validity_t best_uid_validity(gpgme_key_t key)
     return best;
 }
 
-/* The first address on a uid that still stands. A certificate carries its
- * name and its identifier on uids of their own, so the first uid is rarely
- * the one with an address on it. */
-static const char *first_mbox(gpgme_key_t key)
-{
-    for (gpgme_user_id_t u = key->uids; u; u = u->next) {
-        if (u->revoked || u->invalid)
-            continue;
-        if (u->email && *u->email)
-            return u->email;
-    }
-    return NULL;
-}
-
-/*
- * The identifier the certificate claims — and how many distinct ones it
- * claims, which is the interesting part.
- *
- * Two identifiers on one certificate is not more information than one: it is
- * a certificate saying two things about whose it is. The caller reads that as
- * broken. Caller frees.
- */
-/* The identifier a certificate carries.
- *
- * `standing_only` is the difference between the two questions one can ask.
- * The long form asks what the certificate asserts *today*, so a revoked uid
- * carrying an old identifier must not count — otherwise replacing one's
- * identifier would make the certificate read as broken ever after. The short
- * form asks what the shell's `get` answers, and that one reads every uid
- * whatever its validity; the shell's own helper takes the same parameter, for
- * the same reason. */
-static char *eid_of_key(gpgme_key_t key, unsigned *count, bool standing_only)
-{
-    char *found = NULL;
-    *count = 0;
-    for (gpgme_user_id_t u = key->uids; u; u = u->next) {
-        if (standing_only && (u->revoked || u->invalid))
-            continue;
-        char *eid = pgpid_eid_of_uid(u->uid);
-        if (!eid)
-            continue;
-        if (!found) {
-            found = eid;
-            *count = 1;
-        } else {
-            if (strcmp(found, eid))
-                (*count)++;
-            free(eid);
-        }
-    }
-    return found;
-}
-
 /* How many distinct other certificates have signed a uid of this one.
  * Self-signatures do not count: a certificate vouching for itself says
  * nothing. Needs GPGME_KEYLIST_MODE_SIGS, which costs a second pass in gpg. */
@@ -299,7 +246,7 @@ int pgpid_list_short(const char *pattern, bool only_fpr, bool only_mbox,
             continue;
         }
         unsigned neids = 0;
-        char *eid = eid_of_key(key, &neids, false);
+        char *eid = pgpid_eid_of_key(key, &neids, false);
         if (neids > 1)
             pgpid_error(_("Warning: Certificate %s carries more than one identifier."), fpr);
         for (gpgme_user_id_t u = key->uids; u; u = u->next) {
@@ -440,14 +387,14 @@ int pgpid_action_list(int argc, char **argv)
         }
 
         unsigned neids = 0;
-        char *eid = eid_of_key(key, &neids, true);
+        char *eid = pgpid_eid_of_key(key, &neids, true);
 
         /* --short answers what `pgpid get --no-fetch` answers: one line
          * per address rather than per certificate, fingerprint and address
          * inside eighty columns, then the identifier. The shell pads exactly
          * so, and callers have been reading those columns for a year — the
          * point of this option is to be indistinguishable, not similar. */
-        const char *mbox = first_mbox(key);
+        const char *mbox = pgpid_first_mbox(key);
         gpgme_validity_t uidv = best_uid_validity(key);
 
         /* Order of importance, as agreed: broken beats revoked beats

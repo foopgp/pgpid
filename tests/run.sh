@@ -72,22 +72,33 @@ is "md closes every row"      "$("$BIN" --output-format=md list "$FPR" | tail --
 is "refuses a format it does not know" "$?" "2"
 
 printf '\ntrustdb local\n'
+# Every line names the certificate it speaks of, so that reading one and
+# reading the whole keyring parse the same way.
 # A freshly generated key is ultimate: gpg trusts what it holds the secret of.
-is "reads the generated key"      "$("$BIN" trustdb local "$FPR")" "ultimate"
+is "reads the generated key"      "$("$BIN" trustdb local "$FPR")" "$FPR  ultimate"
 for value in never marginal full ultimate ; do
     got=$("$BIN" trustdb local --replace-to "$value" "$FPR")
-    is "--replace-to $value"      "$got" "$value"
+    is "--replace-to $value"      "$got" "$FPR  $value"
 done
 # One rung, two spellings: undefined is what gets written, unknown is what
 # comes back, and the engine keeps no third state between them.
 got=$("$BIN" trustdb local --replace-to undefined "$FPR")
-is "--replace-to undefined reads back as unknown" "$got" "unknown"
+is "--replace-to undefined reads back as unknown" "$got" "$FPR  unknown"
+# No target is the whole keyring, not a mistake.
+is "no argument reads every certificate" \
+    "$("$BIN" trustdb local | grep --count "^$FPR ")" "1"
+# --long adds columns to the right; what was at $2 is still at $2.
+got=$("$BIN" trustdb local --long "$FPR")
+is "--long keeps the credibility where it was" "$(awk '{print $1, $2}' <<<"$got")" "$FPR unknown"
+is "--long adds the identifier then the address" "$(awk '{print NF}' <<<"$got")" "4"
 "$BIN" trustdb local --replace-to nonsense "$FPR" >/dev/null 2>&1
 is "refuses a value it does not know" "$?" "2"
 "$BIN" trustdb local --replace-to unknown "$FPR" >/dev/null 2>&1
 is "refuses to set unknown, which is an absence" "$?" "2"
-"$BIN" trustdb local >/dev/null 2>&1
-is "refuses to run without a target"  "$?" "2"
+# Deciding needs something to decide about: the whole keyring is a reading,
+# never a writing.
+"$BIN" trustdb local --replace-to full >/dev/null 2>&1
+is "refuses to set without a target"  "$?" "2"
 "$BIN" trustdb local 0000000000000000000000000000000000000000 >/dev/null 2>&1
 is "says 141 for a certificate it has not" "$?" "141"
 
