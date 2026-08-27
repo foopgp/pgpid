@@ -320,30 +320,39 @@ is "--output writes a file"        "$("$BIN" to_vcard --output "$GNUPGHOME/c.vcf
 is "the card shows the avatar"     "$(grep --only-matching --extended-regexp '^PHOTO:data:image/jpeg;base64,.{40}' <<<"$card")" \
                                    "PHOTO:data:image/jpeg;base64,$(base64 --wrap=0 < "$("$BIN" avatar --workdir "$GNUPGHOME" "$FPR")" | cut --characters=1-40)"
 
-printf '\nmrz_to_u4\n'
+printf '\ngen_u4 --from-passport-mrz\n'
 # A specimen zone: 'Anna Maria Eriksson' is ICAO's own example and nobody's
 # real passport. The country is changed to one the table knows.
 MRZ='P<FRAERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<L898902C36FRA7408122F1204159ZE184226B<<<<<10'
-is "reads a passport zone"        "$("$BIN" mrz_to_u4 --uncheck "$MRZ")" "d5lxCVBGwMMSrx3sAJrgZQe_42.17-002.76"
+is "reads a passport zone"        "$("$BIN" gen_u4 --from-passport-mrz --uncheck "$MRZ")" "d5lxCVBGwMMSrx3sAJrgZQe_42.17-002.76"
 # The point of reading a passport at all: it must agree with the same civil
 # status typed by hand, or the document is useless.
 is "agrees with the civil status typed" \
-   "$("$BIN" mrz_to_u4 --uncheck "$MRZ")" \
+   "$("$BIN" gen_u4 --from-passport-mrz --uncheck "$MRZ")" \
    "$("$BIN" gen_u4 -s ERIKSSON -g 'Anna Maria' -d 1974-08-12 -c FRA)"
 is "the zone may arrive in two pieces" \
-   "$("$BIN" mrz_to_u4 --uncheck "${MRZ:0:44}" "${MRZ:44}")" "$("$BIN" mrz_to_u4 --uncheck "$MRZ")"
+   "$("$BIN" gen_u4 --from-passport-mrz --uncheck "${MRZ:0:44}" "${MRZ:44}")" "$("$BIN" gen_u4 --from-passport-mrz --uncheck "$MRZ")"
 is "spaces and newlines are layout" \
-   "$("$BIN" mrz_to_u4 --uncheck "${MRZ:0:44} ${MRZ:44}")" "$("$BIN" mrz_to_u4 --uncheck "$MRZ")"
-is "a failing check digit refuses"  "$("$BIN" mrz_to_u4 "$MRZ" >/dev/null 2>&1 ; echo $?)" "1"
-is "--uncheck warns and goes on"    "$("$BIN" mrz_to_u4 --uncheck "$MRZ" >/dev/null 2>&1 ; echo $?)" "0"
-is "not a passport is refused"      "$("$BIN" mrz_to_u4 'X<FRAX' >/dev/null 2>&1 ; echo $?)" "1"
-is "a short zone is refused"        "$("$BIN" mrz_to_u4 'P<FRAERIKSSON' >/dev/null 2>&1 ; echo $?)" "1"
-is "wants a zone at all"            "$("$BIN" mrz_to_u4 >/dev/null 2>&1 ; echo $?)" "2"
+   "$("$BIN" gen_u4 --from-passport-mrz --uncheck "${MRZ:0:44} ${MRZ:44}")" "$("$BIN" gen_u4 --from-passport-mrz --uncheck "$MRZ")"
+is "a failing check digit refuses"  "$("$BIN" gen_u4 --from-passport-mrz "$MRZ" >/dev/null 2>&1 ; echo $?)" "1"
+is "--uncheck warns and goes on"    "$("$BIN" gen_u4 --from-passport-mrz --uncheck "$MRZ" >/dev/null 2>&1 ; echo $?)" "0"
+is "not a passport is refused"      "$("$BIN" gen_u4 --from-passport-mrz 'X<FRAX' >/dev/null 2>&1 ; echo $?)" "1"
+is "a short zone is refused"        "$("$BIN" gen_u4 --from-passport-mrz 'P<FRAERIKSSON' >/dev/null 2>&1 ; echo $?)" "1"
+is "wants a zone at all"            "$("$BIN" gen_u4 --from-passport-mrz >/dev/null 2>&1 ; echo $?)" "2"
 # Two digits cannot say which century, so anyone born before 1969 needs their
 # date given. Without it the same zone reads as 2030 rather than 1930.
 is "--birth-date overrides the two digits" \
-   "$("$BIN" mrz_to_u4 --uncheck --birth-date 1930-11-16 "$MRZ")" \
+   "$("$BIN" gen_u4 --from-passport-mrz --uncheck --birth-date 1930-11-16 "$MRZ")" \
    "$("$BIN" gen_u4 -s ERIKSSON -g 'Anna Maria' -d 1930-11-16 -c FRA)"
+# One action, two sources. An option that belongs to the other source is
+# refused and not ignored: an identifier minted from a passport while a name
+# was typed beside it would be wrong in the way that matters, silently.
+is "refuses a typed name beside a zone" \
+   "$("$BIN" gen_u4 --from-passport-mrz -s ERIKSSON "$MRZ" >/dev/null 2>&1 ; echo $?)" "2"
+is "refuses --uncheck without a zone" \
+   "$("$BIN" gen_u4 --uncheck -s ERIKSSON -g 'Anna Maria' -d 1974-08-12 -c FRA >/dev/null 2>&1 ; echo $?)" "2"
+is "refuses a bare argument without a zone" \
+   "$("$BIN" gen_u4 "$MRZ" >/dev/null 2>&1 ; echo $?)" "2"
 
 printf '\ngen_uid\n'
 # The number an identifier gives is a promise: accounts have been opened with

@@ -37,8 +37,7 @@ static void usage(FILE *out)
         "  del                         Delete certificates, by fingerprint only\n"
         "  avatar                      Extract the image a certificate wears\n"
         "  push                        Send certificates to the keyservers\n"
-        "  gen_u4                      Print the identifier a civil status gives\n"
-        "  mrz_to_u4                   Print the identifier a passport's machine zone gives\n"
+        "  gen_u4                      Print the identifier a civil status or a passport gives\n"
         "  gen_uid                     Print the Unix account number an identifier gives\n"
         "  to_vcard                    Print a certificate as a vCard\n"
         "  email                       Show, add or revoke the addresses a certificate carries\n"
@@ -143,8 +142,6 @@ int main(int argc, char **argv)
         return pgpid_action_gen_uid(sub_argc, sub_argv);
     if (!strcmp(action, "gen_u4"))
         return pgpid_action_gen_u4(sub_argc, sub_argv);
-    if (!strcmp(action, "mrz_to_u4"))
-        return pgpid_action_mrz_to_u4(sub_argc, sub_argv);
     if (!strcmp(action, "to_vcard"))
         return pgpid_action_to_vcard(sub_argc, sub_argv);
     if (!strcmp(action, "token_retries"))

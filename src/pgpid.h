@@ -216,6 +216,10 @@ struct pgpid_mrz {
 bool pgpid_mrz_parse(const char *raw, struct pgpid_mrz *out);
 int pgpid_mrz_check_digit(const char *s, size_t len);
 
+/* YYMMDD to YYYY-MM-DD, pivoting at sixty-eight as POSIX does — which is
+ * why anyone born before 1969 has to give their date themselves. */
+void pgpid_mrz_expand_year(const char *yymmdd, char *out, size_t max);
+
 /* Where a country is, as the last fourteen characters of an identifier.
  * NULL for a code that is not one of the 231 — refused rather than guessed. */
 const char *pgpid_country_coordinates(const char *code);
@@ -314,7 +318,6 @@ int pgpid_action_push(int argc, char **argv);
 int pgpid_action_get(int argc, char **argv);
 int pgpid_action_gen_uid(int argc, char **argv);
 int pgpid_action_gen_u4(int argc, char **argv);
-int pgpid_action_mrz_to_u4(int argc, char **argv);
 int pgpid_action_to_vcard(int argc, char **argv);
 int pgpid_action_token_retries(int argc, char **argv);
 int pgpid_action_token_check(int argc, char **argv);

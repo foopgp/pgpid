@@ -5,7 +5,7 @@
  *
  * SPDX-License-Identifier: GPL-3.0-only
  *
- * Shared by gen_u4 and mrz_to_u4 because it is the one thing the two must
+ * Shared by the two ways into gen_u4 because it is the one thing they must
  * agree about: a passport and a typed civil status have to give the same
  * identifier, or the passport is useless.
  */

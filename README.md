@@ -21,8 +21,8 @@ One program, one action at a time:
 ```
 pgpid list                          what this keyring holds, and how far it is trusted
 pgpid get PATTERN                   fingerprints, addresses and identifiers
-pgpid gen_u4 …                      derive an identifier from a civil status
-pgpid mrz_to_u4 …                   the same, read off a passport
+pgpid gen_u4 …                      derive an identifier from a civil status,
+                                    typed in or --from-passport-mrz
 pgpid to_vcard                      a certificate as a vCard
 pgpid certify KEYFPR                vouch for somebody else
 pgpid email --add … --revoke …      the addresses a certificate answers to
@@ -67,7 +67,7 @@ publishing — take a whole fingerprint and never a search pattern.
 ## `pgpid-gen` and `pgpid-qrscan` — what came before
 
 Shell programs, still working, that generate a certificate from a passport and
-move secrets onto a smartcard through QR codes. `pgpid mrz_to_u4`, `print_secret`
+move secrets onto a smartcard through QR codes. `pgpid gen_u4 --from-passport-mrz`, `print_secret`
 and `scan` cover most of what they do; they are kept because the web of trust
 rests on what they produced, and because nobody has yet checked that the
 replacement covers every case they handle.
