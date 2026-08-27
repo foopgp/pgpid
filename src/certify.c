@@ -238,17 +238,30 @@ static size_t collect_uids(const char *fpr, const char *head, bool all_emails,
  * Asking "who carries this identity" first lets the answer be the true one:
  * somebody carries it, and what you typed is not them.
  */
-static size_t candidates_for(const char *head, char fprs[][41], size_t max)
+/*
+ * How many certificates carry this identifier, and whether the one we mean is
+ * among them.
+ *
+ * Counted as the keyring is walked rather than collected into an array: the
+ * caller only ever asks those two things, and an array would need a size
+ * nobody can choose — a keyserver can hand out as many certificates claiming
+ * one identifier as it likes.
+ */
+static size_t candidates_for(const char *head, const char *target, bool *among)
 {
+    *among = false;
     gpgme_ctx_t ctx;
     if (pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL))
         return 0;
     size_t n = 0;
     if (!gpgme_op_keylist_start(ctx, head, 0)) {
         gpgme_key_t key = NULL;
-        while (n < max && !gpgme_op_keylist_next(ctx, &key)) {
-            if (key->subkeys && key->subkeys->fpr)
-                snprintf(fprs[n++], 41, "%s", key->subkeys->fpr);
+        while (!gpgme_op_keylist_next(ctx, &key)) {
+            if (key->subkeys && key->subkeys->fpr) {
+                n++;
+                if (!strcmp(key->subkeys->fpr, target))
+                    *among = true;
+            }
             gpgme_key_unref(key);
         }
     }
@@ -366,16 +379,12 @@ int pgpid_action_certify(int argc, char **argv)
         match_head(eid, head, sizeof head);
 
     if (*eid) {
-        char fprs[64][41];
-        size_t n = candidates_for(head, fprs, 64);
+        bool among = false;
+        size_t n = candidates_for(head, target, &among);
         if (!n) {
             pgpid_error(_("Error: Nobody here carries '%s'."), eid);
             return CERT_NO_CERT;
         }
-        bool among = false;
-        for (size_t i = 0; i < n; i++)
-            if (!strcmp(fprs[i], target))
-                among = true;
         if (!among) {
             pgpid_error(_("Error: %s carries '%s', and %s does not."),
                         n == 1 ? "One certificate" : "Several certificates",

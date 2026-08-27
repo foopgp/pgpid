@@ -96,7 +96,10 @@ int pgpid_action_scan(int argc, char **argv)
 {
     char passphrase[512] = "";
     const char *given_workdir = NULL;
-    const char *images[64];
+    /* One slot per argument, since that is what the list is made of: an image
+     * named on the command line and then quietly ignored is a fragment
+     * missing from a secret nobody will be able to put back together. */
+    const char *images[argc > 0 ? argc : 1];
     size_t nimages = 0;
 
     for (int i = 1; i < argc; i++) {
@@ -139,7 +142,7 @@ int pgpid_action_scan(int argc, char **argv)
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
             pgpid_try_help("scan");
             return PGPID_USAGE;
-        } else if (nimages < 64) {
+        } else {
             images[nimages++] = a;
         }
     }

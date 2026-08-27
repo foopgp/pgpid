@@ -156,7 +156,8 @@ int pgpid_action_print_card(int argc, char **argv)
     gpgme_ctx_t ctx;
     if (pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL))
         return PGPID_FAIL;
-    char candidates[16][41];
+    char (*candidates)[41] = NULL;
+    size_t cand_cap = 0;
     size_t ncand = 0;
     const char *pattern = target;
     char card_key[41];
@@ -171,9 +172,23 @@ int pgpid_action_print_card(int argc, char **argv)
     }
     if (!gpgme_op_keylist_start(ctx, pattern, 0)) {
         gpgme_key_t key = NULL;
-        while (ncand < 16 && !gpgme_op_keylist_next(ctx, &key)) {
-            if (!key->revoked && key->subkeys && key->subkeys->fpr)
+        while (!gpgme_op_keylist_next(ctx, &key)) {
+            if (!key->revoked && key->subkeys && key->subkeys->fpr) {
+                /* However many the pattern matches. A fixed few would let an
+                 * ambiguous address look settled, and a card would be printed
+                 * for whichever certificate happened to be sampled. */
+                if (ncand == cand_cap) {
+                    size_t grown = cand_cap ? cand_cap * 2 : 16;
+                    char (*bigger)[41] = realloc(candidates, grown * sizeof *bigger);
+                    if (!bigger) {
+                        gpgme_key_unref(key);
+                        break;
+                    }
+                    candidates = bigger;
+                    cand_cap = grown;
+                }
                 snprintf(candidates[ncand++], 41, "%.40s", key->subkeys->fpr);
+            }
             gpgme_key_unref(key);
         }
     }
@@ -201,25 +216,30 @@ int pgpid_action_print_card(int argc, char **argv)
         }
         if (!kept) {
             pgpid_error(_("Error: No usable certificate for %s."), email);
+            free(candidates);
             return PGPID_FAIL;
         }
         if (kept > 1) {
             pgpid_error(_("Error: Email %s matches several certificates that still "
                         "stand by it (%zu)."), email, kept);
+            free(candidates);
             return PGPID_FAIL;
         }
         snprintf(fpr, sizeof fpr, "%s", keeper);
     } else {
         if (!ncand) {
             pgpid_error(_("Error: No certificate matches '%s'."), pattern);
+            free(candidates);
             return PGPID_FAIL;
         }
         if (ncand > 1) {
             pgpid_error(_("Error: '%s' matches %zu certificates. Name one."), pattern, ncand);
+            free(candidates);
             return PGPID_FAIL;
         }
         snprintf(fpr, sizeof fpr, "%s", candidates[0]);
     }
+    free(candidates);
 
     struct pgpid_uid uids[MAX_UIDS];
     size_t nuids = pgpid_list_uids(fpr, false, uids, MAX_UIDS);
