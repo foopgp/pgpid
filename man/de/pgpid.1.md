@@ -681,7 +681,7 @@ OPTIONS:
                                  Bequemer, das Geheimnis ist nicht mehr geteilt
   -W, --workdir VERZEICHNIS      Hier arbeiten statt in einem temporären
                                  Sein Inhalt muss danach geschreddert werden
-  -S, --split ANZAHL             Zu erzeugende Fragmente - Vorgabe: 5
+  -S, --split ANZAHL             Zu erzeugende Fragmente, 3 bis 10 - Vorgabe: 5
   -T, --threshold ANZAHL         Nötige Fragmente - Vorgabe: 3
   -h, --help                     Diese Hilfe ausgeben und beenden
   -V, --version                  Die Version ausgeben und beenden

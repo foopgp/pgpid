@@ -675,7 +675,7 @@ OPTIONS:
                                  Più comodo, il segreto non è più ripartito
   -W, --workdir DIRECTORY        Lavorare qui anziché in una temporanea
                                  Il suo contenuto andrà triturato dopo
-  -S, --split NUMERO             Frammenti da produrre - Default: 5
+  -S, --split NUMERO             Frammenti da produrre, da 3 a 10 - Default: 5
   -T, --threshold NUMERO         Frammenti per ricomporre - Default: 3
   -h, --help                     Stampare questo aiuto e uscire
   -V, --version                  Stampare la versione e uscire

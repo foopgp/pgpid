@@ -676,7 +676,7 @@ OPTIONS:
                                  Mais cómodo, e o segredo já não é repartido
   -W, --workdir DIRETÓRIO        Trabalhar aqui em vez de num temporário
                                  O seu conteúdo terá de ser triturado depois
-  -S, --split NÚMERO             Fragmentos a produzir - Omissão: 5
+  -S, --split NÚMERO             Fragmentos a produzir, de 3 a 10 - Omissão: 5
   -T, --threshold NÚMERO         Fragmentos para recompor - Omissão: 3
   -h, --help                     Imprimir esta ajuda e sair
   -V, --version                  Imprimir a versão e sair

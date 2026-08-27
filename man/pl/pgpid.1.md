@@ -673,7 +673,7 @@ OPTIONS:
                                  Wygodniej, i tajemnica nie jest już dzielona
   -W, --workdir KATALOG          Pracować tutaj zamiast w tymczasowym
                                  Jego zawartość trzeba będzie potem zniszczyć
-  -S, --split LICZBA             Fragmentów do wytworzenia - Domyślnie: 5
+  -S, --split LICZBA             Fragmentów, od 3 do 10 - Domyślnie: 5
   -T, --threshold LICZBA         Fragmentów do odtworzenia - Domyślnie: 3
   -h, --help                     Wypisać tę pomoc i zakończyć
   -V, --version                  Wypisać wersję i zakończyć

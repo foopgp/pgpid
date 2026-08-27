@@ -669,7 +669,7 @@ OPTIONS:
                                  Easier to use, and no longer a split secret
   -W, --workdir DIRECTORY        Work here instead of a temporary directory
                                  Its contents must be shredded afterwards
-  -S, --split NUM                Fragments to produce - Default: 5
+  -S, --split NUM                Fragments to produce, 3 to 10 - Default: 5
   -T, --threshold NUM            Fragments needed to rebuild - Default: 3
   -h, --help                     Print this help and exit
   -V, --version                  Print the version and exit

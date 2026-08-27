@@ -679,7 +679,7 @@ OPTIONS:
                                  Plus commode, et le secret n'est plus partagé
   -W, --workdir RÉPERTOIRE       Travailler ici plutôt qu'en répertoire jetable
                                  Son contenu devra être broyé ensuite
-  -S, --split NOMBRE             Fragments à produire - Défaut : 5
+  -S, --split NOMBRE             Fragments à produire, de 3 à 10 - Défaut : 5
   -T, --threshold NOMBRE         Fragments requis pour recomposer - Défaut : 3
   -h, --help                     Afficher cette aide et quitter
   -V, --version                  Afficher la version et quitter
