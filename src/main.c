@@ -34,7 +34,6 @@ static void usage(FILE *out)
         "  get                         Look a certificate up, refreshing it first\n"
         "  property                    Print a vCard property of one certificate\n"
         "  sigs                        List who has certified one certificate\n"
-        "  ownertrust                  Print or set how far one is trusted to certify\n"
         "  del                         Delete certificates, by fingerprint only\n"
         "  avatar                      Extract the image a certificate wears\n"
         "  push                        Send certificates to the keyservers\n"
@@ -44,7 +43,7 @@ static void usage(FILE *out)
         "  to_vcard                    Print a certificate as a vCard\n"
         "  email                       Show, add or revoke the addresses a certificate carries\n"
         "  certify                     Vouch for somebody else\n"
-        "  update_trustdb              Recompute trust from signed delegations\n"
+        "  trustdb                     Read, publish and apply trust in others to certify\n"
         "  gen_key                     Generate a key pair the PGP ID way\n"
         "  change_passphrase           Change what protects a secret key here\n"
         "  token_check                 Check what the connected security key carries\n"
@@ -132,8 +131,6 @@ int main(int argc, char **argv)
         return pgpid_action_property(sub_argc, sub_argv);
     if (!strcmp(action, "sigs"))
         return pgpid_action_sigs(sub_argc, sub_argv);
-    if (!strcmp(action, "ownertrust"))
-        return pgpid_action_ownertrust(sub_argc, sub_argv);
     if (!strcmp(action, "del"))
         return pgpid_action_del(sub_argc, sub_argv);
     if (!strcmp(action, "avatar"))
@@ -158,8 +155,8 @@ int main(int argc, char **argv)
         return pgpid_action_certify(sub_argc, sub_argv);
     if (!strcmp(action, "email"))
         return pgpid_action_email(sub_argc, sub_argv);
-    if (!strcmp(action, "update_trustdb"))
-        return pgpid_action_update_trustdb(sub_argc, sub_argv);
+    if (!strcmp(action, "trustdb"))
+        return pgpid_action_trustdb(sub_argc, sub_argv);
     if (!strcmp(action, "gen_key"))
         return pgpid_action_gen_key(sub_argc, sub_argv);
     if (!strcmp(action, "change_passphrase"))

@@ -71,24 +71,24 @@ is "md closes every row"      "$("$BIN" --output-format=md list "$FPR" | tail --
 "$BIN" --output-format=nonsense list >/dev/null 2>&1
 is "refuses a format it does not know" "$?" "2"
 
-printf '\nownertrust\n'
+printf '\ntrustdb local\n'
 # A freshly generated key is ultimate: gpg trusts what it holds the secret of.
-is "reads the generated key"      "$("$BIN" ownertrust "$FPR")" "ultimate"
+is "reads the generated key"      "$("$BIN" trustdb local "$FPR")" "ultimate"
 for value in never marginal full ultimate ; do
-    got=$("$BIN" ownertrust --replace-to "$value" "$FPR")
+    got=$("$BIN" trustdb local --replace-to "$value" "$FPR")
     is "--replace-to $value"      "$got" "$value"
 done
 # One rung, two spellings: undefined is what gets written, unknown is what
 # comes back, and the engine keeps no third state between them.
-got=$("$BIN" ownertrust --replace-to undefined "$FPR")
+got=$("$BIN" trustdb local --replace-to undefined "$FPR")
 is "--replace-to undefined reads back as unknown" "$got" "unknown"
-"$BIN" ownertrust --replace-to nonsense "$FPR" >/dev/null 2>&1
+"$BIN" trustdb local --replace-to nonsense "$FPR" >/dev/null 2>&1
 is "refuses a value it does not know" "$?" "2"
-"$BIN" ownertrust --replace-to unknown "$FPR" >/dev/null 2>&1
+"$BIN" trustdb local --replace-to unknown "$FPR" >/dev/null 2>&1
 is "refuses to set unknown, which is an absence" "$?" "2"
-"$BIN" ownertrust >/dev/null 2>&1
+"$BIN" trustdb local >/dev/null 2>&1
 is "refuses to run without a target"  "$?" "2"
-"$BIN" ownertrust 0000000000000000000000000000000000000000 >/dev/null 2>&1
+"$BIN" trustdb local 0000000000000000000000000000000000000000 >/dev/null 2>&1
 is "says 141 for a certificate it has not" "$?" "141"
 
 printf '\nproperty\n'

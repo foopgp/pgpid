@@ -37,18 +37,25 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " update_trustdb [OPTIONS]... [OWNERTRUST.GPG]...\n"
+        " trustdb local|export|import [OPTIONS]... [FINGERPRINT|OWNERTRUSTS.GPG]...\n"
         "\n"
-        "Recompute GnuPG's trust database, after applying the delegations the\n"
-        "given files carry.\n"
+        "Read and move the trust you place in others to certify.\n"
         "\n"
-        "Every file must be a signed OpenPGP message, and its signer must already\n"
-        "be valid when its turn comes — which is why the order of the files is\n"
-        "part of what they mean. Whatever they say about your own keys is\n"
-        "ignored: somebody may extend trust to others, not redefine yours.\n"
+        "  local    What this machine says about the given certificates, or about\n"
+        "           every one of them when none is named.\n"
+        "  export   The same, signed, for others to replay. Writes to stdout.\n"
+        "  import   Apply what others signed. Order is part of what it means:\n"
+        "           a signer must already be valid when its turn comes.\n"
         "\n"
         "OPTIONS:\n"
-        "      --batch                 Recompute without asking about the remaining keys\n"
+        "  -r, --replace-to VALUE      local: set it instead of printing it — needs\n"
+        "                              at least one fingerprint\n"
+        "      --long                  local: also the identifier and main address\n"
+        "      --export-file FILE      export: write there instead of stdout\n"
+        "  -u, --use-privkey NAME|KEYID  export: sign with this key\n"
+        "      --export-all            export: include ultimate and unknown too\n"
+        "      --check                 recompute without asking about the rest\n"
+        "      --update                recompute, asking about the rest\n"
         "  -q, --quiet                 Only errors and warnings\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"),
@@ -62,7 +69,38 @@ struct delegation {
     char *content;
 };
 
-/** Is this line `FINGERPRINT:TRUST:`, the only thing an ownertrust file holds? */
+static int one_key(gpgme_ctx_t ctx, const char *pattern, gpgme_key_t *out)
+{
+    gpgme_error_t err = gpgme_op_keylist_start(ctx, pattern, 0);
+    if (err) {
+        pgpid_gpgme_error(_("looking the certificate up"), err);
+        return PGPID_FAIL;
+    }
+    gpgme_key_t first = NULL, extra = NULL;
+    err = gpgme_op_keylist_next(ctx, &first);
+    if (gpg_err_code(err) == GPG_ERR_EOF) {
+        gpgme_op_keylist_end(ctx);
+        pgpid_error(_("Error: No certificate matching '%s'."), pattern);
+        return PGPID_NOTHING;
+    }
+    if (err) {
+        gpgme_op_keylist_end(ctx);
+        pgpid_gpgme_error(_("reading the certificate"), err);
+        return PGPID_FAIL;
+    }
+    err = gpgme_op_keylist_next(ctx, &extra);
+    gpgme_op_keylist_end(ctx);
+    if (gpg_err_code(err) != GPG_ERR_EOF) {
+        gpgme_key_unref(first);
+        if (extra)
+            gpgme_key_unref(extra);
+        pgpid_error(_("Error: '%s' matches more than one certificate."), pattern);
+        return PGPID_USAGE;
+    }
+    *out = first;
+    return PGPID_OK;
+}
+
 static bool looks_like_ownertrust(const char *line)
 {
     size_t hex = 0;
@@ -252,7 +290,99 @@ static void report_change(const char *before, const char *after)
             pgpid_error(_("  + %s"), line);
 }
 
-int pgpid_action_update_trustdb(int argc, char **argv)
+static int do_local(int argc, char **argv)
+{
+    const char *value = NULL, *pattern = NULL;
+
+    for (int i = 1; i < argc; i++) {
+        const char *a = argv[i];
+        if (!strcmp(a, "-r") || !strcmp(a, "--replace-to")) {
+            if (++i >= argc) {
+                pgpid_error(_("Error: '%s' wants a value."), a);
+                return PGPID_USAGE;
+            }
+            value = argv[i];
+        } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
+            usage(stdout);
+            return PGPID_OK;
+        } else if (!strcmp(a, "--")) {
+            if (i + 1 < argc)
+                pattern = argv[i + 1];
+            break;
+        } else if (a[0] == '-' && a[1]) {
+            pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("trustdb");
+            return PGPID_USAGE;
+        } else {
+            pattern = a;
+            break;
+        }
+    }
+
+    if (!pattern) {
+        pgpid_error(_("Error: A fingerprint is required."));
+        return PGPID_USAGE;
+    }
+    if (value) {
+        if (pgpid_validity_from_word(value) < 0) {
+            pgpid_error(_("Error: Unknown ownertrust value '%s'."), value);
+            pgpid_error(_("Notice: One of undefined, never, marginal, full, ultimate."));
+            return PGPID_USAGE;
+        }
+        /* The engine refuses this one, and it is right to: unknown is the
+         * absence of a decision, not one more decision to take. */
+        if (!strcmp(value, "unknown")) {
+            pgpid_error(_("Error: 'unknown' cannot be set; it is what a certificate"));
+            pgpid_error(_("Notice: no one has ruled on already reads as."));
+            return PGPID_USAGE;
+        }
+    }
+
+    gpgme_ctx_t ctx = NULL;
+    gpgme_error_t err = pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL);
+    if (err) {
+        pgpid_gpgme_error(_("opening the engine"), err);
+        return PGPID_FAIL;
+    }
+
+    gpgme_key_t key = NULL;
+    int rc = one_key(ctx, pattern, &key);
+    if (rc != PGPID_OK) {
+        gpgme_release(ctx);
+        return rc;
+    }
+
+    if (value) {
+        err = gpgme_op_setownertrust(ctx, key, value);
+        if (err) {
+            pgpid_gpgme_error(_("setting the ownertrust"), err);
+            gpgme_key_unref(key);
+            gpgme_release(ctx);
+            return PGPID_FAIL;
+        }
+        /* Read it back rather than echo what was asked: the engine is what
+         * decides, and a write that did not take should not look like one
+         * that did. */
+        gpgme_key_unref(key);
+        rc = one_key(ctx, pattern, &key);
+        if (rc != PGPID_OK) {
+            gpgme_release(ctx);
+            return rc;
+        }
+    }
+
+    static const char *const COLUMNS[] = { "credibility" };
+    const char *values[] = { pgpid_validity_word(key->owner_trust) };
+    pgpid_table_start(COLUMNS, 1);
+    pgpid_table_row(values);
+    pgpid_table_end();
+
+    gpgme_key_unref(key);
+    gpgme_release(ctx);
+    return PGPID_OK;
+}
+
+static int do_import(int argc, char **argv)
 {
     bool batch = false, quiet = false;
     const char *files[MAX_FILES];
@@ -274,7 +404,7 @@ int pgpid_action_update_trustdb(int argc, char **argv)
             continue;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("update_trustdb");
+            pgpid_try_help("trustdb");
             return PGPID_USAGE;
         } else if (nfiles < MAX_FILES) {
             files[nfiles++] = a;
@@ -406,4 +536,41 @@ int pgpid_action_update_trustdb(int argc, char **argv)
     const char *interactive[] = { "--update-trustdb", NULL };
     const char *silent[] = { "--batch", "--check-trustdb", NULL };
     return pgpid_run_engine(batch ? silent : interactive) ? PGPID_FAIL : PGPID_OK;
+}
+
+/* One action, three verbs: they read and write the same thing, and share the
+ * recomputation that has to follow any change to it. Splitting them meant
+ * `--quiet` on one and not the other, and no place at all for `export`. */
+int pgpid_action_trustdb(int argc, char **argv)
+{
+    if (argc < 2) {
+        pgpid_error(_("Error: One of local, export or import is required."));
+        pgpid_try_help("trustdb");
+        return PGPID_USAGE;
+    }
+
+    const char *verb = argv[1];
+    if (!strcmp(verb, "-h") || !strcmp(verb, "--help")) {
+        usage(stdout);
+        return PGPID_OK;
+    }
+    if (!strcmp(verb, "-V") || !strcmp(verb, "--version")) {
+        printf("%s %s\n", argv[0], PGPID_VERSION);
+        return PGPID_OK;
+    }
+
+    /* The verb comes first so that an option never has to be read twice to
+     * know which one it belongs to. */
+    if (!strcmp(verb, "local"))
+        return do_local(argc - 1, argv + 1);
+    if (!strcmp(verb, "import"))
+        return do_import(argc - 1, argv + 1);
+    if (!strcmp(verb, "export")) {
+        pgpid_error(_("Error: 'export' is not written yet."));
+        return PGPID_FAIL;
+    }
+
+    pgpid_error(_("Error: '%s' is not one of local, export or import."), verb);
+    pgpid_try_help("trustdb");
+    return PGPID_USAGE;
 }

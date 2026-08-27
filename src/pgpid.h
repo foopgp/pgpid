@@ -297,7 +297,6 @@ bool pgpid_is_fingerprint(const char *s);
 
 /* Actions. argv[0] is the action name, as main leaves it. */
 int pgpid_action_list(int argc, char **argv);
-int pgpid_action_ownertrust(int argc, char **argv);
 int pgpid_action_sigs(int argc, char **argv);
 int pgpid_action_del(int argc, char **argv);
 int pgpid_action_property(int argc, char **argv);
@@ -312,7 +311,7 @@ int pgpid_action_token_retries(int argc, char **argv);
 int pgpid_action_token_check(int argc, char **argv);
 int pgpid_action_certify(int argc, char **argv);
 int pgpid_action_email(int argc, char **argv);
-int pgpid_action_update_trustdb(int argc, char **argv);
+int pgpid_action_trustdb(int argc, char **argv);
 int pgpid_action_gen_key(int argc, char **argv);
 int pgpid_action_change_passphrase(int argc, char **argv);
 int pgpid_action_print_secret(int argc, char **argv);
