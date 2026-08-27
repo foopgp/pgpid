@@ -174,6 +174,7 @@ int pgpid_action_get(int argc, char **argv)
      * several searches whose answers meet in the output. */
     int ret = PGPID_NOTHING;
     size_t matched = 0;
+    pgpid_list_short_start(only_fpr, only_mbox);
     for (int i = first; i < argc; i++) {
         size_t n = 0;
         int r = pgpid_list_short(everything ? NULL : argv[i], only_fpr, only_mbox, &n);
@@ -183,6 +184,7 @@ int pgpid_action_get(int argc, char **argv)
             ret = PGPID_OK;
         matched += n;
     }
+    pgpid_list_short_end();
 
     if (ret == PGPID_NOTHING) {
         pgpid_error(_("Error: No certificate for what was asked."));

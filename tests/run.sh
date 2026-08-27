@@ -231,6 +231,19 @@ is "same answer as list --short"   "$("$BIN" get --no-fetch "$FPR")" "$("$BIN" l
 is "--fingerprint keeps one column" \
    "$("$BIN" get --no-fetch --fingerprint "$FPR")" "$FPR"
 is "--email keeps the other"       "$("$BIN" get --no-fetch --email "$FPR")" "ada@example.invalid"
+# The global format drives get too, and raw is left exactly as the shell has
+# always printed it: the address at column 82, whatever the identifier's width.
+is "md names the three columns" \
+   "$("$BIN" --output-format=md get --no-fetch "$FPR" | head --lines=1 | tr --squeeze-repeats ' ' | tr --delete '| ')" \
+   "fingerprinteidemail"
+is "info names them, tab separated" \
+   "$("$BIN" --output-format=info get --no-fetch "$FPR" \
+      | awk --field-separator='\t' '{print NF, $1 ~ /^fingerprint=/, $2 ~ /^eid=/, $3 ~ /^email=/}')" \
+   "3 1 1 1"
+is "info follows --email down to one" \
+   "$("$BIN" --output-format=info get --no-fetch --email "$FPR")" "email=ada@example.invalid"
+is "raw keeps the address at column 82" \
+   "$("$BIN" get --no-fetch "$FPR" | awk '{print index($0, "ada@example.invalid")}')" "82"
 is "says 141 for what it has not"  "$("$BIN" get --no-fetch nobody@example.test >/dev/null 2>&1 ; echo $?)" "141"
 is "--errexit-g=1 accepts one"     "$("$BIN" get --no-fetch --errexit-g=1 "$FPR" >/dev/null 2>&1 ; echo $?)" "0"
 is "--errexit-g=1 refuses two"     "$("$BIN" get --no-fetch --errexit-g=1 '*' >/dev/null 2>&1 ; echo $?)" "1"

@@ -332,6 +332,11 @@ int pgpid_action_totoken(int argc, char **argv);
 
 /* The short listing — one line per address — shared by `list --short` and
  * `get`, so that the two cannot drift apart. */
+/* The short listing's table, opened and closed around the walk — `get` runs
+ * the walk once per pattern and prints one answer. No-ops in raw. */
+void pgpid_list_short_start(bool only_fpr, bool only_mbox);
+void pgpid_list_short_end(void);
+
 int pgpid_list_short(const char *pattern, bool only_fpr, bool only_mbox,
                      size_t *certificates);
 

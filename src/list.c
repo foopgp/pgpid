@@ -158,8 +158,39 @@ static int by_key(const void *a, const void *b)
                    ((const struct short_row *)b)->key);
 }
 
+/* The columns the short listing shows, for the formats that name them.
+ *
+ * Opened by the caller and not by the walk: `get` runs the walk once per
+ * pattern, and several patterns are one answer rather than several tables.
+ * Raw stays hand-printed below — its column at 80 is what the shell has
+ * always printed, and `get` must keep answering to the column.
+ */
+void pgpid_list_short_start(bool only_fpr, bool only_mbox)
+{
+    static const char *const FPR_ONLY[] = { "fingerprint" };
+    static const char *const MBOX_ONLY[] = { "email" };
+    static const char *const BOTH[] = { "fingerprint", "eid", "email" };
+
+    if (pgpid_format == PGPID_FMT_RAW)
+        return;
+    if (only_fpr)
+        pgpid_table_start(FPR_ONLY, 1);
+    else if (only_mbox)
+        pgpid_table_start(MBOX_ONLY, 1);
+    else
+        pgpid_table_start(BOTH, 3);
+}
+
+void pgpid_list_short_end(void)
+{
+    if (pgpid_format != PGPID_FMT_RAW)
+        pgpid_table_end();
+}
+
 static void short_flush(struct short_lines *s, bool only_fpr, bool only_mbox)
 {
+    const bool raw = pgpid_format == PGPID_FMT_RAW;
+
     qsort(s->row, s->n, sizeof *s->row, by_key);
     const char *previous = NULL;
     for (size_t i = 0; i < s->n; i++) {
@@ -177,10 +208,20 @@ static void short_flush(struct short_lines *s, bool only_fpr, bool only_mbox)
              * with a second `sort -u`. */
             if (i > 0 && !strcmp(r->fpr, s->row[i - 1].fpr))
                 continue;
-            puts(r->fpr);
+            if (raw) {
+                puts(r->fpr);
+            } else {
+                const char *values[] = { r->fpr };
+                pgpid_table_row(values);
+            }
         } else if (only_mbox) {
-            puts(r->email);
-        } else {
+            if (raw) {
+                puts(r->email);
+            } else {
+                const char *values[] = { r->email };
+                pgpid_table_row(values);
+            }
+        } else if (raw) {
             /* The identifier comes before the address, as everywhere else
              * in this tool: what a certificate *is* reads before how one
              * writes to it. */
@@ -190,6 +231,11 @@ static void short_flush(struct short_lines *s, bool only_fpr, bool only_mbox)
                 printf("%-80s %s\n", left, r->email);
             else
                 printf("%-80s\n", left);
+        } else {
+            const char *values[] = {
+                r->fpr, r->eid ? r->eid : "-", r->email ? r->email : "-",
+            };
+            pgpid_table_row(values);
         }
     }
     for (size_t i = 0; i < s->n; i++) {
@@ -337,8 +383,12 @@ int pgpid_action_list(int argc, char **argv)
         }
     }
 
-    if (short_form)
-        return pgpid_list_short(pattern, false, false, NULL);
+    if (short_form) {
+        pgpid_list_short_start(false, false);
+        int rc = pgpid_list_short(pattern, false, false, NULL);
+        pgpid_list_short_end();
+        return rc;
+    }
 
     gpgme_keylist_mode_t mode = GPGME_KEYLIST_MODE_LOCAL | GPGME_KEYLIST_MODE_VALIDATE;
     /* Signatures are what a certifier count and a revocation date are made
