@@ -91,6 +91,11 @@ is "no argument reads every certificate" \
 got=$("$BIN" trustdb local --long "$FPR")
 is "--long keeps the credibility where it was" "$(awk '{print $1, $2}' <<<"$got")" "$FPR unknown"
 is "--long adds the identifier then the address" "$(awk '{print NF}' <<<"$got")" "4"
+# --check recomputes after answering, which is what a page showing verdicts
+# needs: gpg only marks its database stale when a credibility moves.
+is "--check answers, then recomputes" \
+   "$("$BIN" trustdb local --check "$FPR" 2>/dev/null)" "$FPR  unknown"
+is "--update takes the same word"     "$("$BIN" trustdb local --update "$FPR" >/dev/null 2>&1 ; echo $?)" "0"
 "$BIN" trustdb local --replace-to nonsense "$FPR" >/dev/null 2>&1
 is "refuses a value it does not know" "$?" "2"
 "$BIN" trustdb local --replace-to unknown "$FPR" >/dev/null 2>&1

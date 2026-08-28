@@ -55,6 +55,8 @@ static void usage(FILE *out)
         "  -r, --replace-to VALUE      local: set it instead of printing it — needs\n"
         "                              at least one fingerprint\n"
         "      --long                  local: also the identifier and main address\n"
+        "      --check                 local, import: work the web of trust out again\n"
+        "      --update                the same, asking about the keys nobody has ruled on\n"
         "      --export-file FILE      export: write there instead of stdout\n"
         "  -u, --use-privkey NAME|KEYID  export: sign with this key\n"
         "      --export-all            export: include ultimate and unknown too\n"
@@ -63,8 +65,7 @@ static void usage(FILE *out)
         "                              not only the ones missing here\n"
         "  -K, --keyservers SERVERS    import: ask these, space separated — empty\n"
         "                              for none\n"
-        "      --check                 recompute without asking about the rest\n"
-        "      --update                recompute, asking about the rest\n"
+
         "  -q, --quiet                 Only errors and warnings\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"),
@@ -625,7 +626,7 @@ static int local_all(gpgme_ctx_t ctx, bool long_form)
 static int do_local(int argc, char **argv)
 {
     const char *value = NULL;
-    bool long_form = false;
+    bool long_form = false, recompute = false, interactive = false;
     const char **patterns = NULL;
     size_t npatterns = 0;
     int i = 1;
@@ -647,6 +648,12 @@ static int do_local(int argc, char **argv)
             value = argv[i];
         } else if (!strcmp(a, "--long")) {
             long_form = true;
+        } else if (!strcmp(a, "--check")) {
+            recompute = true;
+            interactive = false;
+        } else if (!strcmp(a, "--update")) {
+            recompute = true;
+            interactive = true;
         } else if (!strcmp(a, "-q") || !strcmp(a, "--quiet")) {
             /* Taken for symmetry with the other two verbs. `local` says
              * nothing but its table and its errors, so there is nothing here
@@ -746,6 +753,19 @@ static int do_local(int argc, char **argv)
         pgpid_table_end();
     gpgme_release(ctx);
     free(patterns);
+
+    /*
+     * Setting a credibility only marks gpg's database stale; every validity
+     * it has already worked out stays as it was until somebody asks again.
+     * Asked here, after the answer is printed, so that what one reads is the
+     * value and what one gets afterwards is a keyring that agrees with it.
+     */
+    if (rc == PGPID_OK && recompute) {
+        const char *asking[] = { "--update-trustdb", NULL };
+        const char *silent[] = { "--batch", "--check-trustdb", NULL };
+        if (pgpid_run_engine(interactive ? asking : silent))
+            rc = PGPID_FAIL;
+    }
     return rc;
 }
 
