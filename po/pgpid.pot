@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-08-27 23:50+0200\n"
+"POT-Creation-Date: 2026-08-28 12:07+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -121,7 +121,7 @@ msgstr ""
 #: ../src/printcard.c:143 ../src/printsecret.c:289 ../src/property.c:378
 #: ../src/push.c:70 ../src/scan.c:141 ../src/sigs.c:124 ../src/token.c:129
 #: ../src/tokencheck.c:269 ../src/totoken.c:150 ../src/tovcard.c:386
-#: ../src/trustdb.c:662 ../src/trustdb.c:792 ../src/trustdb.c:1039
+#: ../src/trustdb.c:669 ../src/trustdb.c:812 ../src/trustdb.c:1059
 #, c-format
 msgid "Error: Unrecognized option '%s'."
 msgstr ""
@@ -155,7 +155,7 @@ msgstr ""
 msgid "gpgme_op_keylist_start"
 msgstr ""
 
-#: ../src/avatar.c:636 ../src/printsecret.c:493 ../src/trustdb.c:635
+#: ../src/avatar.c:636 ../src/printsecret.c:493 ../src/trustdb.c:636
 msgid "Error: Out of memory."
 msgstr ""
 
@@ -284,24 +284,24 @@ msgstr ""
 msgid "Error: '%s' names %s secret key."
 msgstr ""
 
-#: ../src/certify.c:297 ../src/trustdb.c:776
+#: ../src/certify.c:297 ../src/trustdb.c:796
 #, c-format
 msgid "Error: '%s' wants a key."
 msgstr ""
 
 #: ../src/certify.c:311 ../src/genu4.c:290 ../src/property.c:349
-#: ../src/trustdb.c:643
+#: ../src/trustdb.c:644
 #, c-format
 msgid "Error: '%s' wants a value."
 msgstr ""
 
-#: ../src/certify.c:317 ../src/trustdb.c:683
+#: ../src/certify.c:317 ../src/trustdb.c:690
 #, c-format
 msgid "Error: Unknown credibility value '%s'."
 msgstr ""
 
 #: ../src/certify.c:322 ../src/email.c:355 ../src/property.c:365
-#: ../src/trustdb.c:1024
+#: ../src/trustdb.c:1044
 #, c-format
 msgid "Error: '%s' wants a list, empty for none."
 msgstr ""
@@ -640,20 +640,20 @@ msgid ""
 "  -h, --help                  Print this help and exit\n"
 msgstr ""
 
-#: ../src/del.c:48 ../src/property.c:178 ../src/sigs.c:148 ../src/trustdb.c:215
+#: ../src/del.c:48 ../src/property.c:178 ../src/sigs.c:148 ../src/trustdb.c:216
 msgid "looking the certificate up"
 msgstr ""
 
-#: ../src/del.c:55 ../src/sigs.c:156 ../src/trustdb.c:222
+#: ../src/del.c:55 ../src/sigs.c:156 ../src/trustdb.c:223
 #, c-format
 msgid "Error: No certificate matching '%s'."
 msgstr ""
 
-#: ../src/del.c:60 ../src/property.c:194 ../src/sigs.c:161 ../src/trustdb.c:227
+#: ../src/del.c:60 ../src/property.c:194 ../src/sigs.c:161 ../src/trustdb.c:228
 msgid "reading the certificate"
 msgstr ""
 
-#: ../src/del.c:69 ../src/trustdb.c:236
+#: ../src/del.c:69 ../src/trustdb.c:237
 #, c-format
 msgid "Error: '%s' matches more than one certificate."
 msgstr ""
@@ -672,7 +672,7 @@ msgid "Notice: 40 or 64 hexadecimal characters, nothing else."
 msgstr ""
 
 #: ../src/del.c:120 ../src/list.c:403 ../src/property.c:173 ../src/sigs.c:142
-#: ../src/trustdb.c:701
+#: ../src/trustdb.c:708
 msgid "opening the engine"
 msgstr ""
 
@@ -2019,6 +2019,8 @@ msgid ""
 "  -r, --replace-to VALUE      local: set it instead of printing it — needs\n"
 "                              at least one fingerprint\n"
 "      --long                  local: also the identifier and main address\n"
+"      --check                 local, import: work the web of trust out again\n"
+"      --update                the same, asking about the keys nobody has ruled on\n"
 "      --export-file FILE      export: write there instead of stdout\n"
 "  -u, --use-privkey NAME|KEYID  export: sign with this key\n"
 "      --export-all            export: include ultimate and unknown too\n"
@@ -2027,178 +2029,176 @@ msgid ""
 "                              not only the ones missing here\n"
 "  -K, --keyservers SERVERS    import: ask these, space separated — empty\n"
 "                              for none\n"
-"      --check                 recompute without asking about the rest\n"
-"      --update                recompute, asking about the rest\n"
 "  -q, --quiet                 Only errors and warnings\n"
 "  -h, --help                  Print this help and exit\n"
 "  -V, --version               Print the version and exit\n"
 msgstr ""
 
-#: ../src/trustdb.c:313
+#: ../src/trustdb.c:314
 msgid "Error: Cannot make a temporary file."
 msgstr ""
 
-#: ../src/trustdb.c:332
+#: ../src/trustdb.c:333
 #, c-format
 msgid "Error: Cannot read or verify %s (missing, not signed, or bad signature?)."
 msgstr ""
 
-#: ../src/trustdb.c:354
+#: ../src/trustdb.c:355
 #, c-format
 msgid "Error: %s carries no verifiable signature (signer key missing?)."
 msgstr ""
 
-#: ../src/trustdb.c:366
+#: ../src/trustdb.c:367
 #, c-format
 msgid "Warning: %s is signed in the future (%s) — is the local clock right?"
 msgstr ""
 
-#: ../src/trustdb.c:374
+#: ../src/trustdb.c:375
 #, c-format
 msgid "Warning: %s carries a delegation older than a year (%s)."
 msgstr ""
 
-#: ../src/trustdb.c:388 ../src/trustdb.c:394
+#: ../src/trustdb.c:389 ../src/trustdb.c:395
 #, c-format
 msgid "Error: %s is not a valid ownertrust file."
 msgstr ""
 
-#: ../src/trustdb.c:541
+#: ../src/trustdb.c:542
 #, c-format
 msgid "Info: %s: %zu line(s) about your own anchors, left alone."
 msgstr ""
 
-#: ../src/trustdb.c:544
+#: ../src/trustdb.c:545
 #, c-format
 msgid "Info: %s: %zu key(s) you have ruled never on, left alone."
 msgstr ""
 
-#: ../src/trustdb.c:547
+#: ../src/trustdb.c:548
 #, c-format
 msgid "Info: %s: %zu key(s) it credits less than you already do, left alone."
 msgstr ""
 
-#: ../src/trustdb.c:550
+#: ../src/trustdb.c:551
 #, c-format
 msgid "Info: %s: %zu line(s) beyond full, brought back to it."
 msgstr ""
 
-#: ../src/trustdb.c:553
+#: ../src/trustdb.c:554
 #, c-format
 msgid "Info: %s: %zu key(s) it would have you credit with nothing."
 msgstr ""
 
-#: ../src/trustdb.c:578
+#: ../src/trustdb.c:579
 msgid "Info: credibility changes:"
 msgstr ""
 
-#: ../src/trustdb.c:581
+#: ../src/trustdb.c:582
 #, c-format
 msgid "  - %s"
 msgstr ""
 
-#: ../src/trustdb.c:584
+#: ../src/trustdb.c:585
 #, c-format
 msgid "  + %s"
 msgstr ""
 
-#: ../src/trustdb.c:613
+#: ../src/trustdb.c:614
 msgid "listing the certificates"
 msgstr ""
 
-#: ../src/trustdb.c:678
+#: ../src/trustdb.c:685
 msgid "Error: A fingerprint is required to set a credibility."
 msgstr ""
 
-#: ../src/trustdb.c:684
+#: ../src/trustdb.c:691
 msgid "Notice: One of undefined, never, marginal, full, ultimate."
 msgstr ""
 
-#: ../src/trustdb.c:691
+#: ../src/trustdb.c:698
 msgid "Error: 'unknown' cannot be set; it is what a certificate"
 msgstr ""
 
-#: ../src/trustdb.c:692
+#: ../src/trustdb.c:699
 msgid "Notice: no one has ruled on already reads as."
 msgstr ""
 
-#: ../src/trustdb.c:725
+#: ../src/trustdb.c:732
 msgid "setting the credibility"
 msgstr ""
 
-#: ../src/trustdb.c:770
+#: ../src/trustdb.c:790
 #, c-format
 msgid "Error: '%s' wants a path."
 msgstr ""
 
-#: ../src/trustdb.c:796
+#: ../src/trustdb.c:816
 msgid "Error: 'export' takes no argument; the path goes to --export-file."
 msgstr ""
 
-#: ../src/trustdb.c:828
+#: ../src/trustdb.c:848
 msgid "Error: Nothing to export: no decision worth signing."
 msgstr ""
 
-#: ../src/trustdb.c:854
+#: ../src/trustdb.c:874
 msgid "Error: gpg would not sign the export."
 msgstr ""
 
-#: ../src/trustdb.c:857
+#: ../src/trustdb.c:877
 #, c-format
 msgid "Notice: %zu delegation(s) signed. Publish it beside the tree it explains, so that anyone can replay it."
 msgstr ""
 
-#: ../src/trustdb.c:875
+#: ../src/trustdb.c:895
 msgid "Error: Cannot read what this machine already says."
 msgstr ""
 
-#: ../src/trustdb.c:886
+#: ../src/trustdb.c:906
 msgid "Error: No key here is ultimate, so there is no anchor to extend from."
 msgstr ""
 
-#: ../src/trustdb.c:888
+#: ../src/trustdb.c:908
 #, c-format
 msgid "Notice: Mark your own certificate ultimate first: %s trustdb local --replace-to ultimate FINGERPRINT"
 msgstr ""
 
-#: ../src/trustdb.c:939
+#: ../src/trustdb.c:959
 msgid "Info: The delegations are already applied — credibility left unchanged."
 msgstr ""
 
-#: ../src/trustdb.c:960
+#: ../src/trustdb.c:980
 #, c-format
 msgid "Notice: Current credibility backed up in %s."
 msgstr ""
 
-#: ../src/trustdb.c:962
+#: ../src/trustdb.c:982
 #, c-format
 msgid "Warning: Cannot write the backup %s — going ahead anyway would leave no way back. Stopping."
 msgstr ""
 
-#: ../src/trustdb.c:970
+#: ../src/trustdb.c:990
 #, c-format
 msgid "Error: Delegation chain broken: the signer of %s is not (yet) valid."
 msgstr ""
 
-#: ../src/trustdb.c:977
+#: ../src/trustdb.c:997
 #, c-format
 msgid "Error: gpg would not import the delegation from %s."
 msgstr ""
 
-#: ../src/trustdb.c:991
+#: ../src/trustdb.c:1011
 #, c-format
 msgid "Notice: To restore the previous credibility: gpg --import-ownertrust %s"
 msgstr ""
 
-#: ../src/trustdb.c:1045
+#: ../src/trustdb.c:1065
 msgid "Error: Too many files at once."
 msgstr ""
 
-#: ../src/trustdb.c:1073
+#: ../src/trustdb.c:1093
 msgid "Error: One of local, export or import is required."
 msgstr ""
 
-#: ../src/trustdb.c:1097
+#: ../src/trustdb.c:1117
 #, c-format
 msgid "Error: '%s' is not one of local, export or import."
 msgstr ""

@@ -465,6 +465,8 @@ OPTIONS:
   -r, --replace-to VALEUR     local : la poser au lieu de l'afficher — exige
                               au moins une empreinte
       --long                  local : aussi l'identifiant et l'adresse principale
+      --check                 local, import : recalculer la toile de confiance
+      --update                idem, en questionnant sur les clés indécises
       --export-file FICHIER   export : y écrire au lieu de stdout
   -u, --use-privkey NOM|KEYID  export : signer avec cette clé
       --export-all            export : inclure aussi ultimate et unknown
@@ -473,8 +475,6 @@ OPTIONS:
                               pas seulement celles qui manquent ici
   -K, --keyservers SERVEURS   import : demander à ceux-ci, séparés par des
                               espaces — vide pour personne
-      --check                 Recalculer sans questionner sur les autres
-      --update                Recalculer, en questionnant sur les autres
   -q, --quiet                 Seulement les erreurs et les avertissements
   -h, --help                  Afficher cette aide et quitter
   -V, --version               Afficher la version et quitter

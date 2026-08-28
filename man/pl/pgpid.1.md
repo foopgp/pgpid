@@ -464,6 +464,8 @@ OPTIONS:
   -r, --replace-to WARTOŚĆ    local: ustawić zamiast wypisywać — wymaga co
                               najmniej jednego odcisku
       --long                  local: także identyfikator i główny adres
+      --check                 local, import: przeliczyć sieć zaufania
+      --update                to samo, z pytaniem o klucze nierozstrzygnięte
       --export-file PLIK      export: pisać tam zamiast na stdout
   -u, --use-privkey NAZWA|KEYID  export: podpisać tym kluczem
       --export-all            export: objąć także ultimate i unknown
@@ -472,8 +474,6 @@ OPTIONS:
                               nie tylko te, których tu brak
   -K, --keyservers SERWERY    import: pytać tych, rozdzielonych spacjami
                               — puste, by nikogo nie pytać
-      --check                 Przeliczyć bez pytania o pozostałe
-      --update                Przeliczyć, pytając o pozostałe
   -q, --quiet                 Tylko błędy i ostrzeżenia
   -h, --help                  Wypisać tę pomoc i zakończyć
   -V, --version               Wypisać wersję i zakończyć

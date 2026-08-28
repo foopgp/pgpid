@@ -466,6 +466,8 @@ OPTIONS:
   -r, --replace-to WERT       local: ihn setzen, statt ihn auszugeben — braucht
                               mindestens einen Fingerabdruck
       --long                  local: auch die Kennung und die Hauptadresse
+      --check                 local, import: das Vertrauensnetz neu berechnen
+      --update                dasselbe, mit Nachfrage zu unentschiedenen Schlüsseln
       --export-file DATEI     export: dorthin schreiben statt nach stdout
   -u, --use-privkey NAME|KEYID  export: mit diesem Schlüssel signieren
       --export-all            export: auch ultimate und unknown mitnehmen
@@ -474,8 +476,6 @@ OPTIONS:
                               nicht nur die hier fehlenden
   -K, --keyservers SERVER     import: diese fragen, durch Leerzeichen
                               getrennt — leer für niemanden
-      --check                 Neu berechnen, ohne nach den übrigen zu fragen
-      --update                Neu berechnen und nach den übrigen fragen
   -q, --quiet                 Nur Fehler und Warnungen
   -h, --help                  Diese Hilfe ausgeben und beenden
   -V, --version               Die Version ausgeben und beenden

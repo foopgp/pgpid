@@ -454,6 +454,8 @@ OPTIONS:
   -r, --replace-to VALUE      local: set it instead of printing it — needs
                               at least one fingerprint
       --long                  local: also the identifier and main address
+      --check                 local, import: work the web of trust out again
+      --update                the same, asking about the keys nobody has ruled on
       --export-file FILE      export: write there instead of stdout
   -u, --use-privkey NAME|KEYID  export: sign with this key
       --export-all            export: include ultimate and unknown too
@@ -462,8 +464,6 @@ OPTIONS:
                               not only the ones missing here
   -K, --keyservers SERVERS    import: ask these, space separated — empty
                               for none
-      --check                 recompute without asking about the rest
-      --update                recompute, asking about the rest
   -q, --quiet                 Only errors and warnings
   -h, --help                  Print this help and exit
   -V, --version               Print the version and exit

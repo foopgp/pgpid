@@ -462,6 +462,8 @@ OPTIONS:
   -r, --replace-to VALOR      local: ponerlo en vez de mostrarlo — exige al
                               menos una huella
       --long                  local: también el identificador y la dirección
+      --check                 local, import: recalcular la red de confianza
+      --update                lo mismo, preguntando por las claves indecisas
       --export-file FICHERO   export: escribir ahí en vez de en stdout
   -u, --use-privkey NOMBRE|KEYID  export: firmar con esa clave
       --export-all            export: incluir también ultimate y unknown
@@ -470,8 +472,6 @@ OPTIONS:
                               no solo las que faltan aquí
   -K, --keyservers SERVIDORES import: preguntar a estos, separados por
                               espacios — vacío para nadie
-      --check                 Recalcular sin preguntar por las demás
-      --update                Recalcular, preguntando por las demás
   -q, --quiet                 Solo errores y advertencias
   -h, --help                  Mostrar esta ayuda y salir
   -V, --version               Mostrar la versión y salir

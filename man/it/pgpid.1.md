@@ -461,6 +461,8 @@ OPTIONS:
   -r, --replace-to VALORE     local: porlo anziché stamparlo — richiede
                               almeno un'impronta
       --long                  local: anche l'identificativo e l'indirizzo
+      --check                 local, import: ricalcolare la rete di fiducia
+      --update                lo stesso, interrogando sulle chiavi indecise
       --export-file FILE      export: scrivere lì anziché su stdout
   -u, --use-privkey NOME|KEYID  export: firmare con questa chiave
       --export-all            export: includere anche ultimate e unknown
@@ -469,8 +471,6 @@ OPTIONS:
                               non solo quelle che qui mancano
   -K, --keyservers SERVER     import: chiedere a questi, separati da spazi
                               — vuoto per nessuno
-      --check                 Ricalcolare senza interrogare sulle altre
-      --update                Ricalcolare, interrogando sulle altre
   -q, --quiet                 Solo errori e avvisi
   -h, --help                  Stampare questo aiuto e uscire
   -V, --version               Stampare la versione e uscire

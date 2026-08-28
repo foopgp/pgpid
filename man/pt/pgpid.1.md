@@ -462,6 +462,8 @@ OPTIONS:
   -r, --replace-to VALOR      local: defini-lo em vez de o imprimir — exige
                               ao menos uma impressão
       --long                  local: também o identificador e o endereço
+      --check                 local, import: recalcular a teia de confiança
+      --update                o mesmo, perguntando pelas chaves que ninguém decidiu
       --export-file FICHEIRO  export: escrever aí em vez de em stdout
   -u, --use-privkey NOME|KEYID  export: assinar com esta chave
       --export-all            export: incluir também ultimate e unknown
@@ -470,8 +472,6 @@ OPTIONS:
                               não só as que aqui faltam
   -K, --keyservers SERVIDORES import: perguntar a estes, separados por
                               espaços — vazio para ninguém
-      --check                 Recalcular sem perguntar pelas outras
-      --update                Recalcular, perguntando pelas outras
   -q, --quiet                 Só erros e avisos
   -h, --help                  Imprimir esta ajuda e sair
   -V, --version               Imprimir a versão e sair
