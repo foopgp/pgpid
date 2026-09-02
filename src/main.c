@@ -57,6 +57,7 @@ static void usage(FILE *out)
         "OPTIONS:\n"
         "  -H, --homedir DIR           GnuPG home directory - Environment variable: GNUPGHOME\n"
         "      --output-format=FORMAT  Specify output format between {raw, info, md} - Default: 'raw'\n"
+        "  -B, --batch                 Never ask: fail instead of prompting for what is missing\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"
         "\n"
@@ -96,6 +97,8 @@ int main(int argc, char **argv)
                 pgpid_error(_("Notice: One of raw, info, md."));
                 return PGPID_USAGE;
             }
+        } else if (!strcmp(a, "-B") || !strcmp(a, "--batch")) {
+            pgpid_batch = true;
         } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             usage(stdout);
             return PGPID_OK;

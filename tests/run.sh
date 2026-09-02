@@ -551,5 +551,20 @@ is "refuses a certificate that does not carry it" "$?" "143"
 "$BIN" certify --keyservers '' --use-privkey "$CFPR" "$NFPR" u4ZZZZZZZZZZZZZZZZZZZZZZe_42.17-002.76 >/dev/null 2>&1
 is "says 141 when nobody carries the identifier"  "$?" "141"
 
+# The identifier is taken however it is written and wherever it sits among the
+# operands: the shell regexps its arguments rather than counting them, and a
+# value read aloud off a card rarely comes with its tag.
+for spelling in "$EID" "u5=${EID#u5}" "${EID#u5}" ; do
+    "$BIN" --batch certify --keyservers '' --use-privkey "$CFPR" "$spelling" "$NFPR" >/dev/null 2>&1
+    is "reads the identifier written '$spelling'"  "$?" "143"
+done
+
+# Nothing given at all: the question is asked, unless --batch says there is
+# nobody to ask. 2 is a usage error — what was missing was an operand.
+"$BIN" --batch certify --keyservers '' --use-privkey "$CFPR" >/dev/null 2>&1
+is "--batch refuses instead of asking"            "$?" "2"
+is "and says so rather than failing mutely" \
+   "$("$BIN" --batch certify --keyservers '' --use-privkey "$CFPR" 2>&1 | grep --count -- '--batch')" "1"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [[ $fail -eq 0 ]]

@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/random.h>
 
 #define MAX_UIDS 128
 #define UID_MAX  512
@@ -39,12 +40,20 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " certify [OPTIONS]... TARGET_KEYFPR [TARGET_U4|TARGET_U5]\n"
+        " certify [OPTIONS]... [TARGET_KEYFPR] [TARGET_U4|TARGET_U5]\n"
         "\n"
-        "Certify somebody else, identified by its key fingerprint TARGET_KEYFPR.\n"
-        "The whole forty characters, read off the other person's card and checked\n"
-        "against it — never a search pattern, because a certification cannot be\n"
-        "taken back. Giving TARGET_U4 as well asks that the certificate carry it,\n"
+        "Certify somebody else. Both operands are optional and may come in either\n"
+        "order — they are recognised by their shape, not by their place. What is\n"
+        "missing is asked for, unless --batch says there is nobody to ask.\n"
+        "\n"
+        "TARGET_KEYFPR is the whole forty characters, read off the other person's\n"
+        "card — never a search pattern, because a certification cannot be taken\n"
+        "back. Without it, whoever carries TARGET_U4 is looked up here and on the\n"
+        "keyservers, and eight characters of the fingerprint are asked for, taken\n"
+        "at a place drawn at random: enough to prove the card is in your hand.\n"
+        "\n"
+        "TARGET_U4 may be written u4VALUE, the deprecated u4=VALUE, or bare.\n"
+        "Given together with a fingerprint, it asks that the certificate carry it,\n"
         "and refuses otherwise.\n"
         "\n"
         "Certification means : I know this other certificate belongs to this real person.\n"
@@ -175,6 +184,183 @@ static int signing_key(const char *given, char *out, size_t max)
  * Revoked and expired uids are left alone: signing them would state
  * something about a name its owner has withdrawn.
  */
+#define MAX_CANDIDATES 32
+#define WINDOW 8                      /* two groups of four, as a card prints them */
+
+/**
+ * Accept an identifier however it was written.
+ *
+ * Glued to its tag, which is what we write; behind the deprecated separator,
+ * which certificates in the wild still carry; or bare, which is how a value
+ * read aloud off a card or copied from a sticker arrives. Bare is tried as a
+ * u4 then as a u5 — the two shapes cannot be mistaken for one another.
+ */
+static bool eid_operand(const char *a, char *out, size_t max)
+{
+    /* Longer than the longest eid: not one, and not worth glueing tags onto. */
+    if (strlen(a) > 48)
+        return false;
+    if (pgpid_eid_body_is_sound(a)) {
+        snprintf(out, max, "%s", a);
+        return true;
+    }
+    char glued[64];
+    /* u4=…, u4:…, udid4=… and their u5 counterparts. */
+    if (a[0] == 'u') {
+        const char *p = a + 1;
+        if (!strncmp(p, "did", 3))
+            p += 3;
+        if ((*p == '4' || *p == '5') && (p[1] == '=' || p[1] == ':')) {
+            snprintf(glued, sizeof glued, "u%c%s", *p, p + 2);
+            if (pgpid_eid_body_is_sound(glued)) {
+                snprintf(out, max, "%s", glued);
+                return true;
+            }
+        }
+    }
+    for (char digit = '4'; digit <= '5'; digit++) {
+        snprintf(glued, sizeof glued, "u%c%s", digit, a);
+        if (pgpid_eid_body_is_sound(glued)) {
+            snprintf(out, max, "%s", glued);
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Ask the keyservers who carries this identifier, and bring them here.
+ *
+ * gpg cannot locate a key by anything but an address, so the index is asked
+ * for directly: --search-keys in colon mode answers with whole fingerprints,
+ * which --recv-keys then fetches by name. Both spellings, for as long as both
+ * exist. A server that will not answer is not a reason to stop.
+ */
+static void fetch_by_eid(const char *eid, const char *list)
+{
+    if (!*list || !*eid)
+        return;
+    char spellings[2][80];
+    snprintf(spellings[0], sizeof spellings[0], "%s", eid);
+    snprintf(spellings[1], sizeof spellings[1], "u%c=%s", eid[1], eid + 2);
+
+    for (char *copy = strdup(list), *save = NULL,
+         *ks = copy ? strtok_r(copy, " \t,", &save) : NULL; ks;
+         ks = strtok_r(NULL, " \t,", &save)) {
+        for (unsigned s = 0; s < 2; s++) {
+            char found[8192];
+            const char *search[] = { "--batch", "--with-colons", "--keyserver", ks,
+                                     "--search-keys", spellings[s], NULL };
+            if (pgpid_capture_engine(search, found, sizeof found) < 0)
+                continue;
+            for (char *line = found, *lsave; (line = strtok_r(line, "\n", &lsave));
+                 line = NULL) {
+                if (strncmp(line, "pub:", 4))
+                    continue;
+                char fpr[41] = "";
+                if (sscanf(line + 4, "%40[0-9A-Fa-f]", fpr) != 1
+                    || !pgpid_is_fingerprint(fpr))
+                    continue;
+                const char *recv[] = { "--quiet", "--keyserver", ks,
+                                       "--recv-keys", fpr, NULL };
+                pgpid_run_engine(recv);
+            }
+        }
+    }
+}
+
+/**
+ * The certificates carrying this identifier, by fingerprint.
+ *
+ * Capped, and a keyring holding more than the cap is refused rather than
+ * silently truncated: choosing among candidates one cannot see is not a
+ * choice. Nobody legitimately carries thirty-two certificates for one
+ * identity — such a keyring has been fed something.
+ */
+static size_t collect_candidates(const char *pats[],
+                                 char out[][41], size_t max, bool *overflow)
+{
+    *overflow = false;
+    gpgme_ctx_t ctx;
+    if (pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL))
+        return 0;
+    size_t n = 0;
+    if (!gpgme_op_keylist_ext_start(ctx, pats, 0, 0)) {
+        gpgme_key_t key = NULL;
+        while (!gpgme_op_keylist_next(ctx, &key)) {
+            if (key->subkeys && key->subkeys->fpr) {
+                if (n >= max)
+                    *overflow = true;
+                else
+                    snprintf(out[n++], 41, "%s", key->subkeys->fpr);
+            }
+            gpgme_key_unref(key);
+        }
+    }
+    gpgme_op_keylist_end(ctx);
+    gpgme_release(ctx);
+    return n;
+}
+
+/**
+ * Which certificate, confirmed against the card in the certifier's hand.
+ *
+ * Eight hexadecimal characters, not forty: enough to prove they are holding
+ * the object, short enough to read aloud without losing one's place. Which
+ * eight is drawn at random, so that nobody learns to copy the same corner of
+ * every card, and so that a shoulder-surfer learns nothing reusable.
+ *
+ * Exactly one candidate may match. Eight characters could in principle land
+ * on two of them, and signing "the first that fits" is not a check.
+ */
+static int confirm_fingerprint(char cands[][41], size_t n, char *out, size_t max)
+{
+    /* Drawn from the kernel, not from a seeded generator: the point of moving
+     * the window is that it cannot be anticipated. */
+    unsigned char byte = 0;
+    if (getrandom(&byte, 1, 0) != 1)
+        return PGPID_FAIL;
+    unsigned at = (unsigned)((byte % (40 / WINDOW)) * WINDOW);
+
+    pgpid_error(_("Notice: %zu certificate(s) carry this identifier:"), n);
+    for (size_t i = 0; i < n; i++) {
+        char shown[64];
+        size_t k = 0;
+        for (unsigned c = 0; c < 40; c++) {
+            if (c && !(c % 4))
+                shown[k++] = ' ';
+            shown[k++] = (c >= at && c < at + WINDOW) ? '.' : cands[i][c];
+        }
+        shown[k] = '\0';
+        pgpid_error("  %s", shown);
+    }
+
+    char prompt[256];
+    snprintf(prompt, sizeof prompt,
+             _("Characters %u to %u of the fingerprint on the card: "),
+             at + 1, at + WINDOW);
+    char typed[WINDOW + 1];
+    if (!pgpid_ask_hex(prompt, WINDOW, typed, sizeof typed))
+        return CERT_NO_MATCH;
+
+    const char *hit = NULL;
+    for (size_t i = 0; i < n; i++) {
+        if (!strncmp(cands[i] + at, typed, WINDOW)) {
+            if (hit) {
+                pgpid_error(_("Error: Those eight characters fit more than one certificate."));
+                return CERT_NO_MATCH;
+            }
+            hit = cands[i];
+        }
+    }
+    if (!hit) {
+        pgpid_error(_("Error: No certificate here has those characters there."));
+        return CERT_NO_MATCH;
+    }
+    snprintf(out, max, "%.40s", hit);
+    return PGPID_OK;
+}
+
 /** Does this uid carry the identifier, in either spelling? */
 static bool uid_carries(const char *uid, const char *head, const char *old)
 {
@@ -365,19 +551,29 @@ int pgpid_action_certify(int argc, char **argv)
             for (size_t k = 0; a[k] && k < 40; k++)
                 target[k] = (a[k] >= 'a' && a[k] <= 'f') ? a[k] - 32 : a[k];
             target[40] = '\0';
-        } else if (pgpid_eid_body_is_sound(a)) {
-            snprintf(eid, sizeof eid, "%s", a);
+        } else if (eid_operand(a, eid, sizeof eid)) {
+            /* Whichever way it was written, and whichever order it came in. */
         } else {
             pgpid_error(_("Error: '%s' is neither a fingerprint nor an identifier."), a);
             return PGPID_USAGE;
         }
     }
 
-    if (!*target) {
-        pgpid_error(_("Error: Which certificate? A whole fingerprint is required —"));
-        pgpid_error(_("a certification cannot be taken back, so it is never guessed."));
-        usage(stderr);
-        return PGPID_USAGE;
+    /* Neither given: ask. The shell asks for whatever it is missing, and a
+     * caller that cannot be asked says so with --batch. */
+    if (!*target && !*eid) {
+        char line[128];
+        if (!pgpid_ask(_("Whom are you certifying? A fingerprint or an identifier: "),
+                       line, sizeof line))
+            return PGPID_USAGE;
+        if (pgpid_is_fingerprint(line)) {
+            for (size_t k = 0; line[k] && k < 40; k++)
+                target[k] = (line[k] >= 'a' && line[k] <= 'f') ? line[k] - 32 : line[k];
+            target[40] = '\0';
+        } else if (!eid_operand(line, eid, sizeof eid)) {
+            pgpid_error(_("Error: '%s' is neither a fingerprint nor an identifier."), line);
+            return PGPID_USAGE;
+        }
     }
 
     char mine[41];
@@ -389,7 +585,7 @@ int pgpid_action_certify(int argc, char **argv)
 
     /* Certify what stands now, not a copy that may be months behind. A server
      * that will not answer is not a reason to stop: the certificate is here. */
-    if (*list) {
+    if (*list && *target) {
         for (char *copy = strdup(list), *save = NULL,
              *ks = copy ? strtok_r(copy, " \t,", &save) : NULL; ks;
              ks = strtok_r(NULL, " \t,", &save)) {
@@ -405,6 +601,33 @@ int pgpid_action_certify(int argc, char **argv)
         match_head_deprecated(head, old, sizeof old);
         pats[0] = head;
         pats[1] = *old ? old : NULL;
+    }
+
+    /* An identifier and no fingerprint: find who carries it — here, then on
+     * the keyservers — and have the certifier confirm which one against the
+     * card in their hand. That confirmation is the certification's whole
+     * substance, so it is asked for even when only one candidate turned up. */
+    if (*eid && !*target) {
+        char cands[MAX_CANDIDATES][41];
+        bool over = false;
+        size_t n = collect_candidates(pats, cands, MAX_CANDIDATES, &over);
+        if (!n) {
+            fetch_by_eid(eid, list);
+            n = collect_candidates(pats, cands, MAX_CANDIDATES, &over);
+        }
+        if (over) {
+            pgpid_error(_("Error: More than %d certificates carry '%s'."),
+                        MAX_CANDIDATES, eid);
+            pgpid_error(_("Notice: Name the fingerprint to say which one."));
+            return CERT_NO_MATCH;
+        }
+        if (!n) {
+            pgpid_error(_("Error: Nobody here or on the keyservers carries '%s'."), eid);
+            return CERT_NO_CERT;
+        }
+        ret = confirm_fingerprint(cands, n, target, sizeof target);
+        if (ret)
+            return ret;
     }
 
     if (*eid) {

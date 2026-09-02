@@ -91,6 +91,12 @@ gpgme_error_t pgpid_ctx_new(gpgme_ctx_t *ctx, gpgme_keylist_mode_t mode);
 /* Error/Warning/Notice/Info on stderr, prefixed like the shell libraries. */
 void pgpid_error(const char *fmt, ...);
 
+/* Asking the person in front of the terminal — command line only, and never
+ * when --batch says the caller is not one. See interactive.c. */
+extern bool pgpid_batch;
+bool pgpid_ask(const char *prompt, char *out, size_t max);
+bool pgpid_ask_hex(const char *prompt, size_t want, char *out, size_t max);
+
 /* "Try 'pgpid certify --help' for more information." — the same sentence in
  * twenty-six places, so it is written once and translated once. ACTION is
  * NULL for the program itself. */
