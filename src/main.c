@@ -65,6 +65,35 @@ static void usage(FILE *out)
             PGPID_NAME);
 }
 
+/* Every action, once. The dispatch reads it, and so does the completion:
+ * a list of actions kept in two places is a list that disagrees with
+ * itself the day one is added. */
+static const struct { const char *name; int (*run)(int, char **); } ACTIONS[] = {
+    { "list", pgpid_action_list },
+    { "property", pgpid_action_property },
+    { "sigs", pgpid_action_sigs },
+    { "del", pgpid_action_del },
+    { "avatar", pgpid_action_avatar },
+    { "push", pgpid_action_push },
+    { "get", pgpid_action_get },
+    { "gen_uid", pgpid_action_gen_uid },
+    { "gen_u4", pgpid_action_gen_u4 },
+    { "to_vcard", pgpid_action_to_vcard },
+    { "token_retries", pgpid_action_token_retries },
+    { "token_check", pgpid_action_token_check },
+    { "certify", pgpid_action_certify },
+    { "email", pgpid_action_email },
+    { "trustdb", pgpid_action_trustdb },
+    { "gen_key", pgpid_action_gen_key },
+    { "change_passphrase", pgpid_action_change_passphrase },
+    { "print_secret", pgpid_action_print_secret },
+    { "scan", pgpid_action_scan },
+    { "print_card", pgpid_action_print_card },
+    { "change_token_code", pgpid_action_change_token_code },
+    { "change_token_meta", pgpid_action_change_token_meta },
+    { "totoken", pgpid_action_totoken },
+};
+
 int main(int argc, char **argv)
 {
     setlocale(LC_ALL, "");
@@ -97,6 +126,12 @@ int main(int argc, char **argv)
                 pgpid_error(_("Notice: One of raw, info, md."));
                 return PGPID_USAGE;
             }
+        } else if (!strcmp(a, "--bash-completion")) {
+            const char *names[sizeof ACTIONS / sizeof ACTIONS[0]];
+            for (size_t k = 0; k < sizeof names / sizeof names[0]; k++)
+                names[k] = ACTIONS[k].name;
+            pgpid_emit_completion(names, sizeof names / sizeof names[0]);
+            return PGPID_OK;
         } else if (!strcmp(a, "-B") || !strcmp(a, "--batch")) {
             pgpid_batch = true;
         } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
@@ -127,52 +162,9 @@ int main(int argc, char **argv)
     int sub_argc = argc - i;
     char **sub_argv = argv + i;
 
-    if (!strcmp(action, "list"))
-        return pgpid_action_list(sub_argc, sub_argv);
-    if (!strcmp(action, "property"))
-        return pgpid_action_property(sub_argc, sub_argv);
-    if (!strcmp(action, "sigs"))
-        return pgpid_action_sigs(sub_argc, sub_argv);
-    if (!strcmp(action, "del"))
-        return pgpid_action_del(sub_argc, sub_argv);
-    if (!strcmp(action, "avatar"))
-        return pgpid_action_avatar(sub_argc, sub_argv);
-    if (!strcmp(action, "push"))
-        return pgpid_action_push(sub_argc, sub_argv);
-    if (!strcmp(action, "get"))
-        return pgpid_action_get(sub_argc, sub_argv);
-    if (!strcmp(action, "gen_uid"))
-        return pgpid_action_gen_uid(sub_argc, sub_argv);
-    if (!strcmp(action, "gen_u4"))
-        return pgpid_action_gen_u4(sub_argc, sub_argv);
-    if (!strcmp(action, "to_vcard"))
-        return pgpid_action_to_vcard(sub_argc, sub_argv);
-    if (!strcmp(action, "token_retries"))
-        return pgpid_action_token_retries(sub_argc, sub_argv);
-    if (!strcmp(action, "token_check"))
-        return pgpid_action_token_check(sub_argc, sub_argv);
-    if (!strcmp(action, "certify"))
-        return pgpid_action_certify(sub_argc, sub_argv);
-    if (!strcmp(action, "email"))
-        return pgpid_action_email(sub_argc, sub_argv);
-    if (!strcmp(action, "trustdb"))
-        return pgpid_action_trustdb(sub_argc, sub_argv);
-    if (!strcmp(action, "gen_key"))
-        return pgpid_action_gen_key(sub_argc, sub_argv);
-    if (!strcmp(action, "change_passphrase"))
-        return pgpid_action_change_passphrase(sub_argc, sub_argv);
-    if (!strcmp(action, "print_secret"))
-        return pgpid_action_print_secret(sub_argc, sub_argv);
-    if (!strcmp(action, "scan"))
-        return pgpid_action_scan(sub_argc, sub_argv);
-    if (!strcmp(action, "print_card"))
-        return pgpid_action_print_card(sub_argc, sub_argv);
-    if (!strcmp(action, "change_token_code"))
-        return pgpid_action_change_token_code(sub_argc, sub_argv);
-    if (!strcmp(action, "change_token_meta"))
-        return pgpid_action_change_token_meta(sub_argc, sub_argv);
-    if (!strcmp(action, "totoken"))
-        return pgpid_action_totoken(sub_argc, sub_argv);
+    for (size_t k = 0; k < sizeof ACTIONS / sizeof ACTIONS[0]; k++)
+        if (!strcmp(action, ACTIONS[k].name))
+            return ACTIONS[k].run(sub_argc, sub_argv);
 
     pgpid_error(_("Error: Unknown action '%s'."), action);
     pgpid_try_help(NULL);

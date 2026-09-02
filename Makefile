@@ -45,6 +45,9 @@ LDLIBS  += $(GPGME_LIBS)
 
 PREFIX  ?= /usr/local
 BINDIR  ?= $(PREFIX)/bin
+# Where bash-completion looks. The file there only asks the program for its
+# own completion, so it never falls behind a release.
+COMPDIR ?= $(PREFIX)/share/bash-completion/completions
 DATADIR ?= $(PREFIX)/share
 LOCALEDIR ?= $(DATADIR)/locale
 
@@ -121,12 +124,14 @@ install: build
 	install -D -m 0755 $(BUILDDIR)/$(BIN) $(DESTDIR)$(BINDIR)/$(BIN)
 	$(call install_script,bin/pgpid-gen)
 	$(call install_script,bin/pgpid-qrscan)
+	install -D -m 0644 bash-completion/pgpid $(DESTDIR)$(COMPDIR)/pgpid
 	$(SUBMAKE) -C man install
 	$(SUBMAKE) -C po install
 
 uninstall:
 	$(RM) $(DESTDIR)$(BINDIR)/$(BIN)
 	$(RM) $(DESTDIR)$(BINDIR)/pgpid-gen $(DESTDIR)$(BINDIR)/pgpid-qrscan
+	$(RM) $(DESTDIR)$(COMPDIR)/pgpid
 	$(SUBMAKE) -C man uninstall
 	$(SUBMAKE) -C po uninstall
 

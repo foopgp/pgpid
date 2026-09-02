@@ -582,5 +582,27 @@ is "asked and given agree"                        "$BYASK" "$BYOPT"
 is "and says so rather than failing mutely" \
    "$("$BIN" --batch certify --keyservers '' --use-privkey "$CFPR" 2>&1 | grep --count -- '--batch')" "1"
 
+printf '\nbash completion\n'
+# The program completes itself: nothing beside it lists the actions, so
+# nothing beside it can fall behind a release.
+COMP=$("$BIN" --bash-completion)
+is "emits a completion function"  "$(grep --count '^_pgpid_completion()' <<<"$COMP")" "1"
+is "and registers it"             "$(grep --count '^complete -F _pgpid_completion' <<<"$COMP")" "1"
+# Every action the dispatch knows, and only those.
+for act in list certify trustdb change_token_meta ; do
+    is "offers $act"              "$(grep --count "\<$act\>" <<<"$(sed --silent '2p' <<<"$COMP")")" "1"
+done
+is "no action invented"           "$(sed --silent '2p' <<<"$COMP" | grep --count 'nonesuch')" "0"
+# It runs, and answers.
+BINDIR=$(dirname "$BIN")
+out=$(PATH="$BINDIR:$PATH" bash -c '
+    eval "$('"$BIN"' --bash-completion)"
+    COMP_WORDS=(pgpid ce) ; COMP_CWORD=1 ; _pgpid_completion ; printf "%s" "${COMPREPLY[*]}"')
+is "completes an action prefix"   "$out" "certify"
+out=$(PATH="$BINDIR:$PATH" bash -c '
+    eval "$('"$BIN"' --bash-completion)"
+    COMP_WORDS=(pgpid --) ; COMP_CWORD=1 ; _pgpid_completion ; printf "%s" "${COMPREPLY[*]}"')
+is "global options with no action" "$out" "--homedir --output-format= --batch --help --version"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [[ $fail -eq 0 ]]

@@ -100,6 +100,8 @@ bool pgpid_ask_secret(const char *prompt, char *out, size_t max);
 bool pgpid_choose(const char *prompt, const char *const *items, size_t n, size_t *picked);
 /* Which secret key, when nobody said. See seckeys.c. */
 bool pgpid_choose_secret_key(const char *prompt, char *out, size_t max);
+/* The bash completion, emitted by the program it completes. See completion.c. */
+void pgpid_emit_completion(const char *const *actions, size_t n);
 
 /* "Try 'pgpid certify --help' for more information." — the same sentence in
  * twenty-six places, so it is written once and translated once. ACTION is
