@@ -131,15 +131,35 @@ int pgpid_action_change_token_code(int argc, char **argv)
     const char *reference = admin ? "83" : "81";
     size_t length = admin ? 8 : 6;
 
+    /* Asked for rather than refused, as the shell does — and asked for without
+     * echo: a code read over a shoulder is a code lost, and one the terminal
+     * echoed stays in the scrollback for the rest of the session. A caller
+     * that has nobody to ask says so with --batch. */
+    char prompt[128];
     if (!current_given) {
-        pgpid_error(_("Error: The current %s code is needed. Give --code, or "
-                    "--codefrom to keep it off the process list."), kind);
-        return PGPID_USAGE;
+        snprintf(prompt, sizeof prompt,
+                 _("Current %s code (%zu digits): "), kind, length);
+        if (!pgpid_ask_secret(prompt, current, sizeof current)) {
+            pgpid_error(_("Notice: Give --code, or --codefrom to keep it off "
+                        "the process list."));
+            return PGPID_USAGE;
+        }
     }
     if (!only_check && !fresh_given) {
-        pgpid_error(_("Error: What should the code become? Give --newcode, or "
-                    "--onlycheck to only check the current one."));
-        return PGPID_USAGE;
+        snprintf(prompt, sizeof prompt,
+                 _("New %s code (%zu digits): "), kind, length);
+        if (!pgpid_ask_secret(prompt, fresh, sizeof fresh)) {
+            pgpid_error(_("Notice: Give --newcode, or --onlycheck to only "
+                        "check the current one."));
+            return PGPID_USAGE;
+        }
+        char again[sizeof fresh];
+        if (!pgpid_ask_secret(_("The same again: "), again, sizeof again))
+            return PGPID_USAGE;
+        if (strcmp(fresh, again)) {
+            pgpid_error(_("Error: The two do not match."));
+            return PGPID_USAGE;
+        }
     }
 
     int ret = PGPID_OK;

@@ -115,10 +115,17 @@ int pgpid_action_change_passphrase(int argc, char **argv)
     }
 
     if (!keyid) {
-        pgpid_error(_("Error: Which key? Naming it is not something to guess at:"));
-        pgpid_error(_("this machine may hold several secret keys."));
-        usage(stderr);
-        return PGPID_USAGE;
+        /* Offered rather than guessed: the shell shows the list too, and a
+         * machine holding several secret keys is exactly where guessing
+         * re-locks the wrong one. --batch refuses instead of asking. */
+        static char picked[41];
+        if (!pgpid_choose_secret_key(_("Which key? Its number: "),
+                                     picked, sizeof picked)) {
+            pgpid_error(_("Error: Which key? Naming it is not something to guess at:"));
+            pgpid_error(_("this machine may hold several secret keys."));
+            return PGPID_USAGE;
+        }
+        keyid = picked;
     }
     if (!current_given || !fresh_given) {
         pgpid_error(_("Error: Both passphrases are needed — the current one with "

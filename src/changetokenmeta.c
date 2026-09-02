@@ -158,11 +158,18 @@ int pgpid_action_change_token_meta(int argc, char **argv)
         }
     }
 
+    static char typed[256];
     if (!value) {
-        pgpid_error(_("Error: What should the card say? An address, an http URL, or "
-                    "a two-letter language code."));
-        usage(stderr);
-        return PGPID_USAGE;
+        /* Asked for rather than refused, as the shell does. What it should
+         * hold is said in the question, so nobody has to go back to the help
+         * to learn what shape is expected. */
+        if (!pgpid_ask(_("What should the card say? An address, an http URL, "
+                       "or a two-letter language code: "), typed, sizeof typed)
+            || !*typed) {
+            pgpid_error(_("Error: Nothing to write."));
+            return PGPID_USAGE;
+        }
+        value = typed;
     }
 
     char lowered[512];
@@ -294,10 +301,14 @@ int pgpid_action_change_token_meta(int argc, char **argv)
     }
 
     if (!admin_given) {
-        pgpid_error(_("Error: The Admin code is needed to write to the card."));
-        pgpid_error(_("Give --admincode, or --admincodefrom to keep it off the "
-                    "process list."));
-        return PGPID_USAGE;
+        /* Without echo: a code the terminal showed stays in the scrollback
+         * for the rest of the session. */
+        if (!pgpid_ask_secret(_("Admin code (8 digits): "),
+                              admincode, sizeof admincode)) {
+            pgpid_error(_("Notice: Give --admincode, or --admincodefrom to "
+                        "keep it off the process list."));
+            return PGPID_USAGE;
+        }
     }
     if (strlen(admincode) < 8)
         pgpid_error(_("Warning: Admin code shorter than 8 digits."));

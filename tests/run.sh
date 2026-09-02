@@ -281,7 +281,7 @@ is "an unknown country is refused" \
 is "an impossible date is refused" \
    "$("$BIN" gen_u4 -s DOE -g John -d 2026-02-30 -c FRA >/dev/null 2>&1 ; echo $?)" "2"
 is "a leap day is not"           "$("$BIN" gen_u4 -s DOE -g John -d 2024-02-29 -c FRA >/dev/null 2>&1 ; echo $?)" "0"
-is "everything is required"      "$("$BIN" gen_u4 -s DOE >/dev/null 2>&1 ; echo $?)" "2"
+is "everything is required"      "$("$BIN" --batch gen_u4 -s DOE >/dev/null 2>&1 ; echo $?)" "2"
 
 printf '\nto_vcard\n'
 # Self-sufficient: earlier blocks revoke what they add, so this one puts back
@@ -563,6 +563,22 @@ done
 # nobody to ask. 2 is a usage error — what was missing was an operand.
 "$BIN" --batch certify --keyservers '' --use-privkey "$CFPR" >/dev/null 2>&1
 is "--batch refuses instead of asking"            "$?" "2"
+
+printf '\n--batch, everywhere something used to be refused\n'
+# Each of these asks the shell's question rather than sending the caller back
+# to the usage. --batch is what a program driving pgpid gives so that a
+# missing operand never becomes a wait nobody is there to end.
+for act in gen_u4 change_token_meta totoken change_passphrase ; do
+    out=$("$BIN" --batch "$act" 2>&1)
+    is "$act asks, and --batch refuses" "$(grep --count -- '--batch was given' <<<"$out")" "1"
+done
+# What it asks for is a question, not the usage dumped again.
+is "gen_u4 names the field it wants" \
+   "$("$BIN" --batch gen_u4 2>&1 | grep --count 'Birth surname')" "1"
+# And the fields still arrive from stdin, giving what the options give.
+BYOPT=$("$BIN" gen_u4 --surname Dupont --given-names Jean --birth-date 1980-01-01 --birth-country FRA 2>/dev/null)
+BYASK=$(printf 'Dupont\nJean\n1980-01-01\nFRA\n' | "$BIN" gen_u4 2>/dev/null)
+is "asked and given agree"                        "$BYASK" "$BYOPT"
 is "and says so rather than failing mutely" \
    "$("$BIN" --batch certify --keyservers '' --use-privkey "$CFPR" 2>&1 | grep --count -- '--batch')" "1"
 

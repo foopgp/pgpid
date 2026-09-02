@@ -96,6 +96,10 @@ void pgpid_error(const char *fmt, ...);
 extern bool pgpid_batch;
 bool pgpid_ask(const char *prompt, char *out, size_t max);
 bool pgpid_ask_hex(const char *prompt, size_t want, char *out, size_t max);
+bool pgpid_ask_secret(const char *prompt, char *out, size_t max);
+bool pgpid_choose(const char *prompt, const char *const *items, size_t n, size_t *picked);
+/* Which secret key, when nobody said. See seckeys.c. */
+bool pgpid_choose_secret_key(const char *prompt, char *out, size_t max);
 
 /* "Try 'pgpid certify --help' for more information." — the same sentence in
  * twenty-six places, so it is written once and translated once. ACTION is

@@ -315,10 +315,25 @@ int pgpid_action_gen_u4(int argc, char **argv)
         pgpid_try_help("gen_u4");
         return PGPID_USAGE;
     }
-    if (!surname || !given || !date || !country) {
-        pgpid_error(_("Error: Surname, given names, date and country are all needed."));
-        usage(stderr);
-        return PGPID_USAGE;
+    /* Asked for one by one rather than refused wholesale, as the shell does:
+     * somebody typing their civil status has no reason to be sent back to the
+     * usage for the one field they left out. --batch refuses instead. */
+    char asked[4][128];
+    const struct { const char **slot; const char *question; } fields[] = {
+        { &surname, N_("Birth surname (family name): ") },
+        { &given,   N_("Birth names (all given names): ") },
+        { &date,    N_("Birth date (YYYY-MM-DD): ") },
+        { &country, N_("Birth country (3 letter code): ") },
+    };
+    for (size_t f = 0; f < 4; f++) {
+        if (*fields[f].slot)
+            continue;
+        if (!pgpid_ask(_(fields[f].question), asked[f], sizeof asked[f])
+            || !*asked[f]) {
+            pgpid_error(_("Error: Surname, given names, date and country are all needed."));
+            return PGPID_USAGE;
+        }
+        *fields[f].slot = asked[f];
     }
 
     char birth[16];

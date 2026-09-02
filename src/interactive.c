@@ -16,7 +16,9 @@
 #include "pgpid.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <termios.h>
 #include <unistd.h>
 
 bool pgpid_batch = false;
@@ -43,6 +45,84 @@ bool pgpid_ask(const char *prompt, char *out, size_t max)
     }
     out[strcspn(out, "\r\n")] = '\0';
     return true;
+}
+
+/**
+ * Ask for something that must not appear on the screen.
+ *
+ * A PIN read over somebody's shoulder is a PIN lost, and a terminal that
+ * echoed it leaves it in the scrollback for the rest of the session. Echo is
+ * turned off around the question and put back afterwards, whatever happens —
+ * including when the answer never comes.
+ */
+bool pgpid_ask_secret(const char *prompt, char *out, size_t max)
+{
+    if (pgpid_batch) {
+        pgpid_error(_("Error: %s"), prompt);
+        pgpid_error(_("Notice: --batch was given, so nothing is asked."));
+        return false;
+    }
+    struct termios saved, quiet;
+    bool restore = isatty(STDIN_FILENO) && !tcgetattr(STDIN_FILENO, &saved);
+    if (restore) {
+        quiet = saved;
+        quiet.c_lflag &= (tcflag_t)~ECHO;
+        tcsetattr(STDIN_FILENO, TCSAFLUSH, &quiet);
+    }
+    fprintf(stderr, "%s", prompt);
+    fflush(stderr);
+    bool got = fgets(out, (int)max, stdin) != NULL;
+    if (restore) {
+        tcsetattr(STDIN_FILENO, TCSAFLUSH, &saved);
+        fputc('\n', stderr);            /* the newline the echo would have shown */
+    }
+    if (!got) {
+        pgpid_error(_("Error: Nothing to read: the question stays unanswered."));
+        return false;
+    }
+    out[strcspn(out, "\r\n")] = '\0';
+    return true;
+}
+
+/**
+ * Offer a numbered list and return what was picked, zero-based.
+ *
+ * The shell puts the same question through a radiolist; here the items are
+ * printed and a number is read. Out of range is asked again rather than
+ * rounded to something — picking the wrong secret key is not a small mistake.
+ */
+bool pgpid_choose(const char *prompt, const char *const *items, size_t n,
+                  size_t *picked)
+{
+    if (!n)
+        return false;
+    if (n == 1) {
+        *picked = 0;
+        return true;
+    }
+    /* Checked before printing anything: a caller that cannot be asked has no
+     * use for a menu, and a refusal buried under twenty lines reads as a
+     * listing that failed. */
+    if (pgpid_batch) {
+        pgpid_error(_("Error: %s"), prompt);
+        pgpid_error(_("Notice: --batch was given, so nothing is asked."));
+        return false;
+    }
+    for (unsigned tries = 0; tries < 3; tries++) {
+        for (size_t i = 0; i < n; i++)
+            pgpid_error("  %2zu. %s", i + 1, items[i]);
+        char line[64];
+        if (!pgpid_ask(prompt, line, sizeof line))
+            return false;
+        char *end = NULL;
+        long v = strtol(line, &end, 10);
+        if (end != line && v >= 1 && (size_t)v <= n) {
+            *picked = (size_t)v - 1;
+            return true;
+        }
+        pgpid_error(_("Notice: A number between 1 and %zu is wanted."), n);
+    }
+    return false;
 }
 
 /**

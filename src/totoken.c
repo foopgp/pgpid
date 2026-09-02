@@ -159,9 +159,15 @@ int pgpid_action_totoken(int argc, char **argv)
         pgpid_error(_("Warning: Only 2 lower case ASCII letters can define a preferred "
                     "language; leaving it out."));
     if (!keyid) {
-        pgpid_error(_("Error: Which secret key should move onto the card?"));
-        usage(stderr);
-        return PGPID_USAGE;
+        /* Same question the shell puts through a radiolist: moving the wrong
+         * secret key onto a card is not a small mistake. --batch refuses. */
+        static char picked[41];
+        if (!pgpid_choose_secret_key(_("Which secret key? Its number: "),
+                                     picked, sizeof picked)) {
+            pgpid_error(_("Error: Which secret key should move onto the card?"));
+            return PGPID_USAGE;
+        }
+        keyid = picked;
     }
 
     char listing[16384], fpr[41] = "";
