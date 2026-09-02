@@ -421,6 +421,7 @@ for spelling in --credibility --ownertrust -o ; do
     is "$spelling checks its value"  "$?" "2"
 done
 
+
 printf '\ntrustdb export\n'
 # A signing key of its own: the keyring's certificate can only certify, and
 # gpg will not sign a message with a key that has no signing capability.
@@ -524,6 +525,31 @@ is "deletes the certificate"      "$?" "0"
 is "and it is gone"               "$("$BIN" list "$FPR" 2>/dev/null | wc --lines)" "0"
 "$BIN" del "$FPR" >/dev/null 2>&1
 is "says 141 for one it has not"  "$?" "141"
+
+printf '\ncertify — the two eid spellings\n'
+# An eid given glued must find the certificate that still spells it with the
+# deprecated separator: a uid is matched by substring, so one spelling never
+# finds the other, and the certifier was told the person had no certificate.
+# Asserted on the identification alone — what follows would write a signature.
+# Both keys are its own: certifying writes, and writing on a certificate the
+# other checks rely on would make them depend on the order they run in.
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-generate-key "old (${EID:0:2}=${EID:2}) <old@example.invalid>" ed25519 cert never 2>/dev/null
+OFPR=$(gpg --with-colons --list-keys old@example.invalid 2>/dev/null | awk --field-separator=: '$1=="fpr"{print $10; exit}')
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-generate-key 'certifier <certifier@example.invalid>' ed25519 cert never 2>/dev/null
+CFPR=$(gpg --with-colons --list-keys certifier@example.invalid 2>/dev/null | awk --field-separator=: '$1=="fpr"{print $10; exit}')
+"$BIN" certify --keyservers '' --use-privkey "$CFPR" "$OFPR" "$EID" >/dev/null 2>&1
+is "finds an eid spelled the deprecated way"  "$?" "0"
+# The refusals still stand. Somebody here carries this identifier, so a
+# fingerprint that is not among them is 143 — "that certificate does not carry
+# that identifier" — and not 141, which says nobody carries it at all.
+"$BIN" certify --keyservers '' --use-privkey "$CFPR" 0000000000000000000000000000000000000000 "$EID" >/dev/null 2>&1
+is "refuses a fingerprint that is not among them" "$?" "143"
+"$BIN" certify --keyservers '' --use-privkey "$CFPR" "$NFPR" "$EID" >/dev/null 2>&1
+is "refuses a certificate that does not carry it" "$?" "143"
+"$BIN" certify --keyservers '' --use-privkey "$CFPR" "$NFPR" u4ZZZZZZZZZZZZZZZZZZZZZZe_42.17-002.76 >/dev/null 2>&1
+is "says 141 when nobody carries the identifier"  "$?" "141"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [[ $fail -eq 0 ]]

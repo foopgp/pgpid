@@ -101,6 +101,24 @@ static void match_head(const char *eid, char *out, size_t max)
 }
 
 /**
+ * The same head, spelled the deprecated way: the tag, a '=', then the body.
+ *
+ * Ours write the eid glued to its tag; certificates already in the wild
+ * separate the two. A uid is matched by substring, so one spelling never finds
+ * the other, and a certificate that carries only the old one would be reported
+ * as carrying no identifier at all. Both are offered until every certificate
+ * has migrated — gpg lists a key matching several patterns once, so offering
+ * two costs nothing but the asking. Empty when the head is not an eid.
+ */
+static void match_head_deprecated(const char *head, char *out, size_t max)
+{
+    if ((head[0] == 'u') && (head[1] == '4' || head[1] == '5'))
+        snprintf(out, max, "u%c=%s", head[1], head + 2);
+    else
+        *out = '\0';
+}
+
+/**
  * The fingerprint of the key that will sign.
  *
  * Named, or the one the connected card belongs to. Nothing else: the shell
@@ -157,8 +175,16 @@ static int signing_key(const char *given, char *out, size_t max)
  * Revoked and expired uids are left alone: signing them would state
  * something about a name its owner has withdrawn.
  */
-static size_t collect_uids(const char *fpr, const char *head, bool all_emails,
-                           char out[][UID_MAX], size_t max)
+/** Does this uid carry the identifier, in either spelling? */
+static bool uid_carries(const char *uid, const char *head, const char *old)
+{
+    if (head && strstr(uid, head))
+        return true;
+    return old && *old && strstr(uid, old);
+}
+
+static size_t collect_uids(const char *fpr, const char *head, const char *old,
+                           bool all_emails, char out[][UID_MAX], size_t max)
 {
     gpgme_ctx_t ctx;
     if (pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL))
@@ -187,7 +213,7 @@ static size_t collect_uids(const char *fpr, const char *head, bool all_emails,
             continue;
         if (!strstr(u->uid, "UID:urn:eid:"))
             continue;
-        if (head && !strstr(u->uid, head))
+        if (head && !uid_carries(u->uid, head, old))
             continue;
         snprintf(out[n++], UID_MAX, "%s", u->uid);
     }
@@ -199,7 +225,7 @@ static size_t collect_uids(const char *fpr, const char *head, bool all_emails,
                 continue;
             if (i < nletters && (letters[i] == 'r' || letters[i] == 'e'))
                 continue;
-            if (strstr(u->uid, head))
+            if (uid_carries(u->uid, head, old))
                 snprintf(out[n++], UID_MAX, "%s", u->uid);
         }
     }
@@ -245,14 +271,14 @@ static size_t collect_uids(const char *fpr, const char *head, bool all_emails,
  * nobody can choose — a keyserver can hand out as many certificates claiming
  * one identifier as it likes.
  */
-static size_t candidates_for(const char *head, const char *target, bool *among)
+static size_t candidates_for(const char *pats[], const char *target, bool *among)
 {
     *among = false;
     gpgme_ctx_t ctx;
     if (pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL))
         return 0;
     size_t n = 0;
-    if (!gpgme_op_keylist_start(ctx, head, 0)) {
+    if (!gpgme_op_keylist_ext_start(ctx, pats, 0, 0)) {
         gpgme_key_t key = NULL;
         while (!gpgme_op_keylist_next(ctx, &key)) {
             if (key->subkeys && key->subkeys->fpr) {
@@ -372,13 +398,18 @@ int pgpid_action_certify(int argc, char **argv)
         }
     }
 
-    char head[64];
-    if (*eid)
+    char head[64], old[sizeof head + 2] = "";
+    const char *pats[3] = { NULL, NULL, NULL };
+    if (*eid) {
         match_head(eid, head, sizeof head);
+        match_head_deprecated(head, old, sizeof old);
+        pats[0] = head;
+        pats[1] = *old ? old : NULL;
+    }
 
     if (*eid) {
         bool among = false;
-        size_t n = candidates_for(head, target, &among);
+        size_t n = candidates_for(pats, target, &among);
         if (!n) {
             pgpid_error(_("Error: Nobody here carries '%s'."), eid);
             return CERT_NO_CERT;
@@ -400,7 +431,7 @@ int pgpid_action_certify(int argc, char **argv)
     }
 
     static char uids[MAX_UIDS][UID_MAX];
-    size_t nuids = collect_uids(target, *eid ? head : NULL, all_emails,
+    size_t nuids = collect_uids(target, *eid ? head : NULL, *eid ? old : NULL, all_emails,
                                 uids, MAX_UIDS);
     if (!nuids) {
         if (*eid) {
