@@ -12,6 +12,14 @@
 
 set -u
 
+# Every expectation here is an English string. Once the catalogues are
+# installed, the binary speaks the caller's language and every one of them
+# fails -- which says nothing about the code. C.UTF-8 keeps the messages
+# English while leaving accented input alone; LANGUAGE has to go too, since
+# gettext reads it in preference to LC_MESSAGES.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
+
 BIN=${1:-./build/pgpid}
 [[ -x "$BIN" ]] || { printf 'run.sh: Error: no binary at %s\n' "$BIN" >&2 ; exit 2 ; }
 BIN=$(readlink --canonicalize "$BIN")

@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid 0.0.7-35-g8512aa6\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-08-28 12:07+0200\n"
+"POT-Creation-Date: 2026-09-03 10:53+0200\n"
 "PO-Revision-Date: 2026-08-22 22:58+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -146,19 +146,19 @@ msgstr "Error: «%s» очікує зображення."
 msgid "Error: '%s' wants a list of servers, empty for none."
 msgstr "Error: «%s» очікує перелік серверів, порожній — жодного."
 
-#: ../src/avatar.c:551 ../src/main.c:82 ../src/printsecret.c:259
-#: ../src/scan.c:123
+#: ../src/avatar.c:551 ../src/main.c:112 ../src/printsecret.c:307
+#: ../src/scan.c:97
 #, c-format
 msgid "Error: '%s' wants a directory."
 msgstr "Error: «%s» очікує каталог."
 
-#: ../src/avatar.c:566 ../src/certify.c:335 ../src/changepass.c:109
-#: ../src/changetokencode.c:124 ../src/changetokenmeta.c:153 ../src/del.c:93
+#: ../src/avatar.c:566 ../src/certify.c:547 ../src/changepass.c:109
+#: ../src/changetokencode.c:124 ../src/changetokenmeta.c:152 ../src/del.c:93
 #: ../src/email.c:370 ../src/genkey.c:206 ../src/genu4.c:281
-#: ../src/genuid.c:147 ../src/get.c:147 ../src/list.c:377 ../src/main.c:110
-#: ../src/printcard.c:143 ../src/printsecret.c:289 ../src/property.c:378
-#: ../src/push.c:70 ../src/scan.c:141 ../src/sigs.c:124 ../src/token.c:129
-#: ../src/tokencheck.c:269 ../src/totoken.c:150 ../src/tovcard.c:386
+#: ../src/genuid.c:147 ../src/get.c:147 ../src/list.c:377 ../src/main.c:148
+#: ../src/printcard.c:143 ../src/printsecret.c:337 ../src/property.c:378
+#: ../src/push.c:70 ../src/scan.c:115 ../src/sigs.c:124 ../src/token.c:129
+#: ../src/tokencheck.c:269 ../src/totoken.c:167 ../src/tovcard.c:386
 #: ../src/trustdb.c:669 ../src/trustdb.c:812 ../src/trustdb.c:1059
 #, c-format
 msgid "Error: Unrecognized option '%s'."
@@ -193,7 +193,7 @@ msgstr "gpgme_new"
 msgid "gpgme_op_keylist_start"
 msgstr "gpgme_op_keylist_start"
 
-#: ../src/avatar.c:636 ../src/printsecret.c:493 ../src/trustdb.c:636
+#: ../src/avatar.c:636 ../src/printsecret.c:557 ../src/trustdb.c:636
 msgid "Error: Out of memory."
 msgstr "Error: Бракує пам'яті."
 
@@ -248,7 +248,8 @@ msgstr "Error: Перевірка чи підтвердження не вдал�
 msgid "Error: Wrong expected length (%s) - correct lenght: %d ."
 msgstr "Error: Хибна очікувана довжина (%s) — правильна довжина: %d ."
 
-#: ../src/card.c:161
+#: ../src/card.c:161 ../src/interactive.c:36 ../src/interactive.c:61
+#: ../src/interactive.c:107
 #, c-format
 msgid "Error: %s"
 msgstr "Error: %s"
@@ -268,15 +269,23 @@ msgstr "Error: Некритичний стан (%s). Дивіться повер
 msgid "Error: Unhandled or unknown Status Word (%s)."
 msgstr "Error: Невідоме або необроблене слово стану (%s)."
 
-#: ../src/certify.c:40
+#: ../src/certify.c:41
 #, c-format
 msgid ""
-"Usage: %s certify [OPTIONS]... TARGET_KEYFPR [TARGET_U4|TARGET_U5]\n"
+"Usage: %s certify [OPTIONS]... [TARGET_KEYFPR] [TARGET_U4|TARGET_U5]\n"
 "\n"
-"Certify somebody else, identified by its key fingerprint TARGET_KEYFPR.\n"
-"The whole forty characters, read off the other person's card and checked\n"
-"against it — never a search pattern, because a certification cannot be\n"
-"taken back. Giving TARGET_U4 as well asks that the certificate carry it,\n"
+"Certify somebody else. Both operands are optional and may come in either\n"
+"order — they are recognised by their shape, not by their place. What is\n"
+"missing is asked for, unless --batch says there is nobody to ask.\n"
+"\n"
+"TARGET_KEYFPR is the whole forty characters, read off the other person's\n"
+"card — never a search pattern, because a certification cannot be taken\n"
+"back. Without it, whoever carries TARGET_U4 is looked up here and on the\n"
+"keyservers, and eight characters of the fingerprint are asked for, taken\n"
+"at a place drawn at random: enough to prove the card is in your hand.\n"
+"\n"
+"TARGET_U4 may be written u4VALUE, the deprecated u4=VALUE, or bare.\n"
+"Given together with a fingerprint, it asks that the certificate carry it,\n"
 "and refuses otherwise.\n"
 "\n"
 "Certification means : I know this other certificate belongs to this real person.\n"
@@ -304,12 +313,21 @@ msgid ""
 "- %d Self-certification is not innovative! ;-)\n"
 "- %d That certificate does not carry that identifier\n"
 msgstr ""
-"Usage: %s certify [OPTIONS]... TARGET_KEYFPR [TARGET_U4|TARGET_U5]\n"
+"Usage: %s certify [OPTIONS]... [TARGET_KEYFPR] [TARGET_U4|TARGET_U5]\n"
 "\n"
-"Засвідчити когось іншого, названого відбитком його ключа TARGET_KEYFPR.\n"
-"Усі сорок знаків, зчитані з картки тієї особи й звірені з нею — ніколи не\n"
-"взірець пошуку, бо засвідчення не забрати назад. Якщо подано ще й\n"
-"TARGET_U4, сертифікат має його нести, інакше буде відмова.\n"
+"Засвідчити когось іншого. Обидва операнди необов'язкові й можуть іти в\n"
+"будь-якому порядку — їх упізнають за виглядом, а не за місцем. Бракуюче\n"
+"запитується, якщо тільки --batch не каже, що питати нікого.\n"
+"\n"
+"TARGET_KEYFPR — це всі сорок символів, прочитані з картки іншої людини, а\n"
+"не взірець пошуку: засвідчення не відкликається. Без нього того, хто має\n"
+"TARGET_U4, шукають тут і на серверах ключів, і запитують вісім символів\n"
+"відбитка, узятих у випадково вибраному місці: цього досить, щоб довести,\n"
+"що картка у вашій руці.\n"
+"\n"
+"TARGET_U4 пишеться як u4ЗНАЧЕННЯ, застаріле u4=ЗНАЧЕННЯ або просто\n"
+"значення. Разом із відбитком він вимагає, щоб сертифікат його мав, і\n"
+"інакше відмовляє.\n"
 "\n"
 "Засвідчити означає: я знаю, що цей інший сертифікат належить цій справжній особі.\n"
 "Це вимагає перевірити громадянський стан і відбиток відкритого ключа ЦІЛІ.\n"
@@ -337,96 +355,124 @@ msgstr ""
 "- %d Цей сертифікат не несе цей ідентифікатор\n"
 "\n"
 
-#: ../src/certify.c:114
+#: ../src/certify.c:141
 msgid "Error: No card answered, so there is nothing to certify with."
 msgstr "Error: Жодна картка не відповіла, тож засвідчувати нічим."
 
-#: ../src/certify.c:115
+#: ../src/certify.c:142
 msgid "Say which key with --use-privkey."
 msgstr "Укажіть ключ через --use-privkey."
 
-#: ../src/certify.c:123
+#: ../src/certify.c:150
 msgid "Error: Cannot list the secret keys."
 msgstr "Error: Не вдається перелічити таємні ключі."
 
-#: ../src/certify.c:141
+#: ../src/certify.c:168
 #, c-format
 msgid "Error: '%s' names %s secret key."
 msgstr "Error: «%s» називає %s таємний ключ."
 
-#: ../src/certify.c:297 ../src/trustdb.c:796
+#: ../src/certify.c:325
+#, c-format
+msgid "Notice: %zu certificate(s) carry this identifier:"
+msgstr "Notice: цей ідентифікатор мають %zu сертифікат(ів):"
+
+#: ../src/certify.c:340
+#, c-format
+msgid "Characters %u to %u of the fingerprint on the card: "
+msgstr "Символи з %u до %u відбитка на картці: "
+
+#: ../src/certify.c:350
+msgid "Error: Those eight characters fit more than one certificate."
+msgstr "Error: Ці вісім символів підходять більш ніж одному сертифікату."
+
+#: ../src/certify.c:357
+msgid "Error: No certificate here has those characters there."
+msgstr "Error: Жоден сертифікат тут не має цих символів у цьому місці."
+
+#: ../src/certify.c:509 ../src/trustdb.c:796
 #, c-format
 msgid "Error: '%s' wants a key."
 msgstr "Error: «%s» очікує ключ."
 
-#: ../src/certify.c:311 ../src/genu4.c:290 ../src/property.c:349
+#: ../src/certify.c:523 ../src/genu4.c:290 ../src/property.c:349
 #: ../src/trustdb.c:644
 #, c-format
 msgid "Error: '%s' wants a value."
 msgstr "Error: «%s» очікує значення."
 
-#: ../src/certify.c:317 ../src/trustdb.c:690
+#: ../src/certify.c:529 ../src/trustdb.c:690
 #, c-format
 msgid "Error: Unknown credibility value '%s'."
 msgstr "Error: Невідоме значення кредиту довіри «%s»."
 
-#: ../src/certify.c:322 ../src/email.c:355 ../src/property.c:365
+#: ../src/certify.c:534 ../src/email.c:355 ../src/property.c:365
 #: ../src/trustdb.c:1044
 #, c-format
 msgid "Error: '%s' wants a list, empty for none."
 msgstr "Error: «%s» очікує перелік, порожній — жодного."
 
-#: ../src/certify.c:345
+#: ../src/certify.c:557 ../src/certify.c:574
 #, c-format
 msgid "Error: '%s' is neither a fingerprint nor an identifier."
 msgstr "Error: «%s» — ані відбиток, ані ідентифікатор."
 
-#: ../src/certify.c:351
-msgid "Error: Which certificate? A whole fingerprint is required —"
-msgstr "Error: Який сертифікат? Потрібен відбиток повністю —"
+#: ../src/certify.c:566
+msgid "Whom are you certifying? A fingerprint or an identifier: "
+msgstr "Кого ви засвідчуєте? Відбиток або ідентифікатор: "
 
-#: ../src/certify.c:352
-msgid "a certification cannot be taken back, so it is never guessed."
-msgstr "засвідчення не відкликається, тож його ніколи не вгадують."
+#: ../src/certify.c:619
+#, c-format
+msgid "Error: More than %d certificates carry '%s'."
+msgstr "Error: Понад %d сертифікатів мають «%s»."
 
-#: ../src/certify.c:383
+#: ../src/certify.c:621
+msgid "Notice: Name the fingerprint to say which one."
+msgstr "Notice: Вкажіть відбиток, щоб назвати потрібний."
+
+#: ../src/certify.c:625
+#, c-format
+msgid "Error: Nobody here or on the keyservers carries '%s'."
+msgstr "Error: Ні тут, ні на серверах ключів ніхто не має «%s»."
+
+#: ../src/certify.c:637
 #, c-format
 msgid "Error: Nobody here carries '%s'."
 msgstr "Error: Ніхто тут не несе «%s»."
 
-#: ../src/certify.c:387
+#: ../src/certify.c:641
 #, c-format
 msgid "Error: %s carries '%s', and %s does not."
 msgstr "Error: %s несе «%s», а %s — ні."
 
-#: ../src/certify.c:393
+#: ../src/certify.c:647
 #, c-format
 msgid "Error: No certificate here carries %s."
 msgstr "Error: Жоден сертифікат тут не несе %s."
 
-#: ../src/certify.c:398
+#: ../src/certify.c:652
 msgid "Warning: Self-certification is not innovative! ;-)"
 msgstr "Warning: Засвідчувати самого себе — не новина! ;-)"
 
-#: ../src/certify.c:407
+#: ../src/certify.c:661
 #, c-format
 msgid "Error: %s carries no usable uid for '%s'."
 msgstr "Error: %s не несе придатного uid для «%s»."
 
-#: ../src/certify.c:410
+#: ../src/certify.c:664
 #, c-format
 msgid "Crit: %s carries no identity uid — the certificate looks broken."
 msgstr "Crit: %s не несе uid особи — сертифікат виглядає пошкодженим."
 
-#: ../src/certify.c:423
+#: ../src/certify.c:677
 msgid "Info: --credibility means nothing when revoking; ignored."
 msgstr "Info: --credibility нічого не означає під час відкликання; пропущено."
 
-#: ../src/certify.c:443
+#: ../src/certify.c:697
 msgid "Notice: gpg reported no error, which does not mean it found a certification to revoke."
 msgstr "Notice: gpg не повідомив про помилку, що не означає, що він знайшов засвідчення до відкликання."
 
-#: ../src/certify.c:446
+#: ../src/certify.c:700
 #, c-format
 msgid "Notice: Signed %zu uid(s) of certificate %s."
 msgstr "Notice: Підписано %zu uid сертифіката %s."
@@ -466,8 +512,8 @@ msgstr ""
 "\n"
 
 #: ../src/changepass.c:48 ../src/changetokencode.c:57
-#: ../src/changetokenmeta.c:56 ../src/genkey.c:163 ../src/printsecret.c:84
-#: ../src/scan.c:57 ../src/totoken.c:64
+#: ../src/changetokenmeta.c:56 ../src/genkey.c:163 ../src/printsecret.c:86
+#: ../src/totoken.c:81
 #, c-format
 msgid "Error: Cannot read %s."
 msgstr "Error: Не вдається прочитати %s."
@@ -477,42 +523,46 @@ msgstr "Error: Не вдається прочитати %s."
 msgid "Error: '%s' wants a %s."
 msgstr "Error: «%s» очікує %s."
 
-#: ../src/changepass.c:118
+#: ../src/changepass.c:122
+msgid "Which key? Its number: "
+msgstr "Який ключ? Його номер: "
+
+#: ../src/changepass.c:124
 msgid "Error: Which key? Naming it is not something to guess at:"
 msgstr "Error: Який ключ? Це не вгадують:"
 
-#: ../src/changepass.c:119
+#: ../src/changepass.c:125
 msgid "this machine may hold several secret keys."
 msgstr "ця машина може тримати кілька."
 
-#: ../src/changepass.c:124
+#: ../src/changepass.c:131
 msgid "Error: Both passphrases are needed — the current one with --passphrase or --passfrom, the new one with"
 msgstr "Error: Потрібні обидві парольні фрази — теперішня через --passphrase чи --passfrom, нова через"
 
-#: ../src/changepass.c:126
+#: ../src/changepass.c:133
 msgid "--newpassphrase or --newpassfrom. Empty strings mean none."
 msgstr "--newpassphrase чи --newpassfrom. Порожній рядок означає жодної."
 
-#: ../src/changepass.c:134 ../src/printsecret.c:369 ../src/totoken.c:186
+#: ../src/changepass.c:141 ../src/printsecret.c:433 ../src/totoken.c:209
 #, c-format
 msgid "Error: No secret for '%s' here."
 msgstr "Error: Тут немає таємниці для «%s»."
 
-#: ../src/changepass.c:146
+#: ../src/changepass.c:153
 #, c-format
 msgid "Error: That is not the current passphrase of '%s'."
 msgstr "Error: Це не теперішня парольна фраза «%s»."
 
-#: ../src/changepass.c:153
+#: ../src/changepass.c:160
 msgid "Notice: Passphrase unchanged."
 msgstr "Notice: Парольна фраза без змін."
 
-#: ../src/changepass.c:170
+#: ../src/changepass.c:177
 #, c-format
 msgid "Error: gpg would not change the passphrase of '%s'."
 msgstr "Error: gpg відмовився змінити парольну фразу «%s»."
 
-#: ../src/changepass.c:173
+#: ../src/changepass.c:180
 msgid "Notice: Passphrase successfully changed."
 msgstr "Notice: Парольну фразу змінено."
 
@@ -566,54 +616,70 @@ msgstr ""
 "- інше ненульове значення за інших помилок.\n"
 
 #: ../src/changetokencode.c:88 ../src/changetokencode.c:97
-#: ../src/changetokenmeta.c:135
+#: ../src/changetokenmeta.c:134
 #, c-format
 msgid "Error: '%s' wants a code."
 msgstr "Error: «%s» очікує код."
 
 #: ../src/changetokencode.c:92 ../src/changetokencode.c:102
-#: ../src/changetokenmeta.c:140 ../src/genkey.c:158 ../src/printsecret.c:241
-#: ../src/scan.c:115 ../src/totoken.c:118 ../src/totoken.c:133
-#: ../src/tovcard.c:369
+#: ../src/changetokenmeta.c:139 ../src/genkey.c:158 ../src/printsecret.c:289
+#: ../src/totoken.c:135 ../src/totoken.c:150 ../src/tovcard.c:369
 #, c-format
 msgid "Error: '%s' wants a file."
 msgstr "Error: «%s» очікує файл."
 
-#: ../src/changetokencode.c:135
+#: ../src/changetokencode.c:141
 #, c-format
-msgid "Error: The current %s code is needed. Give --code, or --codefrom to keep it off the process list."
-msgstr "Error: Потрібен теперішній код %s. Дайте --code або --codefrom, щоб він не потрапив до переліку процесів."
+msgid "Current %s code (%zu digits): "
+msgstr "Поточний код %s (%zu цифр): "
 
-#: ../src/changetokencode.c:140
-msgid "Error: What should the code become? Give --newcode, or --onlycheck to only check the current one."
-msgstr "Error: Чим має стати код? Дайте --newcode або --onlycheck, щоб лише перевірити теперішній."
+#: ../src/changetokencode.c:143
+msgid "Notice: Give --code, or --codefrom to keep it off the process list."
+msgstr "Notice: Вкажіть --code або --codefrom, щоб він не потрапив до списку процесів."
 
 #: ../src/changetokencode.c:150
+#, c-format
+msgid "New %s code (%zu digits): "
+msgstr "Новий код %s (%zu цифр): "
+
+#: ../src/changetokencode.c:152
+msgid "Notice: Give --newcode, or --onlycheck to only check the current one."
+msgstr "Notice: Вкажіть --newcode або --onlycheck, щоб лише перевірити поточний."
+
+#: ../src/changetokencode.c:157
+msgid "The same again: "
+msgstr "Те саме ще раз: "
+
+#: ../src/changetokencode.c:160
+msgid "Error: The two do not match."
+msgstr "Error: Вони не збігаються."
+
+#: ../src/changetokencode.c:170
 #, c-format
 msgid "Warning: Given %s code doesn't match %zu digits."
 msgstr "Warning: У вказаному коді %s не %zu цифр."
 
-#: ../src/changetokencode.c:170
+#: ../src/changetokencode.c:190
 #, c-format
 msgid "Notice: %s code: remaining retries: %d."
 msgstr "Notice: Код %s: залишилося спроб: %d."
 
-#: ../src/changetokencode.c:179
+#: ../src/changetokencode.c:199
 #, c-format
 msgid "Notice: %s code successfully verified."
 msgstr "Notice: Код %s перевірено."
 
-#: ../src/changetokencode.c:192
+#: ../src/changetokencode.c:212
 #, c-format
 msgid "Notice: %s code unchanged."
 msgstr "Notice: Код %s без змін."
 
-#: ../src/changetokencode.c:196
+#: ../src/changetokencode.c:216
 #, c-format
 msgid "Error: Given %s code doesn't match %zu digits."
 msgstr "Error: У вказаному коді %s не %zu цифр."
 
-#: ../src/changetokencode.c:215
+#: ../src/changetokencode.c:235
 #, c-format
 msgid "Notice: %s code successfully %s."
 msgstr "Notice: Код %s: %s."
@@ -660,68 +726,72 @@ msgstr ""
 "  -V, --version               Вивести версію й вийти\n"
 "\n"
 
-#: ../src/changetokenmeta.c:162
-msgid "Error: What should the card say? An address, an http URL, or a two-letter language code."
-msgstr "Error: Що має казати картка? Адресу, http-адресу або дволітерний код мови."
+#: ../src/changetokenmeta.c:165
+msgid "What should the card say? An address, an http URL, or a two-letter language code: "
+msgstr "Що має казати картка? Адресу, http-URL або дволітерний код мови: "
 
-#: ../src/changetokenmeta.c:181
+#: ../src/changetokenmeta.c:168
+msgid "Error: Nothing to write."
+msgstr "Error: Записувати нічого."
+
+#: ../src/changetokenmeta.c:187
 #, c-format
 msgid "Error: '%s' is neither an email, a certurl, nor a 2-letter language code."
 msgstr "Error: «%s» — ані адреса, ані certurl, ані дволітерний код мови."
 
-#: ../src/changetokenmeta.c:188 ../src/totoken.c:257
+#: ../src/changetokenmeta.c:194 ../src/totoken.c:281
 msgid "Error: No security token detected."
 msgstr "Error: Ключ безпеки не виявлено."
 
-#: ../src/changetokenmeta.c:196
+#: ../src/changetokenmeta.c:202
 #, c-format
 msgid "Error: Email '%s' exceeds 38 bytes (OpenPGP smartcard cap)."
 msgstr "Error: Адреса «%s» перевищує 38 байтів (межа карток OpenPGP)."
 
-#: ../src/changetokenmeta.c:201
+#: ../src/changetokenmeta.c:207
 msgid "Error: The card names no signing key, so its certificate cannot be found."
 msgstr "Error: Картка не називає ключа підпису, тож її сертифіката не знайти."
 
-#: ../src/changetokenmeta.c:222
+#: ../src/changetokenmeta.c:228
 msgid "Error: Can't find the token's certificate here."
 msgstr "Error: Сертифіката ключа безпеки тут немає."
 
-#: ../src/changetokenmeta.c:236
+#: ../src/changetokenmeta.c:242
 #, c-format
 msgid "Error: %s is not a usable email of the token's certificate."
 msgstr "Error: %s — непридатна адреса сертифіката цього ключа."
 
-#: ../src/changetokenmeta.c:247
+#: ../src/changetokenmeta.c:253
 msgid "Error: Cannot make a temporary keyring."
 msgstr "Error: Не вдається створити тимчасову в'язку ключів."
 
-#: ../src/changetokenmeta.c:255 ../src/changetokenmeta.c:270
+#: ../src/changetokenmeta.c:261 ../src/changetokenmeta.c:276
 #, c-format
 msgid "Error: Can't fetch a usable certificate from %s."
 msgstr "Error: Не вдається отримати придатний сертифікат з %s."
 
-#: ../src/changetokenmeta.c:285
+#: ../src/changetokenmeta.c:291
 #, c-format
 msgid "Error: Certificate at %s doesn't hold the token's subkeys: %s."
 msgstr "Error: Сертифікат за %s не несе підключів картки: %s."
 
-#: ../src/changetokenmeta.c:297
-msgid "Error: The Admin code is needed to write to the card."
-msgstr "Error: Для запису на картку потрібен код Admin."
+#: ../src/changetokenmeta.c:305
+msgid "Admin code (8 digits): "
+msgstr "Код Admin (8 цифр): "
 
-#: ../src/changetokenmeta.c:298
-msgid "Give --admincode, or --admincodefrom to keep it off the process list."
-msgstr "Дайте --admincode або --admincodefrom, щоб він не потрапив до переліку процесів."
+#: ../src/changetokenmeta.c:307
+msgid "Notice: Give --admincode, or --admincodefrom to keep it off the process list."
+msgstr "Notice: Вкажіть --admincode або --admincodefrom, щоб він не потрапив до списку процесів."
 
-#: ../src/changetokenmeta.c:303
+#: ../src/changetokenmeta.c:313
 msgid "Warning: Admin code shorter than 8 digits."
 msgstr "Warning: Код Admin коротший за 8 цифр."
 
-#: ../src/changetokenmeta.c:317
+#: ../src/changetokenmeta.c:327
 msgid "Error: gpg --card-edit failed — wrong Admin code?"
 msgstr "Error: gpg --card-edit не вдався — хибний код Admin?"
 
-#: ../src/changetokenmeta.c:320
+#: ../src/changetokenmeta.c:330
 #, c-format
 msgid "Notice: Wrote new value '%s' into the security token."
 msgstr "Notice: Нове значення «%s» записано в ключ безпеки."
@@ -1016,8 +1086,7 @@ msgstr ""
 msgid "Error: '%s' wants an identifier."
 msgstr "Error: «%s» очікує ідентифікатор."
 
-#: ../src/genkey.c:151 ../src/printsecret.c:233 ../src/scan.c:108
-#: ../src/totoken.c:115
+#: ../src/genkey.c:151 ../src/printsecret.c:281 ../src/totoken.c:132
 #, c-format
 msgid "Error: '%s' wants a passphrase."
 msgstr "Error: «%s» очікує парольну фразу."
@@ -1032,7 +1101,7 @@ msgstr "Error: «%s» очікує кількість років."
 msgid "Error: Given parameter '%s' is not a valid number."
 msgstr "Error: Вказаний параметр «%s» — не число."
 
-#: ../src/genkey.c:186 ../src/totoken.c:125
+#: ../src/genkey.c:186 ../src/totoken.c:142
 #, c-format
 msgid "Error: '%s' wants a keyserver."
 msgstr "Error: «%s» очікує сервер ключів."
@@ -1171,16 +1240,16 @@ msgstr "%s: У зоні %zu знаків, а не 88."
 msgid "%s: The check digit for %s does not agree."
 msgstr "%s: Контрольна цифра для %s не сходиться."
 
-#: ../src/genu4.c:226 ../src/genu4.c:230 ../src/genu4.c:340
+#: ../src/genu4.c:226 ../src/genu4.c:230 ../src/genu4.c:355
 msgid "Error: The name is not valid UTF-8."
 msgstr "Error: Ім'я — не придатний UTF-8."
 
-#: ../src/genu4.c:239 ../src/genu4.c:326
+#: ../src/genu4.c:239 ../src/genu4.c:341
 #, c-format
 msgid "Error: '%s' is not a date. Give it as YYYY-MM-DD."
 msgstr "Error: «%s» — не дата. Задайте її як РРРР-ММ-ДД."
 
-#: ../src/genu4.c:250 ../src/genu4.c:331
+#: ../src/genu4.c:250 ../src/genu4.c:346
 #, c-format
 msgid "Error: '%s' is not a three-letter country code we know."
 msgstr "Error: «%s» — не відомий нам трилітерний код країни."
@@ -1198,7 +1267,23 @@ msgstr "Error: «--uncheck» стосується контрольних циф�
 msgid "Error: A civil status is given by options; '%s' is not one."
 msgstr "Error: Громадянський стан задають опціями; «%s» не є опцією."
 
-#: ../src/genu4.c:319
+#: ../src/genu4.c:323
+msgid "Birth surname (family name): "
+msgstr "Прізвище при народженні (прізвище): "
+
+#: ../src/genu4.c:324
+msgid "Birth names (all given names): "
+msgstr "Імена при народженні (усі імена): "
+
+#: ../src/genu4.c:325
+msgid "Birth date (YYYY-MM-DD): "
+msgstr "Дата народження (РРРР-ММ-ДД): "
+
+#: ../src/genu4.c:326
+msgid "Birth country (3 letter code): "
+msgstr "Країна народження (3-літерний код): "
+
+#: ../src/genu4.c:333
 msgid "Error: Surname, given names, date and country are all needed."
 msgstr "Error: Потрібні прізвище, імена, дата й країна."
 
@@ -1315,6 +1400,24 @@ msgstr "Error: Немає сертифіката за запитом."
 msgid "Error: %zu certificates matched, more than the %ld asked for."
 msgstr "Error: Підійшло %zu сертифікатів, більше за запитані %ld."
 
+#: ../src/interactive.c:37 ../src/interactive.c:62 ../src/interactive.c:108
+msgid "Notice: --batch was given, so nothing is asked."
+msgstr "Notice: вказано --batch, тому нічого не запитується."
+
+#: ../src/interactive.c:43 ../src/interactive.c:80
+msgid "Error: Nothing to read: the question stays unanswered."
+msgstr "Error: Читати нічого: питання лишається без відповіді."
+
+#: ../src/interactive.c:123
+#, c-format
+msgid "Notice: A number between 1 and %zu is wanted."
+msgstr "Notice: Очікується число від 1 до %zu."
+
+#: ../src/interactive.c:155
+#, c-format
+msgid "Notice: %zu hexadecimal characters are wanted, %zu were read."
+msgstr "Notice: Очікується %zu шістнадцяткових символів, прочитано %zu."
+
 #: ../src/list.c:284 ../src/list.c:428
 msgid "reading a certificate"
 msgstr "читання сертифіката"
@@ -1423,6 +1526,7 @@ msgid ""
 "OPTIONS:\n"
 "  -H, --homedir DIR           GnuPG home directory - Environment variable: GNUPGHOME\n"
 "      --output-format=FORMAT  Specify output format between {raw, info, md} - Default: 'raw'\n"
+"  -B, --batch                 Never ask: fail instead of prompting for what is missing\n"
 "  -h, --help                  Print this help and exit\n"
 "  -V, --version               Print the version and exit\n"
 "\n"
@@ -1461,21 +1565,22 @@ msgstr ""
 "OPTIONS:\n"
 "  -H, --homedir КАТАЛОГ       Каталог GnuPG - Змінна оточення: GNUPGHOME\n"
 "      --output-format=ФОРМАТ  Формат виводу з {raw, info, md} - Типово: «raw»\n"
+"  -B, --batch                 Ніколи не запитувати: помилка замість запиту бракуючого\n"
 "  -h, --help                  Вивести цю довідку й вийти\n"
 "  -V, --version               Вивести версію й вийти\n"
 "\n"
 "У кожної дії є свій --help.\n"
 
-#: ../src/main.c:95
+#: ../src/main.c:125
 #, c-format
 msgid "Error: Unknown output format '%s'."
 msgstr "Error: Невідомий формат виводу «%s»."
 
-#: ../src/main.c:96
+#: ../src/main.c:126
 msgid "Notice: One of raw, info, md."
 msgstr "Notice: Один із raw, info, md."
 
-#: ../src/main.c:174
+#: ../src/main.c:169
 #, c-format
 msgid "Error: Unknown action '%s'."
 msgstr "Error: Невідома дія «%s»."
@@ -1565,7 +1670,7 @@ msgstr "Error: У сертифікаті %s немає придатної (не�
 msgid "Notice: Picking most recent email %s."
 msgstr "Notice: Узято найсвіжішу адресу: %s."
 
-#: ../src/printcard.c:316 ../src/printsecret.c:340 ../src/scan.c:165
+#: ../src/printcard.c:316 ../src/printsecret.c:404 ../src/scan.c:139
 msgid "Error: Cannot make a working directory."
 msgstr "Error: Не вдається створити робочий каталог."
 
@@ -1633,6 +1738,8 @@ msgid ""
 "Export and print OpenPGP secrets on multiple QRcode using Shamir's secret\n"
 "sharing, split so that no single sheet carries the key.\n"
 "\n"
+"Missing input will be asked interactively, unless --batch.\n"
+"\n"
 "OPTIONS:\n"
 "  -p, --passphrase PASSPHRASE    Passphrase to access secret parts of OpenPGP key\n"
 "  -P, --passfrom FILE            Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
@@ -1658,6 +1765,8 @@ msgstr ""
 "Вивантажити й надрукувати таємниці OpenPGP на кількох QR-кодах поділом\n"
 "таємниці за Шаміром, так поділені, щоб жоден аркуш не ніс ключа.\n"
 "\n"
+"Бракуюче запитується в діалозі, окрім випадку з --batch.\n"
+"\n"
 "OPTIONS:\n"
 "  -p, --passphrase PASSPHRASE Фраза, що захищає таємні частини\n"
 "  -P, --passfrom FILE         Прочитати її з першого рядка ФАЙЛУ\n"
@@ -1679,151 +1788,167 @@ msgstr ""
 "папір бере до рук той, хто його знайде.\n"
 "\n"
 
-#: ../src/printsecret.c:249
+#: ../src/printsecret.c:247
+msgid "none - produce the sheets and send nothing"
+msgstr "немає — створити аркуші й нічого не надсилати"
+
+#: ../src/printsecret.c:263
+msgid "Which printer? Its number: "
+msgstr "Який принтер? Його номер: "
+
+#: ../src/printsecret.c:297
 #, c-format
 msgid "Error: '%s' wants a printer, empty for none."
 msgstr "Error: «%s» очікує принтер, порожньо — жодного."
 
-#: ../src/printsecret.c:264 ../src/scan.c:128
+#: ../src/printsecret.c:312 ../src/scan.c:102
 #, c-format
 msgid "Error: Nonexistent or unattainable directory (%s)."
 msgstr "Error: Неіснуючий чи недоступний каталог (%s)."
 
-#: ../src/printsecret.c:270 ../src/printsecret.c:276
+#: ../src/printsecret.c:318 ../src/printsecret.c:324
 #, c-format
 msgid "Error: '%s' wants a number."
 msgstr "Error: «%s» очікує число."
 
-#: ../src/printsecret.c:298
-msgid "Error: Which secret key? This machine may hold several."
-msgstr "Error: Який таємний ключ? Ця машина може тримати кілька."
+#: ../src/printsecret.c:349 ../src/totoken.c:182
+msgid "Which secret key? Its number: "
+msgstr "Який таємний ключ? Його номер: "
 
-#: ../src/printsecret.c:303
+#: ../src/printsecret.c:351
+msgid "Error: Which secret key should be printed?"
+msgstr "Error: Який таємний ключ слід надрукувати?"
+
+#: ../src/printsecret.c:360
+msgid "Passphrase of the secret key (empty if none): "
+msgstr "Парольна фраза таємного ключа (порожньо, якщо немає): "
+
+#: ../src/printsecret.c:362
 msgid "Error: The passphrase is needed to export the secret parts."
 msgstr "Error: Для вивезення таємних частин потрібна парольна фраза."
 
-#: ../src/printsecret.c:304 ../src/totoken.c:282
+#: ../src/printsecret.c:363
 msgid "Give --passphrase, or --passfrom to keep it off the process list."
 msgstr "Дайте --passphrase або --passfrom, щоб вона не потрапила до переліку процесів."
 
-#: ../src/printsecret.c:308
+#: ../src/printsecret.c:370
 msgid "Error: Where should this be printed? Name a printer, or pass"
 msgstr "Error: Де це друкувати? Назвіть принтер або передайте"
 
-#: ../src/printsecret.c:309
+#: ../src/printsecret.c:371
 msgid "--printer '' to produce the sheets and send nothing."
 msgstr "--printer '', щоб виготовити аркуші й нічого не надсилати."
 
-#: ../src/printsecret.c:313
+#: ../src/printsecret.c:377
 #, c-format
 msgid "Error: Splits number (%d) can't be lower than 3."
 msgstr "Error: Кількість фрагментів (%d) не може бути меншою за 3."
 
-#: ../src/printsecret.c:320
+#: ../src/printsecret.c:384
 #, c-format
 msgid "Error: Splits number (%d) can't be higher than %d: the QR header spells it as one digit."
 msgstr "Error: Кількість фрагментів (%d) не може перевищувати %d: заголовок QR пише її однією цифрою."
 
-#: ../src/printsecret.c:325
+#: ../src/printsecret.c:389
 #, c-format
 msgid "Warning: Threshold can't be greater than the number of splits, reducing threshold to %d."
 msgstr "Warning: Поріг не може перевищувати кількість фрагментів; поріг знижено до %d."
 
-#: ../src/printsecret.c:345 ../src/scan.c:170
+#: ../src/printsecret.c:409 ../src/scan.c:144
 msgid "Error: Working directory is unclean (it holds SECRET*)."
 msgstr "Error: Робочий каталог нечистий (у ньому є SECRET*)."
 
-#: ../src/printsecret.c:346 ../src/scan.c:171
+#: ../src/printsecret.c:410 ../src/scan.c:145
 #, c-format
 msgid "Suggestion: bl-security shred_path --remove '%s'"
 msgstr "Suggestion: bl-security shred_path --remove '%s'"
 
-#: ../src/printsecret.c:383
+#: ../src/printsecret.c:447
 msgid "Error: gpg would not export the secret key — right passphrase?"
 msgstr "Error: gpg відмовився вивезти таємний ключ — правильна парольна фраза?"
 
-#: ../src/printsecret.c:396
+#: ../src/printsecret.c:460
 #, c-format
 msgid "Error: %s carries no uid worth printing."
 msgstr "Error: %s не несе жодного uid, який варто було б друкувати."
 
-#: ../src/printsecret.c:400
+#: ../src/printsecret.c:464
 msgid "Error: Cannot trim the export down to its three uids."
 msgstr "Error: Не вдається врізати вивезення до трьох uid."
 
-#: ../src/printsecret.c:403
+#: ../src/printsecret.c:467
 #, c-format
 msgid "Notice: Printing %zu uid(s) of %zu — the rest comes back from a keyring."
 msgstr "Notice: Надруковано %zu uid із %zu — решта повернеться з в'язки ключів."
 
-#: ../src/printsecret.c:414
+#: ../src/printsecret.c:478
 msgid "Error: basenc would not encode the export."
 msgstr "Error: basenc відмовився закодувати вивезення."
 
-#: ../src/printsecret.c:421
+#: ../src/printsecret.c:485
 #, c-format
 msgid "Error: split would not cut the export in %d."
 msgstr "Error: split відмовився розрізати вивезення на %d."
 
-#: ../src/printsecret.c:431
+#: ../src/printsecret.c:495
 msgid "Error: gfsplit would not share the secret out."
 msgstr "Error: gfsplit відмовився поділити таємницю."
 
-#: ../src/printsecret.c:446
+#: ../src/printsecret.c:510
 #, c-format
 msgid "Error: basenc would not encode %s."
 msgstr "Error: basenc відмовився закодувати %s."
 
-#: ../src/printsecret.c:466
+#: ../src/printsecret.c:530
 #, c-format
 msgid "Notice: Printing the secret split into %d fragments on %s…"
 msgstr "Notice: Друк таємниці в %d фрагментах на %s…"
 
-#: ../src/printsecret.c:469
+#: ../src/printsecret.c:533
 #, c-format
 msgid "Notice: Producing %d fragments in %s, sending nothing."
 msgstr "Notice: Виготовлення %d фрагментів у %s, без надсилання."
 
-#: ../src/printsecret.c:487
+#: ../src/printsecret.c:551
 msgid "Error: No fragment was produced."
 msgstr "Error: Не виготовлено жодного фрагмента."
 
-#: ../src/printsecret.c:504
+#: ../src/printsecret.c:568
 #, c-format
 msgid "Error: %zu fragments in %s, and a QR header can only number %d."
 msgstr "Error: %zu фрагментів у %s, а заголовок QR уміє пронумерувати лише %d."
 
-#: ../src/printsecret.c:534
+#: ../src/printsecret.c:598
 #, c-format
 msgid "Error: Cannot read the fragment %s."
 msgstr "Error: Не вдається прочитати фрагмент %s."
 
-#: ../src/printsecret.c:548
+#: ../src/printsecret.c:612
 #, c-format
 msgid "Error: qrencode would not draw fragment %zu."
 msgstr "Error: qrencode відмовився намалювати фрагмент %zu."
 
-#: ../src/printsecret.c:575
+#: ../src/printsecret.c:639
 #, c-format
 msgid "Error: pandoc would not lay fragment %zu out."
 msgstr "Error: pandoc відмовився розкласти фрагмент %zu."
 
-#: ../src/printsecret.c:581
+#: ../src/printsecret.c:645
 #, c-format
 msgid "Error: pdfcrop would not trim fragment %zu."
 msgstr "Error: pdfcrop відмовився обрізати фрагмент %zu."
 
-#: ../src/printsecret.c:590
+#: ../src/printsecret.c:654
 #, c-format
 msgid "Error: lpr would not print fragment %zu."
 msgstr "Error: lpr відмовився надрукувати фрагмент %zu."
 
-#: ../src/printsecret.c:609
+#: ../src/printsecret.c:673
 #, c-format
 msgid "Notice: The working copies are removed. Shred %s if anything is left."
 msgstr "Notice: Робочі копії вилучено. Знищте %s, якщо щось лишилося."
 
-#: ../src/printsecret.c:612
+#: ../src/printsecret.c:676
 #, c-format
 msgid "Notice: The fragments are in %s. Shred it once they are on paper: bl-security shred_path --remove '%s'"
 msgstr "Notice: Фрагменти в %s. Знищте його, щойно вони опиняться на папері: bl-security shred_path --remove '%s'"
@@ -2009,9 +2134,12 @@ msgid ""
 "Output OpenPGP certification key fingerprint.\n"
 "Images may be PNG, JPEG, or PDF.\n"
 "\n"
+"QR code versions 4 and 5, which is what print_secret writes. Versions 1\n"
+"to 3 were experimental and never released; 'bl-pgpkey scan' still reads\n"
+"them. A key that arrives protected stays protected: taking the\n"
+"passphrase off is the business of whoever moves it onto a card.\n"
+"\n"
 "OPTIONS:\n"
-"  -p, --passphrase PASSPHRASE   Passphrase to access secret parts of OpenPGP key\n"
-"  -P, --passfrom FILE           Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
 "  -W, --workdir DIRECTORY       Use given working directory instead of a temporary directory (don't forget to shred its content)\n"
 "  -h, --help                    Print this help and exit\n"
 "  -V, --version                 Print the version and exit\n"
@@ -2025,90 +2153,105 @@ msgstr ""
 "Виводить відбиток засвідчувального ключа OpenPGP.\n"
 "Зображення можуть бути PNG, JPEG або PDF.\n"
 "\n"
+"Версії QR-кодів 4 і 5 — те, що пише print_secret. Версії з 1 до 3 були\n"
+"експериментальними й не випускалися; «bl-pgpkey scan» їх усе ще читає.\n"
+"Ключ, що надходить під захистом, під захистом і лишається: знімати\n"
+"парольну фразу — справа того, хто переносить його на картку.\n"
+"\n"
 "OPTIONS:\n"
-"  -p, --passphrase PASSPHRASE Фраза, під якою лежать таємні частини\n"
-"  -P, --passfrom FILE         Прочитати її з першого рядка ФАЙЛУ\n"
 "  -W, --workdir DIRECTORY     Працювати тут, а не в тимчасовому\n"
 "  -h, --help                  Вивести цю довідку й вийти\n"
 "  -V, --version               Вивести версію й вийти\n"
 "\n"
 "Фрагменти, яких бракує, називаються, а не обходяться: це читає, що йому\n"
 "дали, і не відкриває камери, щоб шукати.\n"
-"\n"
 
-#: ../src/scan.c:147
+#: ../src/scan.c:121
 #, c-format
 msgid "Error: Too many images given. Maximum: %d."
 msgstr "Error: Забагато зображень. Щонайбільше: %d."
 
-#: ../src/scan.c:154
+#: ../src/scan.c:128
 msgid "Error: Which images? There is no camera to fall back on here."
 msgstr "Error: Які зображення? Камери, на яку можна було б спертися, тут немає."
 
-#: ../src/scan.c:188
+#: ../src/scan.c:162
 #, c-format
 msgid "Error: Can't convert pdf %s."
 msgstr "Error: Не вдається перетворити pdf %s."
 
-#: ../src/scan.c:199 ../src/scan.c:248
+#: ../src/scan.c:173 ../src/scan.c:222
 #, c-format
 msgid "Error: No QR code with expected data in '%s'."
 msgstr "Error: У «%s» немає QR-коду з очікуваними даними."
 
-#: ../src/scan.c:230
+#: ../src/scan.c:204
 #, c-format
 msgid "Crit: QR codes don't share the same version (%d != %d)."
 msgstr "Crit: QR-коди різної версії (%d != %d)."
 
-#: ../src/scan.c:235
+#: ../src/scan.c:209
 #, c-format
 msgid "Crit: QR codes don't share the same division (%d != %d)."
 msgstr "Crit: QR-коди різного поділу (%d != %d)."
 
-#: ../src/scan.c:240
+#: ../src/scan.c:214
 #, c-format
 msgid "Crit: Fragment number %d is out of range."
 msgstr "Crit: Номер фрагмента %d поза межами."
 
-#: ../src/scan.c:251
+#: ../src/scan.c:225
 #, c-format
 msgid "Info: QR code(s) with expected data read from '%s'."
 msgstr "Info: QR-код(и) з очікуваними даними прочитано з «%s»."
 
-#: ../src/scan.c:255
+#: ../src/scan.c:229
 #, c-format
 msgid "Crit: Unsupported qrcode version (%d)."
 msgstr "Crit: Непідтримувана версія QR-коду (%d)."
 
-#: ../src/scan.c:256
-msgid "Versions 1 to 3 needed an extra passphrase and are long gone."
-msgstr "Версії з 1 до 3 потребували додаткової парольної фрази й давно зникли."
+#: ../src/scan.c:230
+msgid "Only versions 4 and 5 are read here. Versions 1 to 3 were experimental, never released, and needed an extra passphrase that also protected the key."
+msgstr "Тут читаються лише версії 4 і 5. Версії з 1 до 3 були експериментальними, не випускалися й вимагали додаткової парольної фрази, яка захищала й сам ключ."
 
-#: ../src/scan.c:271
+#: ../src/scan.c:233
+msgid "'bl-pgpkey scan' still reads them, should such a sheet turn up."
+msgstr "«bl-pgpkey scan» їх усе ще читає, якщо такий аркуш раптом знайдеться."
+
+#: ../src/scan.c:248
 #, c-format
 msgid "Error: %zu fragment(s) of the %d needed; missing: %s."
 msgstr "Error: %zu фрагмент(ів) із %d потрібних; бракує: %s."
 
-#: ../src/scan.c:293
+#: ../src/scan.c:270
 msgid "Error: basenc would not decode the fragments."
 msgstr "Error: basenc відмовився розкодувати фрагменти."
 
-#: ../src/scan.c:306
+#: ../src/scan.c:283
 #, c-format
 msgid "Error: basenc would not decode fragment %zu."
 msgstr "Error: basenc відмовився розкодувати фрагмент %zu."
 
-#: ../src/scan.c:324
+#: ../src/scan.c:301
 msgid "Error: gfcombine would not put the fragments back together."
 msgstr "Error: gfcombine відмовився зібрати фрагменти назад."
 
-#: ../src/scan.c:334
+#: ../src/scan.c:313
 msgid "Error: gpg would not import what came back."
 msgstr "Error: gpg відмовився прийняти те, що повернулося."
 
-#: ../src/scan.c:335
-msgid "A wrong passphrase, or fragments from two different printings."
-msgstr "Хибна парольна фраза або фрагменти з двох різних роздруків."
+#: ../src/scan.c:314
+msgid "Fragments from two different printings, most likely."
+msgstr "Найпевніше, фрагменти від двох різних роздруків."
+
+#: ../src/seckeys.c:62
+#, c-format
+msgid "Error: More than %d secret keys here; name the one you mean."
+msgstr "Error: Тут понад %d таємних ключів; назвіть потрібний."
+
+#: ../src/seckeys.c:67
+msgid "Error: No secret key here."
+msgstr "Error: Тут немає таємного ключа."
 
 #: ../src/sigs.c:86
 #, c-format
@@ -2237,40 +2380,40 @@ msgstr ""
 "- отже 107, якщо бракує всіх потрібних даних (картка OpenPGP, ймовірно, порожня).\n"
 "- інше ненульове значення за інших помилок.\n"
 
-#: ../src/tokencheck.c:281
+#: ../src/tokencheck.c:280
 msgid "Error: No security key answered."
 msgstr "Error: Жоден ключ безпеки не відповів."
 
-#: ../src/tokencheck.c:302
+#: ../src/tokencheck.c:301
 #, c-format
 msgid "Notice: Fetching the certificate from %s…"
 msgstr "Notice: Отримання сертифіката з %s…"
 
-#: ../src/tokencheck.c:385
+#: ../src/tokencheck.c:388
 #, c-format
 msgid "Notice: The key names %u addresses; keeping the first."
 msgstr "Notice: Ключ називає %u адрес; залишено першу."
 
-#: ../src/tokencheck.c:387
+#: ../src/tokencheck.c:390
 #, c-format
 msgid "Error: The key names %u identifiers, which cannot both be its."
 msgstr "Error: Ключ називає %u ідентифікаторів, які не можуть бути всі його."
 
-#: ../src/tokencheck.c:414
+#: ../src/tokencheck.c:417
 msgid "Warning: No certification key known. Share or fetch the certificate."
 msgstr "Warning: Засвідчувальний ключ невідомий. Поділіться сертифікатом або отримайте його."
 
-#: ../src/tokencheck.c:439
+#: ../src/tokencheck.c:442
 #, c-format
 msgid "Notice: Not a PGP ID key yet, missing: '%s'."
 msgstr "Notice: Поки не ключ PGP ID, бракує: «%s»."
 
-#: ../src/tokencheck.c:446
+#: ../src/tokencheck.c:449
 #, c-format
 msgid "Info: A PGP ID key, certified by %s, carrying %s."
 msgstr "Info: Ключ PGP ID, засвідчений %s, що несе %s."
 
-#: ../src/totoken.c:34
+#: ../src/totoken.c:41
 #, c-format
 msgid ""
 "Usage: %s totoken [OPTIONS]... KEY_ID|FPR\n"
@@ -2285,13 +2428,22 @@ msgid ""
 "OPTIONS:\n"
 "  -p, --passphrase PASSPHRASE  Passphrase to access secret parts of OpenPGP key\n"
 "  -P, --passfrom FILE          Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
-"  -U, --certurl URL            URL to retrieve your OpenPGP certificate (default: the keyserver's lookup for this key)\n"
+"  -U, --certurl URL            URL to retrieve your OpenPGP certificate\n"
+"                               Default: https://%s/pks/lookup?op=get&search=0x<FPR>\n"
 "  -L, --lang LANG              Security token (OpenPGP smartcard) prefered language (default: the locale's)\n"
-"  -k, --keyserver KEYSERVER    Send OpenPGP certificate to this public keys server. Also modify default URL (see --certurl)\n"
+"  -k, --keyserver KEYSERVER    Send OpenPGP certificate to this public keys server\n"
+"                               Empty to send it nowhere. Does not change --certurl\n"
+"                               Default: %s\n"
 "  -K, --pubkey FILE            Also write armored OpenPGP certificate to given FILE\n"
 "      --force                  Don't ask before resetting unempty security token (OpenPGP smartcard)\n"
 "  -h, --help                   Print this help and exit\n"
 "  -V, --version                Print the version and exit\n"
+"\n"
+"Return value:\n"
+"-   0 No error\n"
+"-   2 Input/Usage error\n"
+"- %d The passphrase given does not open the secret key\n"
+"- %d The key is protected and no passphrase was given\n"
 msgstr ""
 "Usage: %s totoken [OPTIONS]... KEY_ID|FPR\n"
 "\n"
@@ -2307,126 +2459,142 @@ msgstr ""
 "  -p, --passphrase PASSPHRASE Фраза, що захищає таємні частини\n"
 "  -P, --passfrom FILE         Прочитати її з першого рядка ФАЙЛУ\n"
 "  -U, --certurl URL           Звідки можна отримати сертифікат\n"
+"                              Типово: https://%s/pks/lookup?op=get&search=0x<FPR>\n"
 "  -L, --lang LANG             Бажана мова картки - Типово: з локалі\n"
-"  -k, --keyserver KEYSERVER   Надіслати туди сертифікат і побудувати з цього\n"
+"  -k, --keyserver KEYSERVER   Надіслати сертифікат на цей публічний сервер ключів\n"
+"                              Порожньо — нікуди не надсилати. Не змінює --certurl\n"
+"                              Типово: %s\n"
 "  -K, --pubkey FILE           Записати туди також сертифікат у броні\n"
 "      --force                 Стерти картку, яка не порожня\n"
 "  -h, --help                  Вивести цю довідку й вийти\n"
 "  -V, --version               Вивести версію й вийти\n"
 "\n"
+"Значення, що повертається:\n"
+"-   0 Немає помилки\n"
+"-   2 Помилка введення або використання\n"
+"- %d Дана парольна фраза не відкриває таємний ключ\n"
+"- %d Ключ захищено, а парольну фразу не вказано\n"
 
-#: ../src/totoken.c:122
+#: ../src/totoken.c:139
 #, c-format
 msgid "Error: '%s' wants a URL."
 msgstr "Error: «%s» очікує адресу URL."
 
-#: ../src/totoken.c:128
+#: ../src/totoken.c:145
 #, c-format
 msgid "Error: '%s' wants a language."
 msgstr "Error: «%s» очікує мову."
 
-#: ../src/totoken.c:140
+#: ../src/totoken.c:157
 #, c-format
 msgid "Warning: Deprecated option %s."
 msgstr "Warning: Застарілий параметр %s."
 
-#: ../src/totoken.c:159
+#: ../src/totoken.c:176
 msgid "Warning: Only 2 lower case ASCII letters can define a preferred language; leaving it out."
 msgstr "Warning: Бажану мову задають лише 2 малі літери ASCII; її пропущено."
 
-#: ../src/totoken.c:162
+#: ../src/totoken.c:184
 msgid "Error: Which secret key should move onto the card?"
 msgstr "Error: Який таємний ключ має перейти на картку?"
 
-#: ../src/totoken.c:207
+#: ../src/totoken.c:232
 #, c-format
 msgid "Error: Cannot write the certificate to %s."
 msgstr "Error: Не вдається записати сертифікат до %s."
 
-#: ../src/totoken.c:236
+#: ../src/totoken.c:261
 #, c-format
 msgid "Error: No email for OpenPGP key '%s'."
 msgstr "Error: Немає адреси для ключа OpenPGP «%s»."
 
-#: ../src/totoken.c:260
+#: ../src/totoken.c:284
 #, c-format
 msgid "Notice: Detected OpenPGP security token: %s."
 msgstr "Notice: Виявлено ключ безпеки OpenPGP: %s."
 
-#: ../src/totoken.c:264
+#: ../src/totoken.c:288
 #, c-format
 msgid "Error: This wipes card %s and everything on it, then takes the"
 msgstr "Error: Це стирає картку %s і все, що на ній, а тоді забирає"
 
-#: ../src/totoken.c:265
+#: ../src/totoken.c:289
 #, c-format
 msgid "secret parts of %s off this machine. Neither can be undone."
 msgstr "таємні частини %s із цієї машини. Ані одне, ані друге не скасовується."
 
-#: ../src/totoken.c:266
+#: ../src/totoken.c:290
 msgid "Pass --force when that is what you mean."
 msgstr "Передайте --force, якщо ви маєте на увазі саме це."
 
-#: ../src/totoken.c:280
+#: ../src/totoken.c:309
+msgid "Passphrase protecting the secret key: "
+msgstr "Парольна фраза, що захищає таємний ключ: "
+
+#: ../src/totoken.c:311
 msgid "Error: The key is protected by a passphrase, which has to come off before it can move to a card."
 msgstr "Error: Ключ захищено парольною фразою, яку треба зняти, перш ніж він зможе перейти на картку."
 
-#: ../src/totoken.c:290
-#, c-format
-msgid "Error: Cannot take the passphrase off '%s' — right passphrase?"
-msgstr "Error: Не вдається зняти парольну фразу з «%s» — правильна?"
+#: ../src/totoken.c:313
+msgid "Notice: Give --passphrase, or --passfrom to keep it off the process list."
+msgstr "Notice: Вкажіть --passphrase або --passfrom, щоб вона не потрапила до списку процесів."
 
-#: ../src/totoken.c:295
+#: ../src/totoken.c:323
+#, c-format
+msgid "Error: That passphrase does not open '%s'."
+msgstr "Error: Ця парольна фраза не відкриває «%s»."
+
+#: ../src/totoken.c:330
 msgid "Notice: Resetting OpenPGP security token…"
 msgstr "Notice: Скидання ключа безпеки OpenPGP…"
 
-#: ../src/totoken.c:298
+#: ../src/totoken.c:333
 msgid "Error: Factory reset of the OpenPGP card failed."
 msgstr "Error: Заводське скидання картки OpenPGP не вдалося."
 
-#: ../src/totoken.c:302
+#: ../src/totoken.c:337
 msgid "Notice: Configuring OpenPGP security token…"
 msgstr "Notice: Налаштування ключа безпеки OpenPGP…"
 
-#: ../src/totoken.c:313
+#: ../src/totoken.c:348
 msgid "Error: Configuring the OpenPGP card failed."
 msgstr "Error: Налаштування картки OpenPGP не вдалося."
 
-#: ../src/totoken.c:320
+#: ../src/totoken.c:355
 msgid "Error: Setting the card's key attributes failed."
 msgstr "Error: Призначення властивостей ключів картки не вдалося."
 
-#: ../src/totoken.c:324
+#: ../src/totoken.c:359
 msgid "Notice: Moving OpenPGP secrets to security token…"
 msgstr "Notice: Перенесення таємниць OpenPGP на ключ безпеки…"
 
-#: ../src/totoken.c:329
+#: ../src/totoken.c:364
 msgid "Error: Moving the secrets to the card failed."
 msgstr "Error: Перенесення таємниць на картку не вдалося."
 
-#: ../src/totoken.c:337
+#: ../src/totoken.c:372
 msgid "Error: Cannot draw new codes — the card is left on its factory PIN 123456 and Admin 12345678. Change them now."
 msgstr "Error: Не вдається вибрати нові коди — картка лишається із заводським PIN 123456 та Admin 12345678. Змініть їх зараз."
 
-#: ../src/totoken.c:344
+#: ../src/totoken.c:379
 msgid "Error: Cannot make a temporary file for the new codes."
 msgstr "Error: Не вдається створити тимчасовий файл для нових кодів."
 
-#: ../src/totoken.c:356
+#: ../src/totoken.c:391
 #, c-format
 msgid "Error: Cannot write the new %s code out."
 msgstr "Error: Не вдається записати новий код %s."
 
-#: ../src/totoken.c:374
+#: ../src/totoken.c:409
 #, c-format
 msgid "Error: Changing the %s code failed (%d). The card is left on its factory code — change it now."
 msgstr "Error: Зміна коду %s не вдалася (%d). Картка лишається із заводським кодом — змініть його зараз."
 
-#: ../src/totoken.c:386
+#: ../src/totoken.c:421
 msgid "Warning: Please publish this certificate on the Internet (a keyserver will do)."
 msgstr "Warning: Оприлюдніть цей сертифікат в інтернеті (сервера ключів досить)."
 
-#: ../src/totoken.c:390
+#: ../src/totoken.c:425
 #, c-format
 msgid "Notice: Write these down. Nothing else knows them. They can be changed with '%s change_token_code'."
 msgstr "Notice: Запишіть їх. Більше їх ніхто не знає. Змінюються через «%s change_token_code»."
@@ -2768,6 +2936,29 @@ msgstr "Error: gpg відмовився додати %s."
 #, c-format
 msgid "Warning: gpg would not add %s."
 msgstr "Warning: gpg відмовився додати %s."
+
+#~ msgid "Error: Which certificate? A whole fingerprint is required —"
+#~ msgstr "Error: Який сертифікат? Потрібен відбиток повністю —"
+
+#~ msgid "a certification cannot be taken back, so it is never guessed."
+#~ msgstr "засвідчення не відкликається, тож його ніколи не вгадують."
+
+#, c-format
+#~ msgid "Error: The current %s code is needed. Give --code, or --codefrom to keep it off the process list."
+#~ msgstr "Error: Потрібен теперішній код %s. Дайте --code або --codefrom, щоб він не потрапив до переліку процесів."
+
+#~ msgid "Error: The Admin code is needed to write to the card."
+#~ msgstr "Error: Для запису на картку потрібен код Admin."
+
+#~ msgid "Error: Which secret key? This machine may hold several."
+#~ msgstr "Error: Який таємний ключ? Ця машина може тримати кілька."
+
+#~ msgid "Versions 1 to 3 needed an extra passphrase and are long gone."
+#~ msgstr "Версії з 1 до 3 потребували додаткової парольної фрази й давно зникли."
+
+#, c-format
+#~ msgid "Error: Cannot take the passphrase off '%s' — right passphrase?"
+#~ msgstr "Error: Не вдається зняти парольну фразу з «%s» — правильна?"
 
 #, c-format
 #~ msgid "Warning: More than %d keys have a credibility here; the rest are weighed as though undecided."

@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid 0.0.7-35-g8512aa6\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-08-28 12:07+0200\n"
+"POT-Creation-Date: 2026-09-03 10:53+0200\n"
 "PO-Revision-Date: 2026-08-22 22:58+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -146,19 +146,19 @@ msgstr "Error: „%s“ erwartet ein Bild."
 msgid "Error: '%s' wants a list of servers, empty for none."
 msgstr "Error: „%s“ erwartet eine Serverliste, leer für keinen."
 
-#: ../src/avatar.c:551 ../src/main.c:82 ../src/printsecret.c:259
-#: ../src/scan.c:123
+#: ../src/avatar.c:551 ../src/main.c:112 ../src/printsecret.c:307
+#: ../src/scan.c:97
 #, c-format
 msgid "Error: '%s' wants a directory."
 msgstr "Error: „%s“ erwartet ein Verzeichnis."
 
-#: ../src/avatar.c:566 ../src/certify.c:335 ../src/changepass.c:109
-#: ../src/changetokencode.c:124 ../src/changetokenmeta.c:153 ../src/del.c:93
+#: ../src/avatar.c:566 ../src/certify.c:547 ../src/changepass.c:109
+#: ../src/changetokencode.c:124 ../src/changetokenmeta.c:152 ../src/del.c:93
 #: ../src/email.c:370 ../src/genkey.c:206 ../src/genu4.c:281
-#: ../src/genuid.c:147 ../src/get.c:147 ../src/list.c:377 ../src/main.c:110
-#: ../src/printcard.c:143 ../src/printsecret.c:289 ../src/property.c:378
-#: ../src/push.c:70 ../src/scan.c:141 ../src/sigs.c:124 ../src/token.c:129
-#: ../src/tokencheck.c:269 ../src/totoken.c:150 ../src/tovcard.c:386
+#: ../src/genuid.c:147 ../src/get.c:147 ../src/list.c:377 ../src/main.c:148
+#: ../src/printcard.c:143 ../src/printsecret.c:337 ../src/property.c:378
+#: ../src/push.c:70 ../src/scan.c:115 ../src/sigs.c:124 ../src/token.c:129
+#: ../src/tokencheck.c:269 ../src/totoken.c:167 ../src/tovcard.c:386
 #: ../src/trustdb.c:669 ../src/trustdb.c:812 ../src/trustdb.c:1059
 #, c-format
 msgid "Error: Unrecognized option '%s'."
@@ -193,7 +193,7 @@ msgstr "gpgme_new"
 msgid "gpgme_op_keylist_start"
 msgstr "gpgme_op_keylist_start"
 
-#: ../src/avatar.c:636 ../src/printsecret.c:493 ../src/trustdb.c:636
+#: ../src/avatar.c:636 ../src/printsecret.c:557 ../src/trustdb.c:636
 msgid "Error: Out of memory."
 msgstr "Error: Kein Speicher mehr."
 
@@ -248,7 +248,8 @@ msgstr "Error: Prüfung oder Authentisierung fehlgeschlagen (%s) — verbleibend
 msgid "Error: Wrong expected length (%s) - correct lenght: %d ."
 msgstr "Error: Falsche erwartete Länge (%s) — richtige Länge: %d ."
 
-#: ../src/card.c:161
+#: ../src/card.c:161 ../src/interactive.c:36 ../src/interactive.c:61
+#: ../src/interactive.c:107
 #, c-format
 msgid "Error: %s"
 msgstr "Error: %s"
@@ -268,15 +269,23 @@ msgstr "Error: Nicht fatale Bedingung (%s). Prüfen Sie die zurückgegebenen Dat
 msgid "Error: Unhandled or unknown Status Word (%s)."
 msgstr "Error: Unbekanntes oder nicht behandeltes Statuswort (%s)."
 
-#: ../src/certify.c:40
+#: ../src/certify.c:41
 #, c-format
 msgid ""
-"Usage: %s certify [OPTIONS]... TARGET_KEYFPR [TARGET_U4|TARGET_U5]\n"
+"Usage: %s certify [OPTIONS]... [TARGET_KEYFPR] [TARGET_U4|TARGET_U5]\n"
 "\n"
-"Certify somebody else, identified by its key fingerprint TARGET_KEYFPR.\n"
-"The whole forty characters, read off the other person's card and checked\n"
-"against it — never a search pattern, because a certification cannot be\n"
-"taken back. Giving TARGET_U4 as well asks that the certificate carry it,\n"
+"Certify somebody else. Both operands are optional and may come in either\n"
+"order — they are recognised by their shape, not by their place. What is\n"
+"missing is asked for, unless --batch says there is nobody to ask.\n"
+"\n"
+"TARGET_KEYFPR is the whole forty characters, read off the other person's\n"
+"card — never a search pattern, because a certification cannot be taken\n"
+"back. Without it, whoever carries TARGET_U4 is looked up here and on the\n"
+"keyservers, and eight characters of the fingerprint are asked for, taken\n"
+"at a place drawn at random: enough to prove the card is in your hand.\n"
+"\n"
+"TARGET_U4 may be written u4VALUE, the deprecated u4=VALUE, or bare.\n"
+"Given together with a fingerprint, it asks that the certificate carry it,\n"
 "and refuses otherwise.\n"
 "\n"
 "Certification means : I know this other certificate belongs to this real person.\n"
@@ -304,13 +313,23 @@ msgid ""
 "- %d Self-certification is not innovative! ;-)\n"
 "- %d That certificate does not carry that identifier\n"
 msgstr ""
-"Usage: %s certify [OPTIONS]... TARGET_KEYFPR [TARGET_U4|TARGET_U5]\n"
+"Usage: %s certify [OPTIONS]... [TARGET_KEYFPR] [TARGET_U4|TARGET_U5]\n"
 "\n"
-"Jemand anderen beglaubigen, kenntlich am Fingerabdruck seines Schlüssels TARGET_KEYFPR.\n"
-"Alle vierzig Zeichen, von der Karte des anderen abgelesen und gegen sie\n"
-"geprüft — nie ein Suchmuster, denn eine Beglaubigung lässt sich nicht\n"
-"zurücknehmen. Wird TARGET_U4 mitgegeben, muss das Zertifikat sie tragen,\n"
-"sonst wird abgelehnt.\n"
+"Jemand anderen beglaubigen. Beide Operanden sind optional und dürfen in\n"
+"beliebiger Reihenfolge kommen — sie werden an ihrer Form erkannt, nicht an\n"
+"ihrem Platz. Was fehlt, wird erfragt, außer --batch sagt, dass niemand da\n"
+"ist, den man fragen könnte.\n"
+"\n"
+"TARGET_KEYFPR sind die vollen vierzig Zeichen, von der Karte der anderen\n"
+"Person abgelesen — nie ein Suchmuster, denn eine Beglaubigung lässt sich\n"
+"nicht zurücknehmen. Ohne sie wird gesucht, wer TARGET_U4 trägt, hier und\n"
+"auf den Schlüsselservern, und es werden acht Zeichen des Fingerabdrucks\n"
+"erfragt, an einer zufällig gezogenen Stelle: genug, um zu zeigen, dass die\n"
+"Karte in Ihrer Hand liegt.\n"
+"\n"
+"TARGET_U4 kann als u4WERT geschrieben werden, als veraltetes u4=WERT oder\n"
+"nackt. Zusammen mit einem Fingerabdruck verlangt es, dass das Zertifikat\n"
+"ihn trägt, und verweigert sonst.\n"
 "\n"
 "Beglaubigen heißt: ich weiß, dass dieses andere Zertifikat dieser wirklichen Person gehört.\n"
 "Das verlangt, den Personenstand und den Fingerabdruck des öffentlichen Schlüssels des ZIELS zu prüfen.\n"
@@ -338,96 +357,124 @@ msgstr ""
 "- %d Dieses Zertifikat trägt diese Kennung nicht\n"
 "\n"
 
-#: ../src/certify.c:114
+#: ../src/certify.c:141
 msgid "Error: No card answered, so there is nothing to certify with."
 msgstr "Error: Keine Karte antwortete, es gibt also nichts, womit beglaubigt werden könnte."
 
-#: ../src/certify.c:115
+#: ../src/certify.c:142
 msgid "Say which key with --use-privkey."
 msgstr "Sagen Sie mit --use-privkey, welcher Schlüssel."
 
-#: ../src/certify.c:123
+#: ../src/certify.c:150
 msgid "Error: Cannot list the secret keys."
 msgstr "Error: Die geheimen Schlüssel können nicht aufgelistet werden."
 
-#: ../src/certify.c:141
+#: ../src/certify.c:168
 #, c-format
 msgid "Error: '%s' names %s secret key."
 msgstr "Error: „%s“ benennt %s geheimen Schlüssel."
 
-#: ../src/certify.c:297 ../src/trustdb.c:796
+#: ../src/certify.c:325
+#, c-format
+msgid "Notice: %zu certificate(s) carry this identifier:"
+msgstr "Notice: %zu Zertifikat(e) tragen diese Kennung:"
+
+#: ../src/certify.c:340
+#, c-format
+msgid "Characters %u to %u of the fingerprint on the card: "
+msgstr "Zeichen %u bis %u des Fingerabdrucks auf der Karte: "
+
+#: ../src/certify.c:350
+msgid "Error: Those eight characters fit more than one certificate."
+msgstr "Error: Diese acht Zeichen passen auf mehr als ein Zertifikat."
+
+#: ../src/certify.c:357
+msgid "Error: No certificate here has those characters there."
+msgstr "Error: Kein Zertifikat hier trägt diese Zeichen an dieser Stelle."
+
+#: ../src/certify.c:509 ../src/trustdb.c:796
 #, c-format
 msgid "Error: '%s' wants a key."
 msgstr "Error: „%s“ erwartet einen Schlüssel."
 
-#: ../src/certify.c:311 ../src/genu4.c:290 ../src/property.c:349
+#: ../src/certify.c:523 ../src/genu4.c:290 ../src/property.c:349
 #: ../src/trustdb.c:644
 #, c-format
 msgid "Error: '%s' wants a value."
 msgstr "Error: „%s“ erwartet einen Wert."
 
-#: ../src/certify.c:317 ../src/trustdb.c:690
+#: ../src/certify.c:529 ../src/trustdb.c:690
 #, c-format
 msgid "Error: Unknown credibility value '%s'."
 msgstr "Error: Unbekannter Glaubwürdigkeitswert „%s“."
 
-#: ../src/certify.c:322 ../src/email.c:355 ../src/property.c:365
+#: ../src/certify.c:534 ../src/email.c:355 ../src/property.c:365
 #: ../src/trustdb.c:1044
 #, c-format
 msgid "Error: '%s' wants a list, empty for none."
 msgstr "Error: „%s“ erwartet eine Liste, leer für keine."
 
-#: ../src/certify.c:345
+#: ../src/certify.c:557 ../src/certify.c:574
 #, c-format
 msgid "Error: '%s' is neither a fingerprint nor an identifier."
 msgstr "Error: „%s“ ist weder ein Fingerabdruck noch eine Kennung."
 
-#: ../src/certify.c:351
-msgid "Error: Which certificate? A whole fingerprint is required —"
-msgstr "Error: Welches Zertifikat? Ein vollständiger Fingerabdruck wird verlangt —"
+#: ../src/certify.c:566
+msgid "Whom are you certifying? A fingerprint or an identifier: "
+msgstr "Wen beglaubigen Sie? Ein Fingerabdruck oder eine Kennung: "
 
-#: ../src/certify.c:352
-msgid "a certification cannot be taken back, so it is never guessed."
-msgstr "eine Beglaubigung lässt sich nicht zurücknehmen, sie wird daher nie erraten."
+#: ../src/certify.c:619
+#, c-format
+msgid "Error: More than %d certificates carry '%s'."
+msgstr "Error: Mehr als %d Zertifikate tragen „%s“."
 
-#: ../src/certify.c:383
+#: ../src/certify.c:621
+msgid "Notice: Name the fingerprint to say which one."
+msgstr "Notice: Nennen Sie den Fingerabdruck, um zu sagen welches."
+
+#: ../src/certify.c:625
+#, c-format
+msgid "Error: Nobody here or on the keyservers carries '%s'."
+msgstr "Error: Niemand hier oder auf den Schlüsselservern trägt „%s“."
+
+#: ../src/certify.c:637
 #, c-format
 msgid "Error: Nobody here carries '%s'."
 msgstr "Error: Niemand hier trägt „%s“."
 
-#: ../src/certify.c:387
+#: ../src/certify.c:641
 #, c-format
 msgid "Error: %s carries '%s', and %s does not."
 msgstr "Error: %s trägt „%s“, und %s nicht."
 
-#: ../src/certify.c:393
+#: ../src/certify.c:647
 #, c-format
 msgid "Error: No certificate here carries %s."
 msgstr "Error: Kein Zertifikat hier trägt %s."
 
-#: ../src/certify.c:398
+#: ../src/certify.c:652
 msgid "Warning: Self-certification is not innovative! ;-)"
 msgstr "Warning: Sich selbst zu beglaubigen ist nichts Neues! ;-)"
 
-#: ../src/certify.c:407
+#: ../src/certify.c:661
 #, c-format
 msgid "Error: %s carries no usable uid for '%s'."
 msgstr "Error: %s trägt keine brauchbare uid für „%s“."
 
-#: ../src/certify.c:410
+#: ../src/certify.c:664
 #, c-format
 msgid "Crit: %s carries no identity uid — the certificate looks broken."
 msgstr "Crit: %s trägt keine Identitäts-uid — das Zertifikat wirkt beschädigt."
 
-#: ../src/certify.c:423
+#: ../src/certify.c:677
 msgid "Info: --credibility means nothing when revoking; ignored."
 msgstr "Info: --credibility bedeutet beim Widerrufen nichts; ignoriert."
 
-#: ../src/certify.c:443
+#: ../src/certify.c:697
 msgid "Notice: gpg reported no error, which does not mean it found a certification to revoke."
 msgstr "Notice: gpg meldete keinen Fehler, was nicht heißt, dass es eine Beglaubigung zum Widerrufen fand."
 
-#: ../src/certify.c:446
+#: ../src/certify.c:700
 #, c-format
 msgid "Notice: Signed %zu uid(s) of certificate %s."
 msgstr "Notice: %zu uid des Zertifikats %s signiert."
@@ -467,8 +514,8 @@ msgstr ""
 "\n"
 
 #: ../src/changepass.c:48 ../src/changetokencode.c:57
-#: ../src/changetokenmeta.c:56 ../src/genkey.c:163 ../src/printsecret.c:84
-#: ../src/scan.c:57 ../src/totoken.c:64
+#: ../src/changetokenmeta.c:56 ../src/genkey.c:163 ../src/printsecret.c:86
+#: ../src/totoken.c:81
 #, c-format
 msgid "Error: Cannot read %s."
 msgstr "Error: %s kann nicht gelesen werden."
@@ -478,42 +525,46 @@ msgstr "Error: %s kann nicht gelesen werden."
 msgid "Error: '%s' wants a %s."
 msgstr "Error: „%s“ erwartet %s."
 
-#: ../src/changepass.c:118
+#: ../src/changepass.c:122
+msgid "Which key? Its number: "
+msgstr "Welcher Schlüssel? Seine Nummer: "
+
+#: ../src/changepass.c:124
 msgid "Error: Which key? Naming it is not something to guess at:"
 msgstr "Error: Welcher Schlüssel? Das lässt sich nicht erraten:"
 
-#: ../src/changepass.c:119
+#: ../src/changepass.c:125
 msgid "this machine may hold several secret keys."
 msgstr "diese Maschine kann mehrere geheime Schlüssel halten."
 
-#: ../src/changepass.c:124
+#: ../src/changepass.c:131
 msgid "Error: Both passphrases are needed — the current one with --passphrase or --passfrom, the new one with"
 msgstr "Error: Beide Passphrasen werden gebraucht — die aktuelle mit --passphrase oder --passfrom, die neue mit"
 
-#: ../src/changepass.c:126
+#: ../src/changepass.c:133
 msgid "--newpassphrase or --newpassfrom. Empty strings mean none."
 msgstr "--newpassphrase oder --newpassfrom. Eine leere Zeichenkette heißt keine."
 
-#: ../src/changepass.c:134 ../src/printsecret.c:369 ../src/totoken.c:186
+#: ../src/changepass.c:141 ../src/printsecret.c:433 ../src/totoken.c:209
 #, c-format
 msgid "Error: No secret for '%s' here."
 msgstr "Error: Kein Geheimnis für „%s“ hier."
 
-#: ../src/changepass.c:146
+#: ../src/changepass.c:153
 #, c-format
 msgid "Error: That is not the current passphrase of '%s'."
 msgstr "Error: Das ist nicht die aktuelle Passphrase von „%s“."
 
-#: ../src/changepass.c:153
+#: ../src/changepass.c:160
 msgid "Notice: Passphrase unchanged."
 msgstr "Notice: Passphrase unverändert."
 
-#: ../src/changepass.c:170
+#: ../src/changepass.c:177
 #, c-format
 msgid "Error: gpg would not change the passphrase of '%s'."
 msgstr "Error: gpg weigerte sich, die Passphrase von „%s“ zu ändern."
 
-#: ../src/changepass.c:173
+#: ../src/changepass.c:180
 msgid "Notice: Passphrase successfully changed."
 msgstr "Notice: Passphrase geändert."
 
@@ -567,54 +618,70 @@ msgstr ""
 "- ein anderer Wert ungleich null bei anderen Fehlern.\n"
 
 #: ../src/changetokencode.c:88 ../src/changetokencode.c:97
-#: ../src/changetokenmeta.c:135
+#: ../src/changetokenmeta.c:134
 #, c-format
 msgid "Error: '%s' wants a code."
 msgstr "Error: „%s“ erwartet einen Code."
 
 #: ../src/changetokencode.c:92 ../src/changetokencode.c:102
-#: ../src/changetokenmeta.c:140 ../src/genkey.c:158 ../src/printsecret.c:241
-#: ../src/scan.c:115 ../src/totoken.c:118 ../src/totoken.c:133
-#: ../src/tovcard.c:369
+#: ../src/changetokenmeta.c:139 ../src/genkey.c:158 ../src/printsecret.c:289
+#: ../src/totoken.c:135 ../src/totoken.c:150 ../src/tovcard.c:369
 #, c-format
 msgid "Error: '%s' wants a file."
 msgstr "Error: „%s“ erwartet eine Datei."
 
-#: ../src/changetokencode.c:135
+#: ../src/changetokencode.c:141
 #, c-format
-msgid "Error: The current %s code is needed. Give --code, or --codefrom to keep it off the process list."
-msgstr "Error: Der aktuelle %s-Code wird gebraucht. Geben Sie --code, oder --codefrom, damit er nicht in der Prozessliste steht."
+msgid "Current %s code (%zu digits): "
+msgstr "Aktueller %s-Code (%zu Ziffern): "
 
-#: ../src/changetokencode.c:140
-msgid "Error: What should the code become? Give --newcode, or --onlycheck to only check the current one."
-msgstr "Error: Was soll aus dem Code werden? Geben Sie --newcode, oder --onlycheck, um den aktuellen nur zu prüfen."
+#: ../src/changetokencode.c:143
+msgid "Notice: Give --code, or --codefrom to keep it off the process list."
+msgstr "Notice: Geben Sie --code an, oder --codefrom, um ihn aus der Prozessliste herauszuhalten."
 
 #: ../src/changetokencode.c:150
+#, c-format
+msgid "New %s code (%zu digits): "
+msgstr "Neuer %s-Code (%zu Ziffern): "
+
+#: ../src/changetokencode.c:152
+msgid "Notice: Give --newcode, or --onlycheck to only check the current one."
+msgstr "Notice: Geben Sie --newcode an, oder --onlycheck, um nur den aktuellen zu prüfen."
+
+#: ../src/changetokencode.c:157
+msgid "The same again: "
+msgstr "Dasselbe noch einmal: "
+
+#: ../src/changetokencode.c:160
+msgid "Error: The two do not match."
+msgstr "Error: Die beiden stimmen nicht überein."
+
+#: ../src/changetokencode.c:170
 #, c-format
 msgid "Warning: Given %s code doesn't match %zu digits."
 msgstr "Warning: Der angegebene %s-Code hat nicht %zu Ziffern."
 
-#: ../src/changetokencode.c:170
+#: ../src/changetokencode.c:190
 #, c-format
 msgid "Notice: %s code: remaining retries: %d."
 msgstr "Notice: %s-Code: verbleibende Versuche: %d."
 
-#: ../src/changetokencode.c:179
+#: ../src/changetokencode.c:199
 #, c-format
 msgid "Notice: %s code successfully verified."
 msgstr "Notice: %s-Code geprüft."
 
-#: ../src/changetokencode.c:192
+#: ../src/changetokencode.c:212
 #, c-format
 msgid "Notice: %s code unchanged."
 msgstr "Notice: %s-Code unverändert."
 
-#: ../src/changetokencode.c:196
+#: ../src/changetokencode.c:216
 #, c-format
 msgid "Error: Given %s code doesn't match %zu digits."
 msgstr "Error: Der angegebene %s-Code hat nicht %zu Ziffern."
 
-#: ../src/changetokencode.c:215
+#: ../src/changetokencode.c:235
 #, c-format
 msgid "Notice: %s code successfully %s."
 msgstr "Notice: %s-Code: %s."
@@ -661,68 +728,72 @@ msgstr ""
 "  -V, --version               Die Version ausgeben und beenden\n"
 "\n"
 
-#: ../src/changetokenmeta.c:162
-msgid "Error: What should the card say? An address, an http URL, or a two-letter language code."
-msgstr "Error: Was soll die Karte sagen? Eine Adresse, eine http-URL, oder ein zweibuchstabiger Sprachcode."
+#: ../src/changetokenmeta.c:165
+msgid "What should the card say? An address, an http URL, or a two-letter language code: "
+msgstr "Was soll die Karte sagen? Eine Adresse, eine http-URL oder ein zweibuchstabiger Sprachcode: "
 
-#: ../src/changetokenmeta.c:181
+#: ../src/changetokenmeta.c:168
+msgid "Error: Nothing to write."
+msgstr "Error: Nichts zu schreiben."
+
+#: ../src/changetokenmeta.c:187
 #, c-format
 msgid "Error: '%s' is neither an email, a certurl, nor a 2-letter language code."
 msgstr "Error: „%s“ ist weder eine Adresse noch eine certurl noch ein zweibuchstabiger Sprachcode."
 
-#: ../src/changetokenmeta.c:188 ../src/totoken.c:257
+#: ../src/changetokenmeta.c:194 ../src/totoken.c:281
 msgid "Error: No security token detected."
 msgstr "Error: Kein Sicherheitsschlüssel erkannt."
 
-#: ../src/changetokenmeta.c:196
+#: ../src/changetokenmeta.c:202
 #, c-format
 msgid "Error: Email '%s' exceeds 38 bytes (OpenPGP smartcard cap)."
 msgstr "Error: Die Adresse „%s“ überschreitet 38 Bytes (Grenze der OpenPGP-Karten)."
 
-#: ../src/changetokenmeta.c:201
+#: ../src/changetokenmeta.c:207
 msgid "Error: The card names no signing key, so its certificate cannot be found."
 msgstr "Error: Die Karte benennt keinen Signaturschlüssel, ihr Zertifikat ist daher nicht auffindbar."
 
-#: ../src/changetokenmeta.c:222
+#: ../src/changetokenmeta.c:228
 msgid "Error: Can't find the token's certificate here."
 msgstr "Error: Das Zertifikat des Sicherheitsschlüssels ist hier nicht zu finden."
 
-#: ../src/changetokenmeta.c:236
+#: ../src/changetokenmeta.c:242
 #, c-format
 msgid "Error: %s is not a usable email of the token's certificate."
 msgstr "Error: %s ist keine brauchbare Adresse des Zertifikats dieses Schlüssels."
 
-#: ../src/changetokenmeta.c:247
+#: ../src/changetokenmeta.c:253
 msgid "Error: Cannot make a temporary keyring."
 msgstr "Error: Ein temporärer Schlüsselbund kann nicht angelegt werden."
 
-#: ../src/changetokenmeta.c:255 ../src/changetokenmeta.c:270
+#: ../src/changetokenmeta.c:261 ../src/changetokenmeta.c:276
 #, c-format
 msgid "Error: Can't fetch a usable certificate from %s."
 msgstr "Error: Von %s lässt sich kein brauchbares Zertifikat holen."
 
-#: ../src/changetokenmeta.c:285
+#: ../src/changetokenmeta.c:291
 #, c-format
 msgid "Error: Certificate at %s doesn't hold the token's subkeys: %s."
 msgstr "Error: Das von %s gelieferte Zertifikat trägt die Unterschlüssel der Karte nicht: %s."
 
-#: ../src/changetokenmeta.c:297
-msgid "Error: The Admin code is needed to write to the card."
-msgstr "Error: Der Admin-Code wird zum Schreiben auf die Karte gebraucht."
+#: ../src/changetokenmeta.c:305
+msgid "Admin code (8 digits): "
+msgstr "Admin-Code (8 Ziffern): "
 
-#: ../src/changetokenmeta.c:298
-msgid "Give --admincode, or --admincodefrom to keep it off the process list."
-msgstr "Geben Sie --admincode, oder --admincodefrom, damit er nicht in der Prozessliste steht."
+#: ../src/changetokenmeta.c:307
+msgid "Notice: Give --admincode, or --admincodefrom to keep it off the process list."
+msgstr "Notice: Geben Sie --admincode an, oder --admincodefrom, um ihn aus der Prozessliste herauszuhalten."
 
-#: ../src/changetokenmeta.c:303
+#: ../src/changetokenmeta.c:313
 msgid "Warning: Admin code shorter than 8 digits."
 msgstr "Warning: Admin-Code kürzer als 8 Ziffern."
 
-#: ../src/changetokenmeta.c:317
+#: ../src/changetokenmeta.c:327
 msgid "Error: gpg --card-edit failed — wrong Admin code?"
 msgstr "Error: gpg --card-edit fehlgeschlagen — falscher Admin-Code?"
 
-#: ../src/changetokenmeta.c:320
+#: ../src/changetokenmeta.c:330
 #, c-format
 msgid "Notice: Wrote new value '%s' into the security token."
 msgstr "Notice: Neuer Wert „%s“ in den Sicherheitsschlüssel geschrieben."
@@ -1019,8 +1090,7 @@ msgstr ""
 msgid "Error: '%s' wants an identifier."
 msgstr "Error: „%s“ erwartet eine Kennung."
 
-#: ../src/genkey.c:151 ../src/printsecret.c:233 ../src/scan.c:108
-#: ../src/totoken.c:115
+#: ../src/genkey.c:151 ../src/printsecret.c:281 ../src/totoken.c:132
 #, c-format
 msgid "Error: '%s' wants a passphrase."
 msgstr "Error: „%s“ erwartet eine Passphrase."
@@ -1035,7 +1105,7 @@ msgstr "Error: „%s“ erwartet eine Anzahl Jahre."
 msgid "Error: Given parameter '%s' is not a valid number."
 msgstr "Error: Der angegebene Parameter „%s“ ist keine gültige Zahl."
 
-#: ../src/genkey.c:186 ../src/totoken.c:125
+#: ../src/genkey.c:186 ../src/totoken.c:142
 #, c-format
 msgid "Error: '%s' wants a keyserver."
 msgstr "Error: „%s“ erwartet einen Schlüsselserver."
@@ -1176,16 +1246,16 @@ msgstr "%s: Die Zone hat %zu Zeichen, nicht 88."
 msgid "%s: The check digit for %s does not agree."
 msgstr "%s: Die Prüfziffer für %s stimmt nicht."
 
-#: ../src/genu4.c:226 ../src/genu4.c:230 ../src/genu4.c:340
+#: ../src/genu4.c:226 ../src/genu4.c:230 ../src/genu4.c:355
 msgid "Error: The name is not valid UTF-8."
 msgstr "Error: Der Name ist kein gültiges UTF-8."
 
-#: ../src/genu4.c:239 ../src/genu4.c:326
+#: ../src/genu4.c:239 ../src/genu4.c:341
 #, c-format
 msgid "Error: '%s' is not a date. Give it as YYYY-MM-DD."
 msgstr "Error: „%s“ ist kein Datum. Geben Sie es als JJJJ-MM-TT an."
 
-#: ../src/genu4.c:250 ../src/genu4.c:331
+#: ../src/genu4.c:250 ../src/genu4.c:346
 #, c-format
 msgid "Error: '%s' is not a three-letter country code we know."
 msgstr "Error: „%s“ ist kein uns bekannter dreibuchstabiger Ländercode."
@@ -1203,7 +1273,23 @@ msgstr "Error: „--uncheck“ betrifft die Prüfziffern eines Passes; es brauch
 msgid "Error: A civil status is given by options; '%s' is not one."
 msgstr "Error: Ein Personenstand wird über Optionen angegeben; „%s“ ist keine."
 
-#: ../src/genu4.c:319
+#: ../src/genu4.c:323
+msgid "Birth surname (family name): "
+msgstr "Geburtsname (Familienname): "
+
+#: ../src/genu4.c:324
+msgid "Birth names (all given names): "
+msgstr "Geburtsvornamen (alle Vornamen): "
+
+#: ../src/genu4.c:325
+msgid "Birth date (YYYY-MM-DD): "
+msgstr "Geburtsdatum (JJJJ-MM-TT): "
+
+#: ../src/genu4.c:326
+msgid "Birth country (3 letter code): "
+msgstr "Geburtsland (3-Buchstaben-Code): "
+
+#: ../src/genu4.c:333
 msgid "Error: Surname, given names, date and country are all needed."
 msgstr "Error: Nachname, Vornamen, Datum und Land werden alle gebraucht."
 
@@ -1321,6 +1407,24 @@ msgstr "Error: Kein Zertifikat für das Gefragte."
 msgid "Error: %zu certificates matched, more than the %ld asked for."
 msgstr "Error: %zu Zertifikate passten, mehr als die verlangten %ld."
 
+#: ../src/interactive.c:37 ../src/interactive.c:62 ../src/interactive.c:108
+msgid "Notice: --batch was given, so nothing is asked."
+msgstr "Notice: --batch wurde angegeben, also wird nichts gefragt."
+
+#: ../src/interactive.c:43 ../src/interactive.c:80
+msgid "Error: Nothing to read: the question stays unanswered."
+msgstr "Error: Nichts zu lesen: die Frage bleibt unbeantwortet."
+
+#: ../src/interactive.c:123
+#, c-format
+msgid "Notice: A number between 1 and %zu is wanted."
+msgstr "Notice: Erwartet wird eine Zahl zwischen 1 und %zu."
+
+#: ../src/interactive.c:155
+#, c-format
+msgid "Notice: %zu hexadecimal characters are wanted, %zu were read."
+msgstr "Notice: %zu Hexadezimalzeichen werden erwartet, %zu wurden gelesen."
+
 #: ../src/list.c:284 ../src/list.c:428
 msgid "reading a certificate"
 msgstr "ein Zertifikat wird gelesen"
@@ -1429,6 +1533,7 @@ msgid ""
 "OPTIONS:\n"
 "  -H, --homedir DIR           GnuPG home directory - Environment variable: GNUPGHOME\n"
 "      --output-format=FORMAT  Specify output format between {raw, info, md} - Default: 'raw'\n"
+"  -B, --batch                 Never ask: fail instead of prompting for what is missing\n"
 "  -h, --help                  Print this help and exit\n"
 "  -V, --version               Print the version and exit\n"
 "\n"
@@ -1467,21 +1572,22 @@ msgstr ""
 "OPTIONS:\n"
 "  -H, --homedir VERZEICHNIS   GnuPG-Verzeichnis - Umgebungsvariable: GNUPGHOME\n"
 "      --output-format=FORMAT  Ausgabeformat aus {raw, info, md} - Vorgabe: „raw“\n"
+"  -B, --batch                 Nie fragen: fehlschlagen, statt Fehlendes zu erfragen\n"
 "  -h, --help                  Diese Hilfe ausgeben und beenden\n"
 "  -V, --version               Die Version ausgeben und beenden\n"
 "\n"
 "Jede Aktion hat ihr eigenes --help.\n"
 
-#: ../src/main.c:95
+#: ../src/main.c:125
 #, c-format
 msgid "Error: Unknown output format '%s'."
 msgstr "Error: Unbekanntes Ausgabeformat „%s“."
 
-#: ../src/main.c:96
+#: ../src/main.c:126
 msgid "Notice: One of raw, info, md."
 msgstr "Notice: Eines von raw, info, md."
 
-#: ../src/main.c:174
+#: ../src/main.c:169
 #, c-format
 msgid "Error: Unknown action '%s'."
 msgstr "Error: Unbekannte Aktion „%s“."
@@ -1571,7 +1677,7 @@ msgstr "Error: Keine brauchbare (nicht widerrufene) Adresse in Zertifikat %s."
 msgid "Notice: Picking most recent email %s."
 msgstr "Notice: Jüngste Adresse gewählt: %s."
 
-#: ../src/printcard.c:316 ../src/printsecret.c:340 ../src/scan.c:165
+#: ../src/printcard.c:316 ../src/printsecret.c:404 ../src/scan.c:139
 msgid "Error: Cannot make a working directory."
 msgstr "Error: Ein Arbeitsverzeichnis kann nicht angelegt werden."
 
@@ -1639,6 +1745,8 @@ msgid ""
 "Export and print OpenPGP secrets on multiple QRcode using Shamir's secret\n"
 "sharing, split so that no single sheet carries the key.\n"
 "\n"
+"Missing input will be asked interactively, unless --batch.\n"
+"\n"
 "OPTIONS:\n"
 "  -p, --passphrase PASSPHRASE    Passphrase to access secret parts of OpenPGP key\n"
 "  -P, --passfrom FILE            Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
@@ -1664,6 +1772,8 @@ msgstr ""
 "Die OpenPGP-Geheimnisse auf mehrere QR-Codes ausgeben und drucken, mit\n"
 "Shamirs Secret Sharing so geteilt, dass kein einzelnes Blatt den Schlüssel trägt.\n"
 "\n"
+"Fehlende Angaben werden interaktiv erfragt, außer mit --batch.\n"
+"\n"
 "OPTIONS:\n"
 "  -p, --passphrase PASSPHRASE Die Phrase, die die geheimen Teile schützt\n"
 "  -P, --passfrom FILE         Sie aus der ersten Zeile von DATEI lesen\n"
@@ -1685,151 +1795,167 @@ msgstr ""
 "Gesicht nicht, und Papier hält der in Händen, der es findet.\n"
 "\n"
 
-#: ../src/printsecret.c:249
+#: ../src/printsecret.c:247
+msgid "none - produce the sheets and send nothing"
+msgstr "keiner – die Bögen erzeugen und nichts senden"
+
+#: ../src/printsecret.c:263
+msgid "Which printer? Its number: "
+msgstr "Welcher Drucker? Seine Nummer: "
+
+#: ../src/printsecret.c:297
 #, c-format
 msgid "Error: '%s' wants a printer, empty for none."
 msgstr "Error: „%s“ erwartet einen Drucker, leer für keinen."
 
-#: ../src/printsecret.c:264 ../src/scan.c:128
+#: ../src/printsecret.c:312 ../src/scan.c:102
 #, c-format
 msgid "Error: Nonexistent or unattainable directory (%s)."
 msgstr "Error: Nicht vorhandenes oder unerreichbares Verzeichnis (%s)."
 
-#: ../src/printsecret.c:270 ../src/printsecret.c:276
+#: ../src/printsecret.c:318 ../src/printsecret.c:324
 #, c-format
 msgid "Error: '%s' wants a number."
 msgstr "Error: „%s“ erwartet eine Zahl."
 
-#: ../src/printsecret.c:298
-msgid "Error: Which secret key? This machine may hold several."
-msgstr "Error: Welcher geheime Schlüssel? Diese Maschine kann mehrere halten."
+#: ../src/printsecret.c:349 ../src/totoken.c:182
+msgid "Which secret key? Its number: "
+msgstr "Welcher geheime Schlüssel? Seine Nummer: "
 
-#: ../src/printsecret.c:303
+#: ../src/printsecret.c:351
+msgid "Error: Which secret key should be printed?"
+msgstr "Error: Welcher geheime Schlüssel soll gedruckt werden?"
+
+#: ../src/printsecret.c:360
+msgid "Passphrase of the secret key (empty if none): "
+msgstr "Passphrase des geheimen Schlüssels (leer, wenn keine): "
+
+#: ../src/printsecret.c:362
 msgid "Error: The passphrase is needed to export the secret parts."
 msgstr "Error: Die Passphrase wird zum Ausführen der geheimen Teile gebraucht."
 
-#: ../src/printsecret.c:304 ../src/totoken.c:282
+#: ../src/printsecret.c:363
 msgid "Give --passphrase, or --passfrom to keep it off the process list."
 msgstr "Geben Sie --passphrase, oder --passfrom, damit sie nicht in der Prozessliste steht."
 
-#: ../src/printsecret.c:308
+#: ../src/printsecret.c:370
 msgid "Error: Where should this be printed? Name a printer, or pass"
 msgstr "Error: Wo soll das gedruckt werden? Nennen Sie einen Drucker, oder geben Sie"
 
-#: ../src/printsecret.c:309
+#: ../src/printsecret.c:371
 msgid "--printer '' to produce the sheets and send nothing."
 msgstr "--printer '' an, um die Blätter zu erzeugen, ohne etwas zu senden."
 
-#: ../src/printsecret.c:313
+#: ../src/printsecret.c:377
 #, c-format
 msgid "Error: Splits number (%d) can't be lower than 3."
 msgstr "Error: Die Anzahl der Fragmente (%d) darf nicht kleiner als 3 sein."
 
-#: ../src/printsecret.c:320
+#: ../src/printsecret.c:384
 #, c-format
 msgid "Error: Splits number (%d) can't be higher than %d: the QR header spells it as one digit."
 msgstr "Error: Die Zahl der Bruchstücke (%d) darf %d nicht übersteigen: der QR-Kopf schreibt sie mit einer Ziffer."
 
-#: ../src/printsecret.c:325
+#: ../src/printsecret.c:389
 #, c-format
 msgid "Warning: Threshold can't be greater than the number of splits, reducing threshold to %d."
 msgstr "Warning: Die Schwelle darf die Anzahl der Fragmente nicht übersteigen; Schwelle auf %d gesenkt."
 
-#: ../src/printsecret.c:345 ../src/scan.c:170
+#: ../src/printsecret.c:409 ../src/scan.c:144
 msgid "Error: Working directory is unclean (it holds SECRET*)."
 msgstr "Error: Das Arbeitsverzeichnis ist nicht sauber (es enthält SECRET*)."
 
-#: ../src/printsecret.c:346 ../src/scan.c:171
+#: ../src/printsecret.c:410 ../src/scan.c:145
 #, c-format
 msgid "Suggestion: bl-security shred_path --remove '%s'"
 msgstr "Suggestion: bl-security shred_path --remove '%s'"
 
-#: ../src/printsecret.c:383
+#: ../src/printsecret.c:447
 msgid "Error: gpg would not export the secret key — right passphrase?"
 msgstr "Error: gpg weigerte sich, den geheimen Schlüssel auszuführen — die richtige Passphrase?"
 
-#: ../src/printsecret.c:396
+#: ../src/printsecret.c:460
 #, c-format
 msgid "Error: %s carries no uid worth printing."
 msgstr "Error: %s trägt keine uid, die zu drucken lohnt."
 
-#: ../src/printsecret.c:400
+#: ../src/printsecret.c:464
 msgid "Error: Cannot trim the export down to its three uids."
 msgstr "Error: Der Export lässt sich nicht auf seine drei uids kürzen."
 
-#: ../src/printsecret.c:403
+#: ../src/printsecret.c:467
 #, c-format
 msgid "Notice: Printing %zu uid(s) of %zu — the rest comes back from a keyring."
 msgstr "Notice: %zu von %zu uid gedruckt — der Rest kommt aus einem Schlüsselbund zurück."
 
-#: ../src/printsecret.c:414
+#: ../src/printsecret.c:478
 msgid "Error: basenc would not encode the export."
 msgstr "Error: basenc weigerte sich, den Export zu kodieren."
 
-#: ../src/printsecret.c:421
+#: ../src/printsecret.c:485
 #, c-format
 msgid "Error: split would not cut the export in %d."
 msgstr "Error: split weigerte sich, den Export in %d zu schneiden."
 
-#: ../src/printsecret.c:431
+#: ../src/printsecret.c:495
 msgid "Error: gfsplit would not share the secret out."
 msgstr "Error: gfsplit weigerte sich, das Geheimnis aufzuteilen."
 
-#: ../src/printsecret.c:446
+#: ../src/printsecret.c:510
 #, c-format
 msgid "Error: basenc would not encode %s."
 msgstr "Error: basenc weigerte sich, %s zu kodieren."
 
-#: ../src/printsecret.c:466
+#: ../src/printsecret.c:530
 #, c-format
 msgid "Notice: Printing the secret split into %d fragments on %s…"
 msgstr "Notice: Das Geheimnis wird in %d Fragmenten auf %s gedruckt…"
 
-#: ../src/printsecret.c:469
+#: ../src/printsecret.c:533
 #, c-format
 msgid "Notice: Producing %d fragments in %s, sending nothing."
 msgstr "Notice: %d Fragmente werden in %s erzeugt, nichts wird gesendet."
 
-#: ../src/printsecret.c:487
+#: ../src/printsecret.c:551
 msgid "Error: No fragment was produced."
 msgstr "Error: Kein Fragment wurde erzeugt."
 
-#: ../src/printsecret.c:504
+#: ../src/printsecret.c:568
 #, c-format
 msgid "Error: %zu fragments in %s, and a QR header can only number %d."
 msgstr "Error: %zu Bruchstücke in %s, und ein QR-Kopf kann nur %d durchnummerieren."
 
-#: ../src/printsecret.c:534
+#: ../src/printsecret.c:598
 #, c-format
 msgid "Error: Cannot read the fragment %s."
 msgstr "Error: Das Fragment %s kann nicht gelesen werden."
 
-#: ../src/printsecret.c:548
+#: ../src/printsecret.c:612
 #, c-format
 msgid "Error: qrencode would not draw fragment %zu."
 msgstr "Error: qrencode weigerte sich, Fragment %zu zu zeichnen."
 
-#: ../src/printsecret.c:575
+#: ../src/printsecret.c:639
 #, c-format
 msgid "Error: pandoc would not lay fragment %zu out."
 msgstr "Error: pandoc weigerte sich, Fragment %zu zu setzen."
 
-#: ../src/printsecret.c:581
+#: ../src/printsecret.c:645
 #, c-format
 msgid "Error: pdfcrop would not trim fragment %zu."
 msgstr "Error: pdfcrop weigerte sich, Fragment %zu zu beschneiden."
 
-#: ../src/printsecret.c:590
+#: ../src/printsecret.c:654
 #, c-format
 msgid "Error: lpr would not print fragment %zu."
 msgstr "Error: lpr weigerte sich, Fragment %zu zu drucken."
 
-#: ../src/printsecret.c:609
+#: ../src/printsecret.c:673
 #, c-format
 msgid "Notice: The working copies are removed. Shred %s if anything is left."
 msgstr "Notice: Die Arbeitskopien sind entfernt. Schreddern Sie %s, falls etwas bleibt."
 
-#: ../src/printsecret.c:612
+#: ../src/printsecret.c:676
 #, c-format
 msgid "Notice: The fragments are in %s. Shred it once they are on paper: bl-security shred_path --remove '%s'"
 msgstr "Notice: Die Fragmente liegen in %s. Schreddern Sie es, sobald sie auf Papier sind: bl-security shred_path --remove '%s'"
@@ -2016,9 +2142,12 @@ msgid ""
 "Output OpenPGP certification key fingerprint.\n"
 "Images may be PNG, JPEG, or PDF.\n"
 "\n"
+"QR code versions 4 and 5, which is what print_secret writes. Versions 1\n"
+"to 3 were experimental and never released; 'bl-pgpkey scan' still reads\n"
+"them. A key that arrives protected stays protected: taking the\n"
+"passphrase off is the business of whoever moves it onto a card.\n"
+"\n"
 "OPTIONS:\n"
-"  -p, --passphrase PASSPHRASE   Passphrase to access secret parts of OpenPGP key\n"
-"  -P, --passfrom FILE           Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
 "  -W, --workdir DIRECTORY       Use given working directory instead of a temporary directory (don't forget to shred its content)\n"
 "  -h, --help                    Print this help and exit\n"
 "  -V, --version                 Print the version and exit\n"
@@ -2032,90 +2161,106 @@ msgstr ""
 "Gibt den Fingerabdruck des OpenPGP-Beglaubigungsschlüssels aus.\n"
 "Die Bilder dürfen PNG, JPEG oder PDF sein.\n"
 "\n"
+"QR-Code-Versionen 4 und 5, also das, was print_secret schreibt. Die\n"
+"Versionen 1 bis 3 waren experimentell und nie veröffentlicht; „bl-pgpkey\n"
+"scan“ liest sie weiterhin. Ein geschützt ankommender Schlüssel bleibt\n"
+"geschützt: die Passphrase abzunehmen ist Sache dessen, der ihn auf eine\n"
+"Karte bringt.\n"
+"\n"
 "OPTIONS:\n"
-"  -p, --passphrase PASSPHRASE Die Phrase, unter der die geheimen Teile liegen\n"
-"  -P, --passfrom FILE         Sie aus der ersten Zeile von DATEI lesen\n"
 "  -W, --workdir DIRECTORY     Hier arbeiten statt in einem temporären\n"
 "  -h, --help                  Diese Hilfe ausgeben und beenden\n"
 "  -V, --version               Die Version ausgeben und beenden\n"
 "\n"
 "Fehlende Fragmente werden benannt statt umgangen: dies liest, was man ihm\n"
 "gibt, und öffnet keine Kamera, um suchen zu gehen.\n"
-"\n"
 
-#: ../src/scan.c:147
+#: ../src/scan.c:121
 #, c-format
 msgid "Error: Too many images given. Maximum: %d."
 msgstr "Error: Zu viele Bilder angegeben. Höchstens: %d."
 
-#: ../src/scan.c:154
+#: ../src/scan.c:128
 msgid "Error: Which images? There is no camera to fall back on here."
 msgstr "Error: Welche Bilder? Hier gibt es keine Kamera, auf die zurückzugreifen wäre."
 
-#: ../src/scan.c:188
+#: ../src/scan.c:162
 #, c-format
 msgid "Error: Can't convert pdf %s."
 msgstr "Error: Das pdf %s lässt sich nicht wandeln."
 
-#: ../src/scan.c:199 ../src/scan.c:248
+#: ../src/scan.c:173 ../src/scan.c:222
 #, c-format
 msgid "Error: No QR code with expected data in '%s'."
 msgstr "Error: Kein QR-Code mit den erwarteten Daten in „%s“."
 
-#: ../src/scan.c:230
+#: ../src/scan.c:204
 #, c-format
 msgid "Crit: QR codes don't share the same version (%d != %d)."
 msgstr "Crit: Die QR-Codes teilen nicht dieselbe Version (%d != %d)."
 
-#: ../src/scan.c:235
+#: ../src/scan.c:209
 #, c-format
 msgid "Crit: QR codes don't share the same division (%d != %d)."
 msgstr "Crit: Die QR-Codes teilen nicht dieselbe Aufteilung (%d != %d)."
 
-#: ../src/scan.c:240
+#: ../src/scan.c:214
 #, c-format
 msgid "Crit: Fragment number %d is out of range."
 msgstr "Crit: Die Fragmentnummer %d liegt außerhalb des Bereichs."
 
-#: ../src/scan.c:251
+#: ../src/scan.c:225
 #, c-format
 msgid "Info: QR code(s) with expected data read from '%s'."
 msgstr "Info: QR-Code(s) mit den erwarteten Daten aus „%s“ gelesen."
 
-#: ../src/scan.c:255
+#: ../src/scan.c:229
 #, c-format
 msgid "Crit: Unsupported qrcode version (%d)."
 msgstr "Crit: Nicht unterstützte QR-Code-Version (%d)."
 
-#: ../src/scan.c:256
-msgid "Versions 1 to 3 needed an extra passphrase and are long gone."
-msgstr "Die Versionen 1 bis 3 verlangten eine zusätzliche Passphrase und sind längst fort."
+#: ../src/scan.c:230
+msgid "Only versions 4 and 5 are read here. Versions 1 to 3 were experimental, never released, and needed an extra passphrase that also protected the key."
+msgstr "Hier werden nur die Versionen 4 und 5 gelesen. Die Versionen 1 bis 3 waren experimentell, nie veröffentlicht, und verlangten eine zusätzliche Passphrase, die auch den Schlüssel schützte."
 
-#: ../src/scan.c:271
+#: ../src/scan.c:233
+msgid "'bl-pgpkey scan' still reads them, should such a sheet turn up."
+msgstr "„bl-pgpkey scan“ liest sie weiterhin, falls ein solcher Bogen auftaucht."
+
+#: ../src/scan.c:248
 #, c-format
 msgid "Error: %zu fragment(s) of the %d needed; missing: %s."
 msgstr "Error: %zu von %d nötigen Fragment(en); es fehlen: %s."
 
-#: ../src/scan.c:293
+#: ../src/scan.c:270
 msgid "Error: basenc would not decode the fragments."
 msgstr "Error: basenc weigerte sich, die Fragmente zu dekodieren."
 
-#: ../src/scan.c:306
+#: ../src/scan.c:283
 #, c-format
 msgid "Error: basenc would not decode fragment %zu."
 msgstr "Error: basenc weigerte sich, Fragment %zu zu dekodieren."
 
-#: ../src/scan.c:324
+#: ../src/scan.c:301
 msgid "Error: gfcombine would not put the fragments back together."
 msgstr "Error: gfcombine weigerte sich, die Fragmente wieder zusammenzusetzen."
 
-#: ../src/scan.c:334
+#: ../src/scan.c:313
 msgid "Error: gpg would not import what came back."
 msgstr "Error: gpg weigerte sich, das Zurückgekommene einzulesen."
 
-#: ../src/scan.c:335
-msgid "A wrong passphrase, or fragments from two different printings."
-msgstr "Eine falsche Passphrase, oder Fragmente aus zwei verschiedenen Drucken."
+#: ../src/scan.c:314
+msgid "Fragments from two different printings, most likely."
+msgstr "Höchstwahrscheinlich Fragmente aus zwei verschiedenen Druckvorgängen."
+
+#: ../src/seckeys.c:62
+#, c-format
+msgid "Error: More than %d secret keys here; name the one you mean."
+msgstr "Error: Mehr als %d geheime Schlüssel hier; nennen Sie den gemeinten."
+
+#: ../src/seckeys.c:67
+msgid "Error: No secret key here."
+msgstr "Error: Kein geheimer Schlüssel hier."
 
 #: ../src/sigs.c:86
 #, c-format
@@ -2246,40 +2391,40 @@ msgstr ""
 "- also 107, wenn alle verlangten Daten fehlen (die OpenPGP-Karte ist wohl leer).\n"
 "- ein anderer Wert ungleich null bei anderen Fehlern.\n"
 
-#: ../src/tokencheck.c:281
+#: ../src/tokencheck.c:280
 msgid "Error: No security key answered."
 msgstr "Error: Kein Sicherheitsschlüssel antwortete."
 
-#: ../src/tokencheck.c:302
+#: ../src/tokencheck.c:301
 #, c-format
 msgid "Notice: Fetching the certificate from %s…"
 msgstr "Notice: Das Zertifikat wird von %s geholt…"
 
-#: ../src/tokencheck.c:385
+#: ../src/tokencheck.c:388
 #, c-format
 msgid "Notice: The key names %u addresses; keeping the first."
 msgstr "Notice: Der Schlüssel benennt %u Adressen; die erste wird behalten."
 
-#: ../src/tokencheck.c:387
+#: ../src/tokencheck.c:390
 #, c-format
 msgid "Error: The key names %u identifiers, which cannot both be its."
 msgstr "Error: Der Schlüssel benennt %u Kennungen, die nicht beide seine sein können."
 
-#: ../src/tokencheck.c:414
+#: ../src/tokencheck.c:417
 msgid "Warning: No certification key known. Share or fetch the certificate."
 msgstr "Warning: Kein Beglaubigungsschlüssel bekannt. Teilen oder holen Sie das Zertifikat."
 
-#: ../src/tokencheck.c:439
+#: ../src/tokencheck.c:442
 #, c-format
 msgid "Notice: Not a PGP ID key yet, missing: '%s'."
 msgstr "Notice: Noch kein PGP-ID-Schlüssel, es fehlt: „%s“."
 
-#: ../src/tokencheck.c:446
+#: ../src/tokencheck.c:449
 #, c-format
 msgid "Info: A PGP ID key, certified by %s, carrying %s."
 msgstr "Info: Ein PGP-ID-Schlüssel, beglaubigt von %s, der %s trägt."
 
-#: ../src/totoken.c:34
+#: ../src/totoken.c:41
 #, c-format
 msgid ""
 "Usage: %s totoken [OPTIONS]... KEY_ID|FPR\n"
@@ -2294,13 +2439,22 @@ msgid ""
 "OPTIONS:\n"
 "  -p, --passphrase PASSPHRASE  Passphrase to access secret parts of OpenPGP key\n"
 "  -P, --passfrom FILE          Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
-"  -U, --certurl URL            URL to retrieve your OpenPGP certificate (default: the keyserver's lookup for this key)\n"
+"  -U, --certurl URL            URL to retrieve your OpenPGP certificate\n"
+"                               Default: https://%s/pks/lookup?op=get&search=0x<FPR>\n"
 "  -L, --lang LANG              Security token (OpenPGP smartcard) prefered language (default: the locale's)\n"
-"  -k, --keyserver KEYSERVER    Send OpenPGP certificate to this public keys server. Also modify default URL (see --certurl)\n"
+"  -k, --keyserver KEYSERVER    Send OpenPGP certificate to this public keys server\n"
+"                               Empty to send it nowhere. Does not change --certurl\n"
+"                               Default: %s\n"
 "  -K, --pubkey FILE            Also write armored OpenPGP certificate to given FILE\n"
 "      --force                  Don't ask before resetting unempty security token (OpenPGP smartcard)\n"
 "  -h, --help                   Print this help and exit\n"
 "  -V, --version                Print the version and exit\n"
+"\n"
+"Return value:\n"
+"-   0 No error\n"
+"-   2 Input/Usage error\n"
+"- %d The passphrase given does not open the secret key\n"
+"- %d The key is protected and no passphrase was given\n"
 msgstr ""
 "Usage: %s totoken [OPTIONS]... KEY_ID|FPR\n"
 "\n"
@@ -2316,126 +2470,142 @@ msgstr ""
 "  -p, --passphrase PASSPHRASE Die Phrase, die die geheimen Teile schützt\n"
 "  -P, --passfrom FILE         Sie aus der ersten Zeile von DATEI lesen\n"
 "  -U, --certurl URL           Wo das Zertifikat zu holen ist\n"
+"                              Vorgabe: https://%s/pks/lookup?op=get&search=0x<FPR>\n"
 "  -L, --lang LANG             Bevorzugte Sprache der Karte - Vorgabe: die Locale\n"
-"  -k, --keyserver KEYSERVER   Das Zertifikat dorthin senden und daraus die\n"
+"  -k, --keyserver KEYSERVER   Das Zertifikat an diesen öffentlichen Schlüsselserver senden\n"
+"                              Leer, um nichts zu senden. Ändert --certurl nicht\n"
+"                              Vorgabe: %s\n"
 "  -K, --pubkey FILE           Das gepanzerte Zertifikat auch dorthin schreiben\n"
 "      --force                 Eine Karte löschen, die nicht leer ist\n"
 "  -h, --help                  Diese Hilfe ausgeben und beenden\n"
 "  -V, --version               Die Version ausgeben und beenden\n"
 "\n"
+"Rückgabewert:\n"
+"-   0 Kein Fehler\n"
+"-   2 Eingabe-/Aufruffehler\n"
+"- %d Die angegebene Passphrase öffnet den geheimen Schlüssel nicht\n"
+"- %d Der Schlüssel ist geschützt und es wurde keine Passphrase angegeben\n"
 
-#: ../src/totoken.c:122
+#: ../src/totoken.c:139
 #, c-format
 msgid "Error: '%s' wants a URL."
 msgstr "Error: „%s“ erwartet eine URL."
 
-#: ../src/totoken.c:128
+#: ../src/totoken.c:145
 #, c-format
 msgid "Error: '%s' wants a language."
 msgstr "Error: „%s“ erwartet eine Sprache."
 
-#: ../src/totoken.c:140
+#: ../src/totoken.c:157
 #, c-format
 msgid "Warning: Deprecated option %s."
 msgstr "Warning: Veraltete Option %s."
 
-#: ../src/totoken.c:159
+#: ../src/totoken.c:176
 msgid "Warning: Only 2 lower case ASCII letters can define a preferred language; leaving it out."
 msgstr "Warning: Nur 2 kleine ASCII-Buchstaben bestimmen eine bevorzugte Sprache; sie bleibt weg."
 
-#: ../src/totoken.c:162
+#: ../src/totoken.c:184
 msgid "Error: Which secret key should move onto the card?"
 msgstr "Error: Welcher geheime Schlüssel soll auf die Karte wandern?"
 
-#: ../src/totoken.c:207
+#: ../src/totoken.c:232
 #, c-format
 msgid "Error: Cannot write the certificate to %s."
 msgstr "Error: Das Zertifikat kann nicht nach %s geschrieben werden."
 
-#: ../src/totoken.c:236
+#: ../src/totoken.c:261
 #, c-format
 msgid "Error: No email for OpenPGP key '%s'."
 msgstr "Error: Keine Adresse für den OpenPGP-Schlüssel „%s“."
 
-#: ../src/totoken.c:260
+#: ../src/totoken.c:284
 #, c-format
 msgid "Notice: Detected OpenPGP security token: %s."
 msgstr "Notice: OpenPGP-Sicherheitsschlüssel erkannt: %s."
 
-#: ../src/totoken.c:264
+#: ../src/totoken.c:288
 #, c-format
 msgid "Error: This wipes card %s and everything on it, then takes the"
 msgstr "Error: Dies löscht die Karte %s samt allem darauf und nimmt dann die"
 
-#: ../src/totoken.c:265
+#: ../src/totoken.c:289
 #, c-format
 msgid "secret parts of %s off this machine. Neither can be undone."
 msgstr "geheimen Teile von %s von dieser Maschine. Beides ist endgültig."
 
-#: ../src/totoken.c:266
+#: ../src/totoken.c:290
 msgid "Pass --force when that is what you mean."
 msgstr "Geben Sie --force an, wenn Sie das meinen."
 
-#: ../src/totoken.c:280
+#: ../src/totoken.c:309
+msgid "Passphrase protecting the secret key: "
+msgstr "Passphrase, die den geheimen Schlüssel schützt: "
+
+#: ../src/totoken.c:311
 msgid "Error: The key is protected by a passphrase, which has to come off before it can move to a card."
 msgstr "Error: Der Schlüssel ist durch eine Passphrase geschützt, die abgenommen werden muss, bevor er auf eine Karte wandern kann."
 
-#: ../src/totoken.c:290
-#, c-format
-msgid "Error: Cannot take the passphrase off '%s' — right passphrase?"
-msgstr "Error: Die Passphrase von „%s“ lässt sich nicht abnehmen — die richtige?"
+#: ../src/totoken.c:313
+msgid "Notice: Give --passphrase, or --passfrom to keep it off the process list."
+msgstr "Notice: Geben Sie --passphrase an, oder --passfrom, um sie aus der Prozessliste herauszuhalten."
 
-#: ../src/totoken.c:295
+#: ../src/totoken.c:323
+#, c-format
+msgid "Error: That passphrase does not open '%s'."
+msgstr "Error: Diese Passphrase öffnet „%s“ nicht."
+
+#: ../src/totoken.c:330
 msgid "Notice: Resetting OpenPGP security token…"
 msgstr "Notice: OpenPGP-Sicherheitsschlüssel wird zurückgesetzt…"
 
-#: ../src/totoken.c:298
+#: ../src/totoken.c:333
 msgid "Error: Factory reset of the OpenPGP card failed."
 msgstr "Error: Das Zurücksetzen der OpenPGP-Karte schlug fehl."
 
-#: ../src/totoken.c:302
+#: ../src/totoken.c:337
 msgid "Notice: Configuring OpenPGP security token…"
 msgstr "Notice: OpenPGP-Sicherheitsschlüssel wird eingerichtet…"
 
-#: ../src/totoken.c:313
+#: ../src/totoken.c:348
 msgid "Error: Configuring the OpenPGP card failed."
 msgstr "Error: Das Einrichten der OpenPGP-Karte schlug fehl."
 
-#: ../src/totoken.c:320
+#: ../src/totoken.c:355
 msgid "Error: Setting the card's key attributes failed."
 msgstr "Error: Das Setzen der Schlüsselattribute der Karte schlug fehl."
 
-#: ../src/totoken.c:324
+#: ../src/totoken.c:359
 msgid "Notice: Moving OpenPGP secrets to security token…"
 msgstr "Notice: OpenPGP-Geheimnisse werden auf den Sicherheitsschlüssel verschoben…"
 
-#: ../src/totoken.c:329
+#: ../src/totoken.c:364
 msgid "Error: Moving the secrets to the card failed."
 msgstr "Error: Das Verschieben der Geheimnisse auf die Karte schlug fehl."
 
-#: ../src/totoken.c:337
+#: ../src/totoken.c:372
 msgid "Error: Cannot draw new codes — the card is left on its factory PIN 123456 and Admin 12345678. Change them now."
 msgstr "Error: Neue Codes lassen sich nicht ziehen — die Karte bleibt bei ihrer Werks-PIN 123456 und Admin 12345678. Ändern Sie sie jetzt."
 
-#: ../src/totoken.c:344
+#: ../src/totoken.c:379
 msgid "Error: Cannot make a temporary file for the new codes."
 msgstr "Error: Für die neuen Codes lässt sich keine temporäre Datei anlegen."
 
-#: ../src/totoken.c:356
+#: ../src/totoken.c:391
 #, c-format
 msgid "Error: Cannot write the new %s code out."
 msgstr "Error: Der neue %s-Code lässt sich nicht schreiben."
 
-#: ../src/totoken.c:374
+#: ../src/totoken.c:409
 #, c-format
 msgid "Error: Changing the %s code failed (%d). The card is left on its factory code — change it now."
 msgstr "Error: Das Ändern des %s-Codes schlug fehl (%d). Die Karte bleibt bei ihrem Werkscode — ändern Sie ihn jetzt."
 
-#: ../src/totoken.c:386
+#: ../src/totoken.c:421
 msgid "Warning: Please publish this certificate on the Internet (a keyserver will do)."
 msgstr "Warning: Bitte veröffentlichen Sie dieses Zertifikat im Internet (ein Schlüsselserver genügt)."
 
-#: ../src/totoken.c:390
+#: ../src/totoken.c:425
 #, c-format
 msgid "Notice: Write these down. Nothing else knows them. They can be changed with '%s change_token_code'."
 msgstr "Notice: Schreiben Sie sie auf. Nichts sonst kennt sie. Sie lassen sich mit „%s change_token_code“ ändern."
@@ -2777,6 +2947,29 @@ msgstr "Error: gpg weigerte sich, %s hinzuzufügen."
 #, c-format
 msgid "Warning: gpg would not add %s."
 msgstr "Warning: gpg weigerte sich, %s hinzuzufügen."
+
+#~ msgid "Error: Which certificate? A whole fingerprint is required —"
+#~ msgstr "Error: Welches Zertifikat? Ein vollständiger Fingerabdruck wird verlangt —"
+
+#~ msgid "a certification cannot be taken back, so it is never guessed."
+#~ msgstr "eine Beglaubigung lässt sich nicht zurücknehmen, sie wird daher nie erraten."
+
+#, c-format
+#~ msgid "Error: The current %s code is needed. Give --code, or --codefrom to keep it off the process list."
+#~ msgstr "Error: Der aktuelle %s-Code wird gebraucht. Geben Sie --code, oder --codefrom, damit er nicht in der Prozessliste steht."
+
+#~ msgid "Error: The Admin code is needed to write to the card."
+#~ msgstr "Error: Der Admin-Code wird zum Schreiben auf die Karte gebraucht."
+
+#~ msgid "Error: Which secret key? This machine may hold several."
+#~ msgstr "Error: Welcher geheime Schlüssel? Diese Maschine kann mehrere halten."
+
+#~ msgid "Versions 1 to 3 needed an extra passphrase and are long gone."
+#~ msgstr "Die Versionen 1 bis 3 verlangten eine zusätzliche Passphrase und sind längst fort."
+
+#, c-format
+#~ msgid "Error: Cannot take the passphrase off '%s' — right passphrase?"
+#~ msgstr "Error: Die Passphrase von „%s“ lässt sich nicht abnehmen — die richtige?"
 
 #, c-format
 #~ msgid "Warning: More than %d keys have a credibility here; the rest are weighed as though undecided."

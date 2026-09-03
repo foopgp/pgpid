@@ -48,7 +48,7 @@ check: build
 # line broken at 80 hides the alignment that check-width.py is there to guard.
 update-po: $(DOMAIN).pot
 	@for po in $(POFILES) ; do \
-		msgmerge --quiet --no-wrap --update --backup=none $$po $(DOMAIN).pot ; \
+		msgmerge --quiet --no-wrap --previous --update --backup=none $$po $(DOMAIN).pot ; \
 	done
 
 $(DOMAIN).pot: $(wildcard ../src/*.c)
