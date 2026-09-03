@@ -55,11 +55,11 @@ static void usage(FILE *out)
         "  -p, --passphrase PASSPHRASE  Passphrase to access secret parts of OpenPGP key\n"
         "  -P, --passfrom FILE          Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
         "  -U, --certurl URL            URL to retrieve your OpenPGP certificate\n"
-        "                               Default: https://" PGPID_KEYSERVERS_HOST "/pks/lookup?op=get&search=0x<FPR>\n"
+        "                               Default: https://%s/pks/lookup?op=get&search=0x<FPR>\n"
         "  -L, --lang LANG              Security token (OpenPGP smartcard) prefered language (default: the locale's)\n"
         "  -k, --keyserver KEYSERVER    Send OpenPGP certificate to this public keys server\n"
         "                               Empty to send it nowhere. Does not change --certurl\n"
-        "                               Default: " PGPID_KEYSERVERS_FIRST "\n"
+        "                               Default: %s\n"
         "  -K, --pubkey FILE            Also write armored OpenPGP certificate to given FILE\n"
         "      --force                  Don't ask before resetting unempty security token (OpenPGP smartcard)\n"
         "  -h, --help                   Print this help and exit\n"
@@ -70,7 +70,8 @@ static void usage(FILE *out)
         "-   2 Input/Usage error\n"
         "- %d The passphrase given does not open the secret key\n"
         "- %d The key is protected and no passphrase was given\n"),
-            PGPID_NAME, PGPID_NAME, TOTOKEN_BAD_PASS, TOTOKEN_NEED_PASS);
+            PGPID_NAME, PGPID_NAME, PGPID_KEYSERVERS_HOST, PGPID_KEYSERVERS_FIRST,
+            TOTOKEN_BAD_PASS, TOTOKEN_NEED_PASS);
 }
 
 static bool first_line_of(const char *path, char *out, size_t max)
