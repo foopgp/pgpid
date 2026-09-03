@@ -5,7 +5,7 @@
  *
  * SPDX-License-Identifier: GPL-3.0-only
  *
- * gpgme has nothing to say about PINs, and gpg's own card commands ask
+ * A key listing has nothing to say about PINs, and gpg's own card commands ask
  * questions rather than take arguments. So these go through scdaemon, as raw
  * ISO 7816 commands, the same road the shell takes.
  *

@@ -20,6 +20,7 @@
  * up owning the definition, it will not be two copies for long.
  */
 #include "pgpid.h"
+#include <stdio.h>
 
 #include <regex.h>
 #include <stdlib.h>
@@ -162,14 +163,15 @@ bool pgpid_eid_body_is_sound(const char *at)
  *
  * Caller frees.
  */
-char *pgpid_eid_of_key(gpgme_key_t key, unsigned *count, bool standing_only)
+char *pgpid_eid_of_key(const struct pgpid_key *key, unsigned *count, bool standing_only)
 {
     char *found = NULL;
     *count = 0;
-    for (gpgme_user_id_t u = key->uids; u; u = u->next) {
+    for (size_t i = 0; i < key->nuid; i++) {
+        const struct pgpid_keyuid *u = &key->uid[i];
         if (standing_only && (u->revoked || u->invalid))
             continue;
-        char *eid = pgpid_eid_of_uid(u->uid);
+        char *eid = pgpid_eid_of_uid(u->text);
         if (!eid)
             continue;
         if (!found) {

@@ -135,61 +135,47 @@ int pgpid_action_sigs(int argc, char **argv)
         return PGPID_USAGE;
     }
 
-    gpgme_ctx_t ctx = NULL;
-    gpgme_error_t err = pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL |
-                                            GPGME_KEYLIST_MODE_SIGS);
-    if (err) {
-        pgpid_gpgme_error(_("opening the engine"), err);
-        return PGPID_FAIL;
-    }
-
-    err = gpgme_op_keylist_start(ctx, pattern, 0);
-    if (err) {
-        pgpid_gpgme_error(_("looking the certificate up"), err);
-        gpgme_release(ctx);
-        return PGPID_FAIL;
-    }
-    gpgme_key_t key = NULL;
-    err = gpgme_op_keylist_next(ctx, &key);
-    gpgme_op_keylist_end(ctx);
-    if (gpg_err_code(err) == GPG_ERR_EOF) {
+    const char *pat[] = { pattern };
+    struct pgpid_keyring *kr = pgpid_keys_load(pat, 1, PGPID_KEYS_SIGS);
+    const struct pgpid_key *key = pgpid_keys_at(kr, 0);
+    if (!key) {
         pgpid_error(_("Error: No certificate matching '%s'."), pattern);
-        gpgme_release(ctx);
+        pgpid_keys_free(kr);
         return PGPID_NOTHING;
-    }
-    if (err) {
-        pgpid_gpgme_error(_("reading the certificate"), err);
-        gpgme_release(ctx);
-        return PGPID_FAIL;
     }
 
     /* Without an identity uid there is nothing to be selective about, and an
      * empty answer would read as "nobody certified this" — which is a
      * different statement. */
     bool has_identity = false;
-    for (gpgme_user_id_t u = key->uids; u; u = u->next)
-        if (!u->revoked && !u->invalid && is_identity_uid(u->uid))
+    for (size_t i = 0; i < key->nuid; i++)
+        if (!key->uid[i].revoked && !key->uid[i].invalid
+            && is_identity_uid(key->uid[i].text))
             has_identity = true;
     if (!all_uids && !has_identity) {
         pgpid_error(_("Notice: No identity uid; merging every uid instead."));
         all_uids = true;
     }
 
-    const char *own = key->subkeys ? key->subkeys->keyid : NULL;
+    const char *own = *key->keyid ? key->keyid : NULL;
     struct row *rows = NULL;
     size_t n = 0, cap = 0;
 
-    for (gpgme_user_id_t u = key->uids; u; u = u->next) {
+    for (size_t ui = 0; ui < key->nuid; ui++) {
+        const struct pgpid_keyuid *u = &key->uid[ui];
         if (u->revoked || u->invalid)
             continue;
-        if (!all_uids && !is_identity_uid(u->uid))
+        if (!all_uids && !is_identity_uid(u->text))
             continue;
-        for (gpgme_key_sig_t s = u->signatures; s; s = s->next) {
-            if (s->revoked || s->invalid || s->expired || !s->keyid)
+        /* Revoked signatures never reach here: gpg writes those as `rev`
+         * records, and only `sig` is read. */
+        for (size_t si = 0; si < u->nsig; si++) {
+            const struct pgpid_keysig *s = &u->sig[si];
+            if (!*s->keyid)
                 continue;
             if (own && !strcmp(s->keyid, own))
                 continue;
-            remember(&rows, &n, &cap, s->keyid, s->timestamp, s->email);
+            remember(&rows, &n, &cap, s->keyid, s->created, s->address);
         }
     }
 
@@ -212,7 +198,6 @@ int pgpid_action_sigs(int argc, char **argv)
     }
     pgpid_table_end();
     free(rows);
-    gpgme_key_unref(key);
-    gpgme_release(ctx);
+    pgpid_keys_free(kr);
     return n ? PGPID_OK : PGPID_NOTHING;
 }

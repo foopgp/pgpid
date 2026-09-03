@@ -41,35 +41,20 @@ static void usage(FILE *out)
 }
 
 /* Exactly one certificate for that fingerprint, or nothing. */
-static int one_key(gpgme_ctx_t ctx, const char *fpr, gpgme_key_t *out)
+static int one_key(const char *fpr)
 {
-    gpgme_error_t err = gpgme_op_keylist_start(ctx, fpr, 0);
-    if (err) {
-        pgpid_gpgme_error(_("looking the certificate up"), err);
-        return PGPID_FAIL;
-    }
-    gpgme_key_t first = NULL, extra = NULL;
-    err = gpgme_op_keylist_next(ctx, &first);
-    if (gpg_err_code(err) == GPG_ERR_EOF) {
-        gpgme_op_keylist_end(ctx);
+    const char *pat[] = { fpr };
+    struct pgpid_keyring *kr = pgpid_keys_load(pat, 1, 0);
+    size_t n = pgpid_keys_count(kr);
+    pgpid_keys_free(kr);
+    if (n == 0) {
         pgpid_error(_("Error: No certificate matching '%s'."), fpr);
         return PGPID_NOTHING;
     }
-    if (err) {
-        gpgme_op_keylist_end(ctx);
-        pgpid_gpgme_error(_("reading the certificate"), err);
-        return PGPID_FAIL;
-    }
-    err = gpgme_op_keylist_next(ctx, &extra);
-    gpgme_op_keylist_end(ctx);
-    if (gpg_err_code(err) != GPG_ERR_EOF) {
-        gpgme_key_unref(first);
-        if (extra)
-            gpgme_key_unref(extra);
+    if (n > 1) {
         pgpid_error(_("Error: '%s' matches more than one certificate."), fpr);
         return PGPID_USAGE;
     }
-    *out = first;
     return PGPID_OK;
 }
 
@@ -114,25 +99,14 @@ int pgpid_action_del(int argc, char **argv)
         }
     }
 
-    gpgme_ctx_t ctx = NULL;
-    gpgme_error_t err = pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL);
-    if (err) {
-        pgpid_gpgme_error(_("opening the engine"), err);
-        return PGPID_FAIL;
-    }
-
     int rc = PGPID_OK;
     for (int t = first_target; t < argc && rc == PGPID_OK; t++) {
         const char *fpr = argv[t];
-        gpgme_key_t key = NULL;
-        rc = one_key(ctx, fpr, &key);
+        rc = one_key(fpr);
         if (rc != PGPID_OK)
             break;
 
         if (secret_only) {
-            /* gpgme deletes a certificate, or a certificate and its secret;
-             * it has no call for the secret alone. The engine does, so the
-             * engine is asked. */
             const char *args[] = { "--batch", "--yes",
                                    "--delete-secret-keys", fpr, NULL };
             int status = pgpid_run_engine(args);
@@ -141,16 +115,14 @@ int pgpid_action_del(int argc, char **argv)
                 rc = PGPID_FAIL;
             }
         } else {
-            err = gpgme_op_delete_ext(ctx, key,
-                                      GPGME_DELETE_ALLOW_SECRET | GPGME_DELETE_FORCE);
-            if (err) {
-                pgpid_gpgme_error(_("deleting the certificate"), err);
+            const char *args[] = { "--batch", "--yes",
+                                   "--delete-secret-and-public-key", fpr, NULL };
+            if (pgpid_run_engine(args) != 0) {
+                pgpid_error(_("Error: The engine refused to delete %s."), fpr);
                 rc = PGPID_FAIL;
             }
         }
-        gpgme_key_unref(key);
     }
 
-    gpgme_release(ctx);
     return rc;
 }

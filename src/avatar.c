@@ -5,7 +5,7 @@
  *
  * SPDX-License-Identifier: GPL-3.0-only
  *
- * gpgme cannot see an image. Its user id carries the text, the validity and
+ * A listing cannot show an image. Its user id line carries the text, the validity and
  * the signatures, and nothing of the attribute packet the picture lives in —
  * so a certificate's face is the one thing the library will not hand over.
  *
@@ -208,7 +208,7 @@ static bool write_image(const char *dir, const char *fpr,
  * out reversed. Revoking is permanent, so the numbering used here is read
  * back from gpg's own listing and never derived from the packets.
  *
- * And gpgme is no help: it does not merely hide the image, it does not list
+ * And a colon listing is no help: it does not merely hide the image, it does not list
  * attribute packets at all. Its user id chain held two entries for a
  * certificate wearing five images.
  */
@@ -317,24 +317,15 @@ struct edit {
     bool selected, asked, added, saved;
 };
 
-static gpgme_error_t edit_cb(void *opaque, const char *keyword,
-                             const char *args, int fd)
+static const char *edit_cb(void *opaque, const char *keyword, const char *ask)
 {
     struct edit *e = opaque;
     const char *answer = NULL;
-    char sel[32];
+    /* One buffer per call would die with the frame; the answer is written
+     * after this returns. */
+    static char sel[32];
 
-    if (fd < 0 || !keyword)
-        return 0;                          /* a status line, not a question */
-
-    /* gpgme hands the status word in `keyword` and the name of the question
-     * in `args` — GET_LINE / keyedit.prompt, not the other way round. Anything
-     * else reaching here with a writable fd would leave gpg waiting on an
-     * answer that never comes, so the default below says something. */
-    if (strcmp(keyword, "GET_LINE") && strcmp(keyword, "GET_BOOL")
-        && strcmp(keyword, "GET_HIDDEN"))
-        return 0;
-    const char *ask = args ? args : "";
+    (void)keyword;   /* the caller filters: only questions reach here */
 
     if (!strcmp(ask, "keyedit.prompt")) {
         if (e->at < e->nrevoke) {
@@ -378,18 +369,16 @@ static gpgme_error_t edit_cb(void *opaque, const char *keyword,
         answer = "";
     }
 
-    if (write(fd, answer, strlen(answer)) < 0 || write(fd, "\n", 1) < 0)
-        return gpgme_error_from_errno(errno);
-    return 0;
+    return answer;
 }
 
 /* Take back every image that stands, then put this one on. Either half may
  * be asked for alone. */
-static int replace_avatar(gpgme_ctx_t ctx, gpgme_key_t key, const char *image,
+static int replace_avatar(const struct pgpid_key *key, const char *image,
                           const char *dir, bool revoke_only,
                           const char *keyservers)
 {
-    const char *fpr = key->fpr ? key->fpr : "";
+    const char *fpr = key->fpr;
     char newpath[4096];
     const char *addfile = NULL;
 
@@ -412,21 +401,13 @@ static int replace_avatar(gpgme_ctx_t ctx, gpgme_key_t key, const char *image,
 
     struct edit e = { .revoke = nos, .nrevoke = n,
                       .addfile = revoke_only ? NULL : addfile };
-    gpgme_data_t out;
-    gpgme_error_t err = gpgme_data_new(&out);
-    if (err) {
-        pgpid_gpgme_error(_("gpgme_data_new"), err);
-        return PGPID_FAIL;
-    }
     if (n)
         pgpid_error(_("Info: Taking back %zu image(s) on %s…"), n, fpr);
     if (e.addfile)
         pgpid_error(_("Info: Putting %s on %s…"), image, fpr);
 
-    err = gpgme_op_interact(ctx, key, 0, edit_cb, &e, out);
-    gpgme_data_release(out);
-    if (err) {
-        pgpid_gpgme_error(_("gpgme_op_interact"), err);
+    if (pgpid_edit_key(fpr, edit_cb, &e) != 0) {
+        pgpid_error(_("Error: The engine would not edit %s."), fpr);
         pgpid_error(_("Notice: A certificate is edited with its secret key - is the right one at hand?"));
         return PGPID_FAIL;
     }
@@ -463,39 +444,15 @@ static void usage(FILE *out)
             PGPID_NAME, PGPID_KEYSERVERS);
 }
 
-/* The certificate to read when the caller named none: the first secret one,
- * which is the one the security key carries. */
-static gpgme_error_t first_secret(gpgme_ctx_t ctx, gpgme_key_t *key)
-{
-    gpgme_error_t err = gpgme_op_keylist_start(ctx, NULL, 1);
-    if (err)
-        return err;
-    err = gpgme_op_keylist_next(ctx, key);
-    gpgme_op_keylist_end(ctx);
-    return err;
-}
 
 /* Read one certificate's images out, print what was asked for. */
-static int one_key(gpgme_ctx_t ctx, gpgme_key_t key, const char *dir, bool all)
+static int one_key(const struct pgpid_key *key, const char *dir, bool all)
 {
-    const char *fpr = key->fpr ? key->fpr : "";
-    const char *keyid = (key->subkeys && key->subkeys->keyid)
-                      ? key->subkeys->keyid : "";
+    const char *fpr = key->fpr;
+    const char *keyid = key->keyid;
 
-    gpgme_data_t out;
-    gpgme_error_t err = gpgme_data_new(&out);
-    if (err) {
-        pgpid_gpgme_error(_("gpgme_data_new"), err);
-        return PGPID_FAIL;
-    }
-    err = gpgme_op_export(ctx, fpr, 0, out);
-    if (err) {
-        gpgme_data_release(out);
-        pgpid_gpgme_error(_("gpgme_op_export"), err);
-        return PGPID_FAIL;
-    }
     size_t buflen = 0;
-    char *buf = gpgme_data_release_and_get_mem(out, &buflen);
+    char *buf = (char *)pgpid_export_key(fpr, false, &buflen);
     if (!buf)
         return PGPID_FAIL;
 
@@ -513,7 +470,7 @@ static int one_key(gpgme_ctx_t ctx, gpgme_key_t key, const char *dir, bool all)
             if (!write_image(dir, fpr, &imgs[i]))
                 ret = PGPID_FAIL;
     }
-    gpgme_free(buf);
+    free(buf);
     return ret;
 }
 
@@ -600,77 +557,41 @@ int pgpid_action_avatar(int argc, char **argv)
         return PGPID_USAGE;
     }
 
-    gpgme_ctx_t ctx;
-    gpgme_error_t err = pgpid_ctx_new(&ctx, 0);
-    if (err) {
-        pgpid_gpgme_error(_("gpgme_new"), err);
+    int ret = PGPID_NOTHING;
+
+    /* Reading is allowed to answer about several certificates; writing is
+     * not, and does not get here -- it wants a fingerprint, checked above,
+     * the same line `del` holds. The listing is whole before the first is
+     * touched, so reading one while walking them is not a question. */
+    const char *pat[1];
+    size_t npat = 0;
+    if (selector)
+        pat[npat++] = selector;
+    struct pgpid_keyring *kr =
+        pgpid_keys_load(pat, npat, selector ? 0 : PGPID_KEYS_SECRET);
+    size_t nfound = pgpid_keys_count(kr);
+
+    if (!selector && !nfound) {
+        pgpid_error(_("Error: No secret certificate to read - name one."));
+        pgpid_keys_free(kr);
         return PGPID_FAIL;
     }
+    if (!selector)
+        nfound = 1;   /* the first secret key, which the card carries */
 
-    int ret = PGPID_NOTHING;
-    gpgme_key_t key = NULL;
-
-    if (selector) {
-        /*
-         * Every certificate the selector finds. Reading is allowed to answer
-         * about several — writing is not, and does not get here: it wants a
-         * fingerprint, checked above, the same line `del` holds.
-         *
-         * Collected before any of them is read, because gpgme carries one
-         * operation at a time: exporting a key while the enumeration is still
-         * open leaves both waiting on each other with nothing said.
-         */
-        gpgme_key_t *found = NULL;
-        size_t nfound = 0, cap = 0;
-        err = gpgme_op_keylist_start(ctx, selector, 0);
-        if (err) {
-            gpgme_release(ctx);
-            pgpid_gpgme_error(_("gpgme_op_keylist_start"), err);
-            return PGPID_FAIL;
-        }
-        while (!gpgme_op_keylist_next(ctx, &key)) {
-            if (nfound == cap) {
-                size_t grown = cap ? cap * 2 : 32;
-                gpgme_key_t *bigger = realloc(found, grown * sizeof *bigger);
-                if (!bigger) {
-                    pgpid_error(_("Error: Out of memory."));
-                    gpgme_key_unref(key);
-                    for (size_t k = 0; k < nfound; k++)
-                        gpgme_key_unref(found[k]);
-                    free(found);
-                    gpgme_op_keylist_end(ctx);
-                    gpgme_release(ctx);
-                    return PGPID_FAIL;
-                }
-                found = bigger;
-                cap = grown;
-            }
-            found[nfound++] = key;
-        }
-        gpgme_op_keylist_end(ctx);
-
-        for (size_t k = 0; k < nfound; k++) {
-            int r = (image || revoke)
-                  ? replace_avatar(ctx, found[k], image, workdir, revoke,
-                                   keyservers)
-                  : one_key(ctx, found[k], workdir, all);
-            gpgme_key_unref(found[k]);
-            if (r == PGPID_FAIL)
-                ret = PGPID_FAIL;
-            else if (r == PGPID_OK && ret != PGPID_FAIL)
-                ret = PGPID_OK;
-        }
-        free(found);
-    } else if (!(err = first_secret(ctx, &key))) {
-        ret = one_key(ctx, key, workdir, all);
-        gpgme_key_unref(key);
-    } else {
-        pgpid_error(_("Error: No secret certificate to read - name one."));
-        ret = PGPID_FAIL;
+    for (size_t k = 0; k < nfound; k++) {
+        const struct pgpid_key *found = pgpid_keys_at(kr, k);
+        int r = (image || revoke)
+              ? replace_avatar(found, image, workdir, revoke, keyservers)
+              : one_key(found, workdir, all);
+        if (r == PGPID_FAIL)
+            ret = PGPID_FAIL;
+        else if (r == PGPID_OK && ret != PGPID_FAIL)
+            ret = PGPID_OK;
     }
+    pgpid_keys_free(kr);
 
     if (ret == PGPID_NOTHING)
         pgpid_error(_("Notice: No image in that certificate."));
-    gpgme_release(ctx);
     return ret;
 }

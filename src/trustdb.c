@@ -209,35 +209,22 @@ struct delegation {
     char *content;
 };
 
-static int one_key(gpgme_ctx_t ctx, const char *pattern, gpgme_key_t *out)
+static int one_key(const char *pattern, struct pgpid_keyring **out)
 {
-    gpgme_error_t err = gpgme_op_keylist_start(ctx, pattern, 0);
-    if (err) {
-        pgpid_gpgme_error(_("looking the certificate up"), err);
-        return PGPID_FAIL;
-    }
-    gpgme_key_t first = NULL, extra = NULL;
-    err = gpgme_op_keylist_next(ctx, &first);
-    if (gpg_err_code(err) == GPG_ERR_EOF) {
-        gpgme_op_keylist_end(ctx);
+    const char *pat[] = { pattern };
+    struct pgpid_keyring *kr = pgpid_keys_load(pat, 1, 0);
+    size_t n = pgpid_keys_count(kr);
+    if (n == 0) {
+        pgpid_keys_free(kr);
         pgpid_error(_("Error: No certificate matching '%s'."), pattern);
         return PGPID_NOTHING;
     }
-    if (err) {
-        gpgme_op_keylist_end(ctx);
-        pgpid_gpgme_error(_("reading the certificate"), err);
-        return PGPID_FAIL;
-    }
-    err = gpgme_op_keylist_next(ctx, &extra);
-    gpgme_op_keylist_end(ctx);
-    if (gpg_err_code(err) != GPG_ERR_EOF) {
-        gpgme_key_unref(first);
-        if (extra)
-            gpgme_key_unref(extra);
+    if (n > 1) {
+        pgpid_keys_free(kr);
         pgpid_error(_("Error: '%s' matches more than one certificate."), pattern);
         return PGPID_USAGE;
     }
-    *out = first;
+    *out = kr;
     return PGPID_OK;
 }
 
@@ -587,10 +574,10 @@ static void report_change(const char *before, const char *after)
 
 /* One line of the answer. `--long` adds columns rather than moving them, so
  * whatever a script already reads at $2 stays at $2. */
-static void local_row(gpgme_key_t key, bool long_form)
+static void local_row(const struct pgpid_key *key, bool long_form)
 {
-    const char *fpr = key->fpr ? key->fpr : "-";
-    const char *word = pgpid_validity_word(key->owner_trust);
+    const char *fpr = *key->fpr ? key->fpr : "-";
+    const char *word = pgpid_validity_word(key->ownertrust);
 
     if (!long_form) {
         const char *values[] = { fpr, word };
@@ -607,19 +594,16 @@ static void local_row(gpgme_key_t key, bool long_form)
 }
 
 /* Every certificate this keyring holds, in the engine's own order. */
-static int local_all(gpgme_ctx_t ctx, bool long_form)
+static int local_all(bool long_form)
 {
-    gpgme_error_t err = gpgme_op_keylist_start(ctx, NULL, 0);
-    if (err) {
-        pgpid_gpgme_error(_("listing the certificates"), err);
+    struct pgpid_keyring *kr = pgpid_keys_load(NULL, 0, 0);
+    if (!kr) {
+        pgpid_error(_("Error: Cannot read the keyring."));
         return PGPID_FAIL;
     }
-    gpgme_key_t key = NULL;
-    while (!gpgme_op_keylist_next(ctx, &key)) {
-        local_row(key, long_form);
-        gpgme_key_unref(key);
-    }
-    gpgme_op_keylist_end(ctx);
+    for (size_t n = 0; n < pgpid_keys_count(kr); n++)
+        local_row(pgpid_keys_at(kr, n), long_form);
+    pgpid_keys_free(kr);
     return PGPID_OK;
 }
 
@@ -702,14 +686,6 @@ static int do_local(int argc, char **argv)
         }
     }
 
-    gpgme_ctx_t ctx = NULL;
-    gpgme_error_t err = pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL);
-    if (err) {
-        pgpid_gpgme_error(_("opening the engine"), err);
-        free(patterns);
-        return PGPID_FAIL;
-    }
-
     static const char *const SHORT_COLUMNS[] = { "fingerprint", "credibility" };
     static const char *const LONG_COLUMNS[] = {
         "fingerprint", "credibility", "eid", "email",
@@ -718,40 +694,45 @@ static int do_local(int argc, char **argv)
 
     int rc = PGPID_OK;
     if (!npatterns) {
-        rc = local_all(ctx, long_form);
+        rc = local_all(long_form);
     } else {
         for (size_t n = 0; n < npatterns && rc == PGPID_OK; n++) {
-            gpgme_key_t key = NULL;
-            rc = one_key(ctx, patterns[n], &key);
+            struct pgpid_keyring *kr = NULL;
+            rc = one_key(patterns[n], &kr);
             if (rc != PGPID_OK)
                 break;
 
             if (value) {
-                err = gpgme_op_setownertrust(ctx, key, value);
-                if (err) {
-                    pgpid_gpgme_error(_("setting the credibility"), err);
-                    gpgme_key_unref(key);
+                /* One line of the ownertrust file: the fingerprint, the
+                 * number that stands for the word, and a trailing colon. */
+                char line[64];
+                snprintf(line, sizeof line, "%s:%d:\n",
+                         pgpid_keys_at(kr, 0)->fpr,
+                         pgpid_ownertrust_code((char)pgpid_validity_from_word(value)));
+                const char *args[] = { "--batch", "--import-ownertrust", NULL };
+                int status = pgpid_run_engine_input(args, line);
+                pgpid_keys_free(kr);
+                kr = NULL;
+                if (status != 0) {
+                    pgpid_error(_("Error: The engine refused to set the credibility."));
                     rc = PGPID_FAIL;
                     break;
                 }
                 /* Read it back rather than echo what was asked: the engine is
                  * what decides, and a write that did not take should not look
                  * like one that did. */
-                gpgme_key_unref(key);
-                key = NULL;
-                rc = one_key(ctx, patterns[n], &key);
+                rc = one_key(patterns[n], &kr);
                 if (rc != PGPID_OK)
                     break;
             }
 
-            local_row(key, long_form);
-            gpgme_key_unref(key);
+            local_row(pgpid_keys_at(kr, 0), long_form);
+            pgpid_keys_free(kr);
         }
     }
 
     if (rc == PGPID_OK)
         pgpid_table_end();
-    gpgme_release(ctx);
     free(patterns);
 
     /*

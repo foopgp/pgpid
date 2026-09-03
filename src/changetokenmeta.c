@@ -212,18 +212,12 @@ int pgpid_action_change_token_meta(int argc, char **argv)
          * saying otherwise misleads whoever reads it, not whoever set it. */
         struct pgpid_uid uids[256];
         char owner[41] = "";
-        gpgme_ctx_t ctx;
-        if (!pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL)) {
-            gpgme_key_t key = NULL;
-            if (!gpgme_op_keylist_start(ctx, skey, 0)
-                && !gpgme_op_keylist_next(ctx, &key)) {
-                if (key->subkeys && key->subkeys->fpr)
-                    snprintf(owner, sizeof owner, "%s", key->subkeys->fpr);
-                gpgme_key_unref(key);
-            }
-            gpgme_op_keylist_end(ctx);
-            gpgme_release(ctx);
-        }
+        const char *pat[] = { skey };
+        struct pgpid_keyring *kr = pgpid_keys_load(pat, 1, 0);
+        const struct pgpid_key *key = pgpid_keys_at(kr, 0);
+        if (key && *key->fpr)
+            snprintf(owner, sizeof owner, "%s", key->fpr);
+        pgpid_keys_free(kr);
         if (!*owner) {
             pgpid_error(_("Error: Can't find the token's certificate here."));
             return PGPID_FAIL;

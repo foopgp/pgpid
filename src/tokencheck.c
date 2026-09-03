@@ -201,22 +201,21 @@ static void usage(FILE *out)
 /** The certificate's own FN, which has room where the card's field has not. */
 static bool certificate_name(const char *fpr, char *out, size_t max)
 {
-    gpgme_ctx_t ctx;
-    if (pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL))
-        return false;
-    gpgme_key_t key = NULL;
+    const char *pat[] = { fpr };
+    struct pgpid_keyring *kr = pgpid_keys_load(pat, 1, 0);
+    const struct pgpid_key *key = pgpid_keys_at(kr, 0);
     bool found = false;
-    if (!gpgme_op_keylist_start(ctx, fpr, 0) && !gpgme_op_keylist_next(ctx, &key)) {
+    if (key) {
         char validity[256];
         size_t nvalid = pgpid_uid_validities(fpr, validity, sizeof validity);
-        unsigned k = 0;
-        for (gpgme_user_id_t u = key->uids; u && !found; u = u->next, k++) {
+        for (size_t k = 0; k < key->nuid && !found; k++) {
+            const struct pgpid_keyuid *u = &key->uid[k];
             char l = (k < nvalid) ? validity[k] : '-';
-            if (!u->uid || !strchr("ounmfqws-", l))
+            if (!strchr("ounmfqws-", l))
                 continue;
-            if (strncmp(u->uid, "FN", 2))
+            if (strncmp(u->text, "FN", 2))
                 continue;
-            const char *p = u->uid + 2;
+            const char *p = u->text + 2;
             if (*p == ';')
                 p = strchr(p, ':');
             if (!p || *p != ':')
@@ -244,10 +243,8 @@ static bool certificate_name(const char *fpr, char *out, size_t max)
             out[o] = '\0';
             found = o > 0;
         }
-        gpgme_key_unref(key);
     }
-    gpgme_op_keylist_end(ctx);
-    gpgme_release(ctx);
+    pgpid_keys_free(kr);
     return found;
 }
 
@@ -400,18 +397,12 @@ int pgpid_action_token_check(int argc, char **argv)
     const char *anchor = *f.v[F_SKEY] ? f.v[F_SKEY]
                        : *f.v[F_EKEY] ? f.v[F_EKEY] : f.v[F_AKEY];
     if (*anchor) {
-        gpgme_ctx_t ctx;
-        if (!pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL)) {
-            gpgme_key_t key = NULL;
-            if (!gpgme_op_keylist_start(ctx, anchor, 0)
-                && !gpgme_op_keylist_next(ctx, &key)) {
-                if (key->subkeys && key->subkeys->fpr)
-                    snprintf(f.v[F_CKEY], sizeof f.v[0], "%s", key->subkeys->fpr);
-                gpgme_key_unref(key);
-            }
-            gpgme_op_keylist_end(ctx);
-            gpgme_release(ctx);
-        }
+        const char *pat[] = { anchor };
+        struct pgpid_keyring *kr = pgpid_keys_load(pat, 1, 0);
+        const struct pgpid_key *key = pgpid_keys_at(kr, 0);
+        if (key && *key->fpr)
+            snprintf(f.v[F_CKEY], sizeof f.v[0], "%s", key->fpr);
+        pgpid_keys_free(kr);
     }
     if (!*f.v[F_CKEY] && !quiet)
         pgpid_error(_("Warning: No certification key known. Share or fetch the certificate."));

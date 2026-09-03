@@ -88,21 +88,22 @@ for value in never marginal full ultimate ; do
     got=$("$BIN" trustdb local --replace-to "$value" "$FPR")
     is "--replace-to $value"      "$got" "$FPR  $value"
 done
-# One rung, two spellings: undefined is what gets written, unknown is what
-# comes back, and the engine keeps no third state between them.
+# undefined survives the round trip. It did not while this went through
+# gpgme, whose parser knows n m f u and drops everything else onto unknown --
+# the engine writes 2 and answers 'q', and that is what is read now.
 got=$("$BIN" trustdb local --replace-to undefined "$FPR")
-is "--replace-to undefined reads back as unknown" "$got" "$FPR  unknown"
+is "--replace-to undefined reads back as undefined" "$got" "$FPR  undefined"
 # No target is the whole keyring, not a mistake.
 is "no argument reads every certificate" \
     "$("$BIN" trustdb local | grep --count "^$FPR ")" "1"
 # --long adds columns to the right; what was at $2 is still at $2.
 got=$("$BIN" trustdb local --long "$FPR")
-is "--long keeps the credibility where it was" "$(awk '{print $1, $2}' <<<"$got")" "$FPR unknown"
+is "--long keeps the credibility where it was" "$(awk '{print $1, $2}' <<<"$got")" "$FPR undefined"
 is "--long adds the identifier then the address" "$(awk '{print NF}' <<<"$got")" "4"
 # --check recomputes after answering, which is what a page showing verdicts
 # needs: gpg only marks its database stale when a credibility moves.
 is "--check answers, then recomputes" \
-   "$("$BIN" trustdb local --check "$FPR" 2>/dev/null)" "$FPR  unknown"
+   "$("$BIN" trustdb local --check "$FPR" 2>/dev/null)" "$FPR  undefined"
 is "--update takes the same word"     "$("$BIN" trustdb local --update "$FPR" >/dev/null 2>&1 ; echo $?)" "0"
 "$BIN" trustdb local --replace-to nonsense "$FPR" >/dev/null 2>&1
 is "refuses a value it does not know" "$?" "2"

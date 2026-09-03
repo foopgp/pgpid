@@ -8,7 +8,6 @@
 #ifndef PGPID_H
 #define PGPID_H
 
-#include <gpgme.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -87,8 +86,6 @@ void pgpid_table_start(const char *const *keys, size_t ncols);
 void pgpid_table_row(const char *const *values);
 void pgpid_table_end(void);
 
-/* An engine bound to pgpid_homedir. Callers release it with gpgme_release. */
-gpgme_error_t pgpid_ctx_new(gpgme_ctx_t *ctx, gpgme_keylist_mode_t mode);
 
 /* Error/Warning/Notice/Info on stderr, prefixed like the shell libraries. */
 void pgpid_error(const char *fmt, ...);
@@ -109,18 +106,87 @@ void pgpid_emit_completion(const char *const *actions, size_t n);
  * twenty-six places, so it is written once and translated once. ACTION is
  * NULL for the program itself. */
 void pgpid_try_help(const char *action);
-void pgpid_gpgme_error(const char *what, gpgme_error_t err);
 
-/* The single letter gpg prints in colon field 2 or 9, for a validity or an
- * ownertrust: o i n m f u q -.  Never NUL. */
-char pgpid_validity_letter(gpgme_validity_t v);
+/* Reading the keyring without gpgme -- see keyring.c for why. The fields
+ * are the ones the actions actually read; the record and field numbers they
+ * come from are gpg's doc/DETAILS. */
+#define PGPID_KEYS_SECRET  (1u << 0)   /* --list-secret-keys */
+#define PGPID_KEYS_SIGS    (1u << 1)   /* --with-sig-list */
+
+struct pgpid_keysig {
+    char keyid[17];
+    char text[512];      /* the signer's uid, as gpg reports it */
+    char address[256];   /* the mail address inside it, or "" */
+    long created;
+};
+
+struct pgpid_keyuid {
+    char text[512];      /* as its owner wrote it, escapes undone */
+    char address[256];   /* the mail address it carries, or "" */
+    char validity;       /* field 2 */
+    bool revoked, expired, invalid;
+    long created;
+    struct pgpid_keysig *sig;
+    size_t nsig;
+};
+
+struct pgpid_subkey {
+    char fpr[41];
+    char keyid[17];
+    char card[33];       /* field 15: the card holding the secret, or "" */
+    char caps[8];        /* field 12: e s c a, upper case when the key has it */
+    char validity;
+    bool revoked, expired, invalid;
+    long created, expires;
+};
+
+struct pgpid_key {
+    char fpr[41];
+    char keyid[17];
+    char caps[8];
+    char validity;
+    char ownertrust;     /* field 9 */
+    bool secret, revoked, expired, invalid;
+    long created, expires;
+    struct pgpid_keyuid *uid;
+    size_t nuid;
+    size_t nuat;         /* attribute packets, which gpg counts as user ids */
+    struct pgpid_subkey *sub;
+    size_t nsub;
+};
+
+struct pgpid_keyring;
+struct pgpid_keyring *pgpid_keys_load(const char *const *patterns, size_t npat,
+                                      unsigned flags);
+size_t pgpid_keys_count(const struct pgpid_keyring *kr);
+const struct pgpid_key *pgpid_keys_at(const struct pgpid_keyring *kr, size_t i);
+void pgpid_keys_free(struct pgpid_keyring *kr);
+
+/* The certificate's bytes, caller frees. NULL when gpg exported nothing. */
+unsigned char *pgpid_export_key(const char *fpr, bool minimal, size_t *len);
+
+/* Driving `gpg --edit-key`. `fn` is handed the status word ("GET_LINE") and
+ * the question's name ("keyedit.prompt"), and answers with the line to send;
+ * NULL sends an empty one. Returns gpg's exit status. */
+typedef const char *(*pgpid_edit_fn)(void *opaque, const char *keyword,
+                                     const char *ask);
+int pgpid_edit_key(const char *fpr, pgpid_edit_fn fn, void *opaque);
+
+/* Undo the \x3a and friends gpg writes in a colon field. */
+void pgpid_colon_unescape(const char *in, char *out, size_t max);
+
+/* Comparing two validity letters, weakest to strongest. */
+int pgpid_validity_rank(char v);
+
+/* The number --import-ownertrust takes, 0 for a letter it will not write. */
+int pgpid_ownertrust_code(char v);
 
 /* The word the same value is written with — the vocabulary --replace-to takes
  * and the one a human reads. NULL for a value with no word (never happens for
  * an ownertrust read back from gpg). */
-const char *pgpid_validity_word(gpgme_validity_t v);
+const char *pgpid_validity_word(char v);
 
-/* The reverse: a word to a validity, or -1 when the word is not one of ours. */
+/* The reverse: a word to a validity letter, or -1 when it is not one of ours. */
 int pgpid_validity_from_word(const char *word);
 
 /* The entity identifier a uid carries, u4… or u5…, or NULL.
@@ -130,11 +196,11 @@ char *pgpid_eid_of_uid(const char *uid);
 /* The identifier a certificate carries, and how many distinct ones it claims.
  * `standing_only` ignores revoked uids: what it asserts today, not ever.
  * Caller frees. */
-char *pgpid_eid_of_key(gpgme_key_t key, unsigned *count, bool standing_only);
+char *pgpid_eid_of_key(const struct pgpid_key *key, unsigned *count, bool standing_only);
 
 /* The first address on a uid that still stands, or NULL. Borrowed from the
  * key. */
-const char *pgpid_first_mbox(gpgme_key_t key);
+const char *pgpid_first_mbox(const struct pgpid_key *key);
 
 /* Does an identifier written bare — as the card's "Login data" holds it —
  * start at this position? */
@@ -202,7 +268,7 @@ int pgpid_transliterate(const char *in, char *out, size_t max);
  * revoke as they replace, so a long history is normal and a thousand is not.
  */
 
-/* Walking an OpenPGP packet stream — what gpgme does not surface.
+/* Walking an OpenPGP packet stream — what a colon listing does not surface.
  * See packets.c: the image a certificate wears and the keyserver it names
  * both live in packets its user id chain never mentions. */
 struct pgpid_packet {
@@ -253,7 +319,7 @@ bool pgpid_current_image(const unsigned char *buf, size_t len, const char *keyid
                          const unsigned char **data, size_t *ilen);
 
 /* Run a program and keep its output — for the card, which is reached through
- * gpg-connect-agent and scdaemon rather than through gpgme. */
+ * gpg-connect-agent and scdaemon rather than through a key listing. */
 int pgpid_capture(const char *const *argv, char *out, size_t max);
 
 /* Same, with the engine and the home directory already in front. */
@@ -261,7 +327,7 @@ int pgpid_capture_engine(const char *const *argv, char *out, size_t max);
 int pgpid_capture_card_status(char *out, size_t max);
 
 /* Send one ISO 7816 command to the card and keep its status word — for what
- * gpgme has no opinion about and gpg will only ask questions about. */
+ * a listing has no opinion about and gpg will only ask questions about. */
 bool pgpid_card_apdu(const char *apdu, char *sw, size_t max);
 
 /* What that status word means: 0 when the card agreed, 192 to 194 when a
@@ -321,7 +387,7 @@ bool pgpid_upgrade_uids(const char *user);
 char *pgpid_preferred_keyserver(const unsigned char *buf, size_t len,
                                 const char *fpr);
 
-/* The validity letter gpg gives each uid, in listing order — because gpgme
+/* The validity letter gpg gives each uid, in listing order — because a key
  * cannot say "expired": such a uid arrives as unknown, indistinguishable
  * from one nobody vouched for. Returns how many were written. */
 size_t pgpid_uid_validities(const char *fpr, char *out, size_t max);

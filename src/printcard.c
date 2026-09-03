@@ -153,9 +153,6 @@ int pgpid_action_print_card(int argc, char **argv)
 
     /* Which certificate. An address may sit on several, and printing a card
      * for the wrong one is worse than printing none. */
-    gpgme_ctx_t ctx;
-    if (pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL))
-        return PGPID_FAIL;
     char (*candidates)[41] = NULL;
     size_t cand_cap = 0;
     size_t ncand = 0;
@@ -163,37 +160,34 @@ int pgpid_action_print_card(int argc, char **argv)
     char card_key[41];
     if (!pattern) {
         if (!pgpid_card_certification_key(card_key, sizeof card_key)) {
-            gpgme_release(ctx);
             pgpid_error(_("Error: No card answered, so there is no certificate to print."));
             pgpid_error(_("Name one instead."));
             return PGPID_FAIL;
         }
         pattern = card_key;
     }
-    if (!gpgme_op_keylist_start(ctx, pattern, 0)) {
-        gpgme_key_t key = NULL;
-        while (!gpgme_op_keylist_next(ctx, &key)) {
-            if (!key->revoked && key->subkeys && key->subkeys->fpr) {
-                /* However many the pattern matches. A fixed few would let an
-                 * ambiguous address look settled, and a card would be printed
-                 * for whichever certificate happened to be sampled. */
-                if (ncand == cand_cap) {
-                    size_t grown = cand_cap ? cand_cap * 2 : 16;
-                    char (*bigger)[41] = realloc(candidates, grown * sizeof *bigger);
-                    if (!bigger) {
-                        gpgme_key_unref(key);
-                        break;
-                    }
-                    candidates = bigger;
-                    cand_cap = grown;
-                }
-                snprintf(candidates[ncand++], 41, "%.40s", key->subkeys->fpr);
+    {
+        const char *pat[] = { pattern };
+        struct pgpid_keyring *kr = pgpid_keys_load(pat, 1, 0);
+        for (size_t i = 0; i < pgpid_keys_count(kr); i++) {
+            const struct pgpid_key *key = pgpid_keys_at(kr, i);
+            if (key->revoked || !*key->fpr)
+                continue;
+            /* However many the pattern matches. A fixed few would let an
+             * ambiguous address look settled, and a card would be printed
+             * for whichever certificate happened to be sampled. */
+            if (ncand == cand_cap) {
+                size_t grown = cand_cap ? cand_cap * 2 : 16;
+                char (*bigger)[41] = realloc(candidates, grown * sizeof *bigger);
+                if (!bigger)
+                    break;
+                candidates = bigger;
+                cand_cap = grown;
             }
-            gpgme_key_unref(key);
+            snprintf(candidates[ncand++], 41, "%.40s", key->fpr);
         }
+        pgpid_keys_free(kr);
     }
-    gpgme_op_keylist_end(ctx);
-    gpgme_release(ctx);
 
     if (email_given) {
         snprintf(email, sizeof email, "%s", target);

@@ -167,49 +167,33 @@ static bool value_is_sound(const char *vcard, const char *val)
  */
 static int resolve_key(const char *pattern, char *out, size_t max)
 {
-    gpgme_ctx_t ctx = NULL;
-    gpgme_error_t err = pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL);
-    if (err) {
-        pgpid_gpgme_error(_("opening the engine"), err);
+    const char *pat[1];
+    size_t npat = 0;
+    if (pattern)
+        pat[npat++] = pattern;
+    /* No pattern means "the key at hand", which is a secret key. */
+    struct pgpid_keyring *kr =
+        pgpid_keys_load(pat, npat, pattern ? 0 : PGPID_KEYS_SECRET);
+    if (!kr) {
+        pgpid_error(_("Error: Cannot read the keyring."));
         return PGPID_FAIL;
     }
-    err = gpgme_op_keylist_start(ctx, pattern, pattern ? 0 : 1);
-    if (err) {
-        pgpid_gpgme_error(_("looking the certificate up"), err);
-        gpgme_release(ctx);
-        return PGPID_FAIL;
-    }
-    gpgme_key_t candidate = NULL;
+
+    const struct pgpid_key *candidate = NULL;
     unsigned matches = 0, on_card = 0;
-    for (;;) {
-        gpgme_key_t k = NULL;
-        err = gpgme_op_keylist_next(ctx, &k);
-        if (gpg_err_code(err) == GPG_ERR_EOF)
-            break;
-        if (err) {
-            gpgme_op_keylist_end(ctx);
-            if (candidate)
-                gpgme_key_unref(candidate);
-            gpgme_release(ctx);
-            pgpid_gpgme_error(_("reading the certificate"), err);
-            return PGPID_FAIL;
-        }
+    for (size_t n = 0; n < pgpid_keys_count(kr); n++) {
+        const struct pgpid_key *k = pgpid_keys_at(kr, n);
         matches++;
         bool carded = false;
-        for (gpgme_subkey_t sk = k->subkeys; sk && !pattern; sk = sk->next)
-            if (sk->is_cardkey)
-                carded = true;
+        if (!pattern)
+            for (size_t i = 0; i < k->nsub; i++)
+                if (*k->sub[i].card)
+                    carded = true;
         if (carded)
             on_card++;
-        if (!candidate || (carded && on_card == 1)) {
-            if (candidate)
-                gpgme_key_unref(candidate);
+        if (!candidate || (carded && on_card == 1))
             candidate = k;
-        } else {
-            gpgme_key_unref(k);
-        }
     }
-    gpgme_op_keylist_end(ctx);
 
     int ret = PGPID_OK;
     if (!matches) {
@@ -219,14 +203,12 @@ static int resolve_key(const char *pattern, char *out, size_t max)
     } else if (matches > 1 && on_card != 1) {
         pgpid_error(_("Error: %u certificates match; name one."), matches);
         ret = PGPID_USAGE;
-    } else if (candidate->subkeys && candidate->subkeys->fpr) {
-        snprintf(out, max, "%s", candidate->subkeys->fpr);
+    } else if (*candidate->fpr) {
+        snprintf(out, max, "%s", candidate->fpr);
     } else {
         ret = PGPID_FAIL;
     }
-    if (candidate)
-        gpgme_key_unref(candidate);
-    gpgme_release(ctx);
+    pgpid_keys_free(kr);
     return ret;
 }
 
@@ -264,27 +246,14 @@ static int do_ksprefrd(const char *fpr, const char *add, bool revoking,
         return pgpid_send_to_keyservers(fpr, keyservers ? keyservers : PGPID_KEYSERVERS);
     }
 
-    gpgme_ctx_t ctx;
-    if (pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL))
-        return PGPID_FAIL;
-    gpgme_data_t exported;
-    unsigned char *raw = NULL;
     size_t len = 0;
-    if (!gpgme_data_new(&exported)) {
-        if (!gpgme_op_export(ctx, fpr, GPGME_EXPORT_MODE_MINIMAL, exported)) {
-            gpgme_data_seek(exported, 0, SEEK_SET);
-            raw = (unsigned char *)gpgme_data_release_and_get_mem(exported, &len);
-        } else {
-            gpgme_data_release(exported);
-        }
-    }
-    gpgme_release(ctx);
+    unsigned char *raw = pgpid_export_key(fpr, true, &len);
     if (!raw) {
         pgpid_error(_("Error: Cannot export %s."), fpr);
         return PGPID_FAIL;
     }
     char *ks = pgpid_preferred_keyserver(raw, len, fpr);
-    gpgme_free(raw);
+    free(raw);
     if (!ks || !*ks)
         return PGPID_NOTHING;
 
@@ -578,7 +547,7 @@ int pgpid_action_property(int argc, char **argv)
         ret = pgpid_send_to_keyservers(fpr, keyservers ? keyservers : PGPID_KEYSERVERS);
     }
 
-    /* From the colon listing, not gpgme: an expired uid arrives from gpgme as
+    /* From the colon listing's own letters: an expired uid would otherwise read as
      * unknown, indistinguishable from one nobody has vouched for, and
      * --show-unusable would then have nothing to show. */
     nuids = pgpid_list_uids(fpr, false, uids, 256);

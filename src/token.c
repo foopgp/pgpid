@@ -5,7 +5,7 @@
  *
  * SPDX-License-Identifier: GPL-3.0-only
  *
- * The card is not reached through gpgme: its business is keys and data, and
+ * The card is not reached through a key listing: that is about keys and data, and
  * how many attempts remain before a PIN locks is neither. It comes from
  * scdaemon, asked through gpg-connect-agent — the same road the shell takes.
  *

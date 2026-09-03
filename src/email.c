@@ -145,24 +145,19 @@ static int resolve_target(const char *given, char *out, size_t max)
         return PGPID_FAIL;
     }
 
-    gpgme_ctx_t ctx;
-    if (pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL))
-        return PGPID_FAIL;
     char found[41] = "";
     unsigned n = 0;
-    if (!gpgme_op_keylist_start(ctx, given, 0)) {
-        gpgme_key_t key = NULL;
-        while (!gpgme_op_keylist_next(ctx, &key)) {
-            if (key->subkeys && key->subkeys->fpr) {
-                if (!n)
-                    snprintf(found, sizeof found, "%s", key->subkeys->fpr);
-                n++;
-            }
-            gpgme_key_unref(key);
-        }
+    const char *pat[] = { given };
+    struct pgpid_keyring *kr = pgpid_keys_load(pat, 1, 0);
+    for (size_t i = 0; i < pgpid_keys_count(kr); i++) {
+        const struct pgpid_key *key = pgpid_keys_at(kr, i);
+        if (!*key->fpr)
+            continue;
+        if (!n)
+            snprintf(found, sizeof found, "%s", key->fpr);
+        n++;
     }
-    gpgme_op_keylist_end(ctx);
-    gpgme_release(ctx);
+    pgpid_keys_free(kr);
 
     if (!n) {
         pgpid_error(_("Error: No certificate here matches '%s'."), given);
@@ -553,13 +548,14 @@ int pgpid_action_email(int argc, char **argv)
 /* The first address on a uid that still stands. A certificate carries its
  * name and its identifier on uids of their own, so the first uid is rarely
  * the one with an address on it. */
-const char *pgpid_first_mbox(gpgme_key_t key)
+const char *pgpid_first_mbox(const struct pgpid_key *key)
 {
-    for (gpgme_user_id_t u = key->uids; u; u = u->next) {
+    for (size_t i = 0; i < key->nuid; i++) {
+        const struct pgpid_keyuid *u = &key->uid[i];
         if (u->revoked || u->invalid)
             continue;
-        if (u->email && *u->email)
-            return u->email;
+        if (*u->address)
+            return u->address;
     }
     return NULL;
 }

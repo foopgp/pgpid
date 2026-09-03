@@ -5,7 +5,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-only
 #
-# Two generations live here. `pgpid`, in C over gpgme, is what bl-pgpid and
+# Two generations live here. `pgpid`, in C, is what bl-pgpid and
 # bl-pgpkey became; `pgpid-gen` and `pgpid-qrscan`, in shell, are what came
 # before it and still work. Building one does not need the other.
 
@@ -29,10 +29,7 @@ endif
 SOURCES  = $(wildcard $(SRCDIR)/*.c)
 OBJECTS  = $(patsubst $(SRCDIR)/%.c,$(BUILDDIR)/%.o,$(SOURCES))
 
-# gpgme ships a pkg-config file since 1.13; gpgme-config is the fallback for
 # the older distributions this may still have to build on.
-GPGME_CFLAGS := $(shell pkg-config --cflags gpgme 2>/dev/null || gpgme-config --cflags)
-GPGME_LIBS   := $(shell pkg-config --libs   gpgme 2>/dev/null || gpgme-config --libs)
 
 # CPPFLAGS is separate from CFLAGS and has to be spelled out, or a distribution
 # that hardens through it — Debian puts -D_FORTIFY_SOURCE there — hardens
@@ -40,8 +37,7 @@ GPGME_LIBS   := $(shell pkg-config --libs   gpgme 2>/dev/null || gpgme-config --
 # the argument, and these only add what the code needs to compile at all.
 CFLAGS  ?= -O2 -g
 CFLAGS  += -std=c11 -Wall -Wextra -Wpedantic -Wshadow -Wstrict-prototypes \
-           -D_GNU_SOURCE $(GPGME_CFLAGS) -I$(BUILDDIR)
-LDLIBS  += $(GPGME_LIBS)
+           -D_GNU_SOURCE -I$(BUILDDIR)
 
 PREFIX  ?= /usr/local
 BINDIR  ?= $(PREFIX)/bin

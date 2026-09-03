@@ -281,24 +281,21 @@ static size_t collect_candidates(const char *pats[],
                                  char out[][41], size_t max, bool *overflow)
 {
     *overflow = false;
-    gpgme_ctx_t ctx;
-    if (pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL))
-        return 0;
+    size_t npat = 0;
+    while (pats[npat])
+        npat++;
+    struct pgpid_keyring *kr = pgpid_keys_load(pats, npat, 0);
     size_t n = 0;
-    if (!gpgme_op_keylist_ext_start(ctx, pats, 0, 0)) {
-        gpgme_key_t key = NULL;
-        while (!gpgme_op_keylist_next(ctx, &key)) {
-            if (key->subkeys && key->subkeys->fpr) {
-                if (n >= max)
-                    *overflow = true;
-                else
-                    snprintf(out[n++], 41, "%s", key->subkeys->fpr);
-            }
-            gpgme_key_unref(key);
-        }
+    for (size_t i = 0; i < pgpid_keys_count(kr); i++) {
+        const struct pgpid_key *key = pgpid_keys_at(kr, i);
+        if (!*key->fpr)
+            continue;
+        if (n >= max)
+            *overflow = true;
+        else
+            snprintf(out[n++], 41, "%s", key->fpr);
     }
-    gpgme_op_keylist_end(ctx);
-    gpgme_release(ctx);
+    pgpid_keys_free(kr);
     return n;
 }
 
@@ -372,70 +369,65 @@ static bool uid_carries(const char *uid, const char *head, const char *old)
 static size_t collect_uids(const char *fpr, const char *head, const char *old,
                            bool all_emails, char out[][UID_MAX], size_t max)
 {
-    gpgme_ctx_t ctx;
-    if (pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL))
-        return 0;
-
-    gpgme_key_t key = NULL;
-    if (gpgme_op_keylist_start(ctx, fpr, 0) || gpgme_op_keylist_next(ctx, &key)) {
-        gpgme_op_keylist_end(ctx);
-        gpgme_release(ctx);
+    const char *pat[] = { fpr };
+    struct pgpid_keyring *kr = pgpid_keys_load(pat, 1, 0);
+    const struct pgpid_key *key = pgpid_keys_at(kr, 0);
+    if (!key) {
+        pgpid_keys_free(kr);
         return 0;
     }
-    gpgme_op_keylist_end(ctx);
 
-    /* gpgme cannot say "expired" about a uid — it arrives as unknown, which
-     * is also what an uncertified one looks like. The letters gpg prints
-     * carry the distinction, in the same order. */
+    /* The uid validity letters, which carry a distinction the record's own
+     * flags do not: expired and uncertified look alike otherwise. Same
+     * order as the uids. */
     char letters[MAX_UIDS + 1];
     size_t nletters = pgpid_uid_validities(fpr, letters, sizeof letters);
 
     size_t n = 0;
-    unsigned i = 0;
-    for (gpgme_user_id_t u = key->uids; u && n < max; u = u->next, i++) {
-        if (!u->uid || u->revoked || u->invalid)
+    for (size_t i = 0; i < key->nuid && n < max; i++) {
+        const struct pgpid_keyuid *u = &key->uid[i];
+        if (u->revoked || u->invalid)
             continue;
         if (i < nletters && (letters[i] == 'r' || letters[i] == 'e'))
             continue;
-        if (!strstr(u->uid, "UID:urn:eid:"))
+        if (!strstr(u->text, "UID:urn:eid:"))
             continue;
-        if (head && !uid_carries(u->uid, head, old))
+        if (head && !uid_carries(u->text, head, old))
             continue;
-        snprintf(out[n++], UID_MAX, "%s", u->uid);
+        snprintf(out[n++], UID_MAX, "%s", u->text);
     }
 
     if (!n && head) {
-        i = 0;
-        for (gpgme_user_id_t u = key->uids; u && n < max; u = u->next, i++) {
-            if (!u->uid || u->revoked || u->invalid)
+        for (size_t i = 0; i < key->nuid && n < max; i++) {
+            const struct pgpid_keyuid *u = &key->uid[i];
+            if (u->revoked || u->invalid)
                 continue;
             if (i < nletters && (letters[i] == 'r' || letters[i] == 'e'))
                 continue;
-            if (uid_carries(u->uid, head, old))
-                snprintf(out[n++], UID_MAX, "%s", u->uid);
+            if (uid_carries(u->text, head, old))
+                snprintf(out[n++], UID_MAX, "%s", u->text);
         }
     }
 
     if (all_emails) {
-        i = 0;
-        for (gpgme_user_id_t u = key->uids; u && n < max; u = u->next, i++) {
-            if (!u->uid || u->revoked || u->invalid)
+        for (size_t i = 0; i < key->nuid && n < max; i++) {
+            const struct pgpid_keyuid *u = &key->uid[i];
+            if (u->revoked || u->invalid)
                 continue;
             if (i < nletters && (letters[i] == 'r' || letters[i] == 'e'))
                 continue;
-            if (!u->email || !*u->email)
+            if (!*u->address)
                 continue;
             bool already = false;
             for (size_t k = 0; k < n; k++)
-                if (!strcmp(out[k], u->uid))
+                if (!strcmp(out[k], u->text))
                     already = true;
             if (!already)
-                snprintf(out[n++], UID_MAX, "%s", u->uid);
+                snprintf(out[n++], UID_MAX, "%s", u->text);
         }
     }
 
-    gpgme_key_unref(key);
-    gpgme_release(ctx);
+    pgpid_keys_free(kr);
     return n;
 }
 
@@ -460,39 +452,30 @@ static size_t collect_uids(const char *fpr, const char *head, const char *old,
 static size_t candidates_for(const char *pats[], const char *target, bool *among)
 {
     *among = false;
-    gpgme_ctx_t ctx;
-    if (pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL))
-        return 0;
+    size_t npat = 0;
+    while (pats[npat])
+        npat++;
+    struct pgpid_keyring *kr = pgpid_keys_load(pats, npat, 0);
     size_t n = 0;
-    if (!gpgme_op_keylist_ext_start(ctx, pats, 0, 0)) {
-        gpgme_key_t key = NULL;
-        while (!gpgme_op_keylist_next(ctx, &key)) {
-            if (key->subkeys && key->subkeys->fpr) {
-                n++;
-                if (!strcmp(key->subkeys->fpr, target))
-                    *among = true;
-            }
-            gpgme_key_unref(key);
-        }
+    for (size_t i = 0; i < pgpid_keys_count(kr); i++) {
+        const struct pgpid_key *key = pgpid_keys_at(kr, i);
+        if (!*key->fpr)
+            continue;
+        n++;
+        if (!strcmp(key->fpr, target))
+            *among = true;
     }
-    gpgme_op_keylist_end(ctx);
-    gpgme_release(ctx);
+    pgpid_keys_free(kr);
     return n;
 }
 
 /** Does this certificate exist here at all? */
 static bool key_is_here(const char *fpr)
 {
-    gpgme_ctx_t ctx;
-    if (pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL))
-        return false;
-    gpgme_key_t key = NULL;
-    bool here = !gpgme_op_keylist_start(ctx, fpr, 0)
-             && !gpgme_op_keylist_next(ctx, &key);
-    if (key)
-        gpgme_key_unref(key);
-    gpgme_op_keylist_end(ctx);
-    gpgme_release(ctx);
+    const char *pat[] = { fpr };
+    struct pgpid_keyring *kr = pgpid_keys_load(pat, 1, 0);
+    bool here = pgpid_keys_count(kr) > 0;
+    pgpid_keys_free(kr);
     return here;
 }
 

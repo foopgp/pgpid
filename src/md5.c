@@ -12,7 +12,7 @@
  * names. Nothing here defends against an adversary; being wrong would
  * produce a different identifier, loudly, not a weak one.
  *
- * Against that, linking libgcrypt would add a dependency gpgme does not
+ * Against that, linking libgcrypt would add a dependency nothing else
  * already bring — it talks to the engine over assuan, not by linking crypto —
  * and the identifier derivation has to exist wherever the model does,
  * Android included, where libgcrypt is not.

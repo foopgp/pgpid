@@ -99,10 +99,9 @@ int main(int argc, char **argv)
     setlocale(LC_ALL, "");
     bindtextdomain(PGPID_TEXTDOMAIN, PGPID_LOCALEDIR);
     textdomain(PGPID_TEXTDOMAIN);
-    /* Required before anything else in gpgme, and it also selects the
+    /* The locale still has to be set before anything else -- it selects the
      * gettext domain the engine speaks. */
-    gpgme_check_version(NULL);
-    gpgme_set_locale(NULL, LC_ALL, setlocale(LC_ALL, NULL));
+    setlocale(LC_ALL, "");
 
     int i = 1;
     for (; i < argc; i++) {
@@ -138,8 +137,7 @@ int main(int argc, char **argv)
             usage(stdout);
             return PGPID_OK;
         } else if (!strcmp(a, "-V") || !strcmp(a, "--version")) {
-            printf("%s %s (gpgme %s)\n", PGPID_NAME, PGPID_VERSION,
-                   gpgme_check_version(NULL));
+            printf("%s %s\n", PGPID_NAME, PGPID_VERSION);
             return PGPID_OK;
         } else if (!strcmp(a, "--")) {
             i++;

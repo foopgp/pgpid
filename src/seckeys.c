@@ -27,36 +27,28 @@
  */
 bool pgpid_choose_secret_key(const char *prompt, char *out, size_t max)
 {
-    gpgme_ctx_t ctx;
-    if (pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL))
-        return false;
-
     static char fprs[MAX_SECKEYS][41];
     static char shown[MAX_SECKEYS][128];
     const char *items[MAX_SECKEYS];
     size_t n = 0;
     bool over = false;
 
-    if (!gpgme_op_keylist_start(ctx, NULL, 1)) {
-        gpgme_key_t key = NULL;
-        while (!gpgme_op_keylist_next(ctx, &key)) {
-            if (key->subkeys && key->subkeys->fpr && !key->revoked && !key->expired) {
-                if (n >= MAX_SECKEYS) {
-                    over = true;
-                } else {
-                    snprintf(fprs[n], sizeof fprs[0], "%s", key->subkeys->fpr);
-                    snprintf(shown[n], sizeof shown[0], "%s  %s",
-                             key->subkeys->fpr,
-                             key->uids && key->uids->uid ? key->uids->uid : "");
-                    items[n] = shown[n];
-                    n++;
-                }
-            }
-            gpgme_key_unref(key);
+    struct pgpid_keyring *kr = pgpid_keys_load(NULL, 0, PGPID_KEYS_SECRET);
+    for (size_t i = 0; i < pgpid_keys_count(kr); i++) {
+        const struct pgpid_key *key = pgpid_keys_at(kr, i);
+        if (!*key->fpr || key->revoked || key->expired)
+            continue;
+        if (n >= MAX_SECKEYS) {
+            over = true;
+            continue;
         }
+        snprintf(fprs[n], sizeof fprs[0], "%s", key->fpr);
+        snprintf(shown[n], sizeof shown[0], "%s  %s",
+                 key->fpr, key->nuid ? key->uid[0].text : "");
+        items[n] = shown[n];
+        n++;
     }
-    gpgme_op_keylist_end(ctx);
-    gpgme_release(ctx);
+    pgpid_keys_free(kr);
 
     if (over) {
         pgpid_error(_("Error: More than %d secret keys here; name the one you mean."),
