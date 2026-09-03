@@ -647,5 +647,16 @@ out=$("$BIN" print_secret --passphrase '' --printer '' 2>&1 </dev/null)
 is "several keys: a menu is put"   "$(grep --count -- 'Its number' <<<"$out")" "1"
 is "and an unanswerable one fails" "$(grep --count -- 'Nothing to read' <<<"$out")" "1"
 
+printf '\ntotoken -- where to send, and what to engrave\n'
+# Two questions, and only --certurl answers the second. --keyserver moved the
+# card's URL too, so sending a copy somewhere for a day engraved that somewhere
+# for the life of the key.
+H=$("$BIN" totoken --help)
+is "certurl shows the whole default" \
+   "$(grep --count -- 'Default: https://keys.foopgp.org/pks/lookup?op=get&search=0x<FPR>' <<<"$H")" "1"
+is "keyserver names its default"     "$(grep --count -- 'Default: hkps://keys.foopgp.org' <<<"$H")" "1"
+is "and says it engraves nothing"    "$(grep --count -- 'Does not change --certurl' <<<"$H")" "1"
+is "empty means send nowhere"        "$(grep --count -- 'Empty to send it nowhere' <<<"$H")" "1"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [[ $fail -eq 0 ]]

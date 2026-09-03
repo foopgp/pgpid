@@ -68,6 +68,8 @@
 
 /* The one a fresh certificate names as its own. */
 #define PGPID_KEYSERVERS_FIRST "hkps://keys.foopgp.org"
+/* The same host without its scheme, for building an https lookup URL. */
+#define PGPID_KEYSERVERS_HOST "keys.foopgp.org"
 /* The first of them, which is the one a card points at. */
 #define PGPID_FIRST_KEYSERVER "hkps://keys.foopgp.org"
 

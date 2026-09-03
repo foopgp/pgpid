@@ -54,9 +54,12 @@ static void usage(FILE *out)
         "OPTIONS:\n"
         "  -p, --passphrase PASSPHRASE  Passphrase to access secret parts of OpenPGP key\n"
         "  -P, --passfrom FILE          Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
-        "  -U, --certurl URL            URL to retrieve your OpenPGP certificate (default: the keyserver's lookup for this key)\n"
+        "  -U, --certurl URL            URL to retrieve your OpenPGP certificate\n"
+        "                               Default: https://" PGPID_KEYSERVERS_HOST "/pks/lookup?op=get&search=0x<FPR>\n"
         "  -L, --lang LANG              Security token (OpenPGP smartcard) prefered language (default: the locale's)\n"
-        "  -k, --keyserver KEYSERVER    Send OpenPGP certificate to this public keys server. Also modify default URL (see --certurl)\n"
+        "  -k, --keyserver KEYSERVER    Send OpenPGP certificate to this public keys server\n"
+        "                               Empty to send it nowhere. Does not change --certurl\n"
+        "                               Default: " PGPID_KEYSERVERS_FIRST "\n"
         "  -K, --pubkey FILE            Also write armored OpenPGP certificate to given FILE\n"
         "      --force                  Don't ask before resetting unempty security token (OpenPGP smartcard)\n"
         "  -h, --help                   Print this help and exit\n"
@@ -206,14 +209,16 @@ int pgpid_action_totoken(int argc, char **argv)
         return PGPID_FAIL;
     }
 
-    /* Where to send and what URL to write down are two questions. An empty
-       --keyserver answers the first with "nowhere" — the same escape hatch
-       bl-pgpid spells --keyservers '' — but the card should still say where
-       the certificate will be findable once somebody publishes it. */
+    /* Where to send and what URL to write down are two questions, and only
+       --certurl answers the second. --keyserver used to move the card's URL
+       as well, which reads as one option quietly editing another: sending a
+       copy somewhere for today's convenience would have engraved that
+       somewhere on the card for the life of the key. An empty --keyserver
+       answers the first with "nowhere" -- the escape hatch bl-pgpid spells
+       --keyservers '' -- and the card still says where the certificate will
+       be findable once somebody publishes it. */
     const char *host = keyserver ? keyserver : PGPID_KEYSERVERS_FIRST;
-    const char *urlhost = *host ? host : PGPID_KEYSERVERS_FIRST;
-    const char *bare = strstr(urlhost, "//");
-    bare = bare ? bare + 2 : urlhost;
+    const char *bare = PGPID_KEYSERVERS_HOST;
     char url[512];
     if (certurl)
         snprintf(url, sizeof url, "%.500s", certurl);
