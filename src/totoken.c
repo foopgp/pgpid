@@ -29,6 +29,13 @@
 #include <sys/random.h>
 #include <unistd.h>
 
+/* Two ways the passphrase can stop this, told apart because a caller that
+ * drives pgpid has to know which one to act on: ask for a passphrase, or say
+ * the one it was given is wrong. 41 and 42 read together — something is
+ * missing, or the holder refused. */
+#define TOTOKEN_BAD_PASS  40
+#define TOTOKEN_NEED_PASS 41
+
 static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
@@ -53,8 +60,14 @@ static void usage(FILE *out)
         "  -K, --pubkey FILE            Also write armored OpenPGP certificate to given FILE\n"
         "      --force                  Don't ask before resetting unempty security token (OpenPGP smartcard)\n"
         "  -h, --help                   Print this help and exit\n"
-        "  -V, --version                Print the version and exit\n"),
-            PGPID_NAME, PGPID_NAME);
+        "  -V, --version                Print the version and exit\n"
+        "\n"
+        "Return value:\n"
+        "-   0 No error\n"
+        "-   2 Input/Usage error\n"
+        "- %d The passphrase given does not open the secret key\n"
+        "- %d The key is protected and no passphrase was given\n"),
+            PGPID_NAME, PGPID_NAME, TOTOKEN_BAD_PASS, TOTOKEN_NEED_PASS);
 }
 
 static bool first_line_of(const char *path, char *out, size_t max)
@@ -282,19 +295,30 @@ int pgpid_action_totoken(int argc, char **argv)
     const char *dry[] = { "--batch", "--pinentry-mode", "loopback", "--passphrase", "",
                           "--dry-run", "--change-passphrase", fpr, NULL };
     if (pgpid_run_engine_quiet(dry)) {
-        if (!*passphrase) {
-            pgpid_error(_("Error: The key is protected by a passphrase, which has to "
-                        "come off before it can move to a card."));
-            pgpid_error(_("Give --passphrase, or --passfrom to keep it off the process list."));
-            return PGPID_USAGE;
-        }
-        char script[1200];
-        snprintf(script, sizeof script, "%.500s\n\n\n\n", passphrase);
-        const char *strip[] = { "--command-fd", "0", "--batch", "--pinentry-mode",
-                                "loopback", "--change-passphrase", fpr, NULL };
-        if (pgpid_run_engine_input(strip, script)) {
-            pgpid_error(_("Error: Cannot take the passphrase off '%s' — right passphrase?"), fpr);
-            return PGPID_FAIL;
+        /* Asked for when there is somebody to ask, and three tries because a
+         * fourth is no longer a typo. Under --batch nobody is there: the
+         * caller is told which of the two things went wrong, so it can ask
+         * for the passphrase itself rather than guess from a usage error. */
+        for (unsigned tries = 0; ; tries++) {
+            if (!*passphrase
+                && !pgpid_ask_secret(_("Passphrase protecting the secret key: "),
+                                     passphrase, sizeof passphrase)) {
+                pgpid_error(_("Error: The key is protected by a passphrase, which has "
+                            "to come off before it can move to a card."));
+                pgpid_error(_("Notice: Give --passphrase, or --passfrom to keep it off "
+                            "the process list."));
+                return TOTOKEN_NEED_PASS;
+            }
+            char script[1200];
+            snprintf(script, sizeof script, "%.500s\n\n\n\n", passphrase);
+            const char *strip[] = { "--command-fd", "0", "--batch", "--pinentry-mode",
+                                    "loopback", "--change-passphrase", fpr, NULL };
+            if (!pgpid_run_engine_input(strip, script))
+                break;
+            pgpid_error(_("Error: That passphrase does not open '%s'."), fpr);
+            if (pgpid_batch || tries >= 2)
+                return TOTOKEN_BAD_PASS;
+            *passphrase = '\0';
         }
     }
 

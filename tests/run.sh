@@ -582,6 +582,18 @@ is "asked and given agree"                        "$BYASK" "$BYOPT"
 is "and says so rather than failing mutely" \
    "$("$BIN" --batch certify --keyservers '' --use-privkey "$CFPR" 2>&1 | grep --count -- '--batch')" "1"
 
+printf '\ntotoken — the two passphrase answers\n'
+# The codes themselves cannot be reached without a card, and reaching them
+# would wipe it — so what is checked here is that they are declared, unique
+# and announced. 41 is "give me a passphrase", 40 is "that one is wrong";
+# a caller driving pgpid --batch acts on the difference.
+is "announces 41, a passphrase is needed" \
+   "$("$BIN" totoken --help | grep --count '^- 41 ')" "1"
+is "announces 40, the passphrase is wrong" \
+   "$("$BIN" totoken --help | grep --count '^- 40 ')" "1"
+is "and they say which is which" \
+   "$("$BIN" totoken --help | grep --count -- '- 41 The key is protected and no passphrase')" "1"
+
 printf '\nbash completion\n'
 # The program completes itself: nothing beside it lists the actions, so
 # nothing beside it can fall behind a release.
