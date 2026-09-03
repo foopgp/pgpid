@@ -276,8 +276,7 @@ int pgpid_action_token_check(int argc, char **argv)
     memset(&f, 0, sizeof f);
 
     char status[16384];
-    const char *card[] = { "--card-status", NULL };
-    if (pgpid_capture_engine(card, status, sizeof status) < 0 || !*status) {
+    if (pgpid_capture_card_status(status, sizeof status) < 0 || !*status) {
         pgpid_error(_("Error: No security key answered."));
         return PGPID_FAIL;
     }
@@ -313,8 +312,12 @@ int pgpid_action_token_check(int argc, char **argv)
                     close(fd);
                     const char *import[] = { "--import", path, NULL };
                     pgpid_run_engine(import);
-                    /* Read the card again: what it says may now resolve. */
-                    pgpid_capture(card, status, sizeof status);
+                    /* Read the card again: what it says may now resolve.
+                     * Through the engine -- this called pgpid_capture with
+                     * gpg's arguments but no gpg, so it execed "--card-status"
+                     * as a program, failed, and emptied what it meant to
+                     * refresh. */
+                    pgpid_capture_card_status(status, sizeof status);
                 } else {
                     close(fd);
                 }

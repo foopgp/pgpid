@@ -256,6 +256,7 @@ int pgpid_capture(const char *const *argv, char *out, size_t max);
 
 /* Same, with the engine and the home directory already in front. */
 int pgpid_capture_engine(const char *const *argv, char *out, size_t max);
+int pgpid_capture_card_status(char *out, size_t max);
 
 /* Send one ISO 7816 command to the card and keep its status word — for what
  * gpgme has no opinion about and gpg will only ask questions about. */

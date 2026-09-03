@@ -260,9 +260,8 @@ int pgpid_action_totoken(int argc, char **argv)
     (void)skey; (void)ekey; (void)akey;
     {
         char status[16384];
-        const char *argv2[] = { "--card-status", NULL };
         *serial = '\0';
-        if (pgpid_capture_engine(argv2, status, sizeof status) > 0) {
+        if (pgpid_capture_card_status(status, sizeof status) > 0) {
             const char *at = strstr(status, "Serial number");
             const char *colon = at ? strchr(at, ':') : NULL;
             size_t n = 0;

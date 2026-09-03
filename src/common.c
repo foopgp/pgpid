@@ -450,11 +450,40 @@ int pgpid_capture_engine(const char *const *argv, char *out, size_t max)
  * place. So the card is asked for a subkey it does have, and the keyring is
  * asked which certificate that subkey belongs to.
  */
+/**
+ * gpg's card status, read in a locale that will not translate it.
+ *
+ * Everything this feeds is parsed against English: the labels ("URL", "Name
+ * of cardholder", "Signature key") and, worse, the value gpg writes for an
+ * empty field -- "[not set]", which becomes "[non positionne]" in French. A
+ * field that fails to read as empty reads as filled, so the count of what is
+ * missing drops and token_check returns 102 where it owes 103.
+ *
+ * The shell guards the same read with `LANG=C.UTF-8`. LC_ALL is used here
+ * because it also wins when LC_ALL is what the environment sets, which LANG
+ * does not -- the shell is wrong in that case and this is not. C.UTF-8 and
+ * not C: a cardholder name may carry accents, and they must stay characters.
+ */
+int pgpid_capture_card_status(char *out, size_t max)
+{
+    const char *argv[] = { "--card-status", NULL };
+    const char *had = getenv("LC_ALL");
+    char saved[128] = "";
+    if (had)
+        snprintf(saved, sizeof saved, "%s", had);
+    setenv("LC_ALL", "C.UTF-8", 1);
+    int got = pgpid_capture_engine(argv, out, max);
+    if (had)
+        setenv("LC_ALL", saved, 1);
+    else
+        unsetenv("LC_ALL");
+    return got;
+}
+
 bool pgpid_card_certification_key(char *out, size_t max)
 {
     char status[16384];
-    const char *argv[] = { "--card-status", NULL };
-    if (pgpid_capture_engine(argv, status, sizeof status) <= 0)
+    if (pgpid_capture_card_status(status, sizeof status) <= 0)
         return false;
 
     /* Whichever of the three the card holds: any of them names the same

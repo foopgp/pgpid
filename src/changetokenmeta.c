@@ -97,8 +97,7 @@ static bool looks_like_language(const char *s)
 static bool card_subkeys(char s[41], char e[41], char a[41], char serial[64])
 {
     char status[16384];
-    const char *argv[] = { "--card-status", NULL };
-    if (pgpid_capture_engine(argv, status, sizeof status) <= 0)
+    if (pgpid_capture_card_status(status, sizeof status) <= 0)
         return false;
 
     static const char *const WANTED[] = {
