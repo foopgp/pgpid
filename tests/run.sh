@@ -629,5 +629,23 @@ out=$(PATH="$BINDIR:$PATH" bash -c '
     COMP_WORDS=(pgpid --) ; COMP_CWORD=1 ; _pgpid_completion ; printf "%s" "${COMPREPLY[*]}"')
 is "global options with no action" "$out" "--homedir --output-format= --batch --help --version"
 
+printf '\nprint_secret asks for what is missing\n'
+# The shell says "Missing input will be asked interactively"; this now does
+# too. Under --batch the same three become errexit, which is the whole point
+# of the flag.
+out=$("$BIN" --batch print_secret 2>&1 </dev/null)
+is "batch refuses, does not ask"  "$(grep --count -- '--batch was given' <<<"$out")" "1"
+is "and names the missing key"    "$(grep --count -- 'Which secret key' <<<"$out")" "2"
+# A menu is offered rather than an error, and the first entry is the one that
+# is not a printer -- so a machine with no CUPS can still produce sheets.
+out=$("$BIN" --batch print_secret --passphrase '' 2>&1 </dev/null)
+is "passphrase given, key still asked" "$(grep --count -- 'Which secret key' <<<"$out")" "2"
+# Several secret keys here, so the menu is put -- and with nothing on stdin
+# to answer it, the refusal names that rather than the operand. One key alone
+# would be picked without asking, which is why this is not tested by printing.
+out=$("$BIN" print_secret --passphrase '' --printer '' 2>&1 </dev/null)
+is "several keys: a menu is put"   "$(grep --count -- 'Its number' <<<"$out")" "1"
+is "and an unanswerable one fails" "$(grep --count -- 'Nothing to read' <<<"$out")" "1"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [[ $fail -eq 0 ]]

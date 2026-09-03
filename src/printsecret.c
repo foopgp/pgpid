@@ -40,6 +40,8 @@ static void usage(FILE *out)
         "Export and print OpenPGP secrets on multiple QRcode using Shamir's secret\n"
         "sharing, split so that no single sheet carries the key.\n"
         "\n"
+        "Missing input will be asked interactively, unless --batch.\n"
+        "\n"
         "OPTIONS:\n"
         "  -p, --passphrase PASSPHRASE    Passphrase to access secret parts of OpenPGP key\n"
         "  -P, --passfrom FILE            Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
@@ -219,6 +221,52 @@ static void uid_block(const char *fpr, char *out, size_t max)
     }
 }
 
+/* The destinations CUPS knows, plus the choice of printing nowhere.
+ *
+ * `lpstat -e` rather than the `lpstat -p` the shell parses: it prints the
+ * names alone, one per line, with no sentence around them for a translation
+ * to move out from under the parser. The shell works around that with
+ * `LANG=`; not needing the workaround is better than carrying it.
+ *
+ * No CUPS at all is not fatal here — the sheets can still be produced and
+ * sent nowhere, which is entry zero.
+ */
+#define PRINTERS_MAX 32
+
+static bool choose_printer(char *out, size_t max)
+{
+    char listing[4096] = "";
+    const char *lpstat[] = { "lpstat", "-e", NULL };
+    /* A byte count, not a status: this one returns what it read. */
+    if (pgpid_capture(lpstat, listing, sizeof listing) <= 0)
+        listing[0] = '\0';
+
+    const char *items[PRINTERS_MAX];
+    char names[PRINTERS_MAX][128];
+    size_t n = 0;
+    items[n++] = _("none - produce the sheets and send nothing");
+
+    for (char *line = listing, *nl; *line && n < PRINTERS_MAX; line = nl) {
+        nl = strchr(line, '\n');
+        if (nl)
+            *nl++ = '\0';
+        else
+            nl = line + strlen(line);
+        if (!*line)
+            continue;
+        snprintf(names[n], sizeof names[n], "%s", line);
+        items[n] = names[n];
+        n++;
+    }
+
+    size_t picked = 0;
+    if (!pgpid_choose(_("Which printer? Its number: "), items, n, &picked))
+        return false;
+    /* Entry zero is the one that is not a printer. */
+    snprintf(out, max, "%s", picked ? items[picked] : "");
+    return true;
+}
+
 int pgpid_action_print_secret(int argc, char **argv)
 {
     char passphrase[512] = "";
@@ -295,19 +343,35 @@ int pgpid_action_print_secret(int argc, char **argv)
     }
 
     if (!keyid) {
-        pgpid_error(_("Error: Which secret key? This machine may hold several."));
-        usage(stderr);
-        return PGPID_USAGE;
+        /* Same question the shell puts through a radiolist. Printing the
+         * wrong secret key onto paper is not a mistake one takes back. */
+        static char picked[41];
+        if (!pgpid_choose_secret_key(_("Which secret key? Its number: "),
+                                     picked, sizeof picked)) {
+            pgpid_error(_("Error: Which secret key should be printed?"));
+            usage(stderr);
+            return PGPID_USAGE;
+        }
+        keyid = picked;
     }
     if (!passphrase_given) {
-        pgpid_error(_("Error: The passphrase is needed to export the secret parts."));
-        pgpid_error(_("Give --passphrase, or --passfrom to keep it off the process list."));
-        return PGPID_USAGE;
+        /* Nothing is echoed, and an empty answer is an answer: a key that
+         * carries no passphrase is exported by giving none. */
+        if (!pgpid_ask_secret(_("Passphrase of the secret key (empty if none): "),
+                              passphrase, sizeof passphrase)) {
+            pgpid_error(_("Error: The passphrase is needed to export the secret parts."));
+            pgpid_error(_("Give --passphrase, or --passfrom to keep it off the process list."));
+            return PGPID_USAGE;
+        }
     }
     if (!printer_given) {
-        pgpid_error(_("Error: Where should this be printed? Name a printer, or pass"));
-        pgpid_error(_("--printer '' to produce the sheets and send nothing."));
-        return PGPID_USAGE;
+        static char chosen[128];
+        if (!choose_printer(chosen, sizeof chosen)) {
+            pgpid_error(_("Error: Where should this be printed? Name a printer, or pass"));
+            pgpid_error(_("--printer '' to produce the sheets and send nothing."));
+            return PGPID_USAGE;
+        }
+        printer = chosen;
     }
     if (splits < 3) {
         pgpid_error(_("Error: Splits number (%d) can't be lower than 3."), splits);
