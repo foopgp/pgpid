@@ -38,9 +38,13 @@ static void usage(FILE *out)
         "Output OpenPGP certification key fingerprint.\n"
         "Images may be PNG, JPEG, or PDF.\n"
         "\n"
+        "QR code versions 4 and 5, which is what print_secret writes. Versions 1\n"
+        "to 3 were experimental and never released; 'bl-pgpkey scan' still reads\n"
+        "them. A key that arrives protected stays protected: taking the\n"
+        "passphrase off is the business of whoever moves it onto a card.\n"
+        "\n"
         "OPTIONS:\n"
-        "  -p, --passphrase PASSPHRASE   Passphrase to access secret parts of OpenPGP key\n"
-        "  -P, --passfrom FILE           Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
+
         "  -W, --workdir DIRECTORY       Use given working directory instead of a temporary directory (don't forget to shred its content)\n"
         "  -h, --help                    Print this help and exit\n"
         "  -V, --version                 Print the version and exit\n"
@@ -50,21 +54,6 @@ static void usage(FILE *out)
             PGPID_NAME);
 }
 
-static bool first_line_of(const char *path, char *out, size_t max)
-{
-    FILE *f = fopen(path, "r");
-    if (!f) {
-        pgpid_error(_("Error: Cannot read %s."), path);
-        return false;
-    }
-    if (!fgets(out, (int)max, f))
-        *out = '\0';
-    fclose(f);
-    size_t n = strlen(out);
-    while (n && (out[n - 1] == '\n' || out[n - 1] == '\r'))
-        out[--n] = '\0';
-    return true;
-}
 
 static bool workdir_is_unclean(const char *dir)
 {
@@ -93,7 +82,6 @@ static bool is_pdf(const char *path)
 
 int pgpid_action_scan(int argc, char **argv)
 {
-    char passphrase[512] = "";
     const char *given_workdir = NULL;
     /* A secret is cut into PGPID_SPLIT_MAX fragments at most, so that is how
      * many images there can be to read. More is not a longer job, it is a
@@ -103,21 +91,7 @@ int pgpid_action_scan(int argc, char **argv)
 
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
-        if (!strcmp(a, "-p") || !strcmp(a, "--passphrase")) {
-            if (++i >= argc) {
-                pgpid_error(_("Error: '%s' wants a passphrase."), a);
-                return PGPID_USAGE;
-            }
-            snprintf(passphrase, sizeof passphrase, "%s", argv[i]);
-        } else if (!strcmp(a, "-P") || !strcmp(a, "--passfrom")
-                   || !strcmp(a, "--pass-from")) {
-            if (++i >= argc) {
-                pgpid_error(_("Error: '%s' wants a file."), a);
-                return PGPID_USAGE;
-            }
-            if (!first_line_of(argv[i], passphrase, sizeof passphrase))
-                return PGPID_FAIL;
-        } else if (!strcmp(a, "-W") || !strcmp(a, "--workdir")
+        if (!strcmp(a, "-W") || !strcmp(a, "--workdir")
                    || !strcmp(a, "-D") || !strcmp(a, "--tmpdir")) {
             if (++i >= argc) {
                 pgpid_error(_("Error: '%s' wants a directory."), a);
@@ -253,7 +227,10 @@ int pgpid_action_scan(int argc, char **argv)
 
     if (version != 4 && version != 5) {
         pgpid_error(_("Crit: Unsupported qrcode version (%d)."), version);
-        pgpid_error(_("Versions 1 to 3 needed an extra passphrase and are long gone."));
+        pgpid_error(_("Only versions 4 and 5 are read here. Versions 1 to 3 were "
+                    "experimental, never released, and needed an extra passphrase "
+                    "that also protected the key."));
+        pgpid_error(_("'bl-pgpkey scan' still reads them, should such a sheet turn up."));
         return 3;
     }
 
@@ -326,13 +303,15 @@ int pgpid_action_scan(int argc, char **argv)
         }
     }
 
-    char answer[600];
-    snprintf(answer, sizeof answer, "%s\n", passphrase);
-    const char *import[] = { "--batch", "--pinentry-mode", "loopback",
-                             "--passphrase-fd", "0", "--import", secret, NULL };
-    if (pgpid_run_engine_io(import, answer, NULL)) {
+    /* No passphrase: a secret key protected the way RFC 9580 means it imports
+     * as it stands, still protected, and whoever moves it onto a card strips
+     * it there. Versions 1 to 3 were the exception — the passphrase that
+     * over-encrypted their fragments also protected the key they rebuilt —
+     * and those are not read here. */
+    const char *import[] = { "--batch", "--import", secret, NULL };
+    if (pgpid_run_engine(import)) {
         pgpid_error(_("Error: gpg would not import what came back."));
-        pgpid_error(_("A wrong passphrase, or fragments from two different printings."));
+        pgpid_error(_("Fragments from two different printings, most likely."));
         return PGPID_FAIL;
     }
 

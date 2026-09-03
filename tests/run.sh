@@ -582,6 +582,19 @@ is "asked and given agree"                        "$BYASK" "$BYOPT"
 is "and says so rather than failing mutely" \
    "$("$BIN" --batch certify --keyservers '' --use-privkey "$CFPR" 2>&1 | grep --count -- '--batch')" "1"
 
+printf '\nscan — versions 4 and 5, and no passphrase\n'
+# The extra passphrase belonged to versions 1 to 3, where it also protected
+# the key it rebuilt. Those are not read here, so scan has no passphrase to
+# take: a key that arrives protected stays protected until totoken strips it.
+"$BIN" --batch scan --passphrase whatever /dev/null >/dev/null 2>&1
+is "no --passphrase to give"      "$?" "2"
+"$BIN" --batch scan --passfrom /dev/null /dev/null >/dev/null 2>&1
+is "no --passfrom either"         "$?" "2"
+is "the help says which versions" \
+   "$("$BIN" scan --help | grep --count 'versions 4 and 5')" "1"
+is "and where the old ones are read" \
+   "$("$BIN" scan --help | grep --count -- 'bl-pgpkey')" "1"
+
 printf '\ntotoken — the two passphrase answers\n'
 # The codes themselves cannot be reached without a card, and reaching them
 # would wipe it — so what is checked here is that they are declared, unique
