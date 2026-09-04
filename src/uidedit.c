@@ -137,7 +137,7 @@ bool pgpid_fix_primary(const char *user)
  * Does nothing at all when there is no secret key, when the identity uid is
  * already there, or when the old uids disagree about the identifier.
  */
-bool pgpid_upgrade_uids(const char *user)
+bool pgpid_upgrade_uids(const char *user, const char *keyservers)
 {
     struct pgpid_uid uids[MAX_UIDS];
     size_t n = pgpid_list_uids(user, true, uids, MAX_UIDS);
@@ -194,5 +194,23 @@ bool pgpid_upgrade_uids(const char *user)
         if (pgpid_run_engine(addfn))
             pgpid_error(_("Warning: gpg would not add %s."), fnuid);
     }
+
+    /* The minted uids must not take the primary flag. Nothing here sets one,
+     * so gpg falls back to the most recent self-signature -- and all three
+     * new uids are signed in the same second, which leaves the identity
+     * anchor in front. It is the address that belongs there: the primary uid
+     * is what mail clients show, which is the rule gen_key already follows
+     * with --quick-set-primary-uid. */
+    if (!pgpid_fix_primary(user))
+        return false;
+
+    /* Published here rather than left to the caller. The caller publishes
+     * what *it* changed, and only if it changed something: an add that turns
+     * out to be a no-op, or a revoke that finds nothing and returns early,
+     * would leave a certificate reshaped on this machine and nowhere else.
+     * The cost is one extra upload on the single occasion a certificate is
+     * migrated, against a migration nobody else ever sees. */
+    if (pgpid_send_to_keyservers(user, keyservers ? keyservers : PGPID_KEYSERVERS))
+        pgpid_error(_("Warning: The reshaped certificate could not be published."));
     return true;
 }

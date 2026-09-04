@@ -43,7 +43,9 @@ bool pgpid_choose_secret_key(const char *prompt, char *out, size_t max)
             continue;
         }
         snprintf(fprs[n], sizeof fprs[0], "%s", key->fpr);
-        snprintf(shown[n], sizeof shown[0], "%s  %s",
+        /* Bounded explicitly: the compiler cannot see that a fingerprint is
+         * forty characters and the line has room for both. */
+        snprintf(shown[n], sizeof shown[0], "%.40s  %.80s",
                  key->fpr, key->nuid ? key->uid[0].text : "");
         items[n] = shown[n];
         n++;

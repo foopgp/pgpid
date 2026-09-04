@@ -380,7 +380,7 @@ int pgpid_action_email(int argc, char **argv)
     bool changed = false;
 
     if (nadd) {
-        if (!pgpid_upgrade_uids(user))
+        if (!pgpid_upgrade_uids(user, keyservers))
             return PGPID_FAIL;
         nuids = pgpid_list_uids(user, true, uids, MAX_UIDS);
         if (!nuids) {

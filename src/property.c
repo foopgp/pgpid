@@ -428,7 +428,7 @@ int pgpid_action_property(int argc, char **argv)
     bool modified = false;
 
     if (nadd || nrev || revoke_all) {
-        if (!pgpid_upgrade_uids(fpr))
+        if (!pgpid_upgrade_uids(fpr, keyservers))
             return PGPID_FAIL;
         nuids = pgpid_list_uids(fpr, true, uids, 256);
         if (!nuids) {

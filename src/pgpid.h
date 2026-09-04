@@ -379,7 +379,7 @@ bool pgpid_revoke_uid(const char *user, const char *uid, bool assume_yes);
 bool pgpid_fix_primary(const char *user);
 
 /* Mint the identity uid of a certificate made before the shape existed. */
-bool pgpid_upgrade_uids(const char *user);
+bool pgpid_upgrade_uids(const char *user, const char *keyservers);
 
 /* The keyserver a certificate names as its own — subpacket 24, taken from
  * the uid flagged primary, failing that the last one that still stands.

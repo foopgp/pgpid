@@ -392,7 +392,7 @@ int pgpid_action_to_vcard(int argc, char **argv)
         }
     }
 
-    const char *pat[1];
+    const char *pat[1] = { NULL };
     size_t npat = 0;
     if (selector)
         pat[npat++] = selector;

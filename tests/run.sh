@@ -667,5 +667,27 @@ is "keyserver names its default"     "$(grep --count -- 'Default: hkps://keys.fo
 is "and says it engraves nothing"    "$(grep --count -- 'Does not change --certurl' <<<"$H")" "1"
 is "empty means send nowhere"        "$(grep --count -- 'Empty to send it nowhere' <<<"$H")" "1"
 
+printf '\nupgrading a legacy certificate\n'
+# The shape a certificate had before vCard-property uids: one uid carrying
+# the name, the eid in a comment, and the address. Touching a property mints
+# UID:urn:eid: and FN: beside it -- and that reshaping is a change of its
+# own, which nobody else sees unless it is published and which must not take
+# the primary flag away from the address.
+LEGACY=$GNUPGHOME/legacy
+mkdir -p "$LEGACY" && chmod 700 "$LEGACY"
+gpg --homedir "$LEGACY" --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-generate-key 'Old Shape (udid4=TESTONLYtestonlyTESTONe_00.00_000.00) <old@example.invalid>' \
+    ed25519 cert never 2>/dev/null
+LFPR=$(gpg --homedir "$LEGACY" --with-colons --list-keys 2>/dev/null \
+       | awk -F: '$1=="fpr"{print $10 ; exit}')
+# --keyservers '' throughout: a throwaway keyring is not a throwaway network.
+out=$("$BIN" --homedir "$LEGACY" property note --revoke nothing --yes --keyservers '' "$LFPR" 2>&1)
+is "a no-op still mints the identity uid" "$(grep --count -- 'Minting the identity uid' <<<"$out")" "1"
+first=$(gpg --homedir "$LEGACY" --with-colons --list-keys "$LFPR" 2>/dev/null \
+        | awk -F: '$1=="uid"{print $10 ; exit}')
+# gpg lists the primary uid first, and the primary is what mail clients show.
+is "the primary flag stays on the address" "$(grep --count -- '<old@example.invalid>' <<<"$first")" "1"
+is "and not on the identity anchor"        "$(grep --count -- 'urn' <<<"$first")" "0"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [[ $fail -eq 0 ]]
