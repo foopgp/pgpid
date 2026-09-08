@@ -113,7 +113,7 @@ int pgpid_action_secret_scan(int argc, char **argv)
             continue;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("scan");
+            pgpid_try_help("secret_scan");
             return PGPID_USAGE;
         } else if (nimages < PGPID_SPLIT_MAX) {
             images[nimages++] = a;

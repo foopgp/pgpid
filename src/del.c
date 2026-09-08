@@ -76,7 +76,7 @@ int pgpid_action_cert_del(int argc, char **argv)
             break;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("del");
+            pgpid_try_help("cert_del");
             return PGPID_USAGE;
         } else {
             break;

@@ -36,7 +36,7 @@ static void usage(FILE *out)
         "  -P, --codefrom FILE       Get current PIN (or Admin) code from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
         "  -n, --newcode NEWCODE     New PIN (or Admin) code to protect use of security token\n"
         "  -N, --newcodefrom FILE    Get new PIN (or Admin) code from the first line of FILE (eg: fifo, tmpfs ...)\n"
-        "  -C, --onlycheck           Only check current PIN (or Admin) code, don't change it\n"
+        "  -r, --replace             Change the code, instead of only checking it\n"
         "  -A, --admin               Change (or check) Admin code instead of PIN code\n"
         "  -U, --unblock             Unblock PIN. Need Admin code to be passed to --code, and new PIN code to be passed to --newcode\n"
         "  -h, --help                Print this help and exit\n"
@@ -80,7 +80,10 @@ int pgpid_action_token_code(int argc, char **argv)
 {
     char current[128] = "", fresh[128] = "";
     bool current_given = false, fresh_given = false;
-    bool only_check = false, unblock = false, admin = false;
+    /* Checking is what this does unless told otherwise: a bare token_code
+     * asks for a code and says whether it is right, which is the harmless
+     * half. --replace is the half that writes. */
+    bool replace = false, unblock = false, admin = false;
 
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
@@ -103,8 +106,8 @@ int pgpid_action_token_code(int argc, char **argv)
             if (!first_line_of(argv[i], fresh, sizeof fresh))
                 return PGPID_FAIL;
             fresh_given = true;
-        } else if (!strcmp(a, "-C") || !strcmp(a, "--onlycheck") || !strcmp(a, "--only-check")) {
-            only_check = true;
+        } else if (!strcmp(a, "-r") || !strcmp(a, "--replace")) {
+            replace = true;
         } else if (!strcmp(a, "-U") || !strcmp(a, "--unblock")) {
             /* Unblocking is done with the Admin code, so it implies --admin;
              * the shell falls through to it for the same reason. */
@@ -122,7 +125,7 @@ int pgpid_action_token_code(int argc, char **argv)
             continue;
         } else {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("change_token_code");
+            pgpid_try_help("token_code");
             return PGPID_USAGE;
         }
     }
@@ -145,11 +148,11 @@ int pgpid_action_token_code(int argc, char **argv)
             return PGPID_USAGE;
         }
     }
-    if (!only_check && !fresh_given) {
+    if ((replace || unblock) && !fresh_given) {
         snprintf(prompt, sizeof prompt,
                  _("New %s code (%zu digits): "), kind, length);
         if (!pgpid_ask_secret(prompt, fresh, sizeof fresh)) {
-            pgpid_error(_("Notice: Give --newcode, or --onlycheck to only "
+            pgpid_error(_("Notice: Give --newcode, or drop --replace to only "
                         "check the current one."));
             return PGPID_USAGE;
         }
@@ -195,7 +198,7 @@ int pgpid_action_token_code(int argc, char **argv)
         return ret;
     }
 
-    if (only_check) {
+    if (!replace && !unblock) {
         pgpid_error(_("Notice: %s code successfully verified."), kind);
         return PGPID_OK;
     }

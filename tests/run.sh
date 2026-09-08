@@ -577,10 +577,15 @@ printf '\n--batch, everywhere something used to be refused\n'
 # Each of these asks the shell's question rather than sending the caller back
 # to the usage. --batch is what a program driving pgpid gives so that a
 # missing operand never becomes a wait nobody is there to end.
-for act in gen_u4 token_meta secret_totoken secret_passphrase ; do
+for act in gen_u4 secret_totoken secret_passphrase ; do
     out=$("$BIN" --batch "$act" 2>&1)
     is "$act asks, and --batch refuses" "$(grep --count -- '--batch was given' <<<"$out")" "1"
 done
+# token_meta reads by default, so it is --replace that has something to ask for.
+out=$("$BIN" --batch token_meta --replace 2>&1)
+is "token_meta --replace asks, and --batch refuses" \
+   "$(grep --count -- '--batch was given' <<<"$out")" "1"
+
 # What it asks for is a question, not the usage dumped again.
 is "gen_u4 names the field it wants" \
    "$("$BIN" --batch gen_u4 2>&1 | grep --count 'Birth surname')" "1"

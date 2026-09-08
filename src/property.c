@@ -345,7 +345,7 @@ int pgpid_action_cert_property(int argc, char **argv)
             continue;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("property");
+            pgpid_try_help("cert_property");
             return PGPID_USAGE;
         } else if (!name) {
             name = a;

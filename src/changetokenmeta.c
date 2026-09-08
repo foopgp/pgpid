@@ -44,6 +44,7 @@ static void usage(FILE *out)
         "OPTIONS:\n"
         "  -A, --admincode CODE         Admin code (usually 8 digits) protecting writes to security token metadata\n"
         "  -p, --admincodefrom FILE     Get admin code from first line of FILE (eg: fifo, tmpfs, /dev/stdin)\n"
+        "  -r, --replace                Write NEW_METADATA, instead of showing what is there\n"
         "  -h, --help                   Print this help and exit\n"
         "  -V, --version                Print the version and exit\n"),
             PGPID_NAME);
@@ -93,6 +94,54 @@ static bool looks_like_language(const char *s)
     return strlen(s) == 2 && isalpha((unsigned char)s[0]) && isalpha((unsigned char)s[1]);
 }
 
+/** One labelled line of gpg --card-status, everything after its colon. */
+static bool card_field(const char *status, const char *label, char *out, size_t max)
+{
+    *out = '\0';
+    const char *at = strstr(status, label);
+    if (!at)
+        return false;
+    const char *colon = strchr(at, ':');
+    if (!colon)
+        return false;
+    colon++;
+    while (*colon == ' ')
+        colon++;
+    size_t n = 0;
+    while (colon[n] && colon[n] != '\n' && n + 1 < max)
+        n++;
+    while (n && colon[n - 1] == ' ')
+        n--;
+    snprintf(out, max, "%.*s", (int)n, colon);
+    return *out != '\0';
+}
+
+/* The three the card is meant to carry for us, in the shape token_check
+ * --info already prints: the address gpg keeps in the cardholder name field,
+ * the certificate URL, and the language preference. */
+static int list_meta(void)
+{
+    char status[16384];
+    if (pgpid_capture_card_status(status, sizeof status) <= 0) {
+        pgpid_error(_("Error: No security token detected."));
+        return PGPID_FAIL;
+    }
+    static const struct { const char *label, *key; } WATCHED[] = {
+        { "Name of cardholder", "pgpid_email" },
+        { "URL of public key",  "pgpid_certurl" },
+        { "Language prefs",     "token_lang" },
+    };
+    for (unsigned i = 0; i < 3; i++) {
+        char value[1024];
+        if (!card_field(status, WATCHED[i].label, value, sizeof value)
+            || !strcmp(value, "[not set]"))
+            printf("%s=''\n", WATCHED[i].key);
+        else
+            printf("%s='%s'\n", WATCHED[i].key, value);
+    }
+    return PGPID_OK;
+}
+
 /** The three subkey fingerprints the connected card carries. */
 static bool card_subkeys(char s[41], char e[41], char a[41], char serial[64])
 {
@@ -126,6 +175,9 @@ int pgpid_action_token_meta(int argc, char **argv)
 {
     char admincode[128] = "";
     bool admin_given = false;
+    /* Reading is the harmless half: a bare token_meta says what the card
+     * carries. --replace is what writes to it, and it needs the Admin code. */
+    bool replace = false;
     const char *value = NULL;
 
     for (int i = 1; i < argc; i++) {
@@ -146,15 +198,26 @@ int pgpid_action_token_meta(int argc, char **argv)
         } else if (!strcmp(a, "-V") || !strcmp(a, "--version")) {
             printf("%s %s\n", argv[0], PGPID_VERSION);
             return PGPID_OK;
+        } else if (!strcmp(a, "-r") || !strcmp(a, "--replace")) {
+            replace = true;
         } else if (!strcmp(a, "--")) {
             continue;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("change_token_meta");
+            pgpid_try_help("token_meta");
             return PGPID_USAGE;
         } else if (!value) {
             value = a;
         }
+    }
+
+    /* Without --replace this only reads, and reading needs no value and no
+     * Admin code -- which is the point: the harmless half must be the one that
+     * asks nothing. */
+    if (!replace) {
+        if (value)
+            pgpid_error(_("Notice: Add --replace to write '%s' to the card."), value);
+        return list_meta();
     }
 
     static char typed[256];

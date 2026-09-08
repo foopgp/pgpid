@@ -68,7 +68,7 @@ int pgpid_action_cert_push(int argc, char **argv)
             break;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("push");
+            pgpid_try_help("cert_push");
             return PGPID_USAGE;
         } else {
             first = i;

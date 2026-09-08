@@ -363,7 +363,7 @@ int pgpid_action_cert_email(int argc, char **argv)
             continue;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("email");
+            pgpid_try_help("cert_email");
             return PGPID_USAGE;
         } else if (!target) {
             target = a;

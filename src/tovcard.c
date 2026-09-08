@@ -384,7 +384,7 @@ int pgpid_action_cert_tovcard(int argc, char **argv)
             break;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("to_vcard");
+            pgpid_try_help("cert_tovcard");
             return PGPID_USAGE;
         } else {
             selector = a;

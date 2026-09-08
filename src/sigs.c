@@ -122,7 +122,7 @@ int pgpid_action_cert_sigs(int argc, char **argv)
             break;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("sigs");
+            pgpid_try_help("cert_sigs");
             return PGPID_USAGE;
         } else {
             pattern = a;

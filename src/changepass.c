@@ -32,6 +32,7 @@ static void usage(FILE *out)
         "  -P, --passfrom FILE            Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
         "  -n, --newpassphrase PASSPHRASE New passphrase to protect secret parts of OpenPGP key (empty \"\" for none)\n"
         "  -N, --newpassfrom FILE         Get new passphrase from the first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
+        "  -r, --replace                  Change the passphrase, instead of only checking it\n"
         "  -h, --help                     Print this help and exit\n"
         "  -V, --version                  Print the version and exit\n"
         "\n"
@@ -61,6 +62,10 @@ int pgpid_action_secret_passphrase(int argc, char **argv)
 {
     char current[512] = "", fresh[512] = "";
     bool current_given = false, fresh_given = false;
+    /* Checking is the harmless half, so it is what a bare secret_passphrase
+     * does: gpg's --dry-run --change-passphrase answers whether the current
+     * one is right without writing anything. --replace does the writing. */
+    bool replace = false;
     const char *keyid = NULL;
 
     for (int i = 1; i < argc; i++) {
@@ -97,6 +102,11 @@ int pgpid_action_secret_passphrase(int argc, char **argv)
             continue;
         }
 
+        if (!strcmp(a, "-r") || !strcmp(a, "--replace")) {
+            replace = true;
+            continue;
+        }
+
         if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             usage(stdout);
             return PGPID_OK;
@@ -107,7 +117,7 @@ int pgpid_action_secret_passphrase(int argc, char **argv)
             continue;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("change_passphrase");
+            pgpid_try_help("secret_passphrase");
             return PGPID_USAGE;
         } else if (!keyid) {
             keyid = a;
@@ -127,7 +137,7 @@ int pgpid_action_secret_passphrase(int argc, char **argv)
         }
         keyid = picked;
     }
-    if (!current_given || !fresh_given) {
+    if (!current_given || (replace && !fresh_given)) {
         pgpid_error(_("Error: Both passphrases are needed — the current one with "
                     "--passphrase or --passfrom, the new one with"));
         pgpid_error(_("--newpassphrase or --newpassfrom. Empty strings mean none."));
@@ -154,6 +164,11 @@ int pgpid_action_secret_passphrase(int argc, char **argv)
         /* gpg's own code, not ours: the caller can tell a wrong passphrase
          * from a key that would not open for another reason. */
         return said;
+    }
+
+    if (!replace) {
+        pgpid_error(_("Notice: Passphrase verified."));
+        return PGPID_OK;
     }
 
     if (!strcmp(current, fresh)) {

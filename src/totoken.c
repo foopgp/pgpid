@@ -165,7 +165,7 @@ int pgpid_action_secret_totoken(int argc, char **argv)
             continue;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("totoken");
+            pgpid_try_help("secret_totoken");
             return PGPID_USAGE;
         } else if (!keyid) {
             keyid = a;

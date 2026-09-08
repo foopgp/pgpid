@@ -145,7 +145,7 @@ int pgpid_action_cert_get(int argc, char **argv)
             break;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("get");
+            pgpid_try_help("cert_get");
             return PGPID_USAGE;
         } else {
             first = i;
