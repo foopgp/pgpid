@@ -17,6 +17,21 @@
 
 #define MAX_SECKEYS 32
 
+/* Field 15 is not "empty or a serial". gpg writes "+" there when the secret
+ * material is really at hand, the card's serial when the entry is only a stub
+ * pointing at one, and "#" when the secret is not available at all. */
+#define ON_DISK "+"
+
+bool pgpid_secret_is_local(const struct pgpid_key *k)
+{
+    if (!strcmp(k->card, ON_DISK))
+        return true;
+    for (size_t i = 0; i < k->nsub; i++)
+        if (!strcmp(k->sub[i].card, ON_DISK))
+            return true;
+    return false;
+}
+
 /**
  * Ask which secret key, and return its fingerprint.
  *
@@ -37,6 +52,11 @@ bool pgpid_choose_secret_key(const char *prompt, char *out, size_t max)
     for (size_t i = 0; i < pgpid_keys_count(kr); i++) {
         const struct pgpid_key *key = pgpid_keys_at(kr, i);
         if (!*key->fpr || key->revoked || key->expired)
+            continue;
+        /* Stubs pointing at a security key are not answers to this question:
+         * none of the three callers can act on one. Offering them is how
+         * secret_print came to propose printing a key it cannot read. */
+        if (!pgpid_secret_is_local(key))
             continue;
         if (n >= MAX_SECKEYS) {
             over = true;

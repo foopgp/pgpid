@@ -19,22 +19,6 @@
 #include <stdio.h>
 #include <string.h>
 
-/* Field 15 is not "empty or a serial". gpg writes "+" there when the secret
- * material is really at hand, the card's serial when the entry is only a stub
- * pointing at one, and "#" when the secret is not available at all. Reading it
- * as "empty means here" gets it wrong in both directions. */
-#define ON_DISK "+"
-
-static bool held_here(const struct pgpid_key *k)
-{
-    if (!strcmp(k->card, ON_DISK))
-        return true;
-    for (size_t i = 0; i < k->nsub; i++)
-        if (!strcmp(k->sub[i].card, ON_DISK))
-            return true;
-    return false;
-}
-
 static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
@@ -88,7 +72,7 @@ int pgpid_action_secret_list(int argc, char **argv)
     size_t shown = 0;
     for (size_t i = 0; i < pgpid_keys_count(kr); i++) {
         const struct pgpid_key *k = pgpid_keys_at(kr, i);
-        if (!k->secret || !held_here(k))
+        if (!k->secret || !pgpid_secret_is_local(k))
             continue;
         shown++;
         if (onlyfpr) {

@@ -165,6 +165,10 @@ struct pgpid_keyring *pgpid_keys_load(const char *const *patterns, size_t npat,
                                       unsigned flags);
 size_t pgpid_keys_count(const struct pgpid_keyring *kr);
 const struct pgpid_key *pgpid_keys_at(const struct pgpid_keyring *kr, size_t i);
+
+/** True when some part of the secret is really on this machine, rather than
+ *  a stub pointing at a security key. */
+bool pgpid_secret_is_local(const struct pgpid_key *k);
 void pgpid_keys_free(struct pgpid_keyring *kr);
 
 /* The certificate's bytes, caller frees. NULL when gpg exported nothing. */
