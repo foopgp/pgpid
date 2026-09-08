@@ -46,6 +46,9 @@
 #define PGPID_USAGE   2
 /* Nothing matched — distinct from a failure, because an empty answer to a
  * search is an answer. bl-pgpid says 141 here and so do we. */
+/* The shell libraries answer 42 when the person said no; a caller that
+ * drives both should not have to learn two vocabularies. */
+#define PGPID_CANCEL  42
 #define PGPID_NOTHING 141
 
 /* Where a certificate goes when nobody says otherwise, first one hkp(s).
@@ -413,6 +416,7 @@ int pgpid_action_cert_tovcard(int argc, char **argv);
 int pgpid_action_token_retries(int argc, char **argv);
 int pgpid_action_token_check(int argc, char **argv);
 int pgpid_action_token_list(int argc, char **argv);
+int pgpid_action_token_del(int argc, char **argv);
 int pgpid_action_secret_list(int argc, char **argv);
 int pgpid_action_certify(int argc, char **argv);
 int pgpid_action_cert_email(int argc, char **argv);

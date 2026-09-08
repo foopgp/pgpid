@@ -75,6 +75,8 @@ static const struct {
       N_("Attempts left on its codes"),                      pgpid_action_token_retries },
     { "token_code",        NULL,
       N_("Check, or --replace, its PIN or Admin code"),      pgpid_action_token_code },
+    { "token_del",         NULL,
+      N_("Forget one: remove its stubs, or --reset to wipe it"), pgpid_action_token_del },
     { "token_meta",        NULL,
       N_("Show, or --replace, what it says about its holder"), pgpid_action_token_meta },
 

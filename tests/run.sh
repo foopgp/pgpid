@@ -586,6 +586,13 @@ out=$("$BIN" --batch token_meta --replace 2>&1)
 is "token_meta --replace asks, and --batch refuses" \
    "$(grep --count -- '--batch was given' <<<"$out")" "1"
 
+# token_del is destructive, so the safe halves are what gets tested: it refuses
+# to act unasked in batch, and a serial nothing points at removes nothing.
+is "token_del refuses to act unasked in batch" \
+   "$("$BIN" --batch token_del FFFFFFFFFFFFFFFF >/dev/null 2>&1 ; echo $?)" "2"
+is "an unknown serial touches nothing" \
+   "$("$BIN" --batch token_del --yes FFFFFFFFFFFFFFFF 2>&1 | grep --count 'No stub pointed at')" "1"
+
 # What it asks for is a question, not the usage dumped again.
 is "gen_u4 names the field it wants" \
    "$("$BIN" --batch gen_u4 2>&1 | grep --count 'Birth surname')" "1"
