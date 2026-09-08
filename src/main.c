@@ -67,6 +67,9 @@ static const struct {
     { "secret_totoken",    NULL,
       N_("Move one onto a security key"),                    pgpid_action_secret_totoken },
 
+    { "secret_del",        NULL,
+      N_("Delete the secret material held here"),           pgpid_action_secret_del },
+
     { "token_list",        N_("Security keys"),
       N_("List the security keys this system knows"),        pgpid_action_token_list },
     { "token_check",       NULL,

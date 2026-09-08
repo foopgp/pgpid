@@ -422,6 +422,7 @@ int pgpid_action_token_check(int argc, char **argv);
 int pgpid_action_token_list(int argc, char **argv);
 int pgpid_action_token_del(int argc, char **argv);
 int pgpid_action_secret_list(int argc, char **argv);
+int pgpid_action_secret_del(int argc, char **argv);
 int pgpid_action_certify(int argc, char **argv);
 int pgpid_action_cert_email(int argc, char **argv);
 int pgpid_action_trustdb(int argc, char **argv);

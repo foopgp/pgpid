@@ -586,6 +586,12 @@ out=$("$BIN" --batch token_meta --replace 2>&1)
 is "token_meta --replace asks, and --batch refuses" \
    "$(grep --count -- '--batch was given' <<<"$out")" "1"
 
+# secret_del is destructive too: the three refusals are what gets tested.
+is "secret_del wants a fingerprint" \
+   "$("$BIN" secret_del mneme@example.invalid 2>&1 | grep --count 'is not a fingerprint')" "1"
+is "secret_del refuses to act unasked in batch" \
+   "$("$BIN" --batch secret_del 0000000000000000000000000000000000000000 >/dev/null 2>&1 ; echo $?)" "141"
+
 # token_del is destructive, so the safe halves are what gets tested: it refuses
 # to act unasked in batch, and a serial nothing points at removes nothing.
 is "token_del refuses to act unasked in batch" \
