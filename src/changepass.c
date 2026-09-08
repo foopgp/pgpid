@@ -23,7 +23,7 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " change_passphrase [OPTIONS]... KEY_ID|FPR|EMAIL|NAME\n"
+        " secret_passphrase [OPTIONS]... KEY_ID|FPR|EMAIL|NAME\n"
         "\n"
         "Change GnuPG passphrase protecting secret parts of an OpenPGP key.\n"
         "\n"
@@ -57,7 +57,7 @@ static bool first_line_of(const char *path, char *out, size_t max)
     return true;
 }
 
-int pgpid_action_change_passphrase(int argc, char **argv)
+int pgpid_action_secret_passphrase(int argc, char **argv)
 {
     char current[512] = "", fresh[512] = "";
     bool current_given = false, fresh_given = false;

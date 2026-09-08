@@ -200,6 +200,10 @@ struct pgpid_keyring *pgpid_keys_load(const char *const *patterns, size_t npat,
             k->expires = strtol(fld(field, nf, 6), NULL, 10);
             k->ownertrust = *fld(field, nf, 8) ? fld(field, nf, 8)[0] : '-';
             snprintf(k->caps, sizeof k->caps, "%s", fld(field, nf, 11));
+            /* Field 15 again, for the primary: gpg writes the card serial here
+             * too when the primary secret is a stub. Without it we cannot tell a
+             * key that is really here from one that only points at a card. */
+            snprintf(k->card, sizeof k->card, "%s", fld(field, nf, 14));
             last = ON_PRIMARY;
             continue;
         }

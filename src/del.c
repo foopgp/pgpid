@@ -27,7 +27,7 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " del [OPTIONS]... FINGERPRINT...\n"
+        " cert_del [OPTIONS]... FINGERPRINT...\n"
         "\n"
         "Delete certificates from the keyring, secret part included.\n"
         "\n"
@@ -58,7 +58,7 @@ static int one_key(const char *fpr)
     return PGPID_OK;
 }
 
-int pgpid_action_del(int argc, char **argv)
+int pgpid_action_cert_del(int argc, char **argv)
 {
     bool secret_only = false;
     int first_target = 0;

@@ -306,7 +306,7 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " list [OPTIONS]... [SEARCH]\n"
+        " cert_list [OPTIONS]... [SEARCH]\n"
         "\n"
         "List the certificates of the keyring, one per line.\n"
         "\n"
@@ -336,7 +336,7 @@ static void usage(FILE *out)
             PGPID_NAME);
 }
 
-int pgpid_action_list(int argc, char **argv)
+int pgpid_action_cert_list(int argc, char **argv)
 {
     bool check_eid = true, count_certs = false, hide_trust = false, machine = false;
     bool short_form = false;

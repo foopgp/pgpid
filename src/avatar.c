@@ -422,7 +422,7 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " avatar [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
+        " cert_avatar [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
         "\n"
         "Extract or add image inside OpenPGP certificate.\n"
         "Missing NAME|EMAIL|KEYID|U4|U5 => the first secret certificate.\n"
@@ -474,7 +474,7 @@ static int one_key(const struct pgpid_key *key, const char *dir, bool all)
     return ret;
 }
 
-int pgpid_action_avatar(int argc, char **argv)
+int pgpid_action_cert_avatar(int argc, char **argv)
 {
     bool all = false, revoke = false;
     const char *workdir = NULL;

@@ -35,7 +35,7 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " print_secret [OPTIONS]... KEY_ID|FPR\n"
+        " secret_print [OPTIONS]... KEY_ID|FPR\n"
         "\n"
         "Export and print OpenPGP secrets on multiple QRcode using Shamir's secret\n"
         "sharing, split so that no single sheet carries the key.\n"
@@ -267,7 +267,7 @@ static bool choose_printer(char *out, size_t max)
     return true;
 }
 
-int pgpid_action_print_secret(int argc, char **argv)
+int pgpid_action_secret_print(int argc, char **argv)
 {
     char passphrase[512] = "";
     const char *printer = NULL, *given_workdir = NULL, *keyid = NULL;

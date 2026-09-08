@@ -27,7 +27,7 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " email [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
+        " cert_email [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
         "\n"
         "Display and add or revoke emails inside OpenPGP certificate.\n"
         "Missing NAME|EMAIL|KEYID|U4|U5 => the certificate the connected security\n"
@@ -292,7 +292,7 @@ static int show_certs_count(const char *user)
     return PGPID_OK;
 }
 
-int pgpid_action_email(int argc, char **argv)
+int pgpid_action_cert_email(int argc, char **argv)
 {
     const char *keyservers = NULL, *pseudo = NULL, *target = NULL;
     char toadd[MAX_LIST][320], torev[MAX_LIST][320];

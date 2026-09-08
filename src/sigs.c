@@ -85,7 +85,7 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " sigs [OPTIONS]... FINGERPRINT\n"
+        " cert_sigs [OPTIONS]... FINGERPRINT\n"
         "\n"
         "List who has certified that certificate, oldest first: date, key\n"
         "identifier, address. The key identifier is what a search takes to walk\n"
@@ -104,7 +104,7 @@ static void usage(FILE *out)
             PGPID_NAME);
 }
 
-int pgpid_action_sigs(int argc, char **argv)
+int pgpid_action_cert_sigs(int argc, char **argv)
 {
     bool all_uids = false;
     const char *pattern = NULL;

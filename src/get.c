@@ -26,7 +26,7 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " get [OPTIONS]... NAME|U4|U5|EMAIL...\n"
+        " cert_get [OPTIONS]... NAME|U4|U5|EMAIL...\n"
         "\n"
         "Output fingerprints, emails and eid of certificates matching NAME|U4|U5|EMAIL.\n"
         "May also get or refresh certificates from keyservers.\n"
@@ -103,7 +103,7 @@ void pgpid_refresh(const char *term, const char *keyservers)
     free(copy);
 }
 
-int pgpid_action_get(int argc, char **argv)
+int pgpid_action_cert_get(int argc, char **argv)
 {
     bool only_fpr = false, only_mbox = false, fetch = true;
     const char *keyservers = NULL;

@@ -269,14 +269,14 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " property PROPERTY [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
+        " cert_property PROPERTY [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
         "\n"
         "Display and add or revoke vCard-property uids inside OpenPGP certificate.\n"
         "PROPERTY is one of: { name, note, address, phone, url, lang, geo, ksprefrd }.\n"
         "Email addresses are not vCard-property uids (they keep the 'Name <addr>' shape\n"
         "every mail client understands): manage them with '"
         "%s"
-        " email'.\n"
+        " cert_email'.\n"
         "'ksprefrd' is preferred certificate server. This is not stored as a\n"
         "vCard-property uid, but used when generating vCard: it can be replaced,\n"
         "never revoked.\n"
@@ -302,7 +302,7 @@ static void usage(FILE *out)
             PGPID_NAME, PGPID_NAME, PGPID_KEYSERVERS);
 }
 
-int pgpid_action_property(int argc, char **argv)
+int pgpid_action_cert_property(int argc, char **argv)
 {
     const char *name = NULL, *pattern = NULL, *keyservers = NULL;
     char toadd[16][1024], torev[16][1024];

@@ -29,7 +29,7 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " push [OPTIONS]... FINGERPRINT...\n"
+        " cert_push [OPTIONS]... FINGERPRINT...\n"
         "\n"
         "Send certificates to the keyservers as they stand, changing nothing.\n"
         "Fingerprints only: what is published cannot be recalled.\n"
@@ -44,7 +44,7 @@ static void usage(FILE *out)
             PGPID_NAME, PGPID_KEYSERVERS);
 }
 
-int pgpid_action_push(int argc, char **argv)
+int pgpid_action_cert_push(int argc, char **argv)
 {
     const char *keyservers = NULL;
     int first = 0;

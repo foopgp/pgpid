@@ -28,7 +28,7 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " change_token_meta [OPTIONS]... NEW_METADATA\n"
+        " token_meta [OPTIONS]... NEW_METADATA\n"
         "\n"
         "Change a textual metadata of a security token (OpenPGP smartcard).\n"
         "Detect if NEW_METADATA is an email, a certurl or a lang:\n"
@@ -122,7 +122,7 @@ static bool card_subkeys(char s[41], char e[41], char a[41], char serial[64])
     return *serial || *s;
 }
 
-int pgpid_action_change_token_meta(int argc, char **argv)
+int pgpid_action_token_meta(int argc, char **argv)
 {
     char admincode[128] = "";
     bool admin_given = false;

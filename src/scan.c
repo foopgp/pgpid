@@ -32,7 +32,7 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " scan [OPTIONS]... IMAGES...\n"
+        " secret_scan [OPTIONS]... IMAGES...\n"
         "\n"
         "Reconstitute OpenPGP secrets from QRcodes scanned from IMAGES.\n"
         "Output OpenPGP certification key fingerprint.\n"
@@ -80,7 +80,7 @@ static bool is_pdf(const char *path)
     return n == 4 && !memcmp(head, "%PDF", 4);
 }
 
-int pgpid_action_scan(int argc, char **argv)
+int pgpid_action_secret_scan(int argc, char **argv)
 {
     const char *given_workdir = NULL;
     /* A secret is cut into PGPID_SPLIT_MAX fragments at most, so that is how

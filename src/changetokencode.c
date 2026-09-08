@@ -25,7 +25,7 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " change_token_code [OPTIONS]...\n"
+        " token_code [OPTIONS]...\n"
         "\n"
         "Check and change PIN (or Admin) code protecting use of a security token\n"
         "(OpenPGP smartcard). Both codes are needed in full: nothing here asks for\n"
@@ -76,7 +76,7 @@ static bool all_digits(const char *s, size_t want)
     return true;
 }
 
-int pgpid_action_change_token_code(int argc, char **argv)
+int pgpid_action_token_code(int argc, char **argv)
 {
     char current[128] = "", fresh[128] = "";
     bool current_given = false, fresh_given = false;

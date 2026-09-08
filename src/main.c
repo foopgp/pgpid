@@ -20,6 +20,77 @@
 #include <stdio.h>
 #include <string.h>
 
+
+/* Every action, once. The dispatch reads it, and so does the completion:
+ * a list of actions kept in two places is a list that disagrees with
+ * itself the day one is added. */
+/* Every action, once: its name, the group it belongs to, what it does, and
+ * what runs it. The dispatch reads this, the completion reads this, and so
+ * does the help -- which used to keep a second list of its own, three lines
+ * under a comment saying a list kept twice is a list that disagrees with
+ * itself. It did. */
+static const struct {
+    const char *name;
+    const char *section;   /* NULL: continues the previous one */
+    const char *desc;
+    int (*run)(int, char **);
+} ACTIONS[] = {
+    { "cert_list",         N_("Certificates"),
+      N_("List the certificates of the keyring"),            pgpid_action_cert_list },
+    { "cert_get",          NULL,
+      N_("Look a certificate up, refreshing it first"),      pgpid_action_cert_get },
+    { "cert_property",     NULL,
+      N_("Show, add or revoke a vCard property it carries"), pgpid_action_cert_property },
+    { "cert_email",        NULL,
+      N_("Show, add or revoke the addresses it carries"),    pgpid_action_cert_email },
+    { "cert_avatar",       NULL,
+      N_("Extract the image it wears"),                      pgpid_action_cert_avatar },
+    { "cert_sigs",         NULL,
+      N_("List who has certified it"),                       pgpid_action_cert_sigs },
+    { "cert_tovcard",      NULL,
+      N_("Write it out as a vCard document"),                pgpid_action_cert_tovcard },
+    { "cert_tobizcard",    NULL,
+      N_("Produce or print a sticker or business card"),     pgpid_action_cert_tobizcard },
+    { "cert_push",         NULL,
+      N_("Send certificates to the keyservers"),             pgpid_action_cert_push },
+    { "cert_del",          NULL,
+      N_("Delete certificates, by fingerprint only"),        pgpid_action_cert_del },
+
+    { "secret_list",       N_("Secret keys held on this machine"),
+      N_("List the secret keys that are really here"),       pgpid_action_secret_list },
+    { "secret_passphrase", NULL,
+      N_("Check, or --replace, what protects one"),          pgpid_action_secret_passphrase },
+    { "secret_print",      NULL,
+      N_("Put one on paper, in fragments"),                  pgpid_action_secret_print },
+    { "secret_scan",       NULL,
+      N_("Put it back together from the fragments"),         pgpid_action_secret_scan },
+    { "secret_totoken",    NULL,
+      N_("Move one onto a security key"),                    pgpid_action_secret_totoken },
+
+    { "token_list",        N_("Security keys"),
+      N_("List the security keys this system knows"),        pgpid_action_token_list },
+    { "token_check",       NULL,
+      N_("Check what the connected one carries"),            pgpid_action_token_check },
+    { "token_retries",     NULL,
+      N_("Attempts left on its codes"),                      pgpid_action_token_retries },
+    { "token_code",        NULL,
+      N_("Check, or --replace, its PIN or Admin code"),      pgpid_action_token_code },
+    { "token_meta",        NULL,
+      N_("Show, or --replace, what it says about its holder"), pgpid_action_token_meta },
+
+    { "gen_key",           N_("Generators"),
+      N_("Generate a key pair the PGP ID way"),              pgpid_action_gen_key },
+    { "gen_u4",            NULL,
+      N_("Print the identifier a civil status or a passport gives"), pgpid_action_gen_u4 },
+    { "gen_uid",           NULL,
+      N_("Print the Unix account number an identifier gives"), pgpid_action_gen_uid },
+
+    { "certify",           N_("Other people"),
+      N_("Vouch for somebody else"),                         pgpid_action_certify },
+    { "trustdb",           NULL,
+      N_("Read, publish and apply the credibility of others"), pgpid_action_trustdb },
+};
+
 static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
@@ -29,31 +100,19 @@ static void usage(FILE *out)
         "Read and act on OpenPGP certificates through the pgpid model: entity\n"
         "identifiers, validity, credibility.\n"
         "\n"
-        "ACTIONS:\n"
-        "  list                        List the certificates of the keyring\n"
-        "  get                         Look a certificate up, refreshing it first\n"
-        "  property                    Print a vCard property of one certificate\n"
-        "  sigs                        List who has certified one certificate\n"
-        "  del                         Delete certificates, by fingerprint only\n"
-        "  avatar                      Extract the image a certificate wears\n"
-        "  push                        Send certificates to the keyservers\n"
-        "  gen_u4                      Print the identifier a civil status or a passport gives\n"
-        "  gen_uid                     Print the Unix account number an identifier gives\n"
-        "  to_vcard                    Print a certificate as a vCard\n"
-        "  email                       Show, add or revoke the addresses a certificate carries\n"
-        "  certify                     Vouch for somebody else\n"
-        "  trustdb                     Read, publish and apply the credibility of others\n"
-        "  gen_key                     Generate a key pair the PGP ID way\n"
-        "  change_passphrase           Change what protects a secret key here\n"
-        "  token_check                 Check what the connected security key carries\n"
-        "  token_retries               Attempts left on the key's codes\n"
-        "  totoken                     Move a secret key onto a security key\n"
-        "  change_token_code           Check or change its PIN or Admin code\n"
-        "  change_token_meta           Write what it says about its holder\n"
-        "  print_secret                Put a secret key on paper, in fragments\n"
-        "  scan                        Put it back together from the fragments\n"
-        "  print_card                  Produce or print a sticker or business card\n"
-        "\n"
+        "ACTIONS:\n"),
+            PGPID_NAME);
+
+    /* Straight off the dispatch table, so an action cannot be listed here and
+     * missing there, or the other way round. A section header is printed
+     * whenever it changes. */
+    for (size_t k = 0; k < sizeof ACTIONS / sizeof ACTIONS[0]; k++) {
+        if (ACTIONS[k].section)
+            fprintf(out, "\n %s:\n", _(ACTIONS[k].section));
+        fprintf(out, "  %-22s%s\n", ACTIONS[k].name, _(ACTIONS[k].desc));
+    }
+
+    fprintf(out, _("\n"
         "OPTIONS:\n"
         "  -H, --homedir DIR           GnuPG home directory - Environment variable: GNUPGHOME\n"
         "      --output-format=FORMAT  Specify output format between {raw, info, md} - Default: 'raw'\n"
@@ -61,38 +120,8 @@ static void usage(FILE *out)
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"
         "\n"
-        "Every action takes --help of its own.\n"),
-            PGPID_NAME);
+        "Every action takes --help of its own.\n"));
 }
-
-/* Every action, once. The dispatch reads it, and so does the completion:
- * a list of actions kept in two places is a list that disagrees with
- * itself the day one is added. */
-static const struct { const char *name; int (*run)(int, char **); } ACTIONS[] = {
-    { "list", pgpid_action_list },
-    { "property", pgpid_action_property },
-    { "sigs", pgpid_action_sigs },
-    { "del", pgpid_action_del },
-    { "avatar", pgpid_action_avatar },
-    { "push", pgpid_action_push },
-    { "get", pgpid_action_get },
-    { "gen_uid", pgpid_action_gen_uid },
-    { "gen_u4", pgpid_action_gen_u4 },
-    { "to_vcard", pgpid_action_to_vcard },
-    { "token_retries", pgpid_action_token_retries },
-    { "token_check", pgpid_action_token_check },
-    { "certify", pgpid_action_certify },
-    { "email", pgpid_action_email },
-    { "trustdb", pgpid_action_trustdb },
-    { "gen_key", pgpid_action_gen_key },
-    { "change_passphrase", pgpid_action_change_passphrase },
-    { "print_secret", pgpid_action_print_secret },
-    { "scan", pgpid_action_scan },
-    { "print_card", pgpid_action_print_card },
-    { "change_token_code", pgpid_action_change_token_code },
-    { "change_token_meta", pgpid_action_change_token_meta },
-    { "totoken", pgpid_action_totoken },
-};
 
 int main(int argc, char **argv)
 {

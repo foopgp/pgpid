@@ -146,6 +146,8 @@ struct pgpid_key {
     char caps[8];
     char validity;
     char ownertrust;     /* field 9 */
+    char card[64];       /* field 15: the serial of the card the secret sits on,
+                          * empty when the material is really on this machine */
     bool secret, revoked, expired, invalid;
     long created, expires;
     struct pgpid_keyuid *uid;
@@ -398,29 +400,31 @@ size_t pgpid_uid_validities(const char *fpr, char *out, size_t max);
 bool pgpid_is_fingerprint(const char *s);
 
 /* Actions. argv[0] is the action name, as main leaves it. */
-int pgpid_action_list(int argc, char **argv);
-int pgpid_action_sigs(int argc, char **argv);
-int pgpid_action_del(int argc, char **argv);
-int pgpid_action_property(int argc, char **argv);
-int pgpid_action_avatar(int argc, char **argv);
-int pgpid_action_push(int argc, char **argv);
-int pgpid_action_get(int argc, char **argv);
+int pgpid_action_cert_list(int argc, char **argv);
+int pgpid_action_cert_sigs(int argc, char **argv);
+int pgpid_action_cert_del(int argc, char **argv);
+int pgpid_action_cert_property(int argc, char **argv);
+int pgpid_action_cert_avatar(int argc, char **argv);
+int pgpid_action_cert_push(int argc, char **argv);
+int pgpid_action_cert_get(int argc, char **argv);
 int pgpid_action_gen_uid(int argc, char **argv);
 int pgpid_action_gen_u4(int argc, char **argv);
-int pgpid_action_to_vcard(int argc, char **argv);
+int pgpid_action_cert_tovcard(int argc, char **argv);
 int pgpid_action_token_retries(int argc, char **argv);
 int pgpid_action_token_check(int argc, char **argv);
+int pgpid_action_token_list(int argc, char **argv);
+int pgpid_action_secret_list(int argc, char **argv);
 int pgpid_action_certify(int argc, char **argv);
-int pgpid_action_email(int argc, char **argv);
+int pgpid_action_cert_email(int argc, char **argv);
 int pgpid_action_trustdb(int argc, char **argv);
 int pgpid_action_gen_key(int argc, char **argv);
-int pgpid_action_change_passphrase(int argc, char **argv);
-int pgpid_action_print_secret(int argc, char **argv);
-int pgpid_action_scan(int argc, char **argv);
-int pgpid_action_print_card(int argc, char **argv);
-int pgpid_action_change_token_code(int argc, char **argv);
-int pgpid_action_change_token_meta(int argc, char **argv);
-int pgpid_action_totoken(int argc, char **argv);
+int pgpid_action_secret_passphrase(int argc, char **argv);
+int pgpid_action_secret_print(int argc, char **argv);
+int pgpid_action_secret_scan(int argc, char **argv);
+int pgpid_action_cert_tobizcard(int argc, char **argv);
+int pgpid_action_token_code(int argc, char **argv);
+int pgpid_action_token_meta(int argc, char **argv);
+int pgpid_action_secret_totoken(int argc, char **argv);
 
 /* The short listing — one line per address — shared by `list --short` and
  * `get`, so that the two cannot drift apart. */

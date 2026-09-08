@@ -40,7 +40,7 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " totoken [OPTIONS]... KEY_ID|FPR\n"
+        " secret_totoken [OPTIONS]... KEY_ID|FPR\n"
         "\n"
         "Move OpenPGP secrets to security token (OpenPGP smartcard).\n"
         "Security token (OpenPGP smartcard) must be connected.\n"
@@ -49,7 +49,7 @@ static void usage(FILE *out)
         "This wipes the card and takes the secret parts off this machine. Both are\n"
         "final. Print the key first if it is not printed: "
         "%s"
-        " print_secret.\n"
+        " secret_print.\n"
         "\n"
         "OPTIONS:\n"
         "  -p, --passphrase PASSPHRASE  Passphrase to access secret parts of OpenPGP key\n"
@@ -114,7 +114,7 @@ static bool draw_code(char *out, size_t digits)
     return true;
 }
 
-int pgpid_action_totoken(int argc, char **argv)
+int pgpid_action_secret_totoken(int argc, char **argv)
 {
     char passphrase[512] = "";
     const char *certurl = NULL, *keyserver = NULL, *pubkeyfile = NULL, *keyid = NULL;
@@ -403,7 +403,7 @@ int pgpid_action_totoken(int argc, char **argv)
         if (codes[i].admin)
             sub[n++] = (char *)"--admin";
         sub[n] = NULL;
-        int ret = pgpid_action_change_token_code(n, sub);
+        int ret = pgpid_action_token_code(n, sub);
         if (ret) {
             unlink(pinfile);
             pgpid_error(_("Error: Changing the %s code failed (%d). The card is left "

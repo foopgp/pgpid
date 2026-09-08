@@ -343,7 +343,7 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " to_vcard [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
+        " cert_tovcard [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
         "\n"
         "Convert OpenPGP certificate to vCard (format 4.0).\n"
         "Missing NAME|EMAIL|KEYID|U4|U5 => the certificate whose secret key is at\n"
@@ -357,7 +357,7 @@ static void usage(FILE *out)
             PGPID_NAME);
 }
 
-int pgpid_action_to_vcard(int argc, char **argv)
+int pgpid_action_cert_tovcard(int argc, char **argv)
 {
     const char *selector = NULL, *output = NULL;
     bool raw = false;

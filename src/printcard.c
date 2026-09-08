@@ -30,7 +30,7 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " print_card [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
+        " cert_tobizcard [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
         "\n"
         "Produce or print a PGP ID stamp or business card.\n"
         "Missing NAME|EMAIL|KEYID|U4|U5 => the certificate the connected security\n"
@@ -102,7 +102,7 @@ static bool address_of(const char *uid, char *out, size_t max)
     return true;
 }
 
-int pgpid_action_print_card(int argc, char **argv)
+int pgpid_action_cert_tobizcard(int argc, char **argv)
 {
     const char *printer = NULL, *template_path = NULL, *given_name = NULL;
     const char *target = NULL;
