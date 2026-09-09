@@ -53,6 +53,8 @@ static const struct {
       N_("Produce or print a sticker or business card"),     pgpid_action_cert_tobizcard },
     { "cert_push",         NULL,
       N_("Send certificates to the keyservers"),             pgpid_action_cert_push },
+    { "cert_revoke",       NULL,
+      N_("Revoke one for good, and tell the keyservers"),    pgpid_action_cert_revoke },
     { "cert_del",          NULL,
       N_("Delete certificates, by fingerprint only"),        pgpid_action_cert_del },
 

@@ -66,12 +66,14 @@
  * reads it back that way, and a sheet nobody can read is discovered on paper. */
 #define PGPID_SPLIT_MAX 10
 
-#define PGPID_KEYSERVERS "hkps://keys.foopgp.org hkps://keys.openpgp.org"
+/* Three shapes of one fact, derived so they cannot drift: the bare host
+ * composes the certurl engraved on a card, one server is what an action
+ * that must pick exactly one uses, and the list is where a certificate
+ * gets published. Moving where we publish is editing the first line. */
+#define PGPID_KEYSERVERS_HOST  "keys.foopgp.org"
+#define PGPID_KEYSERVERS_FIRST "hkps://" PGPID_KEYSERVERS_HOST
+#define PGPID_KEYSERVERS       PGPID_KEYSERVERS_FIRST " hkps://keys.openpgp.org"
 
-/* The one a fresh certificate names as its own. */
-#define PGPID_KEYSERVERS_FIRST "hkps://keys.foopgp.org"
-/* The same host without its scheme, for building an https lookup URL. */
-#define PGPID_KEYSERVERS_HOST "keys.foopgp.org"
 /* The first of them, which is the one a card points at. */
 #define PGPID_FIRST_KEYSERVER "hkps://keys.foopgp.org"
 
@@ -423,6 +425,7 @@ int pgpid_action_token_list(int argc, char **argv);
 int pgpid_action_token_del(int argc, char **argv);
 int pgpid_action_secret_list(int argc, char **argv);
 int pgpid_action_secret_del(int argc, char **argv);
+int pgpid_action_cert_revoke(int argc, char **argv);
 int pgpid_action_certify(int argc, char **argv);
 int pgpid_action_cert_email(int argc, char **argv);
 int pgpid_action_trustdb(int argc, char **argv);
