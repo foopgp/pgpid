@@ -20,7 +20,8 @@ Depends: gnupg,
   bashlibs-convert,
   ${shlibs:Depends},
   ${misc:Depends}
-Recommends: qrencode,
+Recommends: sudo,
+  qrencode,
   zbar-tools,
   libgfshare-bin,
   poppler-utils,
@@ -43,6 +44,11 @@ Description: OpenPGP certificates that say whose they are
  validity, ownertrust, addresses, vCard properties, avatars — vouches for
  other people, drives an OpenPGP security key, and puts a secret key on paper
  as QR codes so that any three of five fragments rebuild it.
+ .
+ The system actions open and close local accounts and hand out administrator
+ rights, so they want sudo: without it they still run, but only for root, and
+ there is then no SUDO_USER whose keyring and trust they can read — use their
+ --from option to name one.
  .
  Two older shell programs ship alongside: pgpid-gen, which generates a
  certificate from a passport, and pgpid-qrscan, which moves secrets onto a
