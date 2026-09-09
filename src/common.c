@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <limits.h>
+#include <pwd.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -569,6 +570,81 @@ const struct pgpid_uid *pgpid_preferred_uid(const struct pgpid_uid *uids, size_t
         }
     }
     return pick;
+}
+
+/**
+ * Is this uid one of ours, `PROPERTY:value` or `PROPERTY;PARAM:value`?
+ *
+ * The vCard properties an entity publishes live in uids of their own, and
+ * three actions now read them -- the card writer, the account opener, and
+ * the address rule. One reading, so that a uid means the same thing to all.
+ */
+const char *pgpid_uid_property(const char *uid, char *name, size_t max)
+{
+    size_t i = 0;
+    while (uid[i] >= 'A' && uid[i] <= 'Z' && i < max - 1)
+        i++;
+    if (!i)
+        return NULL;
+    const char *p = uid + i;
+    if (*p == ';')
+        p = strchr(p, ':');
+    if (!p || *p != ':')
+        return NULL;
+    memcpy(name, uid, i);
+    name[i] = '\0';
+    /* One optional space after the colon, which the vCard-uid experiment
+     * used and which is not part of the value. */
+    return p[1] == ' ' ? p + 2 : p + 1;
+}
+
+/**
+ * The account named USER, or the one whose identifier is EID.
+ *
+ * The two name the same thing: an entity holds an entry under its identifier
+ * and, usually, a shorter one beside it. An account laid out before this tool
+ * has only the short name and carries the identifier in the path of its home,
+ * so that counts as naming it too.
+ */
+bool pgpid_account_name(const char *who, char *out, size_t max)
+{
+    if (!who || !*who)
+        return false;
+    if (getpwnam(who)) {
+        snprintf(out, max, "%s", who);
+        return true;
+    }
+    bool found = false;
+    setpwent();
+    const struct passwd *p;
+    while ((p = getpwent())) {
+        const char *base = strrchr(p->pw_dir, '/');
+        if (base && !strcmp(base + 1, who)) {
+            snprintf(out, max, "%s", p->pw_name);
+            found = true;
+            break;
+        }
+    }
+    endpwent();
+    return found;
+}
+
+/** The identifier an account carries: in its name, or in the path of its home. */
+bool pgpid_account_eid(const struct passwd *pw, char *out, size_t max)
+{
+    *out = '\0';
+    if (!pw)
+        return false;
+    if (pgpid_eid_body_is_sound(pw->pw_name)) {
+        snprintf(out, max, "%s", pw->pw_name);
+        return true;
+    }
+    const char *base = strrchr(pw->pw_dir, '/');
+    if (base && pgpid_eid_body_is_sound(base + 1)) {
+        snprintf(out, max, "%s", base + 1);
+        return true;
+    }
+    return false;
 }
 
 bool pgpid_preferred_address(const struct pgpid_key *key, char *out, size_t max)

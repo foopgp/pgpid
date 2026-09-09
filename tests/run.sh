@@ -614,6 +614,28 @@ is "system_users lists five columns" \
 is "and refuses an option it has not got" \
    "$("$BIN" system_users --nonesuch >/dev/null 2>&1 ; echo $?)" "2"
 
+# system_adduser and system_deluser open and close accounts, so what is
+# exercised here is everything they answer BEFORE touching the machine. The
+# order matters and is deliberate: a malformed request is a malformed request
+# whether or not the caller happens to be root, so those checks come first and
+# these run the same for anybody.
+is "--sweep without --migrate has no old account to sweep" \
+   "$("$BIN" system_adduser --sweep >/dev/null 2>&1 ; echo $?)" "2"
+is "an alias starting with a digit is not an account name" \
+   "$("$BIN" system_adduser --useralias 9nope >/dev/null 2>&1 ; echo $?)" "2"
+is "and an option it has not got is refused" \
+   "$("$BIN" system_adduser --nonesuch >/dev/null 2>&1 ; echo $?)" "2"
+is "system_deluser wants to know which account" \
+   "$("$BIN" system_deluser >/dev/null 2>&1 ; echo $?)" "2"
+is "and will not remove the home of an alias it is leaving in place" \
+   "$("$BIN" system_deluser --alias-only --remove-home someone >/dev/null 2>&1 ; echo $?)" "2"
+if [[ $EUID -ne 0 ]] ; then
+    is "opening an account says it needs administrator rights" \
+       "$("$BIN" system_adduser --fingerprint "$FPR" 2>&1 | grep --count 'administrator rights')" "1"
+    is "closing one says the same" \
+       "$("$BIN" system_deluser nobody 2>&1 | grep --count 'administrator rights')" "1"
+fi
+
 # An identifier is for life, so a card written years ago still says what it
 # said then: three spellings, one answer. This covers gen_uid's own reader.
 # token_check's card reader takes the same three, and nothing here reaches it

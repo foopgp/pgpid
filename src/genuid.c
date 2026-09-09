@@ -125,6 +125,21 @@ static int64_t fold(const unsigned char digest[16])
     return ((signed_acc % size) + size) % size + XUID_MIN;
 }
 
+/**
+ * The account number an identifier stands for.
+ *
+ * The action prints it; opening an account needs it in hand. Same digest,
+ * same fold, so a number handed out by either is the same number.
+ */
+bool pgpid_uid_number(const char *identifier, uid_t *out)
+{
+    unsigned char digest[16];
+    if (!digest_of(identifier, false, digest))
+        return false;
+    *out = (uid_t)fold(digest);
+    return true;
+}
+
 int pgpid_action_gen_uid(int argc, char **argv)
 {
     bool free_input = false;

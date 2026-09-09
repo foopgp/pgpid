@@ -8,6 +8,7 @@
 #ifndef PGPID_H
 #define PGPID_H
 
+#include <pwd.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -380,6 +381,14 @@ size_t pgpid_list_uids(const char *user, bool secret,
 /** The path of the running binary, for the parts that call other parts. */
 const char *pgpid_self(void);
 bool pgpid_uid_stands(char validity);
+/** Is this uid one of ours, `PROPERTY:value` or `PROPERTY;PARAM:value`? */
+const char *pgpid_uid_property(const char *uid, char *name, size_t max);
+/** The account named USER, or the one whose identifier is EID. */
+bool pgpid_account_name(const char *who, char *out, size_t max);
+/** The identifier an account carries: in its name, or in the path of its home. */
+bool pgpid_account_eid(const struct passwd *pw, char *out, size_t max);
+/** The account number an identifier stands for, the same on every machine. */
+bool pgpid_uid_number(const char *identifier, uid_t *out);
 /** The address an entity is written to: the primary uid when it carries one,
  *  else the most recent standing uid that does. One rule for the listing, the
  *  business card, the paper backup and anything else that has to pick. */
@@ -449,6 +458,8 @@ int pgpid_action_secret_list(int argc, char **argv);
 int pgpid_action_secret_del(int argc, char **argv);
 int pgpid_action_cert_revoke(int argc, char **argv);
 int pgpid_action_system_users(int argc, char **argv);
+int pgpid_action_system_adduser(int argc, char **argv);
+int pgpid_action_system_deluser(int argc, char **argv);
 int pgpid_action_system_admins(int argc, char **argv);
 int pgpid_action_system_confhome(int argc, char **argv);
 int pgpid_action_certify(int argc, char **argv);

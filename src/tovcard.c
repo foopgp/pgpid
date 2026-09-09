@@ -57,26 +57,6 @@ static void fold(const char *line)
     }
 }
 
-/** Is this uid one of ours, `PROPERTY:value` or `PROPERTY;PARAM:value`? */
-static const char *vcard_property(const char *uid, char *name, size_t max)
-{
-    size_t i = 0;
-    while (uid[i] >= 'A' && uid[i] <= 'Z' && i < max - 1)
-        i++;
-    if (!i)
-        return NULL;
-    const char *p = uid + i;
-    if (*p == ';')
-        p = strchr(p, ':');
-    if (!p || *p != ':')
-        return NULL;
-    memcpy(name, uid, i);
-    name[i] = '\0';
-    /* One optional space after the colon, which the vCard-uid experiment
-     * used and which is not part of the value. */
-    return p[1] == ' ' ? p + 2 : p + 1;
-}
-
 /** The address inside the angle brackets of a `Name <addr>` uid, or NULL. */
 static const char *bracketed_address(const char *uid, char *out, size_t max)
 {
@@ -440,7 +420,7 @@ int pgpid_action_cert_tovcard(int argc, char **argv)
             char l = (k < nvalid) ? validity[k] : '-';
             if (!strchr("ounmfqws-", l))
                 continue;
-            const char *v = vcard_property(u->text, nm, sizeof nm);
+            const char *v = pgpid_uid_property(u->text, nm, sizeof nm);
             if (v && !strcmp(nm, "FN")) {
                 fn[0] = '\0';   /* the certificate says it itself */
                 break;
@@ -458,7 +438,7 @@ int pgpid_action_cert_tovcard(int argc, char **argv)
                 char l = (k < nvalid) ? validity[k] : '-';
                 if (!strchr("ounmfqws-", l))
                     continue;
-                if (vcard_property(u->text, nm, sizeof nm) && !strcmp(nm, "FN"))
+                if (pgpid_uid_property(u->text, nm, sizeof nm) && !strcmp(nm, "FN"))
                     has_own_fn = true;
             }
             if (!has_own_fn) {
@@ -483,7 +463,7 @@ int pgpid_action_cert_tovcard(int argc, char **argv)
         char letter = (at < nvalid) ? validity[at] : '-';
         if (!strchr("ounmfqws-", letter))
             continue;
-        const char *v = vcard_property(u->text, name, sizeof name);
+        const char *v = pgpid_uid_property(u->text, name, sizeof name);
         if (v) {
             if (!strcmp(name, "EMAIL")) {
                 /* The 'EMAIL: <addr>' shape the vCard-uid experiment used.

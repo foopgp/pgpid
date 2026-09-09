@@ -121,21 +121,13 @@ int pgpid_action_system_confhome(int argc, char **argv)
     }
 
     const struct passwd *me = getpwuid(getuid());
-    const struct passwd *pw = who ? getpwnam(who) : me;
+    const struct passwd *pw = me;
 
     /* An identifier names an account too, whether it is the account's name or
      * only the last part of its home. */
-    if (!pw && who) {
-        setpwent();
-        const struct passwd *p;
-        while ((p = getpwent())) {
-            const char *base = strrchr(p->pw_dir, '/');
-            if (!strcmp(p->pw_name, who) || (base && !strcmp(base + 1, who))) {
-                pw = p;
-                break;
-            }
-        }
-        endpwent();
+    if (who) {
+        char name[64];
+        pw = pgpid_account_name(who, name, sizeof name) ? getpwnam(name) : NULL;
     }
     if (!pw) {
         pgpid_error(_("Error: No account for '%s' on this system."), who);
@@ -162,11 +154,7 @@ int pgpid_action_system_confhome(int argc, char **argv)
 
     const char *home = pw->pw_dir;
     char eid[64] = "";
-    const char *base = strrchr(home, '/');
-    if (!pgpid_eid_body_is_sound(pw->pw_name) || !snprintf(eid, sizeof eid, "%s", pw->pw_name))
-        if (base)
-            snprintf(eid, sizeof eid, "%s", base + 1);
-    if (!pgpid_eid_body_is_sound(eid)) {
+    if (!pgpid_account_eid(pw, eid, sizeof eid)) {
         pgpid_error(_("Error: '%s' is not a PGP ID account: no identifier in its name"),
                     pw->pw_name);
         pgpid_error(_("Notice: nor in its home. '%s system_adduser --migrate' makes it one."),
