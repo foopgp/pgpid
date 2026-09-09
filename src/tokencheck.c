@@ -118,25 +118,42 @@ static bool take_email(const char *line, char *out, size_t max)
  * different surroundings — and looking for it with the wrong reader is how
  * the field came back empty while sitting in plain sight.
  */
+/* Three spellings have existed for one identifier: the current glued form, a
+ * deprecated "u4=" separator, and an older "udid4=" still. A card written years
+ * ago carries what it carried then, and an identifier is for life -- so all
+ * three are read, and the glued form is what comes back. */
 static bool take_bare_eid(const char *line, char *out, size_t max)
 {
-    const char *found = NULL;
     for (const char *p = line; *p; p++) {
-        if (p[0] != 'u' || (p[1] != '4' && p[1] != '5'))
+        const char *q = p;
+        if (!strncmp(q, "udid", 4))
+            q += 4;
+        else if (*q == 'u')
+            q += 1;
+        else
             continue;
-        if (!pgpid_eid_body_is_sound(p))
+        if (*q != '4' && *q != '5')
             continue;
-        found = p;
-        break;
+        char digit = *q++;
+        if (*q == '=')
+            q++;
+
+        size_t body = (digit == '4') ? 22 + 14 : 16 + 14;
+        char glued[64];
+        if (2 + body + 1 > sizeof glued || 2 + body >= max)
+            continue;
+        if (strlen(q) < body)
+            continue;
+        glued[0] = 'u';
+        glued[1] = digit;
+        memcpy(glued + 2, q, body);
+        glued[2 + body] = '\0';
+        if (!pgpid_eid_body_is_sound(glued))
+            continue;
+        memcpy(out, glued, 2 + body + 1);
+        return true;
     }
-    if (!found)
-        return false;
-    size_t n = (found[1] == '4') ? 2 + 22 + 14 : 2 + 16 + 14;
-    if (n >= max)
-        return false;
-    memcpy(out, found, n);
-    out[n] = '\0';
-    return true;
+    return false;
 }
 
 /**

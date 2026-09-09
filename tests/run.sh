@@ -599,6 +599,17 @@ out=$("$BIN" --batch token_meta --replace 2>&1)
 is "token_meta --replace asks, and --batch refuses" \
    "$(grep --count -- '--batch was given' <<<"$out")" "1"
 
+# An identifier is for life, so a card written years ago still says what it
+# said then: three spellings, one answer. This covers gen_uid's own reader.
+# token_check's card reader takes the same three, and nothing here reaches it
+# -- that path needs a card, and the suite has none.
+for spelling in "u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76" \
+                "u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76" \
+                "udid4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76" ; do
+    is "gen_uid takes the eid written '${spelling%%[=s]*}…'" \
+       "$("$BIN" gen_uid "$spelling" >/dev/null 2>&1 ; echo $?)" "0"
+done
+
 # The note pgpid keeps beside GnuPG's stub: written under the home it is given,
 # read back by token_list, and forgotten by token_del.
 mkdir -p "$GNUPGHOME/pgpid/tokens"
