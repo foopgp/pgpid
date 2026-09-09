@@ -122,18 +122,11 @@ static size_t choose_three(const struct pgpid_uid *uids, size_t n,
             identity = uids[i].text;
         if (!fn && !strncmp(uids[i].text, "FN:", 3))
             fn = uids[i].text;
-        if (!pgpid_uid_has_address(uids[i].text))
-            continue;
-        /* gpg lists the primary first, so the first address seen is it when
-         * the primary is one. Anything later only wins on being newer. */
-        if (!address) {
-            address = uids[i].text;
-            newest = (i == 0) ? (long)0x7fffffff : uids[i].created;
-        } else if (uids[i].created > newest) {
-            address = uids[i].text;
-            newest = uids[i].created;
-        }
     }
+    /* The same rule as everywhere else, now that there is only one. */
+    const struct pgpid_uid *picked = pgpid_preferred_uid(uids, n);
+    address = picked ? picked->text : NULL;
+    (void)newest;
     if (identity)
         keep[nkeep++] = identity;
     if (fn)

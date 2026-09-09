@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <limits.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -535,6 +536,63 @@ void pgpid_colon_unescape(const char *in, char *out, size_t max)
  * that the address is dead; leaving it out hid a third of the addresses on a
  * real certificate.
  */
+/* The address an entity is written to — one rule, in one place.
+ *
+ * The primary uid when it carries an address, which is where this project puts
+ * it; failing that the most recent standing uid that does. gpg lists the
+ * primary first, so the first address seen is the primary's when the primary
+ * is one.
+ *
+ * It was written three times before, and the copies disagreed: the business
+ * card took the most recent and ignored the primary, the paper backup
+ * preferred the primary, the listing had its own. Three answers to the same
+ * question about the same certificate.
+ */
+const struct pgpid_uid *pgpid_preferred_uid(const struct pgpid_uid *uids, size_t n)
+{
+    const struct pgpid_uid *pick = NULL;
+    long newest = -1;
+
+    for (size_t i = 0; i < n; i++) {
+        if (!pgpid_uid_stands(uids[i].validity))
+            continue;
+        if (!pgpid_uid_has_address(uids[i].text))
+            continue;
+        if (!pick) {
+            pick = &uids[i];
+            /* The primary outranks any date; anything later wins only on
+             * being newer than the last one taken. */
+            newest = (i == 0) ? LONG_MAX : uids[i].created;
+        } else if (uids[i].created > newest) {
+            pick = &uids[i];
+            newest = uids[i].created;
+        }
+    }
+    return pick;
+}
+
+bool pgpid_preferred_address(const struct pgpid_key *key, char *out, size_t max)
+{
+    struct pgpid_uid light[64];
+    size_t n = 0;
+    *out = '\0';
+    for (size_t i = 0; i < key->nuid && n < 64; i++) {
+        snprintf(light[n].text, sizeof light[0].text, "%s", key->uid[i].text);
+        light[n].validity = key->uid[i].validity;
+        light[n].created = key->uid[i].created;
+        n++;
+    }
+    const struct pgpid_uid *pick = pgpid_preferred_uid(light, n);
+    if (!pick)
+        return false;
+    size_t len = 0;
+    const char *at = pgpid_uid_address(pick->text, &len);
+    if (!at || !len || len >= max)
+        return false;
+    snprintf(out, max, "%.*s", (int)len, at);
+    return true;
+}
+
 bool pgpid_uid_stands(char validity)
 {
     return strchr("ounmfqws-", validity) != NULL;

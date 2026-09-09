@@ -171,6 +171,10 @@ const struct pgpid_key *pgpid_keys_at(const struct pgpid_keyring *kr, size_t i);
 /** True when some part of the secret is really on this machine, rather than
  *  a stub pointing at a security key. */
 bool pgpid_secret_is_local(const struct pgpid_key *k);
+
+/** The same rule, taken straight off a keyring entry: writes the bare address.
+ *  False when the certificate carries no address that stands. */
+bool pgpid_preferred_address(const struct pgpid_key *key, char *out, size_t max);
 void pgpid_keys_free(struct pgpid_keyring *kr);
 
 /* The certificate's bytes, caller frees. NULL when gpg exported nothing. */
@@ -374,6 +378,10 @@ size_t pgpid_list_uids(const char *user, bool secret,
 
 /* Does this uid still stand — not revoked, not expired, not disabled? */
 bool pgpid_uid_stands(char validity);
+/** The address an entity is written to: the primary uid when it carries one,
+ *  else the most recent standing uid that does. One rule for the listing, the
+ *  business card, the paper backup and anything else that has to pick. */
+const struct pgpid_uid *pgpid_preferred_uid(const struct pgpid_uid *uids, size_t n);
 
 /* Does this uid end in an address, the shape every mail client reads? */
 bool pgpid_uid_has_address(const char *uid);

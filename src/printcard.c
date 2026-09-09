@@ -238,25 +238,19 @@ int pgpid_action_cert_tobizcard(int argc, char **argv)
     struct pgpid_uid uids[MAX_UIDS];
     size_t nuids = pgpid_list_uids(fpr, false, uids, MAX_UIDS);
 
-    /* The most recent address the certificate still stands by. */
+    /* The address the rest of the tool would write to. This used to take the
+     * most recent and ignore the primary, so a card could carry one address
+     * while the listing showed another. */
     if (!*email) {
-        long newest = -1;
-        for (size_t i = 0; i < nuids; i++) {
-            char addr[320];
-            if (!pgpid_uid_stands(uids[i].validity))
-                continue;
-            if (!address_of(uids[i].text, addr, sizeof addr))
-                continue;
-            if (uids[i].created >= newest) {
-                newest = uids[i].created;
-                snprintf(email, sizeof email, "%s", addr);
-            }
-        }
+        const struct pgpid_uid *pick = pgpid_preferred_uid(uids, nuids);
+        if (pick)
+            address_of(pick->text, email, sizeof email);
         if (!*email) {
             pgpid_error(_("Error: No usable (non-revoked) email in certificate %s."), fpr);
             return PGPID_FAIL;
         }
-        pgpid_error(_("Notice: Picking most recent email %s."), email);
+        pgpid_error(_("Notice: Picking %s, the address this certificate is written to."),
+                    email);
     }
 
     /* The name: what was asked for, else the certificate's own FN:, else the
