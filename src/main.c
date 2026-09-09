@@ -92,6 +92,9 @@ static const struct {
     { "gen_uid",           NULL,
       N_("Print the Unix account number an identifier gives"), pgpid_action_gen_uid },
 
+    { "system_users",      N_("This computer"),
+      N_("List the accounts, and which are PGP ID entities"), pgpid_action_system_users },
+
     { "certify",           N_("Other people"),
       N_("Vouch for somebody else"),                         pgpid_action_certify },
     { "trustdb",           NULL,

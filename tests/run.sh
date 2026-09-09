@@ -599,6 +599,14 @@ out=$("$BIN" --batch token_meta --replace 2>&1)
 is "token_meta --replace asks, and --batch refuses" \
    "$(grep --count -- '--batch was given' <<<"$out")" "1"
 
+# system_users reads the machine it runs on, so what it says depends on the
+# machine -- what can be checked anywhere is the shape of the answer and that
+# it refuses what it does not know.
+is "system_users lists five columns" \
+   "$("$BIN" system_users 2>/dev/null | head -1 | awk '{print NF}')" "5"
+is "and refuses an option it has not got" \
+   "$("$BIN" system_users --nonesuch >/dev/null 2>&1 ; echo $?)" "2"
+
 # An identifier is for life, so a card written years ago still says what it
 # said then: three spellings, one answer. This covers gen_uid's own reader.
 # token_check's card reader takes the same three, and nothing here reaches it

@@ -446,6 +446,7 @@ bool pgpid_token_last_signing_key(char *out, size_t max);
 int pgpid_action_secret_list(int argc, char **argv);
 int pgpid_action_secret_del(int argc, char **argv);
 int pgpid_action_cert_revoke(int argc, char **argv);
+int pgpid_action_system_users(int argc, char **argv);
 int pgpid_action_certify(int argc, char **argv);
 int pgpid_action_cert_email(int argc, char **argv);
 int pgpid_action_trustdb(int argc, char **argv);
