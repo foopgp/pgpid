@@ -154,12 +154,17 @@ int pgpid_action_system_confhome(int argc, char **argv)
          * being tried out, and the shell says nothing but "Permission denied".
          * So each candidate is asked, in order: what is running, then the two
          * names this program is installed under -- foodjis ships it as
-         * pgpid-mip, so naming only 'pgpid' would miss it on every Djibian. */
+         * pgpid-mip, so naming only 'pgpid' would miss it on every Djibian.
+         *
+         * Asked for the action, not for the file: a machine may well carry an
+         * older copy under one of those names, and 'command -v' would hand the
+         * work to a program that does not know how to do it. */
         const char *candidates[] = { pgpid_self(), PGPID_NAME, "pgpid-mip" };
         const char *use = NULL;
         for (size_t i = 0; i < sizeof candidates / sizeof *candidates && !use; i++) {
             char probe[1024];
-            snprintf(probe, sizeof probe, "su - '%s' -c 'command -v \"%s\" >/dev/null' >/dev/null 2>&1",
+            snprintf(probe, sizeof probe,
+                     "su - '%s' -c '\"%s\" system_confhome --help >/dev/null' >/dev/null 2>&1",
                      pw->pw_name, candidates[i]);
             if (system(probe) == 0)
                 use = candidates[i];
@@ -167,7 +172,7 @@ int pgpid_action_system_confhome(int argc, char **argv)
         if (!use) {
             pgpid_error(_("Error: '%s' can reach no copy of this program, so its home cannot be laid out."),
                         pw->pw_name);
-            pgpid_error(_("Notice: %s is not readable by them, and neither name is installed."),
+            pgpid_error(_("Notice: %s is out of their reach, and no installed copy knows this action."),
                         pgpid_self());
             return PGPID_FAIL;
         }
