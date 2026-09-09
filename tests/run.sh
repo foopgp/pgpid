@@ -599,6 +599,13 @@ out=$("$BIN" --batch token_meta --replace 2>&1)
 is "token_meta --replace asks, and --batch refuses" \
    "$(grep --count -- '--batch was given' <<<"$out")" "1"
 
+# system_admins changes the machine, so only its refusals are exercised: the
+# ones that answer before anything is touched.
+is "nobody removes themselves" \
+   "$("$BIN" system_admins --remove "$(id --user --name)" 2>&1 | grep --count 'is you')" "1"
+is "and an account that does not exist is named as such" \
+   "$("$BIN" system_admins --add no-such-account-here 2>&1 | grep --count 'No account named')" "1"
+
 # system_users reads the machine it runs on, so what it says depends on the
 # machine -- what can be checked anywhere is the shape of the answer and that
 # it refuses what it does not know.

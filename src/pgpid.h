@@ -447,6 +447,7 @@ int pgpid_action_secret_list(int argc, char **argv);
 int pgpid_action_secret_del(int argc, char **argv);
 int pgpid_action_cert_revoke(int argc, char **argv);
 int pgpid_action_system_users(int argc, char **argv);
+int pgpid_action_system_admins(int argc, char **argv);
 int pgpid_action_certify(int argc, char **argv);
 int pgpid_action_cert_email(int argc, char **argv);
 int pgpid_action_trustdb(int argc, char **argv);
