@@ -16,29 +16,59 @@
  */
 #include "pgpid.h"
 
+#include <dirent.h>
 #include <grp.h>
 #include <pwd.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <utmpx.h>
 
 #define MAX_NAMES 8
 
+/** Is anything still running under this number? */
+static bool anything_running(uid_t uid)
+{
+    DIR *d = opendir("/proc");
+    if (!d)
+        return false;
+    bool found = false;
+    const struct dirent *e;
+    while (!found && (e = readdir(d))) {
+        if (e->d_name[0] < '0' || e->d_name[0] > '9')
+            continue;
+        char path[300];
+        snprintf(path, sizeof path, "/proc/%s", e->d_name);
+        struct stat st;
+        if (!stat(path, &st) && st.st_uid == uid)
+            found = true;
+    }
+    closedir(d);
+    return found;
+}
+
 /**
- * End whatever is left running as this account.
+ * End whatever is left running as this account, and wait for it to be gone.
  *
  * userdel refuses while a process belongs to the account, and one is often
  * left: a login shell leaves systemd a user manager behind, which outlives
  * the session that started it and shows in no utmp record. Somebody actually
  * sitting there was refused several steps ago; this ends the remains.
+ *
+ * terminate-user asks and returns at once, so asking is not enough -- the
+ * first version of this asked and then watched userdel refuse anyway. Two
+ * seconds is far longer than a user manager takes to go, and an account with
+ * nothing running waits not at all.
  */
-static void end_sessions(const char *name)
+static void end_sessions(const char *name, uid_t uid)
 {
     const char *argv[] = { "loginctl", "terminate-user", name, NULL };
     pgpid_run_program(argv, NULL, "/dev/null:stderr");
+    for (unsigned i = 0; i < 20 && anything_running(uid); i++)
+        usleep(100000);
 }
 
 /** An account tool, by argument list. No argument may be NULL but the last. */
@@ -212,7 +242,7 @@ int pgpid_action_system_deluser(int argc, char **argv)
             if ((pass == 0) == (i == primary))
                 continue;
             bool last = (i == primary) && remove_home && !alias_only;
-            end_sessions(list[i]);
+            end_sessions(list[i], uid);
             if (last ? tool("userdel", "--remove", list[i], NULL)
                      : tool("userdel", list[i], NULL)) {
                 pgpid_error(_("Error: '%s' could not be removed."), list[i]);
