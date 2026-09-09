@@ -53,6 +53,9 @@ static const struct {
  * is spelled out wherever it behaves differently. */
 #define KSPREFRD "ksprefrd"
 #define EXPIRE   "expire"
+/* Far enough off to be a real horizon, near enough to still be a date one
+ * could live to see. Beyond it, an expiry is 'never' spelled differently. */
+#define EXPIRE_MAX_YEARS 30
 
 /* RFC 6350 §3.4 in reverse: the escapes a value may carry. Caller frees. */
 static char *unescape(const char *v)
@@ -296,7 +299,9 @@ static int do_ksprefrd(const char *fpr, const char *add, bool revoking,
  * identity whose signing key died last year, which is not a certificate that
  * runs to the new date, it is one that looks like it does.
  *
- * No expiry is a value, not an absence: 'never' is printed, and 0 sets it.
+ * There is no way to ask for no expiry, and that is deliberate: nothing lasts,
+ * and a certificate saying otherwise is saying something false. A certificate
+ * that already carries none is reported rather than silently blessed.
  */
 static int do_expire(const char *fpr, const char *add, bool revoking,
                      const char *keyservers)
@@ -308,12 +313,32 @@ static int do_expire(const char *fpr, const char *add, bool revoking,
     }
 
     if (add) {
-        /* gpg spells 'no expiry' 0, and takes an ISO date or a duration
-         * (2y, 18m, 90d) for the rest. 'never' is the word this program
-         * prints, so it is a word this program takes. */
-        const char *when = (!strcmp(add, "never") || !strcmp(add, "-")) ? "0" : add;
-        const char *primary[] = { "--batch", "--quick-set-expire", fpr, when, NULL };
-        const char *subs[] = { "--batch", "--quick-set-expire", fpr, when, "*", NULL };
+        /* gpg spells 'no expiry' 0, and would take 'never' or 'none' as well.
+         * Refused here, in the words somebody would have typed: a certificate
+         * that never runs out is a promise nobody can keep. */
+        if (!strcmp(add, "0") || !strcmp(add, "never") || !strcmp(add, "none")
+            || !strcmp(add, "-") || !strcmp(add, "seconds=0")) {
+            pgpid_error(_("Error: A certificate has to run out; nothing lasts."));
+            pgpid_error(_("Notice: Give a date, or a duration: 2y, 18m, 90d."));
+            return PGPID_USAGE;
+        }
+        /* And not so far off that it amounts to the same thing. A date is
+         * measured from now, a duration is already one. */
+        if (add[0] >= '0' && add[0] <= '9' && strchr(add, '-')) {
+            struct tm want = { 0 };
+            if (!strptime(add, "%Y-%m-%d", &want)) {
+                pgpid_error(_("Error: '%s' is not a date (YYYY-MM-DD) nor a duration."), add);
+                return PGPID_USAGE;
+            }
+            double years = difftime(timegm(&want), time(NULL)) / (365.2425 * 86400);
+            if (years > EXPIRE_MAX_YEARS) {
+                pgpid_error(_("Error: %s is more than %d years off, which is no expiry at all."),
+                            add, EXPIRE_MAX_YEARS);
+                return PGPID_USAGE;
+            }
+        }
+        const char *primary[] = { "--batch", "--quick-set-expire", fpr, add, NULL };
+        const char *subs[] = { "--batch", "--quick-set-expire", fpr, add, "*", NULL };
         if (pgpid_run_engine(primary) || pgpid_run_engine(subs)) {
             pgpid_error(_("Error: Cannot set the expiry — right PIN, and is '%s' a date?"), add);
             return PGPID_FAIL;
@@ -331,13 +356,23 @@ static int do_expire(const char *fpr, const char *add, bool revoking,
     long when = pgpid_keys_at(kr, 0)->expires;
     pgpid_keys_free(kr);
 
-    char text[32] = "never";
-    if (when > 0) {
-        struct tm tm;
-        time_t t = (time_t)when;
-        gmtime_r(&t, &tm);
-        strftime(text, sizeof text, "%Y-%m-%d", &tm);
+    /* A certificate with no expiry is not a certificate with the value
+     * 'never': it is one that never says when it stops being true. Said as
+     * what it is, and the column stays empty rather than carrying a word that
+     * would read as a setting somebody chose. */
+    if (when <= 0) {
+        pgpid_error(_("Warning: %s carries no expiry, which is a promise nobody can keep."), fpr);
+        pgpid_error(_("Notice: '--replace-to 3y' gives it one."));
+        pgpid_table_start((const char *const[]){ EXPIRE }, 1);
+        pgpid_table_end();
+        return PGPID_OK;
     }
+
+    char text[32];
+    struct tm tm;
+    time_t t = (time_t)when;
+    gmtime_r(&t, &tm);
+    strftime(text, sizeof text, "%Y-%m-%d", &tm);
     const char *const columns[] = { EXPIRE };
     const char *values[] = { text };
     pgpid_table_start(columns, 1);
@@ -361,8 +396,9 @@ static void usage(FILE *out)
         " cert_email'.\n"
         "'ksprefrd' (preferred certificate server, used when generating vCard) and\n"
         "'expire' are not uids either: they live in the self-signature, and can be\n"
-        "replaced, never revoked. 'expire' takes a date, a duration (2y, 18m, 90d)\n"
-        "or 'never', and moves the primary key and every standing subkey together.\n"
+        "replaced, never revoked. 'expire' takes a date or a duration (2y, 18m, 90d),\n"
+        "at most 30 years off, and moves the primary key and every standing subkey\n"
+        "together. There is no way to ask for no expiry: nothing lasts.\n"
         "'name' is the one PGP ID requires: asking for a missing one answers 141,\n"
         "where every other property answers 0.\n"
         "Missing NAME|EMAIL|KEYID|U4|U5 => the certificate whose secret key is at hand.\n"

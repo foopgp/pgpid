@@ -166,9 +166,17 @@ SUBEXP=$(gpg --with-colons --list-keys "$NONAME" | awk --field-separator=: '$1==
 is "and moves the primary" "$("$BIN" cert_property expire "$NONAME")" \
    "$(date --utc --date=@"$(gpg --with-colons --list-keys "$NONAME" | awk --field-separator=: '$1=="pub"{print $7; exit}')" +%Y-%m-%d)"
 is "and the subkey with it"  "$(date --utc --date=@"$SUBEXP" +%Y-%m-%d)" "$("$BIN" cert_property expire "$NONAME")"
-"$BIN" cert_property expire --replace-to never --keyservers '' "$NONAME" >/dev/null 2>&1
-is "'never' takes the date off" "$("$BIN" cert_property expire "$NONAME")" "never"
-is "and cannot be revoked" \
+# Nothing lasts, so there is no way to ask for a certificate that does. Each
+# of gpg's spellings for it is refused in the words somebody would have typed.
+for forever in never 0 none ; do
+    is "'$forever' is refused as an expiry" \
+       "$("$BIN" cert_property expire --replace-to "$forever" --keyservers '' "$NONAME" >/dev/null 2>&1 ; echo $?)" "2"
+done
+is "and so is a date far enough off to mean the same" \
+   "$("$BIN" cert_property expire --replace-to 2099-01-01 --keyservers '' "$NONAME" >/dev/null 2>&1 ; echo $?)" "2"
+is "the date is still the one that was set" "$("$BIN" cert_property expire "$NONAME")" \
+   "$(date --utc --date=@"$(gpg --with-colons --list-keys "$NONAME" | awk --field-separator=: '$1=="pub"{print $7; exit}')" +%Y-%m-%d)"
+is "and expire cannot be revoked" \
    "$("$BIN" cert_property expire --revoke x "$NONAME" >/dev/null 2>&1 ; echo $?)" "2"
 
 printf '\nsigs\n'
