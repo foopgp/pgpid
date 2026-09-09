@@ -272,9 +272,20 @@ static int do_ksprefrd(const char *fpr, const char *add, bool revoking,
                         PGPID_NAME);
             return PGPID_FAIL;
         }
+        /* The 'y' answers "Really update the preferred keyserver?", which gpg
+         * only asks when the uid already carries one. Sent unconditionally it
+         * lands in the menu as a command the first time and gpg answers
+         * "Invalid command" -- harmless, and exactly the sort of line that
+         * sends somebody hunting for a fault that is not there. */
+        size_t had_len = 0;
+        unsigned char *had_raw = pgpid_export_key(fpr, true, &had_len);
+        char *had = had_raw ? pgpid_preferred_keyserver(had_raw, had_len, fpr) : NULL;
+        bool replacing = had && *had;
+        free(had_raw);
+
         char script[1200];
-        snprintf(script, sizeof script, "uid %u\nkeyserver\n%.1023s\ny\nprimary\nsave\n",
-                 index, add);
+        snprintf(script, sizeof script, "uid %u\nkeyserver\n%.1023s\n%sprimary\nsave\n",
+                 index, add, replacing ? "y\n" : "");
         const char *argv[] = { "--batch", "--command-fd", "0", "--edit-key", fpr, NULL };
         if (pgpid_run_engine_input(argv, script)) {
             pgpid_error(_("Error: Cannot set the preferred keyserver — right PIN?"));
