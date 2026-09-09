@@ -131,14 +131,45 @@ is "reads a singular property"    "$("$BIN" cert_property name "$FPR")" "Ada Lov
 is "reads every value of a repeatable one" "$("$BIN" cert_property url "$FPR" | wc --lines)" "2"
 is "unescapes what vCard escaped" "$("$BIN" cert_property note "$FPR")" "one, two"
 is "info format names the property" "$("$BIN" --output-format=info cert_property name "$FPR")" "name=Ada Lovelace"
-# An empty property is an answer, not a failure. 141 is reserved for a search
-# that matched no certificate — foodjis surfaces any non-zero code as an error,
-# and a contact with no phone number is not an error.
-out=$("$BIN" cert_property phone "$FPR" 2>/dev/null) ; rv=$?
-is "says 0 for a property it does not carry" "$rv" "0"
-is "and prints nothing"                      "$out" ""
+# A certificate with no FN: uid at all, for the one absence a caller must be
+# able to act on. Generated here rather than reusing the one above, which has
+# a name and would have to lose it — and revoking a uid is irreversible.
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-generate-key "Nameless <nameless@example.org>" ed25519 cert 2d 2>/dev/null
+NONAME=$(gpg --with-colons --list-keys nameless@example.org 2>/dev/null \
+         | awk --field-separator=: '$1=="fpr"{print $10; exit}')
+# With a subkey, because that is what the expiry has to move along with it.
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-add-key "$NONAME" ed25519 sign 2d 2>/dev/null
+
+# An empty optional property is an answer, not a failure: foodjis surfaces any
+# non-zero code as an error, and a contact with no phone number is not one. It
+# is said all the same — silence and success together read as "done".
+out=$("$BIN" cert_property phone "$FPR" 2>&1 >/dev/null) ; rv=$?
+is "says 0 for an optional property it does not carry" \
+   "$("$BIN" cert_property phone "$FPR" >/dev/null 2>&1 ; echo $?)" "0"
+is "and says so rather than staying silent" "$(grep --count 'carries no phone' <<<"$out")" "1"
+is "prints nothing on stdout"               "$("$BIN" cert_property phone "$FPR" 2>/dev/null)" ""
+# The one property PGP ID requires. A caller has to be able to act on its
+# absence, which it cannot do if the answer is the same as for a phone number.
+is "but 141 for the name, which PGP ID requires" \
+   "$("$BIN" cert_property name "$NONAME" >/dev/null 2>&1 ; echo $?)" "141"
 "$BIN" cert_property nonsense "$FPR" >/dev/null 2>&1
 is "refuses a property it does not know" "$?" "2"
+
+# expire lives in the self-signature, not in a uid, and moves the primary key
+# and every standing subkey together: prolonging the primary alone leaves an
+# identity whose signing key died last year.
+is "expire reads a date"  "$("$BIN" cert_property expire "$NONAME" | grep --count --extended-regexp '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')" "1"
+"$BIN" cert_property expire --replace-to 3y --keyservers '' "$NONAME" >/dev/null 2>&1
+SUBEXP=$(gpg --with-colons --list-keys "$NONAME" | awk --field-separator=: '$1=="sub"{print $7; exit}')
+is "and moves the primary" "$("$BIN" cert_property expire "$NONAME")" \
+   "$(date --utc --date=@"$(gpg --with-colons --list-keys "$NONAME" | awk --field-separator=: '$1=="pub"{print $7; exit}')" +%Y-%m-%d)"
+is "and the subkey with it"  "$(date --utc --date=@"$SUBEXP" +%Y-%m-%d)" "$("$BIN" cert_property expire "$NONAME")"
+"$BIN" cert_property expire --replace-to never --keyservers '' "$NONAME" >/dev/null 2>&1
+is "'never' takes the date off" "$("$BIN" cert_property expire "$NONAME")" "never"
+is "and cannot be revoked" \
+   "$("$BIN" cert_property expire --revoke x "$NONAME" >/dev/null 2>&1 ; echo $?)" "2"
 
 printf '\nsigs\n'
 # A second certificate, which certifies the first: the smallest web of trust
