@@ -10,31 +10,20 @@
  * the GECOS fields. Nothing here is invented, which is what lets the same
  * account be opened again on another machine from the certificate alone.
  *
- * An entity may hold two entries: one named by its identifier -- that one is
- * the account -- and one shorter alias beside it, same numbers, same home,
- * differing only in the first field. The alias is a convenience for typing,
- * never an identity.
+ * The account is named by the local part of the entity's address -- what
+ * people already call each other by -- and the identifier lives in the path of
+ * the home, which is where every reader takes it from. Naming the account by
+ * the identifier was tried and dropped: it is not a name anybody says out
+ * loud, and it dragged in a second entry as an alias, a length limit and two
+ * kinds of collision. One entry, one name, one number.
  *
  * The home is left as the system made it. Laying it out for PGP ID use is
  * 'system_confhome', and the two stay separate on purpose: whoever opens an
  * account is not always whoever furnishes it.
  *
- * What shadow allows shapes all of this, and it was measured rather than
- * assumed (Debian 13, shadow 4.17.4). One limit, and it is a length:
- *
- *   - capitals, digits, dots, dashes and underscores are all fine, so an
- *     identifier is an account name as it stands. useradd takes one of any
- *     length -- 39 characters went in with nothing asked for.
- *   - groupadd, and groupmod --new-name, refuse a name over 32 characters:
- *     GROUP_NAME_MAX_LENGTH, which is the size of utmpx's ut_user. useradd
- *     would take a longer one, but 32 is written into more places than anyone
- *     could find, so an identifier is cut to it here rather than carried past
- *     it and refused somewhere nobody looked. A u5 is exactly 32; a u4 is 38
- *     and loses the tail of its coordinates, never a character of its hash.
- *     The home keeps the identifier whole, and that is where it is read back.
- *   - Debian's adduser has a policy of its own, NAME_REGEX in adduser.conf,
- *     stricter than shadow's and configurable. useradd is called directly,
- *     which is also where the shell libraries ended up.
+ * Debian's adduser has a policy of its own -- NAME_REGEX in adduser.conf,
+ * stricter than shadow's and configurable -- and refuses a name over 32 bytes.
+ * useradd is called directly, which is also where the shell libraries ended up.
  *
  * Every one of these tools is driven through its argument list and never
  * through a shell line: the name, the address and the GECOS fields all come
@@ -67,7 +56,7 @@ static const char *const KNOWN_PLACES[] = {
 
 struct entity {
     char eid[64];
-    char account[PGPID_ACCOUNT_NAME_MAX + 1];   /* the eid, cut to what shadow holds */
+    char user[64];     /* the login name: the local part of the address */
     char fpr[41];
     char name[256];
     char email[256];
@@ -114,8 +103,7 @@ static void usage(FILE *out)
         "What is missing is asked for.\n"
         "\n"
         "On a Unix system, PGP ID settles:\n"
-        "  - the name of the account (its identifier, cut to 32 characters when\n"
-        "    it is longer, which is where every account database stops)\n"
+        "  - the name of the account (the local part of the entity's address)\n"
         "  - the GECOS fields (email, phone, address)\n"
         "  - the user and group numbers (UID and GID)\n"
         "  - the path of the home directory (/home/<eid>)\n"
@@ -126,17 +114,17 @@ static void usage(FILE *out)
         "  -p, --password PASSWORD  User password (for this computer)\n"
         "  -P, --passfrom FILE      Read the user password from the first line of FILE\n"
         "                           (eg: fifo, tmpfs, /dev/stdin, …)\n"
-        "  -u, --useralias USER     Give the account this name too, beside its identifier.\n"
-        "                           One alias, no more (optional)\n"
+        "  -u, --user USER          Name the account USER instead of the local part\n"
+        "                           of its address\n"
         "  -f, --fingerprint FPR    Take the certificate from the local keyring\n"
         "                           (Default: the one of SUDO_USER, else root)\n"
         "  -c, --if-certified       Refuse an entity that is not certified\n"
         "                           (Default: by the local SUDO_USER, else root)\n"
-        "  -F, --from USER|EID      Another reference user for --fingerprint and --if-certified\n"
-        "  -m, --migrate USER|EID   Move a local account to the PGP ID standard.\n"
-        "                           The name given is kept as the alias, unless --useralias\n"
-        "                           says otherwise. The user must not be logged in\n"
-        "                           (so cannot be SUDO_USER)\n"
+        "  -F, --from USER          Another reference user for --fingerprint and --if-certified\n"
+        "  -m, --migrate USER       Move a local account to the PGP ID standard: its home\n"
+        "                           becomes /home/<eid> and its numbers come from the\n"
+        "                           identifier. The user must not be logged in (so cannot\n"
+        "                           be SUDO_USER)\n"
         "  -s, --sweep              With --migrate, look through every mounted filesystem\n"
         "                           for files the old account owned, not only its home and\n"
         "                           the usual places\n"
@@ -146,9 +134,9 @@ static void usage(FILE *out)
         "An account that is already there is answered with 11 rather than a plain\n"
         "failure: a caller wanting to say so needs to tell it apart from the rest.\n"
         "\n"
-        "Two identifiers agreeing on their first 32 characters cannot both have an\n"
-        "account on one machine, and the second is refused rather than shortened\n"
-        "differently: the name is what the rest of the system holds them by.\n"),
+        "Two people whose addresses share a local part cannot both have an account\n"
+        "of that name: the second is refused, and --user gives it another. The\n"
+        "identifier still settles the numbers, which do not collide.\n"),
             PGPID_NAME, PGPID_NAME);
 }
 
@@ -259,10 +247,31 @@ static bool read_entity(const char *pattern, struct entity *e)
             plain_name(pick->text, e->name, sizeof e->name);
     }
     pgpid_keys_free(kr);
-    if (!*e->eid)
-        return false;
-    pgpid_account_of_eid(e->eid, e->account, sizeof e->account);
-    return true;
+    return *e->eid != '\0';
+}
+
+/**
+ * The login name an address gives.
+ *
+ * Its local part, which is what people already call each other by. A '+' tag
+ * is a routing hint and not part of anybody's name, so it is dropped, and so
+ * is anything shadow would refuse -- including a leading digit, dash or dot,
+ * which it will not take at all.
+ */
+static void user_from_address(const char *addr, char *out, size_t max)
+{
+    size_t n = 0;
+    for (const char *p = addr; *p && *p != '@' && *p != '+' && n + 1 < max; p++)
+        if ((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z')
+            || (*p >= '0' && *p <= '9') || *p == '_' || *p == '-' || *p == '.')
+            out[n++] = *p;
+    out[n] = '\0';
+    size_t skip = 0;
+    while (out[skip] && (out[skip] == '-' || out[skip] == '.'
+                         || (out[skip] >= '0' && out[skip] <= '9')))
+        skip++;
+    if (skip)
+        memmove(out, out + skip, n - skip + 1);
 }
 
 /** Does this certificate stand for the reference keyring? */
@@ -357,34 +366,6 @@ static void gecos_line(const struct entity *e, char *out, size_t max)
     snprintf(out, max, "%s,%s,,%s,%s", e->name, e->address, e->phone, e->email);
 }
 
-/** Give the account a second name: same numbers, same home, first field apart. */
-static int add_alias(const struct entity *e, const char *alias, const char *shell)
-{
-    if (getpwnam(alias)) {
-        pgpid_error(_("Warning: '%s' is already an account here; no alias made."), alias);
-        return PGPID_OK;
-    }
-    char gecos[1024], number[24], home[320];
-    gecos_line(e, gecos, sizeof gecos);
-    snprintf(number, sizeof number, "%lu", (unsigned long)e->uid);
-    snprintf(home, sizeof home, "/home/%s", e->eid);
-    /* An alias is a name a person types, so it is short: groupadd takes it as
-     * it stands. A group of that name already carrying the account's number is
-     * the same group, not a clash -- an account closed while something still
-     * held it leaves exactly one of those. */
-    const struct group *g = getgrnam(alias);
-    bool group_here = g && g->gr_gid == e->uid;
-    if ((!group_here && tool(NULL, "groupadd", "--non-unique", "--gid", number, alias, NULL))
-     || tool(NULL, "useradd", "--non-unique",
-             "--uid", number, "--gid", number, "--no-create-home",
-             "--home-dir", home, "--shell", shell, "--comment", gecos, alias, NULL)) {
-        pgpid_error(_("Warning: The account stands, but '%s' could not be added beside it."),
-                    alias);
-        return PGPID_FAIL;
-    }
-    return PGPID_OK;
-}
-
 /** Hand the files the old account owned to the new number. */
 static void sweep_ownership(const char *home, uid_t old, const struct entity *e, bool everywhere)
 {
@@ -408,7 +389,7 @@ static void sweep_ownership(const char *home, uid_t old, const struct entity *e,
 
 int pgpid_action_system_adduser(int argc, char **argv)
 {
-    const char *password = NULL, *passfrom = NULL, *alias = NULL;
+    const char *password = NULL, *passfrom = NULL, *wanted_user = NULL;
     const char *want_fpr = NULL, *from = NULL, *migrate = NULL, *file = NULL;
     bool if_certified = false, everywhere = false;
 
@@ -417,7 +398,7 @@ int pgpid_action_system_adduser(int argc, char **argv)
         const char **takes = NULL;
         if (!strcmp(a, "-p") || !strcmp(a, "--password"))            takes = &password;
         else if (!strcmp(a, "-P") || !strcmp(a, "--passfrom"))       takes = &passfrom;
-        else if (!strcmp(a, "-u") || !strcmp(a, "--useralias"))      takes = &alias;
+        else if (!strcmp(a, "-u") || !strcmp(a, "--user"))           takes = &wanted_user;
         else if (!strcmp(a, "-f") || !strcmp(a, "--fingerprint"))    takes = &want_fpr;
         else if (!strcmp(a, "-F") || !strcmp(a, "--from"))           takes = &from;
         else if (!strcmp(a, "-m") || !strcmp(a, "--migrate"))        takes = &migrate;
@@ -450,8 +431,8 @@ int pgpid_action_system_adduser(int argc, char **argv)
         pgpid_error(_("Error: '--sweep' looks for what an old account owned; there is none without '--migrate'."));
         return PGPID_USAGE;
     }
-    if (alias && !name_is_usable(alias)) {
-        pgpid_error(_("Error: '%s' is not a usable account name."), alias);
+    if (wanted_user && !name_is_usable(wanted_user)) {
+        pgpid_error(_("Error: '%s' is not a usable account name."), wanted_user);
         pgpid_error(_("Notice: Letters, digits, '_', '-' and '.', and not a digit first."));
         return PGPID_USAGE;
     }
@@ -464,10 +445,13 @@ int pgpid_action_system_adduser(int argc, char **argv)
      * looked up. Under sudo that is the person who typed it, not root. */
     char ref[64] = "";
     if (from) {
-        if (!pgpid_account_name(from, ref, sizeof ref)) {
-            pgpid_error(_("Error: No account for '%s' on this system."), from);
+        /* A name in the account database, not an identifier: whoever is asked
+         * to vouch for this is somebody with a keyring on this machine. */
+        if (!getpwnam(from)) {
+            pgpid_error(_("Error: No account named '%s' on this system."), from);
             return PGPID_NOTHING;
         }
+        snprintf(ref, sizeof ref, "%s", from);
     } else {
         const char *su = getenv("SUDO_USER");
         snprintf(ref, sizeof ref, "%s", (su && *su) ? su : "root");
@@ -485,11 +469,11 @@ int pgpid_action_system_adduser(int argc, char **argv)
     char oldname[64] = "";
     const struct passwd *oldpw = NULL;
     if (migrate) {
-        if (!pgpid_account_name(migrate, oldname, sizeof oldname)
-            || !(oldpw = getpwnam(oldname))) {
-            pgpid_error(_("Error: No account for '%s' on this system."), migrate);
+        if (!(oldpw = getpwnam(migrate))) {
+            pgpid_error(_("Error: No account named '%s' on this system."), migrate);
             return PGPID_NOTHING;
         }
+        snprintf(oldname, sizeof oldname, "%s", migrate);
         if (is_logged_in(oldname)) {
             pgpid_error(_("Error: '%s' is logged in; an account cannot be moved under its owner."),
                         oldname);
@@ -569,6 +553,22 @@ int pgpid_action_system_adduser(int argc, char **argv)
         return PGPID_FAIL;
     }
 
+    /* The name: what was asked for, or the local part of the address the one
+     * rule picked. An entity with no usable address has no name to take, and
+     * nobody but the caller can invent one. */
+    if (wanted_user)
+        snprintf(e.user, sizeof e.user, "%s", wanted_user);
+    else
+        user_from_address(e.email, e.user, sizeof e.user);
+    if (!name_is_usable(e.user)) {
+        pgpid_error(_("Error: No account name comes out of '%s'."),
+                    *e.email ? e.email : e.eid);
+        pgpid_error(_("Notice: '--user NAME' gives one."));
+        if (scratched)
+            run("rm --recursive --force '%s'", scratch);
+        return PGPID_FAIL;
+    }
+
     /* The certificate has to reach its owner from wherever it was read. */
     const char *seed_from = scratched ? scratch : refring;
 
@@ -576,7 +576,7 @@ int pgpid_action_system_adduser(int argc, char **argv)
      * what keeps them apart -- the encryption does -- so this is said, not
      * refused. Either entity can mint a u5 to step out of the way. */
     const struct passwd *clash = getpwuid(e.uid);
-    if (clash && strcmp(clash->pw_name, e.account)
+    if (clash && strcmp(clash->pw_name, e.user)
         && (!oldpw || clash->pw_uid != oldpw->pw_uid)) {
         pgpid_error(_("Warning: %lu is already '%s' here; %s takes the same number."),
                     (unsigned long)e.uid, clash->pw_name, e.eid);
@@ -604,39 +604,33 @@ int pgpid_action_system_adduser(int argc, char **argv)
             && strcmp(pass, again))
             *pass = '\0';
         if (!*pass)
-            pgpid_error(_("Notice: No password set; login stays closed until 'passwd %s'."), e.account);
+            pgpid_error(_("Notice: No password set; login stays closed until 'passwd %s'."), e.user);
     } else {
         pgpid_error(_("Notice: No password given and nothing to ask with; login stays closed."));
-        pgpid_error(_("Notice: '--password' or '--passfrom FILE' sets one, 'passwd %s' too."), e.account);
+        pgpid_error(_("Notice: '--password' or '--passfrom FILE' sets one, 'passwd %s' too."), e.user);
     }
 
     char home[320];
     snprintf(home, sizeof home, "/home/%s", e.eid);
     char gecos[1024];
     gecos_line(&e, gecos, sizeof gecos);
-    const char *shell = "/bin/sh";
     int ret = PGPID_OK;
 
     char number[24];
     snprintf(number, sizeof number, "%lu", (unsigned long)e.uid);
-    const struct passwd *standing = getpwnam(e.account);
+    const struct passwd *standing = getpwnam(e.user);
     if (oldpw) {
-        /* Moving an account: it keeps its files, its number changes, and the
-         * name it had becomes the alias unless another was asked for. */
+        /* Moving an account: it keeps its files, its number changes, and it
+         * takes the name its address gives -- unless it already had it. */
         uid_t was = oldpw->pw_uid;
         char oldhome[320], oldgroup[64] = "";
         snprintf(oldhome, sizeof oldhome, "%s", oldpw->pw_dir);
         const struct group *g = getgrgid(oldpw->pw_gid);
         if (g)
             snprintf(oldgroup, sizeof oldgroup, "%s", g->gr_name);
-        if (oldpw->pw_shell && *oldpw->pw_shell)
-            shell = oldpw->pw_shell;
-        if (!alias && strcmp(oldname, e.account))
-            alias = oldname;
-
-        pgpid_error(_("Info: Moving '%s' to %s."), oldname, e.account);
-        if (strcmp(oldname, e.account)) {
-            if (tool(NULL, "usermod", "--login", e.account,
+        pgpid_error(_("Info: Moving '%s' to %s."), oldname, e.user);
+        if (strcmp(oldname, e.user)) {
+            if (tool(NULL, "usermod", "--login", e.user,
                      "--home", home, "--move-home", oldname, NULL)) {
                 pgpid_error(_("Error: '%s' could not be renamed; nothing was changed."), oldname);
                 if (scratched)
@@ -644,22 +638,19 @@ int pgpid_action_system_adduser(int argc, char **argv)
                 return PGPID_FAIL;
             }
         } else if (strcmp(oldhome, home)) {
-            tool(NULL, "usermod", "--home", home, "--move-home", e.account, NULL);
+            tool(NULL, "usermod", "--home", home, "--move-home", e.user, NULL);
         }
         if (was != e.uid) {
             if (*oldgroup)
                 tool(NULL, "groupmod", "--non-unique", "--gid", number, oldgroup, NULL);
             tool(NULL, "usermod", "--non-unique",
-                 "--uid", number, "--gid", number, e.account, NULL);
+                 "--uid", number, "--gid", number, e.user, NULL);
         }
-        tool(NULL, "usermod", "--comment", gecos, e.account, NULL);
-        /* groupmod --new-name goes through the 32-character check, so a group
-         * an account already had keeps its name when the identifier is longer
-         * than that. The name it keeps is the alias, which is where it
-         * belongs anyway. */
-        if (*oldgroup && strcmp(oldgroup, e.account))
-            pgpid_error(_("Notice: The group stays '%s' (%lu): a group name stops at 32 characters."),
-                        oldgroup, (unsigned long)e.uid);
+        tool(NULL, "usermod", "--comment", gecos, e.user, NULL);
+        /* The group follows the account: a name short enough to be a login is
+         * short enough to be a group. */
+        if (*oldgroup && strcmp(oldgroup, e.user))
+            tool(NULL, "groupmod", "--new-name", e.user, oldgroup, NULL);
         /* usermod chowns the home and nothing else; a file the account owns
          * anywhere else would keep a number that is now somebody else's. */
         if (was != e.uid)
@@ -670,94 +661,84 @@ int pgpid_action_system_adduser(int argc, char **argv)
         char its[64] = "";
         pgpid_account_eid(standing, its, sizeof its);
         if (strcmp(its, e.eid)) {
-            /* Two identifiers agreeing on their first 32 characters. The name
-             * is what every other program holds these accounts by, so the
-             * second one is refused rather than shortened some other way and
-             * left to be found later. A u4 keeps its whole hash in those 32,
-             * so this is rarer than two entities landing on one number. */
+            /* Two people whose addresses share a local part. The name is what
+             * every other program holds an account by, so the second is
+             * refused rather than given a number on the end that nobody could
+             * read back to a person -- and the identifier still settles the
+             * numbers, which do not collide. */
             pgpid_error(_("Error: '%s' is already the account of %s here."),
-                        e.account, *its ? its : standing->pw_name);
-            pgpid_error(_("Notice: Both identifiers start alike; only one of them fits this machine."));
+                        e.user, *its ? its : standing->pw_name);
+            pgpid_error(_("Notice: '--user NAME' gives this one another name."));
             if (scratched)
                 run("rm --recursive --force '%s'", scratch);
             return PGPID_FAIL;
         }
         pgpid_error(_("Error: %s already has an account here."), e.eid);
-        pgpid_error(_("Notice: '--migrate %s' brings an existing one up to date."), e.account);
+        pgpid_error(_("Notice: '--migrate %s' brings an existing one up to date."), e.user);
         if (scratched)
             run("rm --recursive --force '%s'", scratch);
         return PGPID_EXISTS;
     } else {
         char groups[256];
         hardware_groups(groups, sizeof groups);
-        /* useradd makes the group itself, because groupadd will not take a
-         * name over 32 characters and a u4 is 38. The number it picks for that
-         * group is the next free one rather than the account's, so it is put
-         * right on the line after -- and until then the account is its only
-         * member, so nothing else sees it. */
+        /* A group of its own, named like the account: groupadd takes a login
+         * name as it stands. --non-unique on both, because the number comes
+         * from the identifier and another account may already hold it. */
+        if (tool(NULL, "groupadd", "--non-unique", "--gid", number, e.user, NULL)) {
+            pgpid_error(_("Error: No group could be made for %s."), e.user);
+            if (scratched)
+                run("rm --recursive --force '%s'", scratch);
+            return PGPID_FAIL;
+        }
         const char *av[24];
         size_t n = 0;
         av[n++] = "useradd";
-        av[n++] = "--user-group";
         av[n++] = "--non-unique";
         av[n++] = "--uid";          av[n++] = number;
+        av[n++] = "--gid";          av[n++] = number;
         if (*groups) {
             av[n++] = "--groups";   av[n++] = groups;
         }
         av[n++] = "--home-dir";     av[n++] = home;
         av[n++] = "--create-home";
         av[n++] = "--comment";      av[n++] = gecos;
-        av[n++] = e.account;
+        av[n++] = e.user;
         av[n] = NULL;
         if (pgpid_run_program(av, NULL, NULL)) {
-            pgpid_error(_("Error: No account could be opened for %s."), e.eid);
+            tool(NULL, "groupdel", e.user, NULL);
+            pgpid_error(_("Error: No account could be opened for %s."), e.user);
             if (scratched)
                 run("rm --recursive --force '%s'", scratch);
             return PGPID_FAIL;
         }
-        if (tool(NULL, "groupmod", "--non-unique", "--gid", number, e.account, NULL))
-            pgpid_error(_("Warning: The group of %s did not take the account's number."), e.account);
-        /* The shell is whatever this system hands out; the alias has to get
-         * the same one, so it is read back rather than guessed. */
-        const struct passwd *made = getpwnam(e.account);
-        if (made && made->pw_shell && *made->pw_shell)
-            shell = made->pw_shell;
         /* usermod does this and useradd does not, which costs an evening the
          * first time: the home is made with the group the system picked. */
         run("chown --no-dereference --recursive %lu:%lu '%s'",
             (unsigned long)e.uid, (unsigned long)e.uid, home);
     }
 
-    if (alias && strcmp(alias, e.account) && add_alias(&e, alias, shell))
-        ret = PGPID_FAIL;
-
     if (*pass) {
         /* Down chpasswd's standard input: an argument is readable by anybody
          * running ps, and an environment variable by anybody who can read
-         * /proc for this user. One password per name in the shadow file, so
-         * the alias needs it too or it is a name that cannot log in. */
+         * /proc for this user. */
         char line[512];
-        snprintf(line, sizeof line, "%s:%s\n", e.account, pass);
+        snprintf(line, sizeof line, "%s:%s\n", e.user, pass);
         if (tool(line, "chpasswd", NULL))
             ret = PGPID_FAIL;
-        if (alias && strcmp(alias, e.account) && getpwnam(alias)) {
-            snprintf(line, sizeof line, "%s:%s\n", alias, pass);
-            tool(line, "chpasswd", NULL);
-        }
         memset(line, 0, sizeof line);
     }
     memset(pass, 0, sizeof pass);
 
     pgpid_homedir = seed_from;
-    seed_keyring(e.account, e.fpr);
+    seed_keyring(e.user, e.fpr);
     pgpid_homedir = saved_home;
 
     if (scratched)
         run("rm --recursive --force '%s'", scratch);
 
     pgpid_error(_("Notice: %s now has an account here as '%s' (%lu), home %s."),
-                e.eid, e.account, (unsigned long)e.uid, home);
+                e.eid, e.user, (unsigned long)e.uid, home);
     pgpid_error(_("Notice: '%s system_confhome %s' lays that home out for PGP ID use."),
-                PGPID_NAME, e.account);
+                PGPID_NAME, e.user);
     return ret;
 }

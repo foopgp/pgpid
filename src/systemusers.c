@@ -5,17 +5,10 @@
  *
  * SPDX-License-Identifier: GPL-3.0-only
  *
- * A PGP ID entity may hold up to two entries in the account database with the
- * same number: one named by its identifier, and a shorter human-friendly alias.
- * They are one account, so they are one row here, and the identifier is what
- * names it -- the alias is a convenience, not an identity.
- *
- * An account whose home is /home/<eid> counts as one even when only the alias
- * has an entry, which is how the accounts made before this were laid out.
- *
- * The home is also where the identifier is read from now: the entry naming it
- * carries it cut to the 32 characters every account database stops at, which
- * no longer reads as an identifier on its own.
+ * One entry per account, named by the local part of its address, with the
+ * identifier in the path of its home -- so an account is an entity when its
+ * home is /home/<eid>, whatever it is called. Naming the account by the
+ * identifier was tried and dropped, and so was the alias that went with it.
  */
 #include "pgpid.h"
 
@@ -27,14 +20,10 @@
 
 #define MAX_ROWS 256
 
-#define MAX_NAMES 4
-
 struct account {
     uid_t uid;
-    char names[MAX_NAMES][64];
-    size_t nname;
+    char user[64];
     char eid[64];
-    char alias[64];
     char home[256];
     char gecos[256];
     bool admin;
@@ -96,8 +85,7 @@ static void usage(FILE *out)
         " system_users [OPTIONS]...\n"
         "\n"
         "List the accounts of this system, and which of them are PGP ID entities.\n"
-        "An entity may hold two entries with the same number -- one named by its\n"
-        "identifier, one a shorter alias -- and they are one account, so one row.\n"
+        "An account is one when its home is /home/<eid>, whatever it is called.\n"
         "\n"
         "OPTIONS:\n"
         "  -p, --pgpid-only            Leave out the accounts that are not entities\n"
@@ -148,49 +136,24 @@ int pgpid_action_system_users(int argc, char **argv)
         if (!is_entity && (pw->pw_uid < lo || pw->pw_uid > hi))
             continue;
 
-        struct account *row = NULL;
-        for (size_t i = 0; i < n; i++)
-            if (rows[i].uid == pw->pw_uid)
-                row = &rows[i];
-        if (!row) {
-            row = &rows[n++];
-            memset(row, 0, sizeof *row);
-            row->uid = pw->pw_uid;
-            snprintf(row->home, sizeof row->home, "%s", pw->pw_dir);
-            snprintf(row->gecos, sizeof row->gecos, "%s", pw->pw_gecos);
-        }
+        struct account *row = &rows[n++];
+        memset(row, 0, sizeof *row);
+        row->uid = pw->pw_uid;
+        snprintf(row->user, sizeof row->user, "%s", pw->pw_name);
+        snprintf(row->home, sizeof row->home, "%s", pw->pw_dir);
+        snprintf(row->gecos, sizeof row->gecos, "%s", pw->pw_gecos);
+        row->admin = in_admin_group(pw->pw_name);
 
-        if (row->nname < MAX_NAMES)
-            snprintf(row->names[row->nname++], sizeof row->names[0], "%s", pw->pw_name);
-
-        if (in_admin_group(pw->pw_name))
-            row->admin = true;
+        /* The identifier lives in the path of the home, and on an account
+         * named by one -- which some still are -- in the name as well. */
+        const char *at = strrchr(pw->pw_dir, '/');
+        if (!(at && eid_at(at + 1, row->eid, sizeof row->eid)))
+            eid_at(pw->pw_name, row->eid, sizeof row->eid);
     }
     endpwent();
 
-    /* Which of an account's names is the identifier, and which is the alias.
-     * The identifier itself comes from the path of the home -- whole there,
-     * and cut in the entry that is named by it. An account laid out before
-     * this tool has only the alias in the database and the identifier in that
-     * path, which the same reading covers. */
-    for (size_t i = 0; i < n; i++) {
-        struct account *row = &rows[i];
-        const char *base = strrchr(row->home, '/');
-        if (base)
-            eid_at(base + 1, row->eid, sizeof row->eid);
-        for (size_t k = 0; k < row->nname && !*row->eid; k++)
-            eid_at(row->names[k], row->eid, sizeof row->eid);
-
-        char named[64] = "";
-        if (*row->eid)
-            pgpid_account_of_eid(row->eid, named, sizeof named);
-        for (size_t k = 0; k < row->nname; k++)
-            if (strcmp(row->names[k], named))
-                snprintf(row->alias, sizeof row->alias, "%s", row->names[k]);
-    }
-
     static const char *const COLUMNS[] = {
-        "eid", "alias", "uid", "admin", "home",
+        "eid", "user", "uid", "admin", "home",
     };
     pgpid_table_start(COLUMNS, 5);
     size_t shown = 0;
@@ -201,7 +164,7 @@ int pgpid_action_system_users(int argc, char **argv)
         snprintf(uid, sizeof uid, "%u", (unsigned)rows[i].uid);
         const char *values[] = {
             *rows[i].eid ? rows[i].eid : "-",
-            *rows[i].alias ? rows[i].alias : "-",
+            rows[i].user,
             uid,
             rows[i].admin ? "yes" : "-",
             rows[i].home,

@@ -5,10 +5,7 @@
  *
  * SPDX-License-Identifier: GPL-3.0-only
  *
- * The counterpart of system_adduser, and it has to know the same thing: an
- * entity holds up to two entries with one number. Removing the one that was
- * typed and leaving the other is how an alias outlives its account and hands
- * somebody else's files to whoever gets the number next -- so both go.
+ * The counterpart of system_adduser: one account, one entry, one group.
  *
  * The home stays unless it is asked for. An account can be opened again from
  * the certificate; what its home held cannot, and a secret key that never
@@ -28,7 +25,6 @@
 #include <unistd.h>
 #include <utmpx.h>
 
-#define MAX_NAMES 8
 
 /**
  * Signal every process belonging to this number, and say how many.
@@ -119,9 +115,8 @@ static void usage(FILE *out)
         "%s"
         " system_deluser [OPTIONS]... USER|EID\n"
         "\n"
-        "Remove a local account. Administrator rights required (sudo).\n"
-        "An entity may hold two entries with one number -- its identifier and a\n"
-        "shorter alias -- and both go, whichever of the two was named.\n"
+        "Remove a local account, and the group of its own. Administrator rights\n"
+        "required (sudo).\n"
         "\n"
         "The home directory is kept unless '--remove-home' says otherwise: an\n"
         "account can be opened again from the certificate, what its home held\n"
@@ -129,7 +124,6 @@ static void usage(FILE *out)
         "\n"
         "OPTIONS:\n"
         "  -r, --remove-home           Remove the home directory and its contents too\n"
-        "  -a, --alias-only            Remove only the name given, and leave the account\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"),
             PGPID_NAME);
@@ -158,15 +152,13 @@ static bool anyone_in(const char *const *names, size_t n)
 
 int pgpid_action_system_deluser(int argc, char **argv)
 {
-    bool remove_home = false, alias_only = false;
+    bool remove_home = false;
     const char *who = NULL;
 
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
         if (!strcmp(a, "-r") || !strcmp(a, "--remove-home")) {
             remove_home = true;
-        } else if (!strcmp(a, "-a") || !strcmp(a, "--alias-only")) {
-            alias_only = true;
         } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             usage(stdout);
             return PGPID_OK;
@@ -189,15 +181,13 @@ int pgpid_action_system_deluser(int argc, char **argv)
         usage(stderr);
         return PGPID_USAGE;
     }
-    if (alias_only && remove_home) {
-        pgpid_error(_("Error: '--alias-only' leaves the account, so its home is not to remove."));
-        return PGPID_USAGE;
-    }
     if (geteuid() != 0) {
         pgpid_error(_("Error: Closing an account needs administrator rights (sudo)."));
         return PGPID_FAIL;
     }
 
+    /* USER or EID: the identifier still names an account, through the path of
+     * its home, which is the one place it lives now. */
     char named[64];
     if (!pgpid_account_name(who, named, sizeof named)) {
         pgpid_error(_("Error: No account for '%s' on this system."), who);
@@ -215,88 +205,34 @@ int pgpid_action_system_deluser(int argc, char **argv)
         return PGPID_FAIL;
     }
 
-    /* Every name the number answers to: the identifier and its alias. */
-    static char names[MAX_NAMES][64];
-    const char *list[MAX_NAMES];
-    size_t n = 0;
-    if (alias_only) {
-        snprintf(names[n], sizeof names[0], "%s", named);
-        list[n] = names[n];
-        n++;
-    } else {
-        setpwent();
-        const struct passwd *p;
-        while ((p = getpwent()) && n < MAX_NAMES)
-            if (p->pw_uid == uid) {
-                snprintf(names[n], sizeof names[0], "%s", p->pw_name);
-                list[n] = names[n];
-                n++;
-            }
-        endpwent();
-    }
-    if (!n)
-        return PGPID_NOTHING;
-
-    if (anyone_in(list, n)) {
+    const char *only[] = { named };
+    if (anyone_in(only, 1)) {
         pgpid_error(_("Error: '%s' is logged in; an account cannot be closed under its owner."),
                     named);
         return PGPID_FAIL;
     }
 
-    /* The name the identifier takes here: cut to what shadow holds, which is
-     * what the entry actually carries. The home holds it whole. */
-    char eid[64] = "", account[64] = "";
-    if (pgpid_account_eid(pw, eid, sizeof eid))
-        pgpid_account_of_eid(eid, account, sizeof account);
-
-    if (alias_only && *account && !strcmp(account, named)) {
-        pgpid_error(_("Error: '%s' is the account itself, not an alias of it."), named);
-        return PGPID_USAGE;
+    end_sessions(named, uid);
+    if (remove_home ? tool("userdel", "--remove", named, NULL)
+                    : tool("userdel", named, NULL)) {
+        pgpid_error(_("Error: '%s' could not be removed."), named);
+        pgpid_error(_("Notice: A process of its own still holds it; 'pkill --uid %lu' ends those."),
+                    (unsigned long)uid);
+        return PGPID_FAIL;
     }
+    pgpid_error(_("Notice: '%s' is no longer an account here."), named);
 
-    /* The identifier last: it is the entry '--remove-home' hangs on, and the
-     * aliases have to be gone before the home they point at. */
-    size_t primary = 0;
-    for (size_t i = 0; i < n; i++)
-        if (*account ? !strcmp(list[i], account)
-                     : pgpid_eid_body_is_sound(list[i]))
-            primary = i;
+    /* userdel takes the group with the entry when it is that entry's own; a
+     * group made --non-unique is left standing, and leaving it behind is how
+     * the next account to take the number inherits a membership nobody
+     * granted it. */
+    const struct group *g = getgrnam(named);
+    if (g && g->gr_gid == uid && tool("groupdel", named, NULL))
+        pgpid_error(_("Warning: The group '%s' (%lu) is still there."),
+                    named, (unsigned long)uid);
 
-    int ret = PGPID_OK;
-    for (size_t pass = 0; pass < 2; pass++) {
-        for (size_t i = 0; i < n; i++) {
-            if ((pass == 0) == (i == primary))
-                continue;
-            bool last = (i == primary) && remove_home && !alias_only;
-            end_sessions(list[i], uid);
-            if (last ? tool("userdel", "--remove", list[i], NULL)
-                     : tool("userdel", list[i], NULL)) {
-                pgpid_error(_("Error: '%s' could not be removed."), list[i]);
-                pgpid_error(_("Notice: A process of its own still holds it; 'pkill --uid %lu' ends those."),
-                            (unsigned long)uid);
-                ret = PGPID_FAIL;
-                continue;
-            }
-            pgpid_error(_("Notice: '%s' is no longer an account here."), list[i]);
-        }
-    }
-
-    /* The groups last, and only once every entry is gone: two entries share
-     * one number here, so groupdel refuses each of their groups for as long
-     * as the other entry still has that number as its own. Removing one name
-     * and leaving its group behind is how the next account to take the number
-     * inherits a membership nobody granted it. */
-    for (size_t i = 0; i < n; i++) {
-        const struct group *g = getgrnam(list[i]);
-        if (!g || g->gr_gid != uid)
-            continue;
-        if (tool("groupdel", list[i], NULL))
-            pgpid_error(_("Warning: The group '%s' (%lu) is still there."),
-                        list[i], (unsigned long)uid);
-    }
-
-    if (!alias_only && !remove_home)
+    if (!remove_home)
         pgpid_error(_("Notice: %s is left standing, and still belongs to %lu."),
                     home, (unsigned long)uid);
-    return ret;
+    return PGPID_OK;
 }

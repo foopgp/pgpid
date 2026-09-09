@@ -766,20 +766,6 @@ bool pgpid_account_name(const char *who, char *out, size_t max)
     return found;
 }
 
-/**
- * The name an identifier takes in the account databases.
- *
- * Cut to what shadow will hold, and nowhere else: the home keeps the whole
- * thing, and that is where it is read back from.
- */
-void pgpid_account_of_eid(const char *eid, char *out, size_t max)
-{
-    size_t keep = PGPID_ACCOUNT_NAME_MAX + 1;
-    if (keep > max)
-        keep = max;
-    snprintf(out, keep, "%s", eid);
-}
-
 /** The identifier an account carries: in its name, or in the path of its home. */
 bool pgpid_account_eid(const struct passwd *pw, char *out, size_t max)
 {
