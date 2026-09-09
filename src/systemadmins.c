@@ -24,6 +24,7 @@
 #include <unistd.h>
 
 #define ADMIN_GROUP "sudo"
+#define MAX_ASKED   32
 
 static void usage(FILE *out)
 {
@@ -38,8 +39,8 @@ static void usage(FILE *out)
         "remove themselves.\n"
         "\n"
         "OPTIONS:\n"
-        "  -a, --add USER              Add a user to the administrators. May be repeated\n"
-        "  -r, --remove USER           Remove a user from them. May be repeated\n"
+        "  -a, --add USER|EID              Add a user to the administrators. May be repeated\n"
+        "  -r, --remove USER|EID           Remove a user from them. May be repeated\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"),
             PGPID_NAME);
@@ -67,16 +68,16 @@ static int gpasswd(const char *flag, const char *user)
 
 int pgpid_action_system_admins(int argc, char **argv)
 {
-    const char *add[32], *remove[32];
+    const char *add[MAX_ASKED], *remove[MAX_ASKED];
     size_t nadd = 0, nremove = 0;
 
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
         if ((!strcmp(a, "-a") || !strcmp(a, "--add")) && i + 1 < argc) {
-            if (nadd < 32)
+            if (nadd < MAX_ASKED)
                 add[nadd++] = argv[++i];
         } else if ((!strcmp(a, "-r") || !strcmp(a, "--remove")) && i + 1 < argc) {
-            if (nremove < 32)
+            if (nremove < MAX_ASKED)
                 remove[nremove++] = argv[++i];
         } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             usage(stdout);
@@ -103,23 +104,27 @@ int pgpid_action_system_admins(int argc, char **argv)
     int ret = PGPID_OK;
 
     /* What was asked is judged before how it was asked: someone who names
-     * themselves for removal should hear that, not hear about root. */
-    for (size_t i = 0; i < nadd; i++)
-        if (!getpwnam(add[i])) {
-            pgpid_error(_("Error: No account named '%s'."), add[i]);
-            return PGPID_NOTHING;
+     * themselves for removal should hear that, not hear about root.
+     *
+     * An identifier names an account here as it does everywhere else, and it
+     * has to: the entry carries it cut to 32 characters, so the whole one --
+     * which is what a caller holds -- matches no entry by name. */
+    static char resolved[2][MAX_ASKED][64];
+    const char *const *asked[2] = { add, remove };
+    size_t counts[2] = { nadd, nremove };
+    for (unsigned which = 0; which < 2; which++)
+        for (size_t i = 0; i < counts[which]; i++) {
+            if (!pgpid_account_name(asked[which][i], resolved[which][i],
+                                    sizeof resolved[0][0])) {
+                pgpid_error(_("Error: No account named '%s'."), asked[which][i]);
+                return PGPID_NOTHING;
+            }
+            if (which == 1 && !strcmp(resolved[1][i], asking())) {
+                pgpid_error(_("Error: '%s' is you, and nobody removes their own "
+                            "administrator rights."), asked[1][i]);
+                return PGPID_USAGE;
+            }
         }
-    for (size_t i = 0; i < nremove; i++) {
-        if (!getpwnam(remove[i])) {
-            pgpid_error(_("Error: No account named '%s'."), remove[i]);
-            return PGPID_NOTHING;
-        }
-        if (!strcmp(remove[i], asking())) {
-            pgpid_error(_("Error: '%s' is you, and nobody removes their own "
-                        "administrator rights."), remove[i]);
-            return PGPID_USAGE;
-        }
-    }
 
     if ((nadd || nremove) && geteuid() != 0) {
         pgpid_error(_("Error: Adding or removing an administrator needs root."));
@@ -127,10 +132,10 @@ int pgpid_action_system_admins(int argc, char **argv)
     }
 
     for (size_t i = 0; i < nadd; i++)
-        if (gpasswd("--add", add[i]))
+        if (gpasswd("--add", resolved[0][i]))
             ret = PGPID_FAIL;
     for (size_t i = 0; i < nremove; i++)
-        if (gpasswd("--delete", remove[i]))
+        if (gpasswd("--delete", resolved[1][i]))
             ret = PGPID_FAIL;
 
     /* Listed afterwards, always: what somebody wants after changing this is to
