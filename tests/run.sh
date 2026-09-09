@@ -179,6 +179,43 @@ is "the date is still the one that was set" "$("$BIN" cert_property expire "$NON
 is "and expire cannot be revoked" \
    "$("$BIN" cert_property expire --revoke x "$NONAME" >/dev/null 2>&1 ; echo $?)" "2"
 
+# OpenPGP flags one user id for the whole certificate, not one per address, so
+# --set-primary moves a flag rather than setting one. On a certificate of its
+# own: adding an address to the one above would change what every later check
+# sees, which is how the first version of this block broke four of them.
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-generate-key "Ada <first@example.org>" ed25519 cert never 2>/dev/null
+ADA=$(gpg --with-colons --list-keys first@example.org 2>/dev/null \
+      | awk --field-separator=: '$1=="fpr"{print $10; exit}')
+"$BIN" cert_email --add second@example.org --yes --keyservers '' "$ADA" >/dev/null 2>&1
+
+out=$("$BIN" cert_email "$ADA")
+is "two addresses, each with a word after it" \
+   "$(awk '{print NF}' <<<"$out" | sort --unique | tr -d '\n')" "2"
+# None yet, and that is not a fault: gpg writes the primary subpacket only
+# when somebody has had a reason to choose, so a certificate nobody has chosen
+# for carries no flag at all. Reporting what the certificate says means
+# reporting that too.
+is "none is primary until somebody chooses" "$(grep --count 'primary$' <<<"$out")" "0"
+"$BIN" cert_email --set-primary second@example.org --keyservers '' "$ADA" >/dev/null 2>&1
+is "and the flag moves where it is told" \
+   "$("$BIN" cert_email "$ADA" | awk '$2=="primary"{print $1}')" "second@example.org"
+is "still exactly one" "$("$BIN" cert_email "$ADA" | grep --count 'primary$')" "1"
+is "an address the certificate does not carry is refused" \
+   "$("$BIN" cert_email --set-primary nobody@example.org --keyservers '' "$ADA" >/dev/null 2>&1 ; echo $?)" "141"
+is "and the flag did not move" \
+   "$("$BIN" cert_email "$ADA" | awk '$2=="primary"{print $1}')" "second@example.org"
+is "info format names both columns" \
+   "$("$BIN" --output-format=info cert_email "$ADA" | head -1 | grep --count --extended-regexp '^email=.*primary=')" "1"
+
+# The preferred keyserver is written on the primary uid and re-asserts the flag
+# there. It used to name uid 1 outright, which would have quietly moved the
+# flag back the first time somebody set a keyserver after choosing an address.
+"$BIN" cert_property ksprefrd --replace-to hkps://keys.foopgp.org --keyservers '' "$ADA" >/dev/null 2>&1
+is "setting a keyserver leaves the primary where it was" \
+   "$("$BIN" cert_email "$ADA" | awk '$2=="primary"{print $1}')" "second@example.org"
+is "and the keyserver is set" "$("$BIN" cert_property ksprefrd "$ADA")" "hkps://keys.foopgp.org"
+
 printf '\nsigs\n'
 # A second certificate, which certifies the first: the smallest web of trust
 # that has an edge in it.

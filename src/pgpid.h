@@ -395,6 +395,10 @@ size_t pgpid_list_uids(const char *user, bool secret,
 /** The path of the running binary, for the parts that call other parts. */
 const char *pgpid_self(void);
 bool pgpid_uid_stands(char validity);
+/** The user id the certificate flags as primary, from its packets. */
+bool pgpid_primary_uid(const char *user, char *out, size_t max);
+/** The number gpg's --edit-key menu gives this user id, attributes counted. */
+unsigned pgpid_uid_index(const char *user, const char *text);
 /** Is this uid one of ours, `PROPERTY:value` or `PROPERTY;PARAM:value`? */
 const char *pgpid_uid_property(const char *uid, char *name, size_t max);
 /** The account named USER, or the one whose identifier is EID. */

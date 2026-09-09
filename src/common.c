@@ -573,6 +573,143 @@ const struct pgpid_uid *pgpid_preferred_uid(const struct pgpid_uid *uids, size_t
 }
 
 /**
+ * The user id the certificate flags as its primary — subpacket 25.
+ *
+ * Walked from the packets rather than read off the colon listing, which does
+ * not say: gpg happens to list the primary first today, and a program that
+ * relies on that is relying on an ordering nobody promised.
+ *
+ * For each uid, its newest binding self-signature counts, unless a revocation
+ * on that uid is newer still. The last one flagged primary wins, which is what
+ * gpg does when two signatures disagree.
+ */
+bool pgpid_primary_uid(const char *user, char *out, size_t max)
+{
+    *out = '\0';
+    char fpr[41] = "";
+    const char *pat[] = { user };
+    struct pgpid_keyring *kr = pgpid_keys_load(pat, 1, 0);
+    if (kr && pgpid_keys_count(kr))
+        snprintf(fpr, sizeof fpr, "%s", pgpid_keys_at(kr, 0)->fpr);
+    pgpid_keys_free(kr);
+    if (!*fpr)
+        return false;
+
+    size_t len = 0;
+    unsigned char *raw = pgpid_export_key(fpr, true, &len);
+    if (!raw)
+        return false;
+
+    const char *keyid = strlen(fpr) >= 16 ? fpr + strlen(fpr) - 16 : fpr;
+    const unsigned char *p = raw, *end = raw + len;
+    struct pgpid_packet pkt;
+    char current[512] = "";
+    unsigned long newest_binding = 0, newest_revocation = 0;
+    bool uid_primary = false;
+
+    while (pgpid_packet_next(p, end, &pkt)) {
+        p = pkt.next;
+        if (pkt.tag == TAG_USER_ID) {
+            if (*current && uid_primary && newest_binding > newest_revocation)
+                snprintf(out, max, "%s", current);
+            snprintf(current, sizeof current, "%.*s",
+                     (int)(pkt.len < sizeof current ? pkt.len : sizeof current - 1),
+                     (const char *)pkt.body);
+            newest_binding = newest_revocation = 0;
+            uid_primary = false;
+            continue;
+        }
+        if (pkt.tag != TAG_SIGNATURE) {
+            if (*current && uid_primary && newest_binding > newest_revocation)
+                snprintf(out, max, "%s", current);
+            *current = '\0';
+            continue;
+        }
+        if (!*current)
+            continue;
+
+        unsigned type;
+        unsigned long created;
+        const char *issuer;
+        if (!pgpid_signature_read(&pkt, &type, &created, &issuer))
+            continue;
+        /* Only what the certificate says about itself. */
+        if (!issuer || strcasecmp(issuer, keyid))
+            continue;
+        if (type == SIG_CERT_REVOKE) {
+            if (created > newest_revocation)
+                newest_revocation = created;
+            continue;
+        }
+        if (type < SIG_CERT_LOWEST || type > SIG_CERT_HIGHEST)
+            continue;
+        if (created < newest_binding)
+            continue;
+        newest_binding = created;
+        const unsigned char *flag;
+        size_t flen = 0;
+        uid_primary = pgpid_signature_subpacket(&pkt, 25, &flag, &flen)
+                      && flen >= 1 && flag[0];
+    }
+    if (*current && uid_primary && newest_binding > newest_revocation)
+        snprintf(out, max, "%s", current);
+
+    free(raw);
+    return *out != '\0';
+}
+
+/**
+ * The number gpg's --edit-key menu gives this user id.
+ *
+ * Its place among the uid *and* attribute lines, counted from one: a photo
+ * takes a number in that menu just as a name does, so a certificate carrying
+ * one shifts every uid after it. Counting only the uids -- which is what a
+ * listing of them gives -- names the wrong one on exactly the certificates
+ * that carry an avatar, which is most of ours.
+ */
+unsigned pgpid_uid_index(const char *user, const char *text)
+{
+    char listing[262144];
+    const char *argv[] = { "--with-colons", "--list-key", user, NULL };
+    if (pgpid_capture_engine(argv, listing, sizeof listing) <= 0)
+        return 0;
+
+    unsigned index = 0, keys = 0;
+    for (char *line = listing, *save; (line = strtok_r(line, "\n", &save)); line = NULL) {
+        if (!strncmp(line, "pub:", 4) && ++keys > 1)
+            break;
+        bool is_uid = !strncmp(line, "uid:", 4);
+        if (!is_uid && strncmp(line, "uat:", 4))
+            continue;
+        index++;
+        if (!is_uid)
+            continue;
+        /* Field 10 is the uid itself, colon-escaped. */
+        unsigned field = 1;
+        char *start = line;
+        for (char *q = line; ; q++) {
+            if (*q != ':' && *q)
+                continue;
+            if (field == 10) {
+                char plain[512];
+                char saved = *q;
+                *q = '\0';
+                pgpid_colon_unescape(start, plain, sizeof plain);
+                *q = saved;
+                if (!strcmp(plain, text))
+                    return index;
+                break;
+            }
+            if (!*q)
+                break;
+            field++;
+            start = q + 1;
+        }
+    }
+    return 0;
+}
+
+/**
  * Is this uid one of ours, `PROPERTY:value` or `PROPERTY;PARAM:value`?
  *
  * The vCard properties an entity publishes live in uids of their own, and

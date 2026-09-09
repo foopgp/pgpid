@@ -238,12 +238,16 @@ static int resolve_key(const char *pattern, char *out, size_t max)
 /**
  * The preferred keyserver: read from the packets, written by re-signing.
  *
- * Written on the primary uid and nowhere else, by index — `uid 1` is a
- * position, never a string, because a string that matches nothing would let
- * the keyserver spill onto every uid at once. The primary flag has to be
- * re-asserted in the same self-signature: re-signing drops it otherwise, and
- * the certificate would come back announcing a different main identity than
- * the one it went in with.
+ * Written on the primary uid and nowhere else, by index — never a string,
+ * because a string that matches nothing would let the keyserver spill onto
+ * every uid at once. The primary flag has to be re-asserted in the same
+ * self-signature: re-signing drops it otherwise, and the certificate would
+ * come back announcing a different main identity than the one it went in with.
+ *
+ * The index used to be 1, on the assumption that gpg lists the primary first.
+ * True by luck on our own certificates, and false the moment cert_email
+ * --set-primary moves the flag somewhere else: setting a keyserver would then
+ * have quietly moved it back. It is asked for now, from the packets.
  */
 static int do_ksprefrd(const char *fpr, const char *add, bool revoking,
                        const char *keyservers)
@@ -259,8 +263,18 @@ static int do_ksprefrd(const char *fpr, const char *add, bool revoking,
             pgpid_error(_("Error: 'ksprefrd' must start with hkp:// or hkps:// (%s)."), add);
             return PGPID_USAGE;
         }
+        char primary[512];
+        unsigned index = pgpid_primary_uid(fpr, primary, sizeof primary)
+                         ? pgpid_uid_index(fpr, primary) : 0;
+        if (!index) {
+            pgpid_error(_("Error: This certificate flags no primary user id."));
+            pgpid_error(_("Notice: '%s cert_email --set-primary ADDRESS' gives it one."),
+                        PGPID_NAME);
+            return PGPID_FAIL;
+        }
         char script[1200];
-        snprintf(script, sizeof script, "uid 1\nkeyserver\n%.1023s\ny\nprimary\nsave\n", add);
+        snprintf(script, sizeof script, "uid %u\nkeyserver\n%.1023s\ny\nprimary\nsave\n",
+                 index, add);
         const char *argv[] = { "--batch", "--command-fd", "0", "--edit-key", fpr, NULL };
         if (pgpid_run_engine_input(argv, script)) {
             pgpid_error(_("Error: Cannot set the preferred keyserver — right PIN?"));
