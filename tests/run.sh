@@ -596,6 +596,16 @@ out=$("$BIN" --batch token_meta --replace 2>&1)
 is "token_meta --replace asks, and --batch refuses" \
    "$(grep --count -- '--batch was given' <<<"$out")" "1"
 
+# The note pgpid keeps beside GnuPG's stub: written under the home it is given,
+# read back by token_list, and forgotten by token_del.
+mkdir -p "$GNUPGHOME/pgpid/tokens"
+printf "token_seen='2026-01-01T00:00:00Z'\ntoken_ID='DEADBEEF'\npgpid_id='u5test'\n" \
+    > "$GNUPGHOME/pgpid/tokens/DEADBEEF"
+is "token_list reads the note"       "$("$BIN" token_list | grep --count "u5test")" "1"
+is "and its observation date"        "$("$BIN" token_list | grep --count 'token_seen=')" "1"
+"$BIN" --batch token_del --yes DEADBEEF >/dev/null 2>&1
+is "token_del forgets it"            "$(ls "$GNUPGHOME/pgpid/tokens/" | wc --lines)" "0"
+
 # secret_del is destructive too: the three refusals are what gets tested.
 is "secret_del wants a fingerprint" \
    "$("$BIN" secret_del mneme@example.invalid 2>&1 | grep --count 'is not a fingerprint')" "1"

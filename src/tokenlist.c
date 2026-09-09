@@ -78,33 +78,64 @@ int pgpid_action_token_list(int argc, char **argv)
             continue;
         } else {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
+            pgpid_try_help("token_del");
             return PGPID_USAGE;
         }
     }
 
-    struct pgpid_keyring *kr = pgpid_keys_load(NULL, 0, PGPID_KEYS_SECRET);
-    if (!kr) {
-        pgpid_error(_("Error: Cannot read the keyring."));
-        return PGPID_FAIL;
-    }
-
+    /* Two sources, and neither alone is the answer. GnuPG's stubs say which
+     * cards hold a secret of ours, and nothing else about them. Our own notes
+     * say what a card carried when it was last seen, including cards whose
+     * stub has since gone. Both, deduplicated. */
     struct seen seen = { .n = 0 };
-    for (size_t i = 0; i < pgpid_keys_count(kr); i++) {
-        const struct pgpid_key *k = pgpid_keys_at(kr, i);
-        if (!k->secret)
-            continue;
-        const char *owner = k->nuid ? k->uid[0].text : "-";
-        if (remember(&seen, k->card))
-            quiet ? printf("%s\n", k->card)
-                  : printf("%s %s %s\n", k->card, k->fpr, owner);
-        for (size_t j = 0; j < k->nsub; j++)
-            if (remember(&seen, k->sub[j].card))
-                quiet ? printf("%s\n", k->sub[j].card)
-                      : printf("%s %s %s\n", k->sub[j].card, k->fpr, owner);
-    }
-    pgpid_keys_free(kr);
+    char fprs[64][41];
+    for (size_t i = 0; i < 64; i++)
+        *fprs[i] = '\0';
 
-    if (!seen.n)
+    struct pgpid_keyring *kr = pgpid_keys_load(NULL, 0, PGPID_KEYS_SECRET);
+    if (kr) {
+        for (size_t i = 0; i < pgpid_keys_count(kr); i++) {
+            const struct pgpid_key *k = pgpid_keys_at(kr, i);
+            if (!k->secret)
+                continue;
+            if (remember(&seen, k->card))
+                snprintf(fprs[seen.n - 1], 41, "%s", k->fpr);
+            for (size_t j = 0; j < k->nsub; j++)
+                if (remember(&seen, k->sub[j].card))
+                    snprintf(fprs[seen.n - 1], 41, "%s", k->fpr);
+        }
+        pgpid_keys_free(kr);
+    }
+
+    char cached[64][64];
+    size_t ncached = pgpid_token_known(cached, 64);
+    for (size_t i = 0; i < ncached; i++)
+        remember(&seen, cached[i]);
+
+    if (!seen.n) {
         pgpid_error(_("Notice: This system knows no security key."));
+        return PGPID_OK;
+    }
+
+    for (size_t i = 0; i < seen.n; i++) {
+        if (quiet) {
+            printf("%s\n", seen.serial[i]);
+            continue;
+        }
+        if (i)
+            printf("\n");
+        char note[4096];
+        if (pgpid_token_recall(seen.serial[i], note, sizeof note)) {
+            fputs(note, stdout);
+        } else {
+            /* Never checked, or checked before we kept notes: say what the
+             * keyring knows and say plainly that the rest is unknown, rather
+             * than leaving a reader to guess which. */
+            printf("token_ID='%s'\n", seen.serial[i]);
+            printf("token_seen=''\n");
+            if (*fprs[i])
+                printf("pgpid_Skeyfpr='%s'\n", fprs[i]);
+        }
+    }
     return PGPID_OK;
 }

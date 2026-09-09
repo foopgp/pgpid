@@ -439,5 +439,20 @@ int pgpid_action_token_check(int argc, char **argv)
     if (!quiet)
         pgpid_error(_("Info: A PGP ID key, certified by %s, carrying %s."),
                     f.v[F_CKEY], f.v[F_ID]);
+
+    /* Valid, so it gets remembered -- beside GnuPG's stub, which says only
+     * which card holds the secret and has no room for the rest. Written here
+     * and only here: a key that fails the check is not one we want to answer
+     * questions about later. */
+    if (*f.v[F_TOKEN_ID]) {
+        char note[4096] = "";
+        for (unsigned i = 0; i < F_COUNT; i++) {
+            char line[640];
+            snprintf(line, sizeof line, "%s='%s'\n", FIELD_NAME[i], f.v[i]);
+            if (strlen(note) + strlen(line) < sizeof note)
+                strcat(note, line);
+        }
+        pgpid_token_remember(f.v[F_TOKEN_ID], note);
+    }
     return PGPID_OK;
 }

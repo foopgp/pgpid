@@ -153,6 +153,11 @@ int pgpid_action_token_del(int argc, char **argv)
         if (pgpid_run_engine(del))
             pgpid_error(_("Warning: The stub of %s would not go."), fpr[i]);
     }
+    /* Both caches, since token_check writes to both: a note left behind would
+     * have token_list still answering about a key we were told to forget. */
+    if (pgpid_token_forget(serial))
+        pgpid_error(_("Notice: What we knew of %s is forgotten too."), serial);
+
     if (!nfpr)
         pgpid_error(_("Notice: No stub pointed at %s."), serial);
 

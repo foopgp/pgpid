@@ -121,7 +121,7 @@ static void usage(FILE *out)
 
     fprintf(out, _("\n"
         "OPTIONS:\n"
-        "  -H, --homedir DIR           GnuPG home directory - Environment variable: GNUPGHOME\n"
+        "  -H, --homedir DIR           GnuPG and pgpid home directory - Environment variable: GNUPGHOME\n"
         "      --output-format=FORMAT  Specify output format between {raw, info, md} - Default: 'raw'\n"
         "  -B, --batch                 Never ask: fail instead of prompting for what is missing\n"
         "  -h, --help                  Print this help and exit\n"

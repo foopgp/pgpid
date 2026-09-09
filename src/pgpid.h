@@ -423,6 +423,14 @@ int pgpid_action_token_retries(int argc, char **argv);
 int pgpid_action_token_check(int argc, char **argv);
 int pgpid_action_token_list(int argc, char **argv);
 int pgpid_action_token_del(int argc, char **argv);
+
+/* What pgpid remembers of the security keys it has met, beside GnuPG's stub:
+ * one note per card under $GNUPGHOME/pgpid/tokens, made at the first write. */
+const char *pgpid_home(void);
+bool pgpid_token_remember(const char *serial, const char *info);
+bool pgpid_token_forget(const char *serial);
+bool pgpid_token_recall(const char *serial, char *out, size_t max);
+size_t pgpid_token_known(char serials[][64], size_t max);
 int pgpid_action_secret_list(int argc, char **argv);
 int pgpid_action_secret_del(int argc, char **argv);
 int pgpid_action_cert_revoke(int argc, char **argv);
