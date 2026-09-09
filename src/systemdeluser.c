@@ -27,6 +27,20 @@
 
 #define MAX_NAMES 8
 
+/**
+ * End whatever is left running as this account.
+ *
+ * userdel refuses while a process belongs to the account, and one is often
+ * left: a login shell leaves systemd a user manager behind, which outlives
+ * the session that started it and shows in no utmp record. Somebody actually
+ * sitting there was refused several steps ago; this ends the remains.
+ */
+static void end_sessions(const char *name)
+{
+    const char *argv[] = { "loginctl", "terminate-user", name, NULL };
+    pgpid_run_program(argv, NULL, "/dev/null:stderr");
+}
+
 /** An account tool, by argument list. No argument may be NULL but the last. */
 static int tool(const char *first, ...)
 {
@@ -194,6 +208,7 @@ int pgpid_action_system_deluser(int argc, char **argv)
             if ((pass == 0) == (i == primary))
                 continue;
             bool last = (i == primary) && remove_home && !alias_only;
+            end_sessions(list[i]);
             if (last ? tool("userdel", "--remove", list[i], NULL)
                      : tool("userdel", list[i], NULL)) {
                 pgpid_error(_("Error: '%s' could not be removed."), list[i]);
@@ -202,13 +217,22 @@ int pgpid_action_system_deluser(int argc, char **argv)
                 ret = PGPID_FAIL;
                 continue;
             }
-            /* userdel takes the group with the entry when it is that entry's
-             * own; a non-unique alias group is left standing, so it goes here. */
-            const struct group *g = getgrnam(list[i]);
-            if (g && g->gr_gid == uid)
-                tool("groupdel", list[i], NULL);
             pgpid_error(_("Notice: '%s' is no longer an account here."), list[i]);
         }
+    }
+
+    /* The groups last, and only once every entry is gone: two entries share
+     * one number here, so groupdel refuses each of their groups for as long
+     * as the other entry still has that number as its own. Removing one name
+     * and leaving its group behind is how the next account to take the number
+     * inherits a membership nobody granted it. */
+    for (size_t i = 0; i < n; i++) {
+        const struct group *g = getgrnam(list[i]);
+        if (!g || g->gr_gid != uid)
+            continue;
+        if (tool("groupdel", list[i], NULL))
+            pgpid_error(_("Warning: The group '%s' (%lu) is still there."),
+                        list[i], (unsigned long)uid);
     }
 
     if (!alias_only && !remove_home)

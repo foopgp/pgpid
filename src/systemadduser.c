@@ -380,8 +380,12 @@ static int add_alias(const struct entity *e, const char *alias, const char *shel
     snprintf(number, sizeof number, "%lu", (unsigned long)e->uid);
     snprintf(home, sizeof home, "/home/%s", e->eid);
     /* An alias is a name a person types, so it is a name shadow already
-     * takes: groupadd needs no talking round for this one. */
-    if (tool(NULL, "groupadd", "--non-unique", "--gid", number, alias, NULL)
+     * takes: groupadd needs no talking round for this one. A group of that
+     * name already carrying the account's number is the same group, not a
+     * clash -- an account closed while something still held it leaves one. */
+    const struct group *g = getgrnam(alias);
+    bool group_here = g && g->gr_gid == e->uid;
+    if ((!group_here && tool(NULL, "groupadd", "--non-unique", "--gid", number, alias, NULL))
      || tool(NULL, "useradd", takes_badname("useradd") ? "--badname" : "--non-unique",
              "--non-unique", "--uid", number, "--gid", number, "--no-create-home",
              "--home-dir", home, "--shell", shell, "--comment", gecos, alias, NULL)) {
