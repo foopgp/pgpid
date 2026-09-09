@@ -37,6 +37,7 @@ static void usage(FILE *out)
         "  -F, --fingerprint           Output only fingerprints\n"
         "  -E, --email                 Output only emails\n"
         "  -f, --no-fetch              Don't refresh certificates from keyservers or Web Key Directories\n"
+        "      --import-from FILE      Take the certificate from a file rather than a keyserver\n"
         "  -m, --errexit-g=1           Return an error if there is more than one (1) entry - You may replace '1' by an other number\n"
         "  -K, --keyservers KEYSERVERS Search and refresh certificates from this keyservers - Default: "
         "%s"
@@ -106,13 +107,20 @@ void pgpid_refresh(const char *term, const char *keyservers)
 int pgpid_action_cert_get(int argc, char **argv)
 {
     bool only_fpr = false, only_mbox = false, fetch = true;
+    const char *import_from = NULL;
     const char *keyservers = NULL;
     long errexit = -1;
     int first = 0;
 
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
-        if (!strcmp(a, "-F") || !strcmp(a, "--fpr") || !strcmp(a, "--fingerprint")) {
+        if (!strcmp(a, "--import-from") || !strcmp(a, "--importfrom")) {
+            if (i + 1 >= argc) {
+                pgpid_error(_("Error: --import-from wants a file."));
+                return PGPID_USAGE;
+            }
+            import_from = argv[++i];
+        } else if (!strcmp(a, "-F") || !strcmp(a, "--fpr") || !strcmp(a, "--fingerprint")) {
             only_fpr = true;
             only_mbox = false;
         } else if (!strcmp(a, "-E") || !strcmp(a, "--mbox") || !strcmp(a, "--email")) {
@@ -163,9 +171,19 @@ int pgpid_action_cert_get(int argc, char **argv)
      * engine — and nothing to fetch, since there is no one thing to ask for. */
     bool everything = argc - first == 1 && !strcmp(argv[first], "*");
 
-    if (fetch && !everything)
+    /* A file where the keyservers would have been: the certificate arrives from
+     * somewhere else, and what follows -- the lookup, the output -- is the same
+     * whichever door it came through. */
+    if (import_from) {
+        const char *imp[] = { "--batch", "--import", import_from, NULL };
+        if (pgpid_run_engine(imp)) {
+            pgpid_error(_("Error: Nothing could be imported from '%s'."), import_from);
+            return PGPID_FAIL;
+        }
+    } else if (fetch && !everything) {
         for (int i = first; i < argc; i++)
             pgpid_refresh(argv[i], keyservers ? keyservers : PGPID_KEYSERVERS);
+    }
 
     /* One pattern at a time, as the engine takes them; several terms are
      * several searches whose answers meet in the output. */

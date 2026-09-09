@@ -520,6 +520,16 @@ is "more fragments than a header can number is refused" "$?" "2"
     --workdir "$GNUPGHOME" "$FPR" >/dev/null 2>&1
 is "and fewer than three, as before"  "$?" "2"
 
+# The file is a destination and a source like any other: what goes out through
+# --export-to comes back in through --import-from, into a keyring that never
+# touched a keyserver.
+ROUNDTRIP=$(mktemp -d) ; chmod 700 "$ROUNDTRIP"
+"$BIN" cert_push --export-to "$ROUNDTRIP/c.asc" --armor "$FPR" >/dev/null 2>&1
+is "an armoured export is text"      "$(head -1 "$ROUNDTRIP/c.asc")" "-----BEGIN PGP PUBLIC KEY BLOCK-----"
+is "and comes back through a file"   \
+   "$("$BIN" --homedir "$ROUNDTRIP" cert_get --import-from "$ROUNDTRIP/c.asc" --fingerprint "$FPR" 2>/dev/null)" "$FPR"
+rm -rf "$ROUNDTRIP"
+
 printf '\ndel\n'
 "$BIN" cert_del "not-a-fingerprint" >/dev/null 2>&1
 is "refuses anything but a fingerprint" "$?" "2"

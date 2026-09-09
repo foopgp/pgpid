@@ -39,6 +39,8 @@ static void usage(FILE *out)
         "                              Empty for none. Default: "
         "%s"
         "\n"
+        "      --export-to FILE        Write the certificates there instead of sending them\n"
+        "      --armor                 Write them as text rather than binary\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"),
             PGPID_NAME, PGPID_KEYSERVERS);
@@ -46,12 +48,21 @@ static void usage(FILE *out)
 
 int pgpid_action_cert_push(int argc, char **argv)
 {
-    const char *keyservers = NULL;
+    const char *keyservers = NULL, *export_to = NULL;
+    bool armor = false;
     int first = 0;
 
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
-        if (!strcmp(a, "-K") || !strcmp(a, "--keyservers")) {
+        if (!strcmp(a, "--export-to") || !strcmp(a, "--exportto")) {
+            if (i + 1 >= argc) {
+                pgpid_error(_("Error: --export-to wants a file."));
+                return PGPID_USAGE;
+            }
+            export_to = argv[++i];
+        } else if (!strcmp(a, "--armor") || !strcmp(a, "--armour")) {
+            armor = true;
+        } else if (!strcmp(a, "-K") || !strcmp(a, "--keyservers")) {
             if (++i >= argc) {
                 pgpid_error(_("Error: '%s' wants a list of servers, empty for none."), a);
                 return PGPID_USAGE;
@@ -92,6 +103,26 @@ int pgpid_action_cert_push(int argc, char **argv)
             pgpid_error(_("Notice: Publishing takes fingerprints, so a search never becomes a broadcast."));
             return PGPID_USAGE;
         }
+    }
+
+    /* A file is a destination like any other: asked for one, this writes there
+     * and contacts nobody. Publishing and handing somebody a file are the same
+     * act seen from two ends, and doing both unasked would surprise. */
+    if (export_to) {
+        const char *args[16] = { "--yes", "--output", export_to };
+        size_t n = 3;
+        if (armor)
+            args[n++] = "--armor";
+        args[n++] = "--export";
+        for (int i = first; i < argc && n < 15; i++)
+            args[n++] = argv[i];
+        args[n] = NULL;
+        if (pgpid_run_engine(args)) {
+            pgpid_error(_("Error: Nothing was written to '%s'."), export_to);
+            return PGPID_FAIL;
+        }
+        pgpid_error(_("Notice: Written into '%s'."), export_to);
+        return PGPID_OK;
     }
 
     const char *list = keyservers ? keyservers : PGPID_KEYSERVERS;
