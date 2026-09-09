@@ -59,11 +59,13 @@ static const char *asking(void)
 
 static int gpasswd(const char *flag, const char *user)
 {
-    char cmd[512];
-    /* The user name is checked against the account database before it reaches
-     * here, so it is a name and not a sentence. */
-    snprintf(cmd, sizeof cmd, "gpasswd %s '%s' " ADMIN_GROUP " >&2", flag, user);
-    return system(cmd);
+    /* By argument list, like every other account tool here: a fixed buffer
+     * and a name is a truncation waiting to name somebody else, and gcc said
+     * so. Its "Adding user X to group sudo" goes to stdout, where the listing
+     * lives, so it is dropped -- the listing printed right after says what
+     * the group holds now, which is the same news and better placed. */
+    const char *argv[] = { "gpasswd", flag, user, ADMIN_GROUP, NULL };
+    return pgpid_run_program(argv, NULL, "/dev/null");
 }
 
 int pgpid_action_system_admins(int argc, char **argv)
