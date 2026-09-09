@@ -27,14 +27,20 @@
 
 #define MAX_NAMES 8
 
-static int run(const char *fmt, ...)
+/** An account tool, by argument list. No argument may be NULL but the last. */
+static int tool(const char *first, ...)
 {
-    char cmd[2048];
+    const char *argv[8];
+    size_t n = 0;
+    argv[n++] = first;
     va_list ap;
-    va_start(ap, fmt);
-    vsnprintf(cmd, sizeof cmd, fmt, ap);
+    va_start(ap, first);
+    const char *a;
+    while ((a = va_arg(ap, const char *)) && n < 7)
+        argv[n++] = a;
     va_end(ap);
-    return system(cmd);
+    argv[n] = NULL;
+    return pgpid_run_program(argv, NULL, NULL);
 }
 
 static void usage(FILE *out)
@@ -188,7 +194,8 @@ int pgpid_action_system_deluser(int argc, char **argv)
             if ((pass == 0) == (i == primary))
                 continue;
             bool last = (i == primary) && remove_home && !alias_only;
-            if (run("userdel %s'%s'", last ? "--remove " : "", list[i])) {
+            if (last ? tool("userdel", "--remove", list[i], NULL)
+                     : tool("userdel", list[i], NULL)) {
                 pgpid_error(_("Error: '%s' could not be removed."), list[i]);
                 ret = PGPID_FAIL;
                 continue;
@@ -197,7 +204,7 @@ int pgpid_action_system_deluser(int argc, char **argv)
              * own; a non-unique alias group is left standing, so it goes here. */
             const struct group *g = getgrnam(list[i]);
             if (g && g->gr_gid == uid)
-                run("groupdel '%s' 2>/dev/null", list[i]);
+                tool("groupdel", list[i], NULL);
             pgpid_error(_("Notice: '%s' is no longer an account here."), list[i]);
         }
     }

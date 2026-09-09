@@ -18,6 +18,24 @@
  * The home is left as the system made it. Laying it out for PGP ID use is
  * 'system_confhome', and the two stay separate on purpose: whoever opens an
  * account is not always whoever furnishes it.
+ *
+ * What shadow allows shapes all of this, and it was measured rather than
+ * assumed (Debian 13, shadow 4.17.4):
+ *
+ *   - a name has to match [a-z_][a-z0-9_.-]*, and an identifier is base64url,
+ *     so it holds capitals. useradd and usermod take --badname and accept it;
+ *     groupadd and groupmod have no such option and refuse outright. So the
+ *     group of a new account is made by useradd itself and renumbered after,
+ *     and a group being moved keeps the name it had.
+ *   - --badname prints "deprecated and will be removed". The day it goes,
+ *     naming an account by its identifier goes with it.
+ *   - Debian's adduser refuses a name over 32 bytes. A u4 is 38, so adduser
+ *     is out of the question here and useradd is called directly -- which is
+ *     also what the shell libraries ended up doing, for their own reasons.
+ *
+ * Every one of these tools is driven through its argument list and never
+ * through a shell line: the name, the address and the GECOS fields all come
+ * out of somebody else's certificate, and a shell would read what is in them.
  */
 #include "pgpid.h"
 
@@ -54,6 +72,8 @@ struct entity {
     uid_t uid;
 };
 
+/* A shell line, for the few commands whose every word is ours: no value read
+ * from a certificate ever reaches this one. */
 static int run(const char *fmt, ...)
 {
     char cmd[4096];
@@ -62,6 +82,47 @@ static int run(const char *fmt, ...)
     vsnprintf(cmd, sizeof cmd, fmt, ap);
     va_end(ap);
     return system(cmd);
+}
+
+/** An account tool, by argument list. No argument may be NULL but the last. */
+static int tool(const char *stdin_text, ...)
+{
+    const char *argv[24];
+    size_t n = 0;
+    va_list ap;
+    va_start(ap, stdin_text);
+    const char *a;
+    while ((a = va_arg(ap, const char *)) && n < 23)
+        argv[n++] = a;
+    va_end(ap);
+    argv[n] = NULL;
+    return pgpid_run_program(argv, stdin_text, NULL);
+}
+
+/**
+ * Does this tool take '--badname'?
+ *
+ * Asked rather than assumed: shadow before 4.13 only warned about a name it
+ * disliked and has no such option, and passing it there would turn a working
+ * call into a usage error. Only useradd and usermod answer yes.
+ */
+static bool takes_badname(const char *program)
+{
+    static const char *asked[4];
+    static bool answer[4];
+    static size_t n = 0;
+    for (size_t i = 0; i < n; i++)
+        if (!strcmp(asked[i], program))
+            return answer[i];
+    char cmd[128];
+    snprintf(cmd, sizeof cmd, "%s --badname --help >/dev/null 2>&1", program);
+    bool takes = system(cmd) == 0;
+    if (n < 4) {
+        asked[n] = program;
+        answer[n] = takes;
+        n++;
+    }
+    return takes;
 }
 
 static void usage(FILE *out)
@@ -309,12 +370,16 @@ static int add_alias(const struct entity *e, const char *alias, const char *shel
         pgpid_error(_("Warning: '%s' is already an account here; no alias made."), alias);
         return PGPID_OK;
     }
-    char gecos[1024];
+    char gecos[1024], number[24], home[320];
     gecos_line(e, gecos, sizeof gecos);
-    if (run("groupadd --non-unique --gid %lu '%s'", (unsigned long)e->uid, alias)
-     || run("useradd --non-unique --uid %lu --gid %lu --no-create-home"
-            " --home-dir '/home/%s' --shell '%s' --comment '%s' '%s'",
-            (unsigned long)e->uid, (unsigned long)e->uid, e->eid, shell, gecos, alias)) {
+    snprintf(number, sizeof number, "%lu", (unsigned long)e->uid);
+    snprintf(home, sizeof home, "/home/%s", e->eid);
+    /* An alias is a name a person types, so it is a name shadow already
+     * takes: groupadd needs no talking round for this one. */
+    if (tool(NULL, "groupadd", "--non-unique", "--gid", number, alias, NULL)
+     || tool(NULL, "useradd", takes_badname("useradd") ? "--badname" : "--non-unique",
+             "--non-unique", "--uid", number, "--gid", number, "--no-create-home",
+             "--home-dir", home, "--shell", shell, "--comment", gecos, alias, NULL)) {
         pgpid_error(_("Warning: The account stands, but '%s' could not be added beside it."),
                     alias);
         return PGPID_FAIL;
@@ -551,39 +616,52 @@ int pgpid_action_system_adduser(int argc, char **argv)
     snprintf(home, sizeof home, "/home/%s", e.eid);
     char gecos[1024];
     gecos_line(&e, gecos, sizeof gecos);
-    const char *shell = "/bin/bash";
+    const char *shell = "/bin/sh";
     int ret = PGPID_OK;
+
+    char number[24];
+    snprintf(number, sizeof number, "%lu", (unsigned long)e.uid);
+    const char *bad = takes_badname("usermod") ? "--badname" : "--non-unique";
 
     if (oldpw) {
         /* Moving an account: it keeps its files, its number changes, and the
          * name it had becomes the alias unless another was asked for. */
         uid_t was = oldpw->pw_uid;
-        char oldhome[320];
+        char oldhome[320], oldgroup[64] = "";
         snprintf(oldhome, sizeof oldhome, "%s", oldpw->pw_dir);
-        shell = oldpw->pw_shell && *oldpw->pw_shell ? oldpw->pw_shell : shell;
+        const struct group *g = getgrgid(oldpw->pw_gid);
+        if (g)
+            snprintf(oldgroup, sizeof oldgroup, "%s", g->gr_name);
+        if (oldpw->pw_shell && *oldpw->pw_shell)
+            shell = oldpw->pw_shell;
         if (!alias && strcmp(oldname, e.eid))
             alias = oldname;
 
         pgpid_error(_("Info: Moving '%s' to %s."), oldname, e.eid);
         if (strcmp(oldname, e.eid)) {
-            if (getgrnam(oldname))
-                run("groupmod --new-name '%s' '%s'", e.eid, oldname);
-            if (run("usermod --login '%s' --home '%s' --move-home '%s'",
-                    e.eid, home, oldname)) {
+            if (tool(NULL, "usermod", bad, "--login", e.eid,
+                     "--home", home, "--move-home", oldname, NULL)) {
                 pgpid_error(_("Error: '%s' could not be renamed; nothing was changed."), oldname);
                 if (scratched)
                     run("rm --recursive --force '%s'", scratch);
                 return PGPID_FAIL;
             }
         } else if (strcmp(oldhome, home)) {
-            run("usermod --home '%s' --move-home '%s'", home, e.eid);
+            tool(NULL, "usermod", bad, "--home", home, "--move-home", e.eid, NULL);
         }
         if (was != e.uid) {
-            run("groupmod --non-unique --gid %lu '%s'", (unsigned long)e.uid, e.eid);
-            run("usermod --non-unique --uid %lu --gid %lu '%s'",
-                (unsigned long)e.uid, (unsigned long)e.uid, e.eid);
+            if (*oldgroup)
+                tool(NULL, "groupmod", "--non-unique", "--gid", number, oldgroup, NULL);
+            tool(NULL, "usermod", bad, "--non-unique",
+                 "--uid", number, "--gid", number, e.eid, NULL);
         }
-        run("usermod --comment '%s' '%s'", gecos, e.eid);
+        tool(NULL, "usermod", bad, "--comment", gecos, e.eid, NULL);
+        /* groupmod has no --badname and will not rename a group to something
+         * holding capitals, so the group an account already had keeps its
+         * name. That name is the alias, which is where it belongs anyway. */
+        if (*oldgroup && strcmp(oldgroup, e.eid))
+            pgpid_error(_("Notice: The group stays '%s' (%lu): shadow names no group after an identifier."),
+                        oldgroup, (unsigned long)e.uid);
         /* usermod chowns the home and nothing else; a file the account owns
          * anywhere else would keep a number that is now somebody else's. */
         if (was != e.uid)
@@ -599,23 +677,40 @@ int pgpid_action_system_adduser(int argc, char **argv)
     } else {
         char groups[256];
         hardware_groups(groups, sizeof groups);
-        if (run("groupadd --non-unique --gid %lu '%s'", (unsigned long)e.uid, e.eid)) {
-            pgpid_error(_("Error: No group could be made for %s."), e.eid);
-            if (scratched)
-                run("rm --recursive --force '%s'", scratch);
-            return PGPID_FAIL;
+        /* useradd makes the group itself, because groupadd will not: a name
+         * with capitals is refused there and there is no telling it otherwise.
+         * The number it picks for that group is the next free one rather than
+         * the account's, so it is put right on the line after -- and until
+         * then the account is the only member, so nothing else sees it. */
+        const char *av[24];
+        size_t n = 0;
+        av[n++] = "useradd";
+        if (takes_badname("useradd"))
+            av[n++] = "--badname";
+        av[n++] = "--user-group";
+        av[n++] = "--non-unique";
+        av[n++] = "--uid";          av[n++] = number;
+        if (*groups) {
+            av[n++] = "--groups";   av[n++] = groups;
         }
-        if (run("useradd --non-unique --uid %lu --gid %lu%s%s --home-dir '%s'"
-                " --create-home --shell '%s' --comment '%s' '%s'",
-                (unsigned long)e.uid, (unsigned long)e.uid,
-                *groups ? " --groups " : "", *groups ? groups : "",
-                home, shell, gecos, e.eid)) {
-            run("groupdel '%s' 2>/dev/null", e.eid);
+        av[n++] = "--home-dir";     av[n++] = home;
+        av[n++] = "--create-home";
+        av[n++] = "--comment";      av[n++] = gecos;
+        av[n++] = e.eid;
+        av[n] = NULL;
+        if (pgpid_run_program(av, NULL, NULL)) {
             pgpid_error(_("Error: No account could be opened for %s."), e.eid);
             if (scratched)
                 run("rm --recursive --force '%s'", scratch);
             return PGPID_FAIL;
         }
+        if (tool(NULL, "groupmod", "--non-unique", "--gid", number, e.eid, NULL))
+            pgpid_error(_("Warning: The group of %s did not take the account's number."), e.eid);
+        /* The shell is whatever this system hands out; the alias has to get
+         * the same one, so it is read back rather than guessed. */
+        const struct passwd *made = getpwnam(e.eid);
+        if (made && made->pw_shell && *made->pw_shell)
+            shell = made->pw_shell;
         /* usermod does this and useradd does not, which costs an evening the
          * first time: the home is made with the group the system picked. */
         run("chown --no-dereference --recursive %lu:%lu '%s'",
@@ -626,17 +721,21 @@ int pgpid_action_system_adduser(int argc, char **argv)
         ret = PGPID_FAIL;
 
     if (*pass) {
-        /* Through the environment, never through the command line: an argument
-         * is readable by anybody running ps, an environment only by root.
-         * One password per name in the shadow file, so the alias needs it too
-         * or it is a name that cannot log in. */
-        setenv("PGPID_PASS", pass, 1);
-        if (run("printf '%%s:%%s\\n' '%s' \"$PGPID_PASS\" | chpasswd", e.eid))
+        /* Down chpasswd's standard input: an argument is readable by anybody
+         * running ps, and an environment variable by anybody who can read
+         * /proc for this user. One password per name in the shadow file, so
+         * the alias needs it too or it is a name that cannot log in. */
+        char line[512];
+        snprintf(line, sizeof line, "%s:%s\n", e.eid, pass);
+        if (tool(line, "chpasswd", NULL))
             ret = PGPID_FAIL;
-        if (alias && strcmp(alias, e.eid) && getpwnam(alias))
-            run("printf '%%s:%%s\\n' '%s' \"$PGPID_PASS\" | chpasswd", alias);
-        unsetenv("PGPID_PASS");
+        if (alias && strcmp(alias, e.eid) && getpwnam(alias)) {
+            snprintf(line, sizeof line, "%s:%s\n", alias, pass);
+            tool(line, "chpasswd", NULL);
+        }
+        memset(line, 0, sizeof line);
     }
+    memset(pass, 0, sizeof pass);
 
     pgpid_homedir = seed_from;
     seed_keyring(e.eid, e.fpr);
