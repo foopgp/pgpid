@@ -223,13 +223,35 @@ int pgpid_action_system_confhome(int argc, char **argv)
             ret = PGPID_FAIL;
 
     if (do_.face) {
-        char tmp[512];
-        snprintf(tmp, sizeof tmp, "%s/.face", home);
-        if (run("%s cert_avatar --workdir '%s' '%s' >/dev/null 2>&1",
-                PGPID_NAME, home, fpr) == 0)
-            pgpid_error(_("Info: The certificate's picture is now %s."), tmp);
-        else
-            pgpid_error(_("Notice: The certificate wears no picture; %s left alone."), tmp);
+        /* cert_avatar writes the image into its working directory and prints
+         * where. My first pass threw that away and copied nothing, then
+         * announced there was no picture -- on a certificate that carries one.
+         * The previous face is kept beside it: a portrait somebody chose is
+         * not ours to drop silently. */
+        char work[512], face[512];
+        snprintf(work, sizeof work, "%s/.cache/pgpid", home);
+        snprintf(face, sizeof face, "%s/.face", home);
+        run("mkdir --parents '%s'", work);
+        char cmd[1024];
+        snprintf(cmd, sizeof cmd, "%s cert_avatar --workdir '%s' '%s' 2>/dev/null",
+                 PGPID_NAME, work, fpr);
+        FILE *pipe = popen(cmd, "r");
+        char path[512] = "";
+        if (pipe) {
+            if (fgets(path, sizeof path, pipe))
+                path[strcspn(path, "\n")] = '\0';
+            pclose(pipe);
+        }
+        if (*path && access(path, R_OK) == 0) {
+            if (access(face, R_OK) == 0)
+                run("cp --force '%s' '%s.previous'", face, face);
+            if (run("cp --force '%s' '%s'", path, face))
+                ret = PGPID_FAIL;
+            else
+                pgpid_error(_("Info: The certificate's picture is now %s."), face);
+        } else {
+            pgpid_error(_("Notice: The certificate wears no picture; %s left alone."), face);
+        }
     }
 
     return ret;
