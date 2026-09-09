@@ -68,6 +68,19 @@
  * reads it back that way, and a sheet nobody can read is discovered on paper. */
 #define PGPID_SPLIT_MAX 10
 
+/* Where a name in the account databases stops.
+ *
+ * shadow's GROUP_NAME_MAX_LENGTH is the size of utmpx's ut_user, and the same
+ * 32 is written into more places than anyone could find and fix. So our own
+ * identifiers are cut to it rather than being carried past it and refused
+ * somewhere we did not look: a u5 is exactly this long and loses nothing, a u4
+ * is 38 and loses the tail of its coordinates -- never a character of its
+ * hash, which is the whole of what tells two entities apart.
+ *
+ * The full identifier stays in the path of the home, which has no such limit,
+ * so nothing is lost, only shortened where it has to be. */
+#define PGPID_ACCOUNT_NAME_MAX 32
+
 /* Three shapes of one fact, derived so they cannot drift: the bare host
  * composes the certurl engraved on a card, one server is what an action
  * that must pick exactly one uses, and the list is where a certificate
@@ -386,6 +399,8 @@ bool pgpid_uid_stands(char validity);
 const char *pgpid_uid_property(const char *uid, char *name, size_t max);
 /** The account named USER, or the one whose identifier is EID. */
 bool pgpid_account_name(const char *who, char *out, size_t max);
+/** The name an identifier takes in /etc/passwd and /etc/group. */
+void pgpid_account_of_eid(const char *eid, char *out, size_t max);
 /** The identifier an account carries: in its name, or in the path of its home. */
 bool pgpid_account_eid(const struct passwd *pw, char *out, size_t max);
 /** The account number an identifier stands for, the same on every machine. */

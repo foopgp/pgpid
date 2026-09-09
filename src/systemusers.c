@@ -12,6 +12,10 @@
  *
  * An account whose home is /home/<eid> counts as one even when only the alias
  * has an entry, which is how the accounts made before this were laid out.
+ *
+ * The home is also where the identifier is read from now: the entry naming it
+ * carries it cut to the 32 characters every account database stops at, which
+ * no longer reads as an identifier on its own.
  */
 #include "pgpid.h"
 
@@ -23,8 +27,12 @@
 
 #define MAX_ROWS 256
 
+#define MAX_NAMES 4
+
 struct account {
     uid_t uid;
+    char names[MAX_NAMES][64];
+    size_t nname;
     char eid[64];
     char alias[64];
     char home[256];
@@ -152,25 +160,33 @@ int pgpid_action_system_users(int argc, char **argv)
             snprintf(row->gecos, sizeof row->gecos, "%s", pw->pw_gecos);
         }
 
-        char eid[64];
-        if (eid_at(pw->pw_name, eid, sizeof eid))
-            snprintf(row->eid, sizeof row->eid, "%s", eid);
-        else
-            snprintf(row->alias, sizeof row->alias, "%s", pw->pw_name);
+        if (row->nname < MAX_NAMES)
+            snprintf(row->names[row->nname++], sizeof row->names[0], "%s", pw->pw_name);
 
         if (in_admin_group(pw->pw_name))
             row->admin = true;
     }
     endpwent();
 
-    /* An account laid out before this tool has only the alias in the database
-     * and the identifier in the path of its home. */
+    /* Which of an account's names is the identifier, and which is the alias.
+     * The identifier itself comes from the path of the home -- whole there,
+     * and cut in the entry that is named by it. An account laid out before
+     * this tool has only the alias in the database and the identifier in that
+     * path, which the same reading covers. */
     for (size_t i = 0; i < n; i++) {
-        if (*rows[i].eid)
-            continue;
-        const char *base = strrchr(rows[i].home, '/');
+        struct account *row = &rows[i];
+        const char *base = strrchr(row->home, '/');
         if (base)
-            eid_at(base + 1, rows[i].eid, sizeof rows[i].eid);
+            eid_at(base + 1, row->eid, sizeof row->eid);
+        for (size_t k = 0; k < row->nname && !*row->eid; k++)
+            eid_at(row->names[k], row->eid, sizeof row->eid);
+
+        char named[64] = "";
+        if (*row->eid)
+            pgpid_account_of_eid(row->eid, named, sizeof named);
+        for (size_t k = 0; k < row->nname; k++)
+            if (strcmp(row->names[k], named))
+                snprintf(row->alias, sizeof row->alias, "%s", row->names[k]);
     }
 
     static const char *const COLUMNS[] = {

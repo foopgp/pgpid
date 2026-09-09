@@ -187,19 +187,23 @@ int pgpid_action_system_deluser(int argc, char **argv)
         return PGPID_FAIL;
     }
 
-    if (alias_only) {
-        char eid[64];
-        if (pgpid_account_eid(pw, eid, sizeof eid) && !strcmp(eid, named)) {
-            pgpid_error(_("Error: '%s' is the account itself, not an alias of it."), named);
-            return PGPID_USAGE;
-        }
+    /* The name the identifier takes here: cut to what shadow holds, which is
+     * what the entry actually carries. The home holds it whole. */
+    char eid[64] = "", account[64] = "";
+    if (pgpid_account_eid(pw, eid, sizeof eid))
+        pgpid_account_of_eid(eid, account, sizeof account);
+
+    if (alias_only && *account && !strcmp(account, named)) {
+        pgpid_error(_("Error: '%s' is the account itself, not an alias of it."), named);
+        return PGPID_USAGE;
     }
 
     /* The identifier last: it is the entry '--remove-home' hangs on, and the
      * aliases have to be gone before the home they point at. */
     size_t primary = 0;
     for (size_t i = 0; i < n; i++)
-        if (pgpid_eid_body_is_sound(list[i]))
+        if (*account ? !strcmp(list[i], account)
+                     : pgpid_eid_body_is_sound(list[i]))
             primary = i;
 
     int ret = PGPID_OK;
