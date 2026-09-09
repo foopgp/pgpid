@@ -41,12 +41,16 @@ static char best_uid_validity(const struct pgpid_key *key)
     return best;
 }
 
-/* How many distinct other certificates have signed a uid of this one.
- * Self-signatures do not count: a certificate vouching for itself says
- * nothing. Needs GPGME_KEYLIST_MODE_SIGS, which costs a second pass in gpg. */
+/* How many distinct certificates have signed a uid of this one, its own
+ * included: a self-signature is a certification like any other, and counting
+ * it is what makes the number mean "signatures this certificate carries"
+ * rather than "signatures minus one that is always there". It also separates
+ * two states that read alike otherwise -- a certificate nobody has vouched
+ * for counts 1, and a certificate with no valid self-signature at all counts
+ * 0, which is exactly the difference between uncertified and broken.
+ * Needs GPGME_KEYLIST_MODE_SIGS, which costs a second pass in gpg. */
 static unsigned count_certifiers(const struct pgpid_key *key)
 {
-    const char *own = *key->keyid ? key->keyid : NULL;
     unsigned n = 0;
     /* Small and quadratic on purpose: a certificate with enough signatures
      * for this to matter does not exist in a personal keyring, and a hash
@@ -61,8 +65,6 @@ static unsigned count_certifiers(const struct pgpid_key *key)
         for (size_t si = 0; si < u->nsig; si++) {
             const struct pgpid_keysig *s = &u->sig[si];
             if (!*s->keyid)
-                continue;
-            if (own && !strcmp(s->keyid, own))
                 continue;
             bool dup = false;
             for (unsigned i = 0; i < nseen; i++)

@@ -179,6 +179,23 @@ static int resolve_key(const char *pattern, char *out, size_t max)
         return PGPID_FAIL;
     }
 
+    /* No pattern: the key of the token last seen, which is what somebody
+     * with a card plugged in means by "my certificate". Before the counting
+     * below, which lists every secret key gpg knows of -- stubs of cards
+     * configured years ago included -- and gives up as soon as more than one
+     * of them names a card. Nine of them here, on a machine with one token. */
+    if (!pattern) {
+        char last[41];
+        if (pgpid_token_last_signing_key(last, sizeof last)) {
+            for (size_t n = 0; n < pgpid_keys_count(kr); n++)
+                if (!strcmp(pgpid_keys_at(kr, n)->fpr, last)) {
+                    snprintf(out, max, "%s", last);
+                    pgpid_keys_free(kr);
+                    return PGPID_OK;
+                }
+        }
+    }
+
     const struct pgpid_key *candidate = NULL;
     unsigned matches = 0, on_card = 0;
     for (size_t n = 0; n < pgpid_keys_count(kr); n++) {
@@ -254,8 +271,10 @@ static int do_ksprefrd(const char *fpr, const char *add, bool revoking,
     }
     char *ks = pgpid_preferred_keyserver(raw, len, fpr);
     free(raw);
-    if (!ks || !*ks)
+    if (!ks || !*ks) {
+        pgpid_error(_("Notice: %s carries no %s."), fpr, KSPREFRD);
         return PGPID_NOTHING;
+    }
 
     const char *const columns[] = { KSPREFRD };
     const char *values[] = { ks };
@@ -571,7 +590,10 @@ int pgpid_action_cert_property(int argc, char **argv)
     /* An empty property is an answer, not a failure: this certificate has no
      * phone number, and saying so with a non-zero code turns an ordinary fact
      * into an error for every caller that checks. "Nothing found" is reserved
-     * for the search that matched no certificate at all, above. */
-    (void)found;
+     * for the search that matched no certificate at all, above. It is said all
+     * the same -- silence and success together read as "done", and somebody
+     * reading a terminal deserves to know the difference. */
+    if (!found)
+        pgpid_error(_("Notice: %s carries no %s."), fpr, name);
     return ret;
 }
