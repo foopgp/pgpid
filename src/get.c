@@ -38,6 +38,8 @@ static void usage(FILE *out)
         "  -E, --email                 Output only emails\n"
         "  -f, --no-fetch              Don't refresh certificates from keyservers or Web Key Directories\n"
         "      --import-from FILE      Take the certificate from a file rather than a keyserver\n"
+        "  -r, --recurse[=NUM]         Also fetch the certificates signing the target, NUM\n"
+        "                              levels deep (0..6) - Default with -r: 1\n"
         "  -m, --errexit-g=1           Return an error if there is more than one (1) entry - You may replace '1' by an other number\n"
         "  -K, --keyservers KEYSERVERS Search and refresh certificates from this keyservers - Default: "
         "%s"
@@ -104,17 +106,92 @@ void pgpid_refresh(const char *term, const char *keyservers)
     free(copy);
 }
 
+/* Fetch the certificates that signed these, then the ones that signed those,
+ * up to depth levels. A worklist rather than recursion, and a set of the
+ * key identifiers already visited -- the web of trust has cycles, and two
+ * people who certified each other would otherwise be fetched for ever.
+ */
+static void fetch_certifiers(char **terms, int nterms, int depth,
+                             const char *keyservers)
+{
+    static char seen[512][17];
+    size_t nseen = 0;
+    /* Wide enough for a fingerprint: the first level is whatever the caller
+     * asked for, and truncating that to a short key identifier left gpg with
+     * nothing to list. */
+    char level[64][64];
+    size_t nlevel = 0;
+
+    for (int i = 0; i < nterms && nlevel < 64; i++)
+        snprintf(level[nlevel++], sizeof level[0], "%.63s", terms[i]);
+
+    while (depth-- > 0 && nlevel) {
+        char args[80][64];
+        const char *argv2[84];
+        size_t n = 0;
+        argv2[n++] = "--with-colons";
+        argv2[n++] = "--list-sigs";
+        for (size_t i = 0; i < nlevel && n < 82; i++) {
+            /* Bounded explicitly: level[] holds "0x" plus sixteen hex
+             * characters, but the compiler cannot see that from here. */
+            snprintf(args[i], sizeof args[0], "%.63s", level[i]);
+            argv2[n++] = args[i];
+        }
+        argv2[n] = NULL;
+
+        char listing[262144] = "";
+        if (pgpid_capture_engine(argv2, listing, sizeof listing) <= 0)
+            return;
+
+        nlevel = 0;
+        for (char *line = strtok(listing, "\n"); line; line = strtok(NULL, "\n")) {
+            if (strncmp(line, "sig:", 4))
+                continue;
+            /* Field 5 of a sig record is the signer's key identifier. */
+            char *f = line;
+            for (int c = 0; c < 4 && f; c++)
+                f = strchr(f + 1, ':');
+            if (!f)
+                continue;
+            char kid[17] = "";
+            snprintf(kid, sizeof kid, "%.16s", f + 1);
+            if (strlen(kid) != 16)
+                continue;
+            bool known = false;
+            for (size_t i = 0; i < nseen && !known; i++)
+                known = !strcmp(seen[i], kid);
+            if (known || nseen >= 512)
+                continue;
+            snprintf(seen[nseen++], sizeof seen[0], "%s", kid);
+            char term[19];
+            snprintf(term, sizeof term, "0x%s", kid);
+            pgpid_refresh(term, keyservers);
+            if (nlevel < 64)
+                snprintf(level[nlevel++], sizeof level[0], "%s", term);
+        }
+    }
+}
+
 int pgpid_action_cert_get(int argc, char **argv)
 {
     bool only_fpr = false, only_mbox = false, fetch = true;
     const char *import_from = NULL;
+    int recurse = 0;
     const char *keyservers = NULL;
     long errexit = -1;
     int first = 0;
 
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
-        if (!strcmp(a, "--import-from") || !strcmp(a, "--importfrom")) {
+        if (!strcmp(a, "-r") || !strcmp(a, "--recurse")) {
+            recurse = 1;
+        } else if (!strncmp(a, "--recurse=", 10)) {
+            recurse = atoi(a + 10);
+            if (recurse < 0 || recurse > 6) {
+                pgpid_error(_("Error: --recurse takes a number in 0..6."));
+                return PGPID_USAGE;
+            }
+        } else if (!strcmp(a, "--import-from") || !strcmp(a, "--importfrom")) {
             if (i + 1 >= argc) {
                 pgpid_error(_("Error: --import-from wants a file."));
                 return PGPID_USAGE;
@@ -183,6 +260,9 @@ int pgpid_action_cert_get(int argc, char **argv)
     } else if (fetch && !everything) {
         for (int i = first; i < argc; i++)
             pgpid_refresh(argv[i], keyservers ? keyservers : PGPID_KEYSERVERS);
+        if (recurse)
+            fetch_certifiers(argv + first, argc - first, recurse,
+                             keyservers ? keyservers : PGPID_KEYSERVERS);
     }
 
     /* One pattern at a time, as the engine takes them; several terms are
