@@ -95,6 +95,8 @@ static const struct {
     { "system_users",      N_("This computer"),
       N_("List the accounts, and which are PGP ID entities"), pgpid_action_system_users },
 
+    { "system_confhome",   NULL,
+      N_("Lay out a home directory for PGP ID use"),         pgpid_action_system_confhome },
     { "system_admins",     NULL,
       N_("List, add or remove local administrators"),        pgpid_action_system_admins },
 
