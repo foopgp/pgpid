@@ -349,9 +349,14 @@ static void seed_keyring(const char *account, const char *fpr)
     close(fd);
     free(raw);
     chmod(path, 0644);              /* a public certificate, read by another user */
-    if (written)
+    if (written) {
         run("su - '%s' -c 'gpg --batch --quiet --import %s' >/dev/null 2>&1",
             account, path);
+        /* gpg leaves an agent running, and a process belonging to the account
+         * is what makes userdel refuse to remove it later -- which is how this
+         * was found: the account opened, and would not close. */
+        run("su - '%s' -c 'gpgconf --kill all' >/dev/null 2>&1", account);
+    }
     unlink(path);
 }
 

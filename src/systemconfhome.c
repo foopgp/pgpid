@@ -148,8 +148,21 @@ int pgpid_action_system_confhome(int argc, char **argv)
         if (!do_.ssh)     strcat(flags, " --no-ssh");
         if (!do_.git)     strcat(flags, " --no-git");
         if (!do_.face)    strcat(flags, " --no-face");
+        /* Our own path is the right thing for the other account to run -- but
+         * only if it can reach it. A binary sitting in somebody's home is not
+         * readable by anybody else, which is exactly the case while it is
+         * being tried out, and the shell says nothing but "Permission denied".
+         * So it is asked first, and the installed name is the fallback. */
+        char probe[1024];
+        snprintf(probe, sizeof probe, "su - '%s' -c 'test -x \"%s\"' >/dev/null 2>&1",
+                 pw->pw_name, pgpid_self());
+        bool reachable = system(probe) == 0;
+        if (!reachable)
+            pgpid_error(_("Notice: '%s' cannot reach %s; the installed %s is used instead."),
+                        pw->pw_name, pgpid_self(), PGPID_NAME);
         return run("su - '%s' -c '\"%s\" system_confhome%s'",
-                   pw->pw_name, pgpid_self(), flags) ? PGPID_FAIL : PGPID_OK;
+                   pw->pw_name, reachable ? pgpid_self() : PGPID_NAME, flags)
+               ? PGPID_FAIL : PGPID_OK;
     }
 
     const char *home = pw->pw_dir;

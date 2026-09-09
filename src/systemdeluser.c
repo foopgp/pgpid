@@ -197,6 +197,8 @@ int pgpid_action_system_deluser(int argc, char **argv)
             if (last ? tool("userdel", "--remove", list[i], NULL)
                      : tool("userdel", list[i], NULL)) {
                 pgpid_error(_("Error: '%s' could not be removed."), list[i]);
+                pgpid_error(_("Notice: A process of its own still holds it; 'pkill --uid %lu' ends those."),
+                            (unsigned long)uid);
                 ret = PGPID_FAIL;
                 continue;
             }
