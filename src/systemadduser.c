@@ -162,7 +162,10 @@ static void usage(FILE *out)
         "                           for files the old account owned, not only its home and\n"
         "                           the usual places\n"
         "  -h, --help               Print this help and exit\n"
-        "  -V, --version            Print the version and exit\n"),
+        "  -V, --version            Print the version and exit\n"
+        "\n"
+        "An account that is already there is answered with 11 rather than a plain\n"
+        "failure: a caller wanting to say so needs to tell it apart from the rest.\n"),
             PGPID_NAME, PGPID_NAME);
 }
 
@@ -682,7 +685,7 @@ int pgpid_action_system_adduser(int argc, char **argv)
         pgpid_error(_("Notice: '--migrate %s' brings an existing one up to date."), e.eid);
         if (scratched)
             run("rm --recursive --force '%s'", scratch);
-        return PGPID_FAIL;
+        return PGPID_EXISTS;
     } else {
         char groups[256];
         hardware_groups(groups, sizeof groups);

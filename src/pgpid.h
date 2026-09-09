@@ -49,6 +49,7 @@
  * search is an answer. bl-pgpid says 141 here and so do we. */
 /* The shell libraries answer 42 when the person said no; a caller that
  * drives both should not have to learn two vocabularies. */
+#define PGPID_EXISTS  11   /* what was asked for is already there */
 #define PGPID_CANCEL  42
 #define PGPID_NOTHING 141
 
