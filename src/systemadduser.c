@@ -20,18 +20,20 @@
  * account is not always whoever furnishes it.
  *
  * What shadow allows shapes all of this, and it was measured rather than
- * assumed (Debian 13, shadow 4.17.4):
+ * assumed (Debian 13, shadow 4.17.4). One limit, and it is a length:
  *
- *   - a name has to match [a-z_][a-z0-9_.-]*, and an identifier is base64url,
- *     so it holds capitals. useradd and usermod take --badname and accept it;
- *     groupadd and groupmod have no such option and refuse outright. So the
- *     group of a new account is made by useradd itself and renumbered after,
- *     and a group being moved keeps the name it had.
- *   - --badname prints "deprecated and will be removed". The day it goes,
- *     naming an account by its identifier goes with it.
- *   - Debian's adduser refuses a name over 32 bytes. A u4 is 38, so adduser
- *     is out of the question here and useradd is called directly -- which is
- *     also what the shell libraries ended up doing, for their own reasons.
+ *   - capitals, digits, dots, dashes and underscores are all fine, so an
+ *     identifier is an account name as it stands. useradd takes one of any
+ *     length -- 39 characters went in with nothing asked for.
+ *   - groupadd, and groupmod --new-name, refuse a name over 32 characters:
+ *     GROUP_NAME_MAX_LENGTH, which is the size of utmpx's ut_user. A u5 is
+ *     exactly 32 and passes; a u4 is 38 and does not. So the group of a new
+ *     account is made by useradd --user-group, which does not go through that
+ *     check, and renumbered on the line after -- and a group being moved
+ *     keeps the name it had, because renaming it is the one thing refused.
+ *   - Debian's adduser has a policy of its own, NAME_REGEX in adduser.conf,
+ *     stricter than shadow's and configurable. useradd is called directly,
+ *     which is also where the shell libraries ended up.
  *
  * Every one of these tools is driven through its argument list and never
  * through a shell line: the name, the address and the GECOS fields all come
@@ -97,32 +99,6 @@ static int tool(const char *stdin_text, ...)
     va_end(ap);
     argv[n] = NULL;
     return pgpid_run_program(argv, stdin_text, NULL);
-}
-
-/**
- * Does this tool take '--badname'?
- *
- * Asked rather than assumed: shadow before 4.13 only warned about a name it
- * disliked and has no such option, and passing it there would turn a working
- * call into a usage error. Only useradd and usermod answer yes.
- */
-static bool takes_badname(const char *program)
-{
-    static const char *asked[4];
-    static bool answer[4];
-    static size_t n = 0;
-    for (size_t i = 0; i < n; i++)
-        if (!strcmp(asked[i], program))
-            return answer[i];
-    char cmd[128];
-    snprintf(cmd, sizeof cmd, "%s --badname --help >/dev/null 2>&1", program);
-    bool takes = system(cmd) == 0;
-    if (n < 4) {
-        asked[n] = program;
-        answer[n] = takes;
-        n++;
-    }
-    return takes;
 }
 
 static void usage(FILE *out)
@@ -382,15 +358,15 @@ static int add_alias(const struct entity *e, const char *alias, const char *shel
     gecos_line(e, gecos, sizeof gecos);
     snprintf(number, sizeof number, "%lu", (unsigned long)e->uid);
     snprintf(home, sizeof home, "/home/%s", e->eid);
-    /* An alias is a name a person types, so it is a name shadow already
-     * takes: groupadd needs no talking round for this one. A group of that
-     * name already carrying the account's number is the same group, not a
-     * clash -- an account closed while something still held it leaves one. */
+    /* An alias is a name a person types, so it is short: groupadd takes it as
+     * it stands. A group of that name already carrying the account's number is
+     * the same group, not a clash -- an account closed while something still
+     * held it leaves exactly one of those. */
     const struct group *g = getgrnam(alias);
     bool group_here = g && g->gr_gid == e->uid;
     if ((!group_here && tool(NULL, "groupadd", "--non-unique", "--gid", number, alias, NULL))
-     || tool(NULL, "useradd", takes_badname("useradd") ? "--badname" : "--non-unique",
-             "--non-unique", "--uid", number, "--gid", number, "--no-create-home",
+     || tool(NULL, "useradd", "--non-unique",
+             "--uid", number, "--gid", number, "--no-create-home",
              "--home-dir", home, "--shell", shell, "--comment", gecos, alias, NULL)) {
         pgpid_error(_("Warning: The account stands, but '%s' could not be added beside it."),
                     alias);
@@ -633,8 +609,6 @@ int pgpid_action_system_adduser(int argc, char **argv)
 
     char number[24];
     snprintf(number, sizeof number, "%lu", (unsigned long)e.uid);
-    const char *bad = takes_badname("usermod") ? "--badname" : "--non-unique";
-
     if (oldpw) {
         /* Moving an account: it keeps its files, its number changes, and the
          * name it had becomes the alias unless another was asked for. */
@@ -651,7 +625,7 @@ int pgpid_action_system_adduser(int argc, char **argv)
 
         pgpid_error(_("Info: Moving '%s' to %s."), oldname, e.eid);
         if (strcmp(oldname, e.eid)) {
-            if (tool(NULL, "usermod", bad, "--login", e.eid,
+            if (tool(NULL, "usermod", "--login", e.eid,
                      "--home", home, "--move-home", oldname, NULL)) {
                 pgpid_error(_("Error: '%s' could not be renamed; nothing was changed."), oldname);
                 if (scratched)
@@ -659,20 +633,21 @@ int pgpid_action_system_adduser(int argc, char **argv)
                 return PGPID_FAIL;
             }
         } else if (strcmp(oldhome, home)) {
-            tool(NULL, "usermod", bad, "--home", home, "--move-home", e.eid, NULL);
+            tool(NULL, "usermod", "--home", home, "--move-home", e.eid, NULL);
         }
         if (was != e.uid) {
             if (*oldgroup)
                 tool(NULL, "groupmod", "--non-unique", "--gid", number, oldgroup, NULL);
-            tool(NULL, "usermod", bad, "--non-unique",
+            tool(NULL, "usermod", "--non-unique",
                  "--uid", number, "--gid", number, e.eid, NULL);
         }
-        tool(NULL, "usermod", bad, "--comment", gecos, e.eid, NULL);
-        /* groupmod has no --badname and will not rename a group to something
-         * holding capitals, so the group an account already had keeps its
-         * name. That name is the alias, which is where it belongs anyway. */
+        tool(NULL, "usermod", "--comment", gecos, e.eid, NULL);
+        /* groupmod --new-name goes through the 32-character check, so a group
+         * an account already had keeps its name when the identifier is longer
+         * than that. The name it keeps is the alias, which is where it
+         * belongs anyway. */
         if (*oldgroup && strcmp(oldgroup, e.eid))
-            pgpid_error(_("Notice: The group stays '%s' (%lu): shadow names no group after an identifier."),
+            pgpid_error(_("Notice: The group stays '%s' (%lu): a group name stops at 32 characters."),
                         oldgroup, (unsigned long)e.uid);
         /* usermod chowns the home and nothing else; a file the account owns
          * anywhere else would keep a number that is now somebody else's. */
@@ -689,16 +664,14 @@ int pgpid_action_system_adduser(int argc, char **argv)
     } else {
         char groups[256];
         hardware_groups(groups, sizeof groups);
-        /* useradd makes the group itself, because groupadd will not: a name
-         * with capitals is refused there and there is no telling it otherwise.
-         * The number it picks for that group is the next free one rather than
-         * the account's, so it is put right on the line after -- and until
-         * then the account is the only member, so nothing else sees it. */
+        /* useradd makes the group itself, because groupadd will not take a
+         * name over 32 characters and a u4 is 38. The number it picks for that
+         * group is the next free one rather than the account's, so it is put
+         * right on the line after -- and until then the account is its only
+         * member, so nothing else sees it. */
         const char *av[24];
         size_t n = 0;
         av[n++] = "useradd";
-        if (takes_badname("useradd"))
-            av[n++] = "--badname";
         av[n++] = "--user-group";
         av[n++] = "--non-unique";
         av[n++] = "--uid";          av[n++] = number;
