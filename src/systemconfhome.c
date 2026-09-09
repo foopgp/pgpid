@@ -152,16 +152,30 @@ int pgpid_action_system_confhome(int argc, char **argv)
          * only if it can reach it. A binary sitting in somebody's home is not
          * readable by anybody else, which is exactly the case while it is
          * being tried out, and the shell says nothing but "Permission denied".
-         * So it is asked first, and the installed name is the fallback. */
-        char probe[1024];
-        snprintf(probe, sizeof probe, "su - '%s' -c 'test -x \"%s\"' >/dev/null 2>&1",
-                 pw->pw_name, pgpid_self());
-        bool reachable = system(probe) == 0;
-        if (!reachable)
-            pgpid_error(_("Notice: '%s' cannot reach %s; the installed %s is used instead."),
-                        pw->pw_name, pgpid_self(), PGPID_NAME);
+         * So each candidate is asked, in order: what is running, then the two
+         * names this program is installed under -- foodjis ships it as
+         * pgpid-mip, so naming only 'pgpid' would miss it on every Djibian. */
+        const char *candidates[] = { pgpid_self(), PGPID_NAME, "pgpid-mip" };
+        const char *use = NULL;
+        for (size_t i = 0; i < sizeof candidates / sizeof *candidates && !use; i++) {
+            char probe[1024];
+            snprintf(probe, sizeof probe, "su - '%s' -c 'command -v \"%s\" >/dev/null' >/dev/null 2>&1",
+                     pw->pw_name, candidates[i]);
+            if (system(probe) == 0)
+                use = candidates[i];
+        }
+        if (!use) {
+            pgpid_error(_("Error: '%s' can reach no copy of this program, so its home cannot be laid out."),
+                        pw->pw_name);
+            pgpid_error(_("Notice: %s is not readable by them, and neither name is installed."),
+                        pgpid_self());
+            return PGPID_FAIL;
+        }
+        if (strcmp(use, pgpid_self()))
+            pgpid_error(_("Notice: '%s' cannot reach %s; '%s' is used instead."),
+                        pw->pw_name, pgpid_self(), use);
         int ret = run("su - '%s' -c '\"%s\" system_confhome%s'",
-                      pw->pw_name, reachable ? pgpid_self() : PGPID_NAME, flags);
+                      pw->pw_name, use, flags);
         /* gpg leaves an agent running in that home, and it belongs to the
          * account without belonging to any session of theirs -- it sits in
          * the slice of whoever ran this. It would then hold the account
