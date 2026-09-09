@@ -160,9 +160,14 @@ int pgpid_action_system_confhome(int argc, char **argv)
         if (!reachable)
             pgpid_error(_("Notice: '%s' cannot reach %s; the installed %s is used instead."),
                         pw->pw_name, pgpid_self(), PGPID_NAME);
-        return run("su - '%s' -c '\"%s\" system_confhome%s'",
-                   pw->pw_name, reachable ? pgpid_self() : PGPID_NAME, flags)
-               ? PGPID_FAIL : PGPID_OK;
+        int ret = run("su - '%s' -c '\"%s\" system_confhome%s'",
+                      pw->pw_name, reachable ? pgpid_self() : PGPID_NAME, flags);
+        /* gpg leaves an agent running in that home, and it belongs to the
+         * account without belonging to any session of theirs -- it sits in
+         * the slice of whoever ran this. It would then hold the account
+         * against system_deluser, and nothing else would explain why. */
+        run("su - '%s' -c 'gpgconf --kill all' >/dev/null 2>&1", pw->pw_name);
+        return ret ? PGPID_FAIL : PGPID_OK;
     }
 
     const char *home = pw->pw_dir;

@@ -18,6 +18,7 @@
 
 #include <dirent.h>
 #include <grp.h>
+#include <signal.h>
 #include <pwd.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -29,25 +30,33 @@
 
 #define MAX_NAMES 8
 
-/** Is anything still running under this number? */
-static bool anything_running(uid_t uid)
+/**
+ * Signal every process belonging to this number, and say how many.
+ *
+ * A signal of 0 asks without sending anything, which is how "is there still
+ * something there" is answered without a second walk of /proc.
+ */
+static unsigned signal_processes(uid_t uid, int sig)
 {
     DIR *d = opendir("/proc");
     if (!d)
-        return false;
-    bool found = false;
+        return 0;
+    unsigned n = 0;
     const struct dirent *e;
-    while (!found && (e = readdir(d))) {
+    while ((e = readdir(d))) {
         if (e->d_name[0] < '0' || e->d_name[0] > '9')
             continue;
         char path[300];
         snprintf(path, sizeof path, "/proc/%s", e->d_name);
         struct stat st;
-        if (!stat(path, &st) && st.st_uid == uid)
-            found = true;
+        if (stat(path, &st) || st.st_uid != uid)
+            continue;
+        pid_t pid = (pid_t)strtol(e->d_name, NULL, 10);
+        if (pid > 1 && (!sig || !kill(pid, sig)))
+            n++;
     }
     closedir(d);
-    return found;
+    return n;
 }
 
 /**
@@ -67,8 +76,25 @@ static void end_sessions(const char *name, uid_t uid)
 {
     const char *argv[] = { "loginctl", "terminate-user", name, NULL };
     pgpid_run_program(argv, NULL, "/dev/null:stderr");
-    for (unsigned i = 0; i < 20 && anything_running(uid); i++)
+    for (unsigned i = 0; i < 10 && signal_processes(uid, 0); i++)
         usleep(100000);
+    if (!signal_processes(uid, 0))
+        return;
+
+    /* loginctl reaches what is in the account's own slice, and a daemon
+     * started for it from somebody else's session is not in one: the
+     * gpg-agent system_confhome leaves in that home sits in the slice of
+     * whoever ran it, and loginctl answers that the account is not even
+     * logged in. So what is left is asked, then told. Somebody actually
+     * sitting in the account was refused several steps ago; this is what
+     * remains of it, and closing an account means closing it. */
+    unsigned asked = signal_processes(uid, SIGTERM);
+    for (unsigned i = 0; i < 20 && signal_processes(uid, 0); i++)
+        usleep(100000);
+    unsigned told = signal_processes(uid, SIGKILL);
+    if (asked || told)
+        pgpid_error(_("Notice: %u process of '%s' had to be ended (%u of them the hard way)."),
+                    asked > told ? asked : told, name, told);
 }
 
 /** An account tool, by argument list. No argument may be NULL but the last. */
