@@ -593,6 +593,23 @@ bool pgpid_preferred_address(const struct pgpid_key *key, char *out, size_t max)
     return true;
 }
 
+/* Our own path, so that a part of this program calling another part reaches
+ * the binary that is running rather than whatever "pgpid" resolves to -- or
+ * fails to resolve to, which is what happens on a machine where it is built
+ * but not installed. */
+const char *pgpid_self(void)
+{
+    static char path[512];
+    if (*path)
+        return path;
+    ssize_t n = readlink("/proc/self/exe", path, sizeof path - 1);
+    if (n > 0)
+        path[n] = '\0';
+    else
+        snprintf(path, sizeof path, "%s", PGPID_NAME);
+    return path;
+}
+
 bool pgpid_uid_stands(char validity)
 {
     return strchr("ounmfqws-", validity) != NULL;

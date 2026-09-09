@@ -377,6 +377,8 @@ size_t pgpid_list_uids(const char *user, bool secret,
                        struct pgpid_uid *out, size_t max);
 
 /* Does this uid still stand — not revoked, not expired, not disabled? */
+/** The path of the running binary, for the parts that call other parts. */
+const char *pgpid_self(void);
 bool pgpid_uid_stands(char validity);
 /** The address an entity is written to: the primary uid when it carries one,
  *  else the most recent standing uid that does. One rule for the listing, the

@@ -156,8 +156,8 @@ int pgpid_action_system_confhome(int argc, char **argv)
         if (!do_.ssh)     strcat(flags, " --no-ssh");
         if (!do_.git)     strcat(flags, " --no-git");
         if (!do_.face)    strcat(flags, " --no-face");
-        return run("su - '%s' -c '%s system_confhome%s'",
-                   pw->pw_name, PGPID_NAME, flags) ? PGPID_FAIL : PGPID_OK;
+        return run("su - '%s' -c '\"%s\" system_confhome%s'",
+                   pw->pw_name, pgpid_self(), flags) ? PGPID_FAIL : PGPID_OK;
     }
 
     const char *home = pw->pw_dir;
@@ -233,8 +233,8 @@ int pgpid_action_system_confhome(int argc, char **argv)
         snprintf(face, sizeof face, "%s/.face", home);
         run("mkdir --parents '%s'", work);
         char cmd[1024];
-        snprintf(cmd, sizeof cmd, "%s cert_avatar --workdir '%s' '%s' 2>/dev/null",
-                 PGPID_NAME, work, fpr);
+        snprintf(cmd, sizeof cmd, "'%s' cert_avatar --workdir '%s' '%s' 2>/dev/null",
+                 pgpid_self(), work, fpr);
         FILE *pipe = popen(cmd, "r");
         char path[512] = "";
         if (pipe) {
