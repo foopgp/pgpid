@@ -431,6 +431,10 @@ bool pgpid_token_remember(const char *serial, const char *info);
 bool pgpid_token_forget(const char *serial);
 bool pgpid_token_recall(const char *serial, char *out, size_t max);
 size_t pgpid_token_known(char serials[][64], size_t max);
+/** The signing fingerprint of the security key seen most recently, which is
+ *  the connected one whenever there is one: token_check writes its note as it
+ *  checks. */
+bool pgpid_token_last_signing_key(char *out, size_t max);
 int pgpid_action_secret_list(int argc, char **argv);
 int pgpid_action_secret_del(int argc, char **argv);
 int pgpid_action_cert_revoke(int argc, char **argv);

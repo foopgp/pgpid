@@ -139,3 +139,44 @@ size_t pgpid_token_known(char serials[][64], size_t max)
     closedir(d);
     return n;
 }
+
+/** One key='value' line out of a note. */
+static bool note_value(const char *note, const char *key, char *out, size_t max)
+{
+    char want[64];
+    snprintf(want, sizeof want, "\n%s='", key);
+    const char *at = strstr(note, want + 1) == note ? note : strstr(note, want);
+    if (!at)
+        return false;
+    at = strchr(at, '\'');
+    if (!at)
+        return false;
+    at++;
+    const char *end = strchr(at, '\'');
+    if (!end)
+        return false;
+    snprintf(out, max, "%.*s", (int)(end - at), at);
+    return *out != '\0';
+}
+
+bool pgpid_token_last_signing_key(char *out, size_t max)
+{
+    char serials[64][64];
+    size_t n = pgpid_token_known(serials, 64);
+    char best_seen[32] = "", note[4096], seen[32], fpr[41];
+    *out = '\0';
+    for (size_t i = 0; i < n; i++) {
+        if (!pgpid_token_recall(serials[i], note, sizeof note))
+            continue;
+        if (!note_value(note, "pgpid_Skeyfpr", fpr, sizeof fpr))
+            continue;
+        if (!note_value(note, "token_seen", seen, sizeof seen))
+            continue;
+        /* ISO-8601 in UTC, so the newest is the greatest string. */
+        if (strcmp(seen, best_seen) <= 0)
+            continue;
+        snprintf(best_seen, sizeof best_seen, "%s", seen);
+        snprintf(out, max, "%s", fpr);
+    }
+    return *out != '\0';
+}

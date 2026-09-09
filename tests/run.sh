@@ -151,15 +151,18 @@ gpg --batch --yes --quiet --passphrase '' --pinentry-mode loopback \
     --default-key "$WFPR" --quick-sign-key "$FPR" >/dev/null 2>&1
 
 out=$("$BIN" cert_sigs "$FPR")
-is "finds the one certifier"      "$(wc --lines <<<"$out")" "1"
-is "names it by key identifier"   "$(awk '{print $2}' <<<"$out")" "$WKEYID"
-is "dates it"                     "$(awk '{print $1}' <<<"$out" | grep --count --extended-regexp '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')" "1"
+# The witness, and the certificate's own signature, which counts now: onak
+# counts it, and leaving it out made our number disagree with the keyserver's.
+is "finds the certifier and the self-signature" "$(wc --lines <<<"$out")" "2"
+is "names them by fingerprint"    "$(awk '{print $1}' <<<"$out" | grep --count --extended-regexp '^[0-9A-F]{40}$')" "2"
+is "and dates them last"          "$(awk '{print $4}' <<<"$out" | grep --count --extended-regexp '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')" "2"
 out=$("$BIN" --output-format=info cert_sigs "$FPR")
-is "info format gives key=value"  "$(grep --only-matching "keyid=${WKEYID}" <<<"$out")" "keyid=${WKEYID}"
-is "merging every uid says the same" "$("$BIN" cert_sigs --all-uids "$FPR" | wc --lines)" "1"
-# The witness signed nobody, and its own self-signature must not count.
-"$BIN" cert_sigs "$WFPR" >/dev/null 2>&1
-is "leaves self-signatures out"   "$?" "141"
+is "info format gives key=value"  "$(grep --count "fingerprint=" <<<"$out")" "2"
+is "merging every uid says the same" "$("$BIN" cert_sigs --all-uids "$FPR" | wc --lines)" "2"
+is "--no-self-sig puts it back out" "$("$BIN" cert_sigs --no-self-sig "$FPR" | wc --lines)" "1"
+# The witness signed nobody, so with its own signature left out there is nothing.
+"$BIN" cert_sigs --no-self-sig "$WFPR" >/dev/null 2>&1
+is "and says 141 when that leaves nothing" "$?" "141"
 
 printf '\navatar\n'
 # A certificate wearing two standing images is out of spec and it happened:
