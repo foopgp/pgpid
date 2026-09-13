@@ -240,6 +240,20 @@ is "--no-self-sig puts it back out" "$("$BIN" cert_sigs --no-self-sig "$FPR" | w
 "$BIN" cert_sigs --no-self-sig "$WFPR" >/dev/null 2>&1
 is "and says 141 when that leaves nothing" "$?" "141"
 
+# A certifier we do not hold. Printing '-' made the commonest case of all --
+# somebody vouched for this and we have never met them -- into a dead end,
+# when the identifier its signature carries is exactly what a search takes.
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-generate-key "passer-by <passer@example.invalid>" ed25519 cert never 2>/dev/null
+PFPR=$(gpg --with-colons --list-keys passer@example.invalid 2>/dev/null | awk --field-separator=: '$1=="fpr"{print $10; exit}')
+gpg --batch --yes --quiet --passphrase '' --pinentry-mode loopback \
+    --default-key "$PFPR" --quick-sign-key "$FPR" >/dev/null 2>&1
+gpg --batch --yes --quiet --delete-secret-and-public-key "$PFPR" >/dev/null 2>&1
+out=$("$BIN" cert_sigs "$FPR")
+is "an unheld certifier keeps its key identifier" \
+   "$(awk '{print $1}' <<<"$out" | grep --count --extended-regexp "^${PFPR: -16}$")" "1"
+is "and no row is ever a dash"    "$(awk '$1=="-"' <<<"$out" | wc --lines)" "0"
+
 printf '\navatar\n'
 # A certificate wearing two standing images is out of spec and it happened:
 # one arrived on 2026-08-20, and the reader that took whichever packet came

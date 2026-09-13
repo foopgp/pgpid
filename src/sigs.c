@@ -15,12 +15,16 @@
  * Each row is fingerprint, identifier, address, date -- the same first three
  * columns as every other listing. The certifier is looked up in the keyring,
  * not read off the signature record, which carries whichever user id gpg
- * happened to write and for some certificates is no address at all. The
- * fingerprint is what goes
- * back into a search to walk one step further, and it is the identifier
- * rather than the fingerprint because a signature packet only carries the
- * former — which is also why a search on it may find more than one
- * certificate, and why it is the caller's business to say which.
+ * happened to write and for some certificates is no address at all.
+ *
+ * The first column is what goes back into a search to walk one step further.
+ * It is the fingerprint when the keyring holds the certifier and the key
+ * identifier when it does not — sixteen characters against forty, which is
+ * how the caller tells the two apart. It is never '-': a signature packet
+ * always names its signer, and printing nothing turned "we have not met this
+ * one yet" into a dead end where the whole point was to go and fetch them.
+ * A search on an identifier may find more than one certificate, and which is
+ * the caller's business to say.
  *
  * Self-signatures are counted, as onak counts them. Leaving them out made our
  * number disagree with the keyserver's for no reason a reader could see;
@@ -222,7 +226,12 @@ int pgpid_action_cert_sigs(int argc, char **argv)
      * that is one. */
     struct pgpid_keyring *all = pgpid_keys_load(NULL, 0, 0);
     for (size_t i = 0; i < n; i++) {
-        snprintf(rows[i].fpr, sizeof rows[i].fpr, "-");
+        /* The key identifier until something better is found. A certifier the
+         * keyring has not got used to print '-', which is a dead end: the
+         * identifier is all a signature packet carries and it is exactly what
+         * a search takes to go and fetch the certificate. Forty characters
+         * mean we hold it, sixteen mean we do not and know where to ask. */
+        snprintf(rows[i].fpr, sizeof rows[i].fpr, "%s", rows[i].keyid);
         if (!all)
             continue;
         for (size_t k = 0; k < pgpid_keys_count(all); k++) {
