@@ -225,52 +225,17 @@ static void usage(FILE *out)
             PGPID_NAME);
 }
 
-/** The certificate's own FN, which has room where the card's field has not. */
+/**
+ * The certificate's own FN, which has room where the card's field has not.
+ *
+ * The reading itself lives in common.c, so that a certificate is called the
+ * same thing here, on a vCard, and in a list of certifiers.
+ */
 static bool certificate_name(const char *fpr, char *out, size_t max)
 {
     const char *pat[] = { fpr };
     struct pgpid_keyring *kr = pgpid_keys_load(pat, 1, 0);
-    const struct pgpid_key *key = pgpid_keys_at(kr, 0);
-    bool found = false;
-    if (key) {
-        char validity[256];
-        size_t nvalid = pgpid_uid_validities(fpr, validity, sizeof validity);
-        for (size_t k = 0; k < key->nuid && !found; k++) {
-            const struct pgpid_keyuid *u = &key->uid[k];
-            char l = (k < nvalid) ? validity[k] : '-';
-            if (!strchr("ounmfqws-", l))
-                continue;
-            if (strncmp(u->text, "FN", 2))
-                continue;
-            const char *p = u->text + 2;
-            if (*p == ';')
-                p = strchr(p, ':');
-            if (!p || *p != ':')
-                continue;
-            p++;
-            if (*p == ' ')
-                p++;
-            /* RFC 6350 §3.4 escapes, undone. The backslash goes last so its
-             * own undoing does not eat the others. */
-            size_t o = 0;
-            for (; *p && o + 1 < max; p++) {
-                if (*p != '\\') {
-                    out[o++] = *p;
-                    continue;
-                }
-                switch (*++p) {
-                case 'n': case 'N': out[o++] = '\n'; break;
-                case ',': out[o++] = ','; break;
-                case ';': out[o++] = ';'; break;
-                case '\\': out[o++] = '\\'; break;
-                case '\0': out[o++] = '\\'; p--; break;
-                default: out[o++] = '\\'; out[o++] = *p; break;
-                }
-            }
-            out[o] = '\0';
-            found = o > 0;
-        }
-    }
+    bool found = pgpid_key_name(pgpid_keys_at(kr, 0), out, max);
     pgpid_keys_free(kr);
     return found;
 }

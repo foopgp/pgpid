@@ -736,6 +736,36 @@ const char *pgpid_uid_property(const char *uid, char *name, size_t max)
 }
 
 /**
+ * What a certificate is called: the FN it carries, or nothing.
+ *
+ * FN is the field made to hold a name, and the only one that is a name: an
+ * address is where to write, an identifier is who, a comment is whatever
+ * somebody typed. Read here rather than in each caller, so that a certificate
+ * is called the same thing by the card writer, the key page and the list of
+ * certifiers.
+ *
+ * Revoked and unusable uids are passed over: a name its owner has taken back
+ * is not what they are called.
+ */
+bool pgpid_key_name(const struct pgpid_key *key, char *out, size_t max)
+{
+    if (!key || !out || !max)
+        return false;
+    for (size_t k = 0; k < key->nuid; k++) {
+        const struct pgpid_keyuid *u = &key->uid[k];
+        if (u->revoked || u->invalid)
+            continue;
+        char name[64];
+        const char *value = pgpid_uid_property(u->text, name, sizeof name);
+        if (!value || strcmp(name, "FN") || !*value)
+            continue;
+        snprintf(out, max, "%s", value);
+        return true;
+    }
+    return false;
+}
+
+/**
  * The account named USER, or the one whose identifier is EID.
  *
  * The two name the same thing: an entity holds an entry under its identifier

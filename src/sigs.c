@@ -41,6 +41,7 @@ struct row {
     char *email;
     char fpr[41];
     char *eid;
+    char *name;
     bool self;
 };
 
@@ -50,6 +51,8 @@ static void row_free(struct row *r)
     r->email = NULL;
     free(r->eid);
     r->eid = NULL;
+    free(r->name);
+    r->name = NULL;
 }
 
 /* Newest wins: a signer who certified twice has said the second thing. */
@@ -229,6 +232,9 @@ int pgpid_action_cert_sigs(int argc, char **argv)
             snprintf(rows[i].fpr, sizeof rows[i].fpr, "%s", c->fpr);
             unsigned count = 0;
             rows[i].eid = pgpid_eid_of_key(c, &count, true);
+            char fn[512];
+            if (pgpid_key_name(c, fn, sizeof fn))
+                rows[i].name = strdup(fn);
             if (!rows[i].email)
                 for (size_t ui = 0; ui < c->nuid; ui++)
                     if (*c->uid[ui].address && !c->uid[ui].revoked) {
@@ -241,10 +247,13 @@ int pgpid_action_cert_sigs(int argc, char **argv)
 
     /* Same first three columns as every other listing: what identifies, then
      * who, then how to write to them. */
+    /* The name goes last because a name has spaces in it: a reader taking the
+     * first four columns positionally is unaffected, and one that wants the
+     * name takes the rest of the line. */
     static const char *const COLUMNS[] = {
-        "fingerprint", "eid", "email", "certification_date",
+        "fingerprint", "eid", "email", "certification_date", "name",
     };
-    pgpid_table_start(COLUMNS, 4);
+    pgpid_table_start(COLUMNS, 5);
     for (size_t i = 0; i < n; i++) {
         char date[11] = "-";
         if (rows[i].timestamp > 0) {
@@ -256,7 +265,8 @@ int pgpid_action_cert_sigs(int argc, char **argv)
         const char *values[] = { rows[i].fpr,
                                  rows[i].eid ? rows[i].eid : "-",
                                  rows[i].email ? rows[i].email : "-",
-                                 date };
+                                 date,
+                                 rows[i].name ? rows[i].name : "-" };
         pgpid_table_row(values);
         row_free(&rows[i]);
     }

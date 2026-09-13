@@ -384,6 +384,9 @@ bool pgpid_primary_uid(const char *user, char *out, size_t max);
 unsigned pgpid_uid_index(const char *user, const char *text);
 /** Is this uid one of ours, `PROPERTY:value` or `PROPERTY;PARAM:value`? */
 const char *pgpid_uid_property(const char *uid, char *name, size_t max);
+/** The name a certificate carries on its FN uid, or false. One reading for
+ *  the card writer, the key page and the list of certifiers. */
+bool pgpid_key_name(const struct pgpid_key *key, char *out, size_t max);
 /** The account named USER, or the one whose identifier is EID. */
 bool pgpid_account_name(const char *who, char *out, size_t max);
 /** The identifier an account carries: in its name, or in the path of its home. */
