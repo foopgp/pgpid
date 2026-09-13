@@ -91,9 +91,19 @@ static bool take_email(const char *line, char *out, size_t max)
         const char *end = at + 1;
         while (*end && (isalnum((unsigned char)*end) || *end == '.' || *end == '-'))
             end++;
-        /* A domain needs a dot and letters after it, or it is not one. */
-        const char *dot = memchr(at, '.', (size_t)(end - at));
-        if (start == at || !dot || dot + 1 >= end)
+        /* A sentence's full stop is not part of the address it ends. */
+        while (end > at + 1 && end[-1] == '.')
+            end--;
+        /* A domain needs a dot, and its *last* label must be letters -- the
+         * first dot is the wrong one to look at, and looking there is how
+         * "a@mail.example.org" and "a@example.co.uk" were both thrown away:
+         * anything with more than two labels failed. Two letters at least,
+         * since no top-level domain is shorter. */
+        const char *dot = NULL;
+        for (const char *p = at + 1; p < end; p++)
+            if (*p == '.')
+                dot = p;
+        if (start == at || !dot || end - dot < 3)
             continue;
         bool tail_alpha = true;
         for (const char *p = dot + 1; p < end; p++)
