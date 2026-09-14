@@ -72,12 +72,22 @@ static void usage(FILE *out)
  */
 static char *eid_body(const char *term)
 {
+    /* Written bare and glued — `u4-zTIla…` — which is how a person types one
+     * off a screen and how the card's Login data holds it. pgpid_eid_of_uid
+     * does not see these: it looks for a *uid*, so it wants either the `UID`
+     * that opens the standard one or the `=` of the old one. Asked for the
+     * modern spelling alone it answered nothing, and the search went out
+     * verbatim — finding only certificates of that same generation, which is
+     * the whole bug this is here to close. */
+    if (pgpid_eid_body_is_sound(term))
+        return strdup(term + 2);
+
+    /* Otherwise a uid, in either spelling: `u4=…`, `udid4=…`, or the whole
+     * `UID:urn:eid:u4…`. What comes back is glued, so the body follows its
+     * first two characters. */
     char *eid = pgpid_eid_of_uid(term);
     if (!eid)
         return NULL;
-    /* pgpid_eid_of_uid answers the glued spelling, `u4…` or `u5…`; the body
-     * is what follows those two characters, and it is what both spellings
-     * have in common. */
     char *body = strlen(eid) > 2 ? strdup(eid + 2) : NULL;
     free(eid);
     return body;

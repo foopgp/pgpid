@@ -253,6 +253,17 @@ is "and written the way it used to be" \
    "$("$BIN" --batch cert_get -f -F "$LEGACY" 2>/dev/null)" "$FPR"
 is "and by its body alone, which both spellings share" \
    "$("$BIN" --batch cert_get -f -F "${EID#u5}" 2>/dev/null)" "$FPR"
+# A body that opens with '-' is not hypothetical: domvauthier@gmail.com carries
+# u4=-zTIlaHT2SgpDmfMe5HAnAe_42.17-002.76, and JJB asked for it by name. The
+# pattern reaches gpg after '--', so the dash is a character and not an option.
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-generate-key 'dash (u4=-zTIlaHT2SgpDmfMe5HAnAe_42.17-002.76) <dash@example.invalid>' \
+    ed25519 cert never 2>/dev/null
+DFPR=$(gpg --with-colons --list-keys dash@example.invalid 2>/dev/null | awk --field-separator=: '$1=="fpr"{print $10; exit}')
+is "a legacy certificate answers to the modern spelling" \
+   "$("$BIN" --batch cert_get -f -F -- 'u4-zTIlaHT2SgpDmfMe5HAnAe_42.17-002.76' 2>/dev/null)" "$DFPR"
+is "and to the one written on it" \
+   "$("$BIN" --batch cert_get -f -F -- 'u4=-zTIlaHT2SgpDmfMe5HAnAe_42.17-002.76' 2>/dev/null)" "$DFPR"
 
 # A certifier we do not hold. Printing '-' made the commonest case of all --
 # somebody vouched for this and we have never met them -- into a dead end,
