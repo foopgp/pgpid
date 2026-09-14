@@ -182,6 +182,7 @@ static int scan_camera(const char *device, const char *workdir,
                                "--oneshot", "--prescale=640x480", device, NULL };
         raw[0] = '\0';
         int rc = pgpid_capture(zbar, raw, sizeof raw);
+        bool read_something = !rc && strstr(raw, "QR-Code:");
 
         int taken = rc ? 0 : take_payloads(raw, parts, have, version, needed_less_one);
         if (taken == 3)
@@ -191,10 +192,20 @@ static int scan_camera(const char *device, const char *workdir,
             continue;
         }
         if (++empty >= 3) {
-            pgpid_error(_("Error: Nothing read from '%s' three times over."), device);
+            pgpid_error(_("Error: Three in a row that were not fragments of a secret."));
             return PGPID_FAIL;
         }
-        pgpid_error(_("Notice: No fragment in that one — try again."));
+        /* Two different disappointments, and saying which is the whole help
+         * one gets here: a camera that gave nothing back is pointed wrong or
+         * shut, while a code that is not a fragment is the wrong piece of
+         * paper — a business card, another person's sheet, a QR off a poster.
+         * The payload itself is not printed: the next one may well be a piece
+         * of a secret key, and a message is a thing that ends up in a log. */
+        if (read_something)
+            pgpid_error(_("Notice: That is a QR code, but not a fragment of a "
+                        "secret — wrong sheet?"));
+        else
+            pgpid_error(_("Notice: Nothing read from '%s' — try again."), device);
     }
 }
 
