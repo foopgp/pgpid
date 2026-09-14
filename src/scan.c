@@ -13,9 +13,11 @@
  * printings would rebuild nothing, so disagreement on the first two stops
  * everything rather than producing a plausible ruin.
  *
- * The shell also drives a webcam for the fragments it has not been handed.
- * This does not: it says which are missing and stops. Scanning from a camera
- * is a conversation, and a conversation belongs where somebody is watching.
+ * A camera is read on request, never by default. `--camera` turns the action
+ * into the conversation it becomes there — hold up a sheet, it is taken, hold
+ * up the next — and without it the action reads what it was handed and names
+ * what is missing. The distinction matters: one of the two waits for a human,
+ * and something driving this from a script must be able to choose the other.
  */
 #include "pgpid.h"
 
@@ -45,12 +47,15 @@ static void usage(FILE *out)
         "\n"
         "OPTIONS:\n"
 
+        "  -c, --camera [V4LDEVICE]      Read the fragments off a camera (/dev/v4l/by-id/...)\n"
         "  -W, --workdir DIRECTORY       Use given working directory instead of a temporary directory (don't forget to shred its content)\n"
         "  -h, --help                    Print this help and exit\n"
         "  -V, --version                 Print the version and exit\n"
         "\n"
-        "Fragments missing are named rather than worked around: this reads what it\n"
-        "is given, and does not open a camera to go looking.\n"),
+        "Without --camera, fragments missing are named rather than worked around:\n"
+        "the action reads what it is given and stops. With it, it waits in front\n"
+        "of the camera until it has enough, or until three codes in a row say\n"
+        "nothing.\n"),
             PGPID_NAME);
 }
 
@@ -80,9 +85,122 @@ static bool is_pdf(const char *path)
     return n == 4 && !memcmp(head, "%PDF", 4);
 }
 
+/**
+ * Take every fragment out of what zbar printed.
+ *
+ * zbarimg and zbarcam both prefix each payload with "QR-Code:" and separate
+ * them with newlines — which a payload never contains, being base64url behind
+ * a seven-character head. Answers how many fragments were taken, or 3 for a
+ * sheet that cannot be read as one set.
+ */
+static int take_payloads(char *raw, char parts[][262144], bool *have,
+                         int *version, int *needed_less_one)
+{
+    int taken = 0;
+    for (char *line = raw, *save; (line = strtok_r(line, "\n", &save)); line = NULL) {
+        const char *at = strstr(line, "QR-Code:");
+        if (!at)
+            continue;
+        at += 8;
+        if (at[0] != '~' || at[1] < '1' || at[1] > '9')
+            continue;
+        int v = at[1] - '0';
+        int max = at[2] - '0';
+        int index = at[3] - '0';
+        if (*version < 0)
+            *version = v;
+        if (*needed_less_one < 0)
+            *needed_less_one = max;
+        if (v != *version) {
+            pgpid_error(_("Crit: QR codes don't share the same version (%d != %d)."),
+                        *version, v);
+            return 3;
+        }
+        if (max != *needed_less_one) {
+            pgpid_error(_("Crit: QR codes don't share the same division (%d != %d)."),
+                        *needed_less_one, max);
+            return 3;
+        }
+        if (index < 0 || index >= MAX_PARTS) {
+            pgpid_error(_("Crit: Fragment number %d is out of range."), index);
+            return 3;
+        }
+        snprintf(parts[index], sizeof parts[0], "%s", at + 4);
+        have[index] = true;
+        taken++;
+    }
+    return taken;
+}
+
+/**
+ * Read fragments off a camera until there are enough of them.
+ *
+ * `zbarcam --oneshot` shows what the camera sees and exits on the first code
+ * it reads, so the loop is ours: hold up a sheet, it is taken, hold up the
+ * next. How many are needed is not known until the first one has been read —
+ * the head of every fragment says how the secret was divided — so the count
+ * only appears once there is something to count.
+ *
+ * Three refusals in a row and it stops, as `bl-pgpkey scan` did: a camera
+ * that reads nothing three times is a camera pointed at a wall, or a lens
+ * cap, and looping for ever in front of one helps nobody.
+ */
+static int scan_camera(const char *device, const char *workdir,
+                       char parts[][262144], bool *have,
+                       int *version, int *needed_less_one)
+{
+    char found[600];
+    snprintf(found, sizeof found, "%.500s/qrcontent-camera", workdir);
+    static char raw[1048576];
+    int empty = 0;
+
+    for (;;) {
+        int needed = *needed_less_one >= 0 ? *needed_less_one + 1 : -1;
+        size_t got = 0;
+        for (size_t i = 0; i < MAX_PARTS; i++)
+            if (have[i])
+                got++;
+        if (needed > 0 && (int)got >= needed)
+            return PGPID_OK;
+
+        if (needed > 0)
+            pgpid_error(_("Info: %zu of %d fragments; show the camera another."),
+                        got, needed);
+        else
+            pgpid_error(_("Info: Show the camera a fragment."));
+
+        const char *zbar[] = { "zbarcam", "-Sdisable", "-Sqrcode.enable",
+                               "--oneshot", "--prescale=640x480", device, NULL };
+        int rc = pgpid_run_program(zbar, NULL, found);
+        size_t n = 0;
+        if (!rc) {
+            FILE *f = fopen(found, "r");
+            n = f ? fread(raw, 1, sizeof raw - 1, f) : 0;
+            if (f)
+                fclose(f);
+        }
+        raw[n] = '\0';
+        unlink(found);
+
+        int taken = rc ? 0 : take_payloads(raw, parts, have, version, needed_less_one);
+        if (taken == 3)
+            return 3;
+        if (taken > 0) {
+            empty = 0;
+            continue;
+        }
+        if (++empty >= 3) {
+            pgpid_error(_("Error: Nothing read from '%s' three times over."), device);
+            return PGPID_FAIL;
+        }
+        pgpid_error(_("Notice: No fragment in that one — try again."));
+    }
+}
+
 int pgpid_action_secret_scan(int argc, char **argv)
 {
     const char *given_workdir = NULL;
+    const char *camera = NULL;
     /* A secret is cut into PGPID_SPLIT_MAX fragments at most, so that is how
      * many images there can be to read. More is not a longer job, it is a
      * mistake — and one worth naming before anything is decoded. */
@@ -109,6 +227,11 @@ int pgpid_action_secret_scan(int argc, char **argv)
         } else if (!strcmp(a, "-V") || !strcmp(a, "--version")) {
             printf("%s %s\n", argv[0], PGPID_VERSION);
             return PGPID_OK;
+        } else if (!strcmp(a, "-c") || !strcmp(a, "--camera")) {
+            /* The device is optional: zbarcam takes the first camera when it
+             * is given none, and naming one matters only where there are
+             * several. */
+            camera = (i + 1 < argc && argv[i + 1][0] != '-') ? argv[++i] : "";
         } else if (!strcmp(a, "--")) {
             continue;
         } else if (a[0] == '-' && a[1]) {
@@ -124,8 +247,8 @@ int pgpid_action_secret_scan(int argc, char **argv)
         }
     }
 
-    if (!nimages) {
-        pgpid_error(_("Error: Which images? There is no camera to fall back on here."));
+    if (!nimages && !camera) {
+        pgpid_error(_("Error: Which images? Name some, or --camera to read them off one."));
         usage(stderr);
         return PGPID_USAGE;
     }
@@ -182,47 +305,21 @@ int pgpid_action_secret_scan(int argc, char **argv)
             fclose(f);
         unlink(found);
 
-        /* zbarimg prefixes each payload with "QR-Code:" and separates them
-         * with newlines — which the payload itself never contains, being
-         * base64url with a seven-character head. */
-        bool any = false;
-        for (char *line = raw, *save; (line = strtok_r(line, "\n", &save)); line = NULL) {
-            const char *at = strstr(line, "QR-Code:");
-            if (!at)
-                continue;
-            at += 8;
-            if (at[0] != '~' || at[1] < '1' || at[1] > '9')
-                continue;
-            int v = at[1] - '0';
-            int max = at[2] - '0';
-            int index = at[3] - '0';
-            if (version < 0)
-                version = v;
-            if (needed_less_one < 0)
-                needed_less_one = max;
-            if (v != version) {
-                pgpid_error(_("Crit: QR codes don't share the same version (%d != %d)."),
-                            version, v);
-                return 3;
-            }
-            if (max != needed_less_one) {
-                pgpid_error(_("Crit: QR codes don't share the same division (%d != %d)."),
-                            needed_less_one, max);
-                return 3;
-            }
-            if (index < 0 || index >= MAX_PARTS) {
-                pgpid_error(_("Crit: Fragment number %d is out of range."), index);
-                return 3;
-            }
-            snprintf(parts[index], sizeof parts[0], "%s", at + 4);
-            have[index] = true;
-            any = true;
-        }
+        int taken = take_payloads(raw, parts, have, &version, &needed_less_one);
+        if (taken == 3)
+            return 3;
+        bool any = taken > 0;
         if (!any) {
             pgpid_error(_("Error: No QR code with expected data in '%s'."), images[i]);
             return PGPID_FAIL;
         }
         pgpid_error(_("Info: QR code(s) with expected data read from '%s'."), images[i]);
+    }
+
+    if (camera) {
+        int rc = scan_camera(camera, workdir, parts, have, &version, &needed_less_one);
+        if (rc)
+            return rc;
     }
 
     if (version != 4 && version != 5) {

@@ -29,6 +29,7 @@ $PGPI_NAME scan QRcodes containing parts of OpenPGP secrets from IMAGES or webca
 and import this secrets into a factory reset OpenPGP secured device (eg yubikey)."
 
 soptions="
+  -c, --camera [V4LDEVICE] read the fragments off a camera (default when no IMAGES given)
   -k, --no-send            don't send the public key (certificate) to any keyserver
   -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (current: $LOGLEVEL)
   -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (current: $LOGLEVEL)
@@ -44,9 +45,11 @@ Options: $soptions
 "
 
 nosend=()
+camera=()
 
 for ((i=0;$#;)) ; do
 case "$1" in
+    -c|--cam*) if [[ "$2" && "$2" != -* ]] ; then shift ; camera=(--camera "$1") ; else camera=(--camera) ; fi ;;
     -k|--no-send) nosend=(--keyserver '') ;;
 	-l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; exit 2 ; } ;;
 	-L|--log-e*) shift ; LOGEXITPRIO="$1"
@@ -88,7 +91,11 @@ chmod -R go-rwx "$TMPDIR"
 # Force restart gpg-agent
 gpgconf --kill gpg-agent
 
-FPR=$("$PGPID_BIN" --homedir "$TMPDIR/gnupg" secret_scan --workdir "$TMPDIR" "$@" 2> >(bl_log notice))
+# The help has promised a webcam since the shell days: with no sheet named,
+# that is what it meant. Naming images and asking for the camera together is
+# allowed — the images are read first, the camera makes up what they lacked.
+(( $# )) || [[ "${camera[*]}" ]] || camera=(--camera)
+FPR=$("$PGPID_BIN" --homedir "$TMPDIR/gnupg" secret_scan --workdir "$TMPDIR" "${camera[@]}" "$@" 2> >(bl_log notice))
 
 while ! gpg --homedir "$TMPDIR/gnupg" --card-status > >(bl_log debug) 2> >(bl_log notice) ; do
 	sleep 1
