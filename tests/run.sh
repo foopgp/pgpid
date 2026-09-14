@@ -240,6 +240,20 @@ is "--no-self-sig puts it back out" "$("$BIN" cert_sigs --no-self-sig "$FPR" | w
 "$BIN" cert_sigs --no-self-sig "$WFPR" >/dev/null 2>&1
 is "and says 141 when that leaves nothing" "$?" "141"
 
+# The search that goes to a keyserver. No network in the suite, so what is
+# checked is the term it would send: an identifier is searched by its body,
+# which is the one string `u4=sRyU…` and `u4sRyU…` have in common. Forty-two
+# certificates in one ordinary keyring carried only the legacy spelling on the
+# day this was written, and searching either spelling whole finds only its own
+# generation.
+LEGACY="u5=${EID#u5}"
+is "an identifier is found written glued" \
+   "$("$BIN" --batch cert_get -f -F "$EID" 2>/dev/null)" "$FPR"
+is "and written the way it used to be" \
+   "$("$BIN" --batch cert_get -f -F "$LEGACY" 2>/dev/null)" "$FPR"
+is "and by its body alone, which both spellings share" \
+   "$("$BIN" --batch cert_get -f -F "${EID#u5}" 2>/dev/null)" "$FPR"
+
 # A certifier we do not hold. Printing '-' made the commonest case of all --
 # somebody vouched for this and we have never met them -- into a dead end,
 # when the identifier its signature carries is exactly what a search takes.

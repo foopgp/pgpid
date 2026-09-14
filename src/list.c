@@ -286,6 +286,7 @@ int pgpid_list_short(const char *pattern, bool only_fpr, bool only_mbox,
         char *eid = pgpid_eid_of_key(key, &neids, false);
         if (neids > 1)
             pgpid_error(_("Warning: Certificate %s carries more than one identifier."), fpr);
+        size_t written = 0;
         for (size_t i = 0; i < key->nuid; i++) {
             const struct pgpid_keyuid *u = &key->uid[i];
             if (!*u->address || !strchr(u->address, '@'))
@@ -293,7 +294,16 @@ int pgpid_list_short(const char *pattern, bool only_fpr, bool only_mbox,
             if ((u->revoked || u->invalid) && !key->revoked)
                 continue;
             short_add(&lines, fpr, u->address, neids == 1 ? eid : "-");
+            written++;
         }
+        /* A certificate with no address still exists, and this listing is how
+         * `get` answers: without this line one was simply invisible — not
+         * "found with no address", absent. That is what a PGP ID certificate
+         * looks like the moment it is generated, before anybody has added an
+         * address to it, and it is what `gen_key` hands back. The dash is what
+         * every other column already uses for a value there is none of. */
+        if (!written)
+            short_add(&lines, fpr, "-", neids == 1 ? eid : "-");
         free(eid);
         rows++;
     }
