@@ -24,6 +24,11 @@ pgpid (0.1.0-1) unstable; urgency=medium
   * gen_u4 takes a civil status typed or read off a passport, in one action.
   * The sixteen helps, in nine languages, saying what the shell's said.
   * The program completes itself: bash-completion asks the binary.
+  * cert_get asks the keyserver the way HKP is asked — one op=get request,
+    whatever the search is — instead of only reaching out for an address or a
+    fingerprint. An entity identifier is looked up by its body, which is what
+    the old spelling (u4=…) and the new one (u4…) share, so a certificate
+    minted before the separator went away is found again.
 
  -- Mnêmê <mneme@foopgp.org>  Mon, 14 Sep 2026 15:33:32 +0200
 
