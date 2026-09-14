@@ -52,6 +52,7 @@ static void usage(FILE *out)
         "OPTIONS:\n"
 
         "  -c, --camera [V4LDEVICE]      Read the fragments off a camera (/dev/v4l/by-id/...)\n"
+        "      --cameras                 List the cameras this machine has, and read nothing\n"
         "  -W, --workdir DIRECTORY       Use given working directory instead of a temporary directory (don't forget to shred its content)\n"
         "  -h, --help                    Print this help and exit\n"
         "  -V, --version                 Print the version and exit\n"
@@ -360,7 +361,7 @@ static int scan_camera(const char *device, const char *workdir,
      * never goes through choose_camera and would otherwise say nothing at
      * all. */
     unsigned width = 640, height = 480;
-    char prescale[32];
+    char prescale[40];
     best_capture_size(device, &width, &height);
     snprintf(prescale, sizeof prescale, "--prescale=%ux%u", width, height);
     pgpid_error(_("Info: %s, %ux%u."), device, width, height);
@@ -430,6 +431,7 @@ int pgpid_action_secret_scan(int argc, char **argv)
 {
     const char *given_workdir = NULL;
     const char *camera = NULL;
+    bool list_only = false;
     /* A secret is cut into PGPID_SPLIT_MAX fragments at most, so that is how
      * many images there can be to read. More is not a longer job, it is a
      * mistake — and one worth naming before anything is decoded. */
@@ -456,6 +458,8 @@ int pgpid_action_secret_scan(int argc, char **argv)
         } else if (!strcmp(a, "-V") || !strcmp(a, "--version")) {
             printf("%s %s\n", argv[0], PGPID_VERSION);
             return PGPID_OK;
+        } else if (!strcmp(a, "--cameras")) {
+            list_only = true;
         } else if (!strcmp(a, "-c") || !strcmp(a, "--camera")) {
             /* The device is optional: zbarcam takes the first camera when it
              * is given none, and naming one matters only where there are
@@ -474,6 +478,28 @@ int pgpid_action_secret_scan(int argc, char **argv)
                         PGPID_SPLIT_MAX);
             return PGPID_USAGE;
         }
+    }
+
+    /* Answered before anything else is prepared: nothing is read, so there is
+     * no working directory to make and nothing to clean up afterwards.
+     *
+     * It exists because a window has no way of choosing. Asked which camera,
+     * this action asks back, and a program driving it has no answer to give
+     * and no list to put in front of the person who does -- foodjis was left
+     * either taking whichever camera came first, which is the coin toss the
+     * enumeration was written to stop, or reading the choice off a sentence
+     * meant for a human and translated. */
+    if (list_only) {
+        struct camera cams[MAX_CAMERAS];
+        size_t n = list_cameras(cams, MAX_CAMERAS);
+        static const char *const COLUMNS[] = { "device", "name" };
+        pgpid_table_start(COLUMNS, 2);
+        for (size_t i = 0; i < n; i++) {
+            const char *values[] = { cams[i].path, cams[i].name };
+            pgpid_table_row(values);
+        }
+        pgpid_table_end();
+        return n ? PGPID_OK : PGPID_NOTHING;
     }
 
     if (!nimages && !camera) {

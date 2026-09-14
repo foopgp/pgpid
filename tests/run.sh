@@ -310,6 +310,19 @@ else
     printf '  skip  qrencode or zbarimg missing\n'
 fi
 
+# Which cameras there are is a question a window cannot ask back: foodjis
+# needs the list to put in front of somebody. Whether this machine has one is
+# not something a test can know, so what is checked is that the option is
+# taken, reads nothing, and answers either a listing or "none".
+out=$("$BIN" --batch secret_scan --cameras 2>&1)
+rc=$?
+is "--cameras is an option secret_scan has" \
+   "$(grep --count "Unrecognized option" <<<"$out")" "0"
+is "and it answers a list, or that there is none" \
+   "$( [ "$rc" = 0 ] || [ "$rc" = 141 ] && echo yes )" "yes"
+is "reading nothing, it wants no images and no working directory" \
+   "$(grep --count --extended-regexp "Which images|directory" <<<"$out")" "0"
+
 printf '\nthe shell programs call actions that exist\n'
 # pgpid-gen and pgpid-qrscan drive the compiled binary, and the day the actions
 # were put into groups -- gen_*, cert_*, secret_*, token_* -- nobody renamed
@@ -458,6 +471,22 @@ is "an impossible date is refused" \
    "$("$BIN" gen_u4 -s DOE -g John -d 2026-02-30 -c FRA >/dev/null 2>&1 ; echo $?)" "2"
 is "a leap day is not"           "$("$BIN" gen_u4 -s DOE -g John -d 2024-02-29 -c FRA >/dev/null 2>&1 ; echo $?)" "0"
 is "everything is required"      "$("$BIN" --batch gen_u4 -s DOE >/dev/null 2>&1 ; echo $?)" "2"
+# A name taken differently from the way it was typed is said out loud, both
+# spellings in one line: foodjis reads them off this very line to put them
+# side by side on the identity page, and whoever is typing is the only one who
+# can tell whether the passport agrees.
+warned() { "$BIN" gen_u4 -s "$1" -g "$2" -d 1970-01-01 -c FRA 2>&1 >/dev/null \
+           | grep --count "has been transliterated" ; }
+is "a transliterated name is said, once per half" "$(warned 'MÜLLER' 'Jürgen')" "2"
+is "and the name as it was typed, not uppercased"  \
+   "$("$BIN" gen_u4 -s 'José' -g John -d 1970-01-01 -c FRA 2>&1 >/dev/null \
+      | grep --count "'José' has been transliterated to 'JOSE'")" "1"
+is "and only the half that changed"               "$(warned 'MÜLLER' 'Jurgen')" "1"
+is "a name taken as typed says nothing"           "$(warned 'DOE' 'John')" "0"
+is "nor does case, nor a separator"               "$(warned 'de la tour' 'marie-claire')" "0"
+is "both spellings are in the line" \
+   "$("$BIN" gen_u4 -s 'MÜLLER' -g John -d 1970-01-01 -c FRA 2>&1 >/dev/null \
+      | grep --count "'MÜLLER' has been transliterated to 'MULLER'")" "1"
 
 printf '\nto_vcard\n'
 # Self-sufficient: earlier blocks revoke what they add, so this one puts back
