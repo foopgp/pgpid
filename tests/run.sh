@@ -310,6 +310,19 @@ else
     printf '  skip  qrencode or zbarimg missing\n'
 fi
 
+# Which cameras there are is a question a window cannot ask back: foodjis
+# needs the list to put in front of somebody. Whether this machine has one is
+# not something a test can know, so what is checked is that the option is
+# taken, reads nothing, and answers either a listing or "none".
+out=$("$BIN" --batch secret_scan --cameras 2>&1)
+rc=$?
+is "--cameras is an option secret_scan has" \
+   "$(grep --count "Unrecognized option" <<<"$out")" "0"
+is "and it answers a list, or that there is none" \
+   "$( [ "$rc" = 0 ] || [ "$rc" = 141 ] && echo yes )" "yes"
+is "reading nothing, it wants no images and no working directory" \
+   "$(grep --count --extended-regexp "Which images|directory" <<<"$out")" "0"
+
 printf '\nthe shell programs call actions that exist\n'
 # pgpid-gen and pgpid-qrscan drive the compiled binary, and the day the actions
 # were put into groups -- gen_*, cert_*, secret_*, token_* -- nobody renamed
