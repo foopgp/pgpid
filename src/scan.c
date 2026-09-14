@@ -360,7 +360,7 @@ static int scan_camera(const char *device, const char *workdir,
      * never goes through choose_camera and would otherwise say nothing at
      * all. */
     unsigned width = 640, height = 480;
-    char prescale[32];
+    char prescale[40];
     best_capture_size(device, &width, &height);
     snprintf(prescale, sizeof prescale, "--prescale=%ux%u", width, height);
     pgpid_error(_("Info: %s, %ux%u."), device, width, height);

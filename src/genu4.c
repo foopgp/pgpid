@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 static void usage(FILE *out)
 {
@@ -106,6 +107,53 @@ static bool read_birth_date(const char *given, char *out, size_t max)
     else
         return false;
     return date_is_sound(out);
+}
+
+/*
+ * What a name looked like before the reference transliteration touched it.
+ *
+ * Separators are squeezed exactly as pgpid_transliterate squeezes them, so
+ * that whatever difference is left between this and its answer is the
+ * transliteration itself rather than the shape of the field. The case is kept
+ * and the comparison ignores it: the shell showed the name as it was typed,
+ * and foodjis looks the typed spelling up in what it reads back here.
+ * Uppercasing would make José into JOSé, which is neither.
+ */
+static void before_translit(const char *in, char *out, size_t max)
+{
+    size_t o = 0;
+    for (const unsigned char *p = (const unsigned char *)in; *p && o < max - 1; p++) {
+        if (*p == ' ' || *p == ';' || *p == ',' || *p == '-' || *p == '<') {
+            if (o && out[o - 1] != '<')
+                out[o++] = '<';
+            continue;
+        }
+        out[o++] = (char)*p;
+    }
+    out[o] = '\0';
+}
+
+/*
+ * Say when a name was not taken as it was typed.
+ *
+ * MÜLLER becomes MULLER and JOSÉ becomes JOSE, and an identifier derived from
+ * the second spelling is a different identifier -- from the one a passport
+ * will give, most of the time, which is the whole reason the reference
+ * transliteration is the one used. It is right often enough to be the default
+ * and wrong often enough that whoever is typing has to see it: a name changed
+ * since birth, another country's transliteration, a surname truncated to fit.
+ *
+ * The shell said so and this did not. foodjis reads the two spellings off this
+ * very line to show them side by side on the identity page, so silence there
+ * was a page that had nothing to warn with.
+ */
+static void warn_if_transliterated(const char *typed, const char *taken)
+{
+    char before[300];
+    before_translit(typed, before, sizeof before);
+    if (strcasecmp(before, taken))
+        pgpid_error(_("Warning: '%s' has been transliterated to '%s'. "
+                      "It may be WRONG!"), before, taken);
 }
 
 /*
@@ -226,10 +274,14 @@ static int from_passport_mrz(int argc, char **argv, int first,
         pgpid_error(_("Error: The name is not valid UTF-8."));
         return PGPID_USAGE;
     }
+    if (surname)
+        warn_if_transliterated(surname, part_surname);
     if (given && pgpid_transliterate(given, part_given, sizeof part_given) < 0) {
         pgpid_error(_("Error: The name is not valid UTF-8."));
         return PGPID_USAGE;
     }
+    if (given)
+        warn_if_transliterated(given, part_given);
     char field[640];
     compose_names(part_surname, part_given, field, sizeof field);
 
@@ -355,6 +407,8 @@ int pgpid_action_gen_u4(int argc, char **argv)
         pgpid_error(_("Error: The name is not valid UTF-8."));
         return PGPID_USAGE;
     }
+    warn_if_transliterated(surname, s);
+    warn_if_transliterated(given, g);
     compose_names(s, g, field, sizeof field);
 
     return u4_print(field, birth, coord) ? PGPID_OK : PGPID_USAGE;
