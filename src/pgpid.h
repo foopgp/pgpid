@@ -332,7 +332,11 @@ bool pgpid_current_image(const unsigned char *buf, size_t len, const char *keyid
                          const unsigned char **data, size_t *ilen);
 
 /* Run a program and keep its output — for the card, which is reached through
- * gpg-connect-agent and scdaemon rather than through a key listing. */
+ * gpg-connect-agent and scdaemon rather than through a key listing.
+ *
+ * ⚠ Answers the **number of bytes kept**, not a status: 0 means the program
+ * said nothing, -1 that it could not be started. Read as a status it inverts
+ * every test built on it, which has happened. */
 int pgpid_capture(const char *const *argv, char *out, size_t max);
 
 /* Same, with the engine and the home directory already in front. */

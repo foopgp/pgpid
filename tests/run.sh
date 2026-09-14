@@ -280,6 +280,36 @@ is "an unheld certifier keeps its key identifier" \
    "$(awk '{print $1}' <<<"$out" | grep --count --extended-regexp "^${PFPR: -16}$")" "1"
 is "and no row is ever a dash"    "$(awk '$1=="-"' <<<"$out" | wc --lines)" "0"
 
+printf '\nsecret_scan reads what zbar prints\n'
+# The output of zbar has to reach the parser. It stopped doing so for one
+# commit: pgpid_capture answers the number of bytes it kept, not a status, and
+# read as a status it inverted every test built on it — a fragment read in two
+# seconds was reported as a camera that had seen nothing. Nothing caught it,
+# the camera being outside the suite; two images are.
+if command -v qrencode >/dev/null 2>&1 && command -v zbarimg >/dev/null 2>&1 ; then
+    qrencode -o "$GNUPGHOME/frag4.png" -- '~400AAAABBBBCCCC'
+    qrencode -o "$GNUPGHOME/frag5.png" -- '~500AAAABBBBCCCC'
+    # A given working directory is used, never created: the point of naming one
+    # is to pick a place that is already safe to write secrets in.
+    mkdir -p "$GNUPGHOME/scan"
+    # Two headers that disagree on the version: the action must have read both
+    # to be able to say so, which is the whole point of the check.
+    out=$("$BIN" --batch secret_scan --workdir "$GNUPGHOME/scan" \
+          "$GNUPGHOME/frag4.png" "$GNUPGHOME/frag5.png" 2>&1 || true)
+    is "a fragment's head reaches the parser" \
+       "$(grep --count "share the same version" <<<"$out")" "1"
+    rm -rf "$GNUPGHOME/scan"
+    mkdir -p "$GNUPGHOME/scan"
+    # And one alone is read, then refused for what it is rather than for not
+    # having been seen.
+    out=$("$BIN" --batch secret_scan --workdir "$GNUPGHOME/scan" \
+          "$GNUPGHOME/frag4.png" 2>&1 || true)
+    is "and a single one is read, not missed" \
+       "$(grep --count "QR code(s) with expected data read" <<<"$out")" "1"
+else
+    printf '  skip  qrencode or zbarimg missing\n'
+fi
+
 printf '\nthe shell programs call actions that exist\n'
 # pgpid-gen and pgpid-qrscan drive the compiled binary, and the day the actions
 # were put into groups -- gen_*, cert_*, secret_*, token_* -- nobody renamed

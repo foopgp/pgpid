@@ -21,6 +21,10 @@
  */
 #include "pgpid.h"
 
+#include <fcntl.h>
+#include <linux/videodev2.h>
+#include <sys/ioctl.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -90,8 +94,11 @@ static bool is_pdf(const char *path)
  *
  * zbarimg and zbarcam both prefix each payload with "QR-Code:" and separate
  * them with newlines — which a payload never contains, being base64url behind
- * a seven-character head. Answers how many fragments were taken, or 3 for a
- * sheet that cannot be read as one set.
+ * a seven-character head. Answers how many fragments were taken **that were
+ * not already held** — a fragment shown twice is not progress — or 3 for a
+ * sheet that cannot be read as one set. A repeat is still weighed against the
+ * version and the division: a piece of another printing must be refused
+ * whether or not its number is one we lack.
  */
 static int take_payloads(char *raw, char parts[][262144], bool *have,
                          int *version, int *needed_less_one)
@@ -125,11 +132,193 @@ static int take_payloads(char *raw, char parts[][262144], bool *have,
             pgpid_error(_("Crit: Fragment number %d is out of range."), index);
             return 3;
         }
+        if (have[index])
+            continue;
         snprintf(parts[index], sizeof parts[0], "%s", at + 4);
         have[index] = true;
         taken++;
     }
     return taken;
+}
+
+/* How many cameras we are willing to enumerate. More than this on one machine
+ * and naming the one wanted is the shorter conversation anyway. */
+#define MAX_CAMERAS 8
+
+/* V4L2 lists the frames a camera can produce, not the ones it can stream at a
+ * usable rate: a webcam offering 4656x3496 offers it at a frame every couple
+ * of seconds, and in front of somebody holding up a sheet that is worse than a
+ * smaller picture. */
+#define CAPTURE_CEILING_W 1920u
+#define CAPTURE_CEILING_H 1080u
+
+/**
+ * The largest frame this camera streams, up to that ceiling.
+ *
+ * zbarcam is asked for a size, and asking for the wrong one is the difference
+ * between reading a sheet and staring at it. `bl-pgpkey scan` asked for
+ * 640x480 and this was ported with it. That is enough for a fragment of a
+ * split secret — sixty-odd modules, ten pixels each — and it is not enough for
+ * a secret printed whole: such a sheet carries a hundred and twenty modules,
+ * under four pixels each at 640 wide, and no decoder gets those back. Measured
+ * rather than reasoned: the same code at 920 pixels reads, at 310 it does not.
+ *
+ * A camera bought to scan with is a camera with the resolution to scan, so
+ * asking it for 640x480 throws away the reason it was plugged in.
+ */
+static bool best_capture_size(const char *device, unsigned *w, unsigned *h)
+{
+    int fd = open(device, O_RDONLY | O_NONBLOCK);
+    if (fd < 0)
+        return false;
+
+    unsigned bw = 0, bh = 0;
+    for (unsigned fi = 0; ; fi++) {
+        struct v4l2_fmtdesc fmt;
+        memset(&fmt, 0, sizeof fmt);
+        fmt.index = fi;
+        fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        if (ioctl(fd, VIDIOC_ENUM_FMT, &fmt))
+            break;
+        for (unsigned si = 0; ; si++) {
+            struct v4l2_frmsizeenum sz;
+            memset(&sz, 0, sizeof sz);
+            sz.index = si;
+            sz.pixel_format = fmt.pixelformat;
+            if (ioctl(fd, VIDIOC_ENUM_FRAMESIZES, &sz))
+                break;
+            unsigned cw, ch;
+            if (sz.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
+                cw = sz.discrete.width;
+                ch = sz.discrete.height;
+                /* A discrete size is taken or left; there is no asking for
+                 * something between two of them. */
+                if (cw > CAPTURE_CEILING_W || ch > CAPTURE_CEILING_H)
+                    continue;
+            } else {
+                /* Anything inside the range, which the driver rounds to its
+                 * step. One entry describes the whole range, so this is also
+                 * the last one worth looking at. */
+                cw = sz.stepwise.max_width < CAPTURE_CEILING_W
+                   ? sz.stepwise.max_width : CAPTURE_CEILING_W;
+                ch = sz.stepwise.max_height < CAPTURE_CEILING_H
+                   ? sz.stepwise.max_height : CAPTURE_CEILING_H;
+            }
+            if ((unsigned long)cw * ch > (unsigned long)bw * bh) {
+                bw = cw;
+                bh = ch;
+            }
+            if (sz.type != V4L2_FRMSIZE_TYPE_DISCRETE)
+                break;
+        }
+    }
+    close(fd);
+
+    if (!bw || !bh)
+        return false;
+    *w = bw;
+    *h = bh;
+    return true;
+}
+
+struct camera {
+    char path[32];
+    char name[32];
+    char bus[32];
+};
+
+/**
+ * The cameras on this machine, asked of the kernel rather than guessed.
+ *
+ * `/dev/video*` is not a list of cameras: a modern kernel gives one webcam two
+ * nodes, one that captures frames and one that carries metadata, and this
+ * laptop has exactly that — two entries under /dev/v4l/by-id for a single
+ * Quanta webcam. Counting the files would find two cameras where there is one,
+ * and then ask which of them the person meant. So each is opened and asked
+ * what it can do: only a node that says V4L2_CAP_VIDEO_CAPTURE is one.
+ */
+static size_t list_cameras(struct camera *out, size_t max)
+{
+    size_t n = 0;
+    for (int i = 0; i < 64 && n < max; i++) {
+        char path[32];
+        snprintf(path, sizeof path, "/dev/video%d", i);
+        int fd = open(path, O_RDONLY | O_NONBLOCK);
+        if (fd < 0)
+            continue;
+        struct v4l2_capability cap;
+        memset(&cap, 0, sizeof cap);
+        if (ioctl(fd, VIDIOC_QUERYCAP, &cap) == 0) {
+            /* device_caps describes this node; capabilities describes the
+             * whole device, and would say "capture" for the metadata node
+             * of a camera that also captures. */
+            unsigned which = (cap.capabilities & V4L2_CAP_DEVICE_CAPS)
+                           ? cap.device_caps : cap.capabilities;
+            if (which & V4L2_CAP_VIDEO_CAPTURE) {
+                /* One camera, several capture nodes: the USB camera on this
+                 * desk answers on /dev/video2 and /dev/video4, both saying
+                 * "USB Live camera" and both sharing a bus. Offering the same
+                 * lens twice is asking a question with a wrong answer in it,
+                 * so the first node of each device is the one kept. */
+                bool seen = false;
+                for (size_t k = 0; k < n && !seen; k++)
+                    seen = *cap.bus_info && !strcmp(out[k].bus, (const char *)cap.bus_info);
+                if (!seen) {
+                    snprintf(out[n].path, sizeof out[0].path, "%s", path);
+                    snprintf(out[n].name, sizeof out[0].name, "%s", cap.card);
+                    snprintf(out[n].bus, sizeof out[0].bus, "%s", cap.bus_info);
+                    n++;
+                }
+            }
+        }
+        close(fd);
+    }
+    return n;
+}
+
+/**
+ * Which camera, when the option named none.
+ *
+ * One is used and said out loud — a person watching a black preview needs to
+ * know which lens is being asked. Several is a question, and a question is
+ * asked interactively and refused under --batch, as everything missing is
+ * here: something driving this from a script must fail rather than have one
+ * picked for it. Letting zbarcam take its own default does neither; it picks
+ * in silence, and on a machine with an internal webcam and a USB one that is
+ * a coin toss nobody sees.
+ */
+static const char *choose_camera(char *buf, size_t max)
+{
+    struct camera cams[MAX_CAMERAS];
+    size_t n = list_cameras(cams, MAX_CAMERAS);
+
+    if (!n) {
+        pgpid_error(_("Error: No camera on this machine."));
+        return NULL;
+    }
+    if (n == 1) {
+        pgpid_error(_("Info: Reading from %s (%s)."), cams[0].path, cams[0].name);
+        snprintf(buf, max, "%s", cams[0].path);
+        return buf;
+    }
+
+    for (size_t i = 0; i < n; i++)
+        pgpid_error(_("Notice: %zu. %s (%s)"), i + 1, cams[i].path, cams[i].name);
+    if (pgpid_batch) {
+        pgpid_error(_("Error: %zu cameras here. Name one: --camera DEVICE."), n);
+        return NULL;
+    }
+    char answer[16];
+    if (!pgpid_ask(_("Which camera? "), answer, sizeof answer))
+        return NULL;
+    char *end = NULL;
+    long pick = strtol(answer, &end, 10);
+    if (pick < 1 || (size_t)pick > n) {
+        pgpid_error(_("Error: '%s' is not one of the %zu."), answer, n);
+        return NULL;
+    }
+    snprintf(buf, max, "%s", cams[pick - 1].path);
+    return buf;
 }
 
 /**
@@ -159,6 +348,23 @@ static int scan_camera(const char *device, const char *workdir,
     static char raw[1048576];
     int empty = 0;
 
+    char chosen[32];
+    if (!device || !*device) {
+        device = choose_camera(chosen, sizeof chosen);
+        if (!device)
+            return PGPID_USAGE;
+    }
+
+    /* Said out loud, because it is the difference between a sheet that reads
+     * and one that does not, and because a camera named on the command line
+     * never goes through choose_camera and would otherwise say nothing at
+     * all. */
+    unsigned width = 640, height = 480;
+    char prescale[32];
+    best_capture_size(device, &width, &height);
+    snprintf(prescale, sizeof prescale, "--prescale=%ux%u", width, height);
+    pgpid_error(_("Info: %s, %ux%u."), device, width, height);
+
     for (;;) {
         int needed = *needed_less_one >= 0 ? *needed_less_one + 1 : -1;
         size_t got = 0;
@@ -179,12 +385,18 @@ static int scan_camera(const char *device, const char *workdir,
             pgpid_error(_("Info: Show the camera a fragment (Ctrl-C to stop)."));
 
         const char *zbar[] = { "zbarcam", "-Sdisable", "-Sqrcode.enable",
-                               "--oneshot", "--prescale=640x480", device, NULL };
+                               "--oneshot", prescale, device, NULL };
         raw[0] = '\0';
-        int rc = pgpid_capture(zbar, raw, sizeof raw);
-        bool read_something = !rc && strstr(raw, "QR-Code:");
+        /* pgpid_capture answers the number of bytes it kept, not a status:
+         * zero is "the program said nothing", and anything else is output.
+         * Reading it as a status inverts the test, which is what it did here
+         * for one commit — a fragment read in two seconds was reported as a
+         * camera that saw nothing. */
+        bool read_something = pgpid_capture(zbar, raw, sizeof raw) > 0
+                           && strstr(raw, "QR-Code:");
 
-        int taken = rc ? 0 : take_payloads(raw, parts, have, version, needed_less_one);
+        int taken = read_something
+                  ? take_payloads(raw, parts, have, version, needed_less_one) : 0;
         if (taken == 3)
             return 3;
         if (taken > 0) {
@@ -192,7 +404,7 @@ static int scan_camera(const char *device, const char *workdir,
             continue;
         }
         if (++empty >= 3) {
-            pgpid_error(_("Error: Three in a row that were not fragments of a secret."));
+            pgpid_error(_("Error: Three in a row that brought nothing new."));
             return PGPID_FAIL;
         }
         /* Two different disappointments, and saying which is the whole help
@@ -201,7 +413,12 @@ static int scan_camera(const char *device, const char *workdir,
          * paper — a business card, another person's sheet, a QR off a poster.
          * The payload itself is not printed: the next one may well be a piece
          * of a secret key, and a message is a thing that ends up in a log. */
-        if (read_something)
+        /* Three disappointments, and which one decides what to do next:
+         * point the lens elsewhere, turn the sheet over, or go and fetch the
+         * piece that is missing. */
+        if (read_something && strstr(raw, ":~"))
+            pgpid_error(_("Notice: That fragment is already in hand — another?"));
+        else if (read_something)
             pgpid_error(_("Notice: That is a QR code, but not a fragment of a "
                         "secret — wrong sheet?"));
         else
@@ -307,7 +524,8 @@ int pgpid_action_secret_scan(int argc, char **argv)
         raw[0] = '\0';
         const char *zbar[] = { "zbarimg", "--quiet", "-Sdisable", "-Sqrcode.enable",
                                image, NULL };
-        if (pgpid_capture(zbar, raw, sizeof raw)) {
+        /* Bytes kept, not a status — see the camera loop. */
+        if (pgpid_capture(zbar, raw, sizeof raw) <= 0) {
             pgpid_error(_("Error: No QR code with expected data in '%s'."), images[i]);
             return PGPID_FAIL;
         }
