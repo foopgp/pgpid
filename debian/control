@@ -4,9 +4,8 @@ Priority: optional
 Maintainer: Sébastien Picardeau <piseb@mailo.com>
 Build-Depends: debhelper-compat (= 13),
   gettext,
-  libgpgme-dev,
-  pandoc,
-  pkgconf
+  help2man,
+  pandoc
 Standards-Version: 4.5.1
 Homepage: https://foopgp.org
 Rules-Requires-Root: no

@@ -5,13 +5,27 @@ pgpid (0.1.0-1) unstable; urgency=medium
     where it was written. Twenty-four actions, replacing bl-pgpid and
     bl-pgpkey action for action.
   * Nine message catalogues; French complete for the messages themselves.
-  * Build-depends on libgpgme-dev, gettext and pandoc, which the packaging
-    needed already and did not say.
+  * Build-depends on gettext, help2man and pandoc, which the packaging needed
+    already and did not say. Not on libgpgme-dev nor pkgconf: the keyring is
+    read by asking gpg now, and the binary links nothing but libc.
   * Depends on ${shlibs:Depends}: there is a compiled binary now.
   * The tools the printing and scanning actions call are Recommends rather
     than Depends — pgpid reads certificates without any of them.
+  * Reads the keyring by asking gpg rather than through gpgme, which could
+    not see user attributes and answered questions we had not asked.
+  * trustdb: one action where ownertrust and update_trustdb were two; export
+    produces what import consumes, and import weighs every line against what
+    this machine already says rather than overwriting it.
+  * certify, cert_revoke, cert_get --recurse, cert_sigs, cert_email
+    --set-primary, cert_property expire, secret_del, token_del, token_cache:
+    the actions the shell had, and several it did not.
+  * system_adduser / system_deluser / system_confhome / system_users /
+    system_admins: a certificate opens and closes a local account.
+  * gen_u4 takes a civil status typed or read off a passport, in one action.
+  * The sixteen helps, in nine languages, saying what the shell's said.
+  * The program completes itself: bash-completion asks the binary.
 
- -- Mnêmê <mneme@foopgp.org>  Sat, 22 Aug 2026 23:30:00 +0200
+ -- Mnêmê <mneme@foopgp.org>  Mon, 14 Sep 2026 15:33:32 +0200
 
 pgpid (0.0.7-1) unstable; urgency=medium
 
