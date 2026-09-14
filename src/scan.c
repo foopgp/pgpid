@@ -149,8 +149,13 @@ static int scan_camera(const char *device, const char *workdir,
                        char parts[][262144], bool *have,
                        int *version, int *needed_less_one)
 {
-    char found[600];
-    snprintf(found, sizeof found, "%.500s/qrcontent-camera", workdir);
+    /* In memory, never on disk. The images path writes what zbar printed to a
+     * file and unlinks it after reading; between those two a Ctrl-C leaves a
+     * piece of somebody's secret key sitting in /tmp — and a camera scan is
+     * exactly where one presses Ctrl-C, because zbarcam --oneshot waits for a
+     * code that may never come. pgpid_capture keeps it in a buffer, so there
+     * is nothing to leave behind and nothing to clean up. */
+    (void)workdir;
     static char raw[1048576];
     int empty = 0;
 
@@ -163,24 +168,20 @@ static int scan_camera(const char *device, const char *workdir,
         if (needed > 0 && (int)got >= needed)
             return PGPID_OK;
 
+        /* It waits, and it waits without a deadline: zbarcam --oneshot returns
+         * when it reads a code and not before. Three *refusals* end the loop,
+         * but a camera that simply sees nothing never refuses — so the way
+         * out is said out loud rather than left to be discovered. */
         if (needed > 0)
-            pgpid_error(_("Info: %zu of %d fragments; show the camera another."),
-                        got, needed);
+            pgpid_error(_("Info: %zu of %d fragments; show the camera another "
+                        "(Ctrl-C to stop)."), got, needed);
         else
-            pgpid_error(_("Info: Show the camera a fragment."));
+            pgpid_error(_("Info: Show the camera a fragment (Ctrl-C to stop)."));
 
         const char *zbar[] = { "zbarcam", "-Sdisable", "-Sqrcode.enable",
                                "--oneshot", "--prescale=640x480", device, NULL };
-        int rc = pgpid_run_program(zbar, NULL, found);
-        size_t n = 0;
-        if (!rc) {
-            FILE *f = fopen(found, "r");
-            n = f ? fread(raw, 1, sizeof raw - 1, f) : 0;
-            if (f)
-                fclose(f);
-        }
-        raw[n] = '\0';
-        unlink(found);
+        raw[0] = '\0';
+        int rc = pgpid_capture(zbar, raw, sizeof raw);
 
         int taken = rc ? 0 : take_payloads(raw, parts, have, version, needed_less_one);
         if (taken == 3)
@@ -288,22 +289,17 @@ int pgpid_action_secret_scan(int argc, char **argv)
             snprintf(image, sizeof image, "%s", converted);
         }
 
-        char found[600];
-        snprintf(found, sizeof found, "%.500s/qrcontent-%zu", workdir, i);
+        /* In memory, like the camera path: what zbar prints is a piece of a
+         * secret key, and a file holding one between a write and an unlink is
+         * a file a crash leaves behind. */
+        static char raw[1048576];
+        raw[0] = '\0';
         const char *zbar[] = { "zbarimg", "--quiet", "-Sdisable", "-Sqrcode.enable",
                                image, NULL };
-        if (pgpid_run_program(zbar, NULL, found)) {
+        if (pgpid_capture(zbar, raw, sizeof raw)) {
             pgpid_error(_("Error: No QR code with expected data in '%s'."), images[i]);
             return PGPID_FAIL;
         }
-
-        static char raw[1048576];
-        FILE *f = fopen(found, "r");
-        size_t n = f ? fread(raw, 1, sizeof raw - 1, f) : 0;
-        raw[n] = '\0';
-        if (f)
-            fclose(f);
-        unlink(found);
 
         int taken = take_payloads(raw, parts, have, &version, &needed_less_one);
         if (taken == 3)
