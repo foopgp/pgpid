@@ -1,6 +1,6 @@
 /* Finding a certificate, locally or in the world.
  *
- * Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
  *
  * SPDX-License-Identifier: GPL-3.0-only
@@ -26,22 +26,22 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " get [OPTIONS]... NAME|EMAIL|KEYID|U4|U5|'*'\n"
+        " cert_get [OPTIONS]... NAME|U4|U5|EMAIL...\n"
         "\n"
-        "Print the fingerprints, addresses and entity identifiers of the\n"
-        "certificates matching what is asked for, one line per address.\n"
-        "Refreshes them from the keyservers first, unless told otherwise.\n"
-        "\n"
-        "A search term is required — '*' for the whole keyring. `list` is the\n"
-        "one that shows everything when asked nothing.\n"
+        "Output fingerprints, emails and eid of certificates matching NAME|U4|U5|EMAIL.\n"
+        "May also get or refresh certificates from keyservers.\n"
+        "'*' matches the whole keyring; `list` is the one that shows everything\n"
+        "when asked nothing.\n"
         "\n"
         "OPTIONS:\n"
-        "  -F, --fingerprint           Print only fingerprints\n"
-        "  -E, --email                 Print only addresses\n"
-        "  -f, --no-fetch              Do not refresh from keyservers or Web Key Directories\n"
-        "  -m, --errexit-g=N           Fail if more than N certificates match\n"
-        "  -K, --keyservers SERVERS    Refresh from these, space separated\n"
-        "                              Empty for none, same as --no-fetch. Default: "
+        "  -F, --fingerprint           Output only fingerprints\n"
+        "  -E, --email                 Output only emails\n"
+        "  -f, --no-fetch              Don't refresh certificates from keyservers or Web Key Directories\n"
+        "      --import-from FILE      Take the certificate from a file rather than a keyserver\n"
+        "  -r, --recurse[=NUM]         Also fetch the certificates signing the target, NUM\n"
+        "                              levels deep (0..6) - Default with -r: 1\n"
+        "  -m, --errexit-g=1           Return an error if there is more than one (1) entry - You may replace '1' by an other number\n"
+        "  -K, --keyservers KEYSERVERS Search and refresh certificates from this keyservers - Default: "
         "%s"
         "\n"
         "  -h, --help                  Print this help and exit\n"
@@ -61,7 +61,7 @@ static void usage(FILE *out)
  * mean carrying an HTTP client for a case that is rare and ambiguous — a name
  * matches whoever else chose it. Said plainly rather than silently skipped.
  */
-static void refresh(const char *term, const char *keyservers)
+void pgpid_refresh(const char *term, const char *keyservers)
 {
     if (!keyservers || !*keyservers)
         return;
@@ -106,16 +106,98 @@ static void refresh(const char *term, const char *keyservers)
     free(copy);
 }
 
-int pgpid_action_get(int argc, char **argv)
+/* Fetch the certificates that signed these, then the ones that signed those,
+ * up to depth levels. A worklist rather than recursion, and a set of the
+ * key identifiers already visited -- the web of trust has cycles, and two
+ * people who certified each other would otherwise be fetched for ever.
+ */
+static void fetch_certifiers(char **terms, int nterms, int depth,
+                             const char *keyservers)
+{
+    static char seen[512][17];
+    size_t nseen = 0;
+    /* Wide enough for a fingerprint: the first level is whatever the caller
+     * asked for, and truncating that to a short key identifier left gpg with
+     * nothing to list. */
+    char level[64][64];
+    size_t nlevel = 0;
+
+    for (int i = 0; i < nterms && nlevel < 64; i++)
+        snprintf(level[nlevel++], sizeof level[0], "%.63s", terms[i]);
+
+    while (depth-- > 0 && nlevel) {
+        char args[80][64];
+        const char *argv2[84];
+        size_t n = 0;
+        argv2[n++] = "--with-colons";
+        argv2[n++] = "--list-sigs";
+        for (size_t i = 0; i < nlevel && n < 82; i++) {
+            /* Bounded explicitly: level[] holds "0x" plus sixteen hex
+             * characters, but the compiler cannot see that from here. */
+            snprintf(args[i], sizeof args[0], "%.63s", level[i]);
+            argv2[n++] = args[i];
+        }
+        argv2[n] = NULL;
+
+        char listing[262144] = "";
+        if (pgpid_capture_engine(argv2, listing, sizeof listing) <= 0)
+            return;
+
+        nlevel = 0;
+        for (char *line = strtok(listing, "\n"); line; line = strtok(NULL, "\n")) {
+            if (strncmp(line, "sig:", 4))
+                continue;
+            /* Field 5 of a sig record is the signer's key identifier. */
+            char *f = line;
+            for (int c = 0; c < 4 && f; c++)
+                f = strchr(f + 1, ':');
+            if (!f)
+                continue;
+            char kid[17] = "";
+            snprintf(kid, sizeof kid, "%.16s", f + 1);
+            if (strlen(kid) != 16)
+                continue;
+            bool known = false;
+            for (size_t i = 0; i < nseen && !known; i++)
+                known = !strcmp(seen[i], kid);
+            if (known || nseen >= 512)
+                continue;
+            snprintf(seen[nseen++], sizeof seen[0], "%s", kid);
+            char term[19];
+            snprintf(term, sizeof term, "0x%s", kid);
+            pgpid_refresh(term, keyservers);
+            if (nlevel < 64)
+                snprintf(level[nlevel++], sizeof level[0], "%s", term);
+        }
+    }
+}
+
+int pgpid_action_cert_get(int argc, char **argv)
 {
     bool only_fpr = false, only_mbox = false, fetch = true;
+    const char *import_from = NULL;
+    int recurse = 0;
     const char *keyservers = NULL;
     long errexit = -1;
     int first = 0;
 
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
-        if (!strcmp(a, "-F") || !strcmp(a, "--fpr") || !strcmp(a, "--fingerprint")) {
+        if (!strcmp(a, "-r") || !strcmp(a, "--recurse")) {
+            recurse = 1;
+        } else if (!strncmp(a, "--recurse=", 10)) {
+            recurse = atoi(a + 10);
+            if (recurse < 0 || recurse > 6) {
+                pgpid_error(_("Error: --recurse takes a number in 0..6."));
+                return PGPID_USAGE;
+            }
+        } else if (!strcmp(a, "--import-from") || !strcmp(a, "--importfrom")) {
+            if (i + 1 >= argc) {
+                pgpid_error(_("Error: --import-from wants a file."));
+                return PGPID_USAGE;
+            }
+            import_from = argv[++i];
+        } else if (!strcmp(a, "-F") || !strcmp(a, "--fpr") || !strcmp(a, "--fingerprint")) {
             only_fpr = true;
             only_mbox = false;
         } else if (!strcmp(a, "-E") || !strcmp(a, "--mbox") || !strcmp(a, "--email")) {
@@ -148,7 +230,7 @@ int pgpid_action_get(int argc, char **argv)
             break;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("get");
+            pgpid_try_help("cert_get");
             return PGPID_USAGE;
         } else {
             first = i;
@@ -166,14 +248,28 @@ int pgpid_action_get(int argc, char **argv)
      * engine — and nothing to fetch, since there is no one thing to ask for. */
     bool everything = argc - first == 1 && !strcmp(argv[first], "*");
 
-    if (fetch && !everything)
+    /* A file where the keyservers would have been: the certificate arrives from
+     * somewhere else, and what follows -- the lookup, the output -- is the same
+     * whichever door it came through. */
+    if (import_from) {
+        const char *imp[] = { "--batch", "--import", import_from, NULL };
+        if (pgpid_run_engine(imp)) {
+            pgpid_error(_("Error: Nothing could be imported from '%s'."), import_from);
+            return PGPID_FAIL;
+        }
+    } else if (fetch && !everything) {
         for (int i = first; i < argc; i++)
-            refresh(argv[i], keyservers ? keyservers : PGPID_KEYSERVERS);
+            pgpid_refresh(argv[i], keyservers ? keyservers : PGPID_KEYSERVERS);
+        if (recurse)
+            fetch_certifiers(argv + first, argc - first, recurse,
+                             keyservers ? keyservers : PGPID_KEYSERVERS);
+    }
 
     /* One pattern at a time, as the engine takes them; several terms are
      * several searches whose answers meet in the output. */
     int ret = PGPID_NOTHING;
     size_t matched = 0;
+    pgpid_list_short_start(only_fpr, only_mbox);
     for (int i = first; i < argc; i++) {
         size_t n = 0;
         int r = pgpid_list_short(everything ? NULL : argv[i], only_fpr, only_mbox, &n);
@@ -183,6 +279,7 @@ int pgpid_action_get(int argc, char **argv)
             ret = PGPID_OK;
         matched += n;
     }
+    pgpid_list_short_end();
 
     if (ret == PGPID_NOTHING) {
         pgpid_error(_("Error: No certificate for what was asked."));

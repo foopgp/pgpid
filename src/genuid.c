@@ -1,6 +1,6 @@
 /* The Unix account number an entity identifier gives.
  *
- * Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
  *
  * SPDX-License-Identifier: GPL-3.0-only
@@ -31,18 +31,18 @@ static void usage(FILE *out)
         "%s"
         " gen_uid [OPTIONS]... U4|U5|STRING\n"
         "\n"
-        "Print the Unix account number an entity identifier gives, between\n"
-        "%lld and %lld. The same identifier always gives the same number, on\n"
-        "any machine — which is what lets an account be opened again\n"
-        "elsewhere from the certificate alone.\n"
+        "Generate a 32bit Unix User ID, from 2^18 to (2^31)-2 ([%lld,%lld]).\n"
+        "The same identifier always gives the same number, on any machine — which\n"
+        "is what lets an account be opened again elsewhere from the certificate\n"
+        "alone.\n"
         "\n"
         "OPTIONS:\n"
-        "  -f, --free-input            Accept any string, not only an identifier\n"
+        "  -f, --free-input            Accept any input, not only valid PGPID U4 string\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"
         "\n"
-        "Asking interactively for a civil status is the caller's business:\n"
-        "this reads what it is given and nothing else.\n"),
+        "An argument is required: asking interactively for a civil status is the\n"
+        "caller's business.\n"),
             PGPID_NAME, (long long)XUID_MIN, (long long)XUID_MAX);
 }
 
@@ -123,6 +123,21 @@ static int64_t fold(const unsigned char digest[16])
     int64_t size = XUID_MAX - XUID_MIN;
     int64_t signed_acc = (int64_t)acc;
     return ((signed_acc % size) + size) % size + XUID_MIN;
+}
+
+/**
+ * The account number an identifier stands for.
+ *
+ * The action prints it; opening an account needs it in hand. Same digest,
+ * same fold, so a number handed out by either is the same number.
+ */
+bool pgpid_uid_number(const char *identifier, uid_t *out)
+{
+    unsigned char digest[16];
+    if (!digest_of(identifier, false, digest))
+        return false;
+    *out = (uid_t)fold(digest);
+    return true;
 }
 
 int pgpid_action_gen_uid(int argc, char **argv)

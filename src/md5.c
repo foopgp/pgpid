@@ -1,6 +1,6 @@
 /* MD5, because an entity identifier is one.
  *
- * Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
  *
  * SPDX-License-Identifier: GPL-3.0-only
@@ -12,7 +12,7 @@
  * names. Nothing here defends against an adversary; being wrong would
  * produce a different identifier, loudly, not a weak one.
  *
- * Against that, linking libgcrypt would add a dependency gpgme does not
+ * Against that, linking libgcrypt would add a dependency nothing else
  * already bring — it talks to the engine over assuan, not by linking crypto —
  * and the identifier derivation has to exist wherever the model does,
  * Android included, where libgcrypt is not.

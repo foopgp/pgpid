@@ -1,6 +1,6 @@
 /* The vCard properties a certificate carries on uids of its own.
  *
- * Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
  *
  * SPDX-License-Identifier: GPL-3.0-only
@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 /* What the application asks for, and the vCard name it means. Singular ones
  * hold one value which may itself contain newlines; the others repeat. */
@@ -46,10 +47,15 @@ static const struct {
     { "geo",     "GEO",  false, false, false, false },
 };
 
-/* Not a vCard uid at all: the preferred keyserver is a subpacket of the
- * primary uid's self-signature. It sits here because that is where somebody
- * looks for it, and it is spelled out wherever it behaves differently. */
+/* Not vCard uids at all: both live in the self-signature -- the preferred
+ * keyserver as a subpacket of the primary uid's, the expiry as the signature's
+ * own. They sit here because that is where somebody looks for them, and each
+ * is spelled out wherever it behaves differently. */
 #define KSPREFRD "ksprefrd"
+#define EXPIRE   "expire"
+/* Far enough off to be a real horizon, near enough to still be a date one
+ * could live to see. Beyond it, an expiry is 'never' spelled differently. */
+#define EXPIRE_MAX_YEARS 30
 
 /* RFC 6350 §3.4 in reverse: the escapes a value may carry. Caller frees. */
 static char *unescape(const char *v)
@@ -167,49 +173,50 @@ static bool value_is_sound(const char *vcard, const char *val)
  */
 static int resolve_key(const char *pattern, char *out, size_t max)
 {
-    gpgme_ctx_t ctx = NULL;
-    gpgme_error_t err = pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL);
-    if (err) {
-        pgpid_gpgme_error(_("opening the engine"), err);
+    const char *pat[1];
+    size_t npat = 0;
+    if (pattern)
+        pat[npat++] = pattern;
+    /* No pattern means "the key at hand", which is a secret key. */
+    struct pgpid_keyring *kr =
+        pgpid_keys_load(pat, npat, pattern ? 0 : PGPID_KEYS_SECRET);
+    if (!kr) {
+        pgpid_error(_("Error: Cannot read the keyring."));
         return PGPID_FAIL;
     }
-    err = gpgme_op_keylist_start(ctx, pattern, pattern ? 0 : 1);
-    if (err) {
-        pgpid_gpgme_error(_("looking the certificate up"), err);
-        gpgme_release(ctx);
-        return PGPID_FAIL;
-    }
-    gpgme_key_t candidate = NULL;
-    unsigned matches = 0, on_card = 0;
-    for (;;) {
-        gpgme_key_t k = NULL;
-        err = gpgme_op_keylist_next(ctx, &k);
-        if (gpg_err_code(err) == GPG_ERR_EOF)
-            break;
-        if (err) {
-            gpgme_op_keylist_end(ctx);
-            if (candidate)
-                gpgme_key_unref(candidate);
-            gpgme_release(ctx);
-            pgpid_gpgme_error(_("reading the certificate"), err);
-            return PGPID_FAIL;
+
+    /* No pattern: the key of the token last seen, which is what somebody
+     * with a card plugged in means by "my certificate". Before the counting
+     * below, which lists every secret key gpg knows of -- stubs of cards
+     * configured years ago included -- and gives up as soon as more than one
+     * of them names a card. Nine of them here, on a machine with one token. */
+    if (!pattern) {
+        char last[41];
+        if (pgpid_token_last_signing_key(last, sizeof last)) {
+            for (size_t n = 0; n < pgpid_keys_count(kr); n++)
+                if (!strcmp(pgpid_keys_at(kr, n)->fpr, last)) {
+                    snprintf(out, max, "%s", last);
+                    pgpid_keys_free(kr);
+                    return PGPID_OK;
+                }
         }
+    }
+
+    const struct pgpid_key *candidate = NULL;
+    unsigned matches = 0, on_card = 0;
+    for (size_t n = 0; n < pgpid_keys_count(kr); n++) {
+        const struct pgpid_key *k = pgpid_keys_at(kr, n);
         matches++;
         bool carded = false;
-        for (gpgme_subkey_t sk = k->subkeys; sk && !pattern; sk = sk->next)
-            if (sk->is_cardkey)
-                carded = true;
+        if (!pattern)
+            for (size_t i = 0; i < k->nsub; i++)
+                if (*k->sub[i].card)
+                    carded = true;
         if (carded)
             on_card++;
-        if (!candidate || (carded && on_card == 1)) {
-            if (candidate)
-                gpgme_key_unref(candidate);
+        if (!candidate || (carded && on_card == 1))
             candidate = k;
-        } else {
-            gpgme_key_unref(k);
-        }
     }
-    gpgme_op_keylist_end(ctx);
 
     int ret = PGPID_OK;
     if (!matches) {
@@ -219,26 +226,28 @@ static int resolve_key(const char *pattern, char *out, size_t max)
     } else if (matches > 1 && on_card != 1) {
         pgpid_error(_("Error: %u certificates match; name one."), matches);
         ret = PGPID_USAGE;
-    } else if (candidate->subkeys && candidate->subkeys->fpr) {
-        snprintf(out, max, "%s", candidate->subkeys->fpr);
+    } else if (*candidate->fpr) {
+        snprintf(out, max, "%s", candidate->fpr);
     } else {
         ret = PGPID_FAIL;
     }
-    if (candidate)
-        gpgme_key_unref(candidate);
-    gpgme_release(ctx);
+    pgpid_keys_free(kr);
     return ret;
 }
 
 /**
  * The preferred keyserver: read from the packets, written by re-signing.
  *
- * Written on the primary uid and nowhere else, by index — `uid 1` is a
- * position, never a string, because a string that matches nothing would let
- * the keyserver spill onto every uid at once. The primary flag has to be
- * re-asserted in the same self-signature: re-signing drops it otherwise, and
- * the certificate would come back announcing a different main identity than
- * the one it went in with.
+ * Written on the primary uid and nowhere else, by index — never a string,
+ * because a string that matches nothing would let the keyserver spill onto
+ * every uid at once. The primary flag has to be re-asserted in the same
+ * self-signature: re-signing drops it otherwise, and the certificate would
+ * come back announcing a different main identity than the one it went in with.
+ *
+ * The index used to be 1, on the assumption that gpg lists the primary first.
+ * True by luck on our own certificates, and false the moment cert_email
+ * --set-primary moves the flag somewhere else: setting a keyserver would then
+ * have quietly moved it back. It is asked for now, from the packets.
  */
 static int do_ksprefrd(const char *fpr, const char *add, bool revoking,
                        const char *keyservers)
@@ -254,8 +263,29 @@ static int do_ksprefrd(const char *fpr, const char *add, bool revoking,
             pgpid_error(_("Error: 'ksprefrd' must start with hkp:// or hkps:// (%s)."), add);
             return PGPID_USAGE;
         }
+        char primary[512];
+        unsigned index = pgpid_primary_uid(fpr, primary, sizeof primary)
+                         ? pgpid_uid_index(fpr, primary) : 0;
+        if (!index) {
+            pgpid_error(_("Error: This certificate flags no primary user id."));
+            pgpid_error(_("Notice: '%s cert_email --set-primary ADDRESS' gives it one."),
+                        PGPID_NAME);
+            return PGPID_FAIL;
+        }
+        /* The 'y' answers "Really update the preferred keyserver?", which gpg
+         * only asks when the uid already carries one. Sent unconditionally it
+         * lands in the menu as a command the first time and gpg answers
+         * "Invalid command" -- harmless, and exactly the sort of line that
+         * sends somebody hunting for a fault that is not there. */
+        size_t had_len = 0;
+        unsigned char *had_raw = pgpid_export_key(fpr, true, &had_len);
+        char *had = had_raw ? pgpid_preferred_keyserver(had_raw, had_len, fpr) : NULL;
+        bool replacing = had && *had;
+        free(had_raw);
+
         char script[1200];
-        snprintf(script, sizeof script, "uid 1\nkeyserver\n%.1023s\ny\nprimary\nsave\n", add);
+        snprintf(script, sizeof script, "uid %u\nkeyserver\n%.1023s\n%sprimary\nsave\n",
+                 index, add, replacing ? "y\n" : "");
         const char *argv[] = { "--batch", "--command-fd", "0", "--edit-key", fpr, NULL };
         if (pgpid_run_engine_input(argv, script)) {
             pgpid_error(_("Error: Cannot set the preferred keyserver — right PIN?"));
@@ -264,32 +294,112 @@ static int do_ksprefrd(const char *fpr, const char *add, bool revoking,
         return pgpid_send_to_keyservers(fpr, keyservers ? keyservers : PGPID_KEYSERVERS);
     }
 
-    gpgme_ctx_t ctx;
-    if (pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL))
-        return PGPID_FAIL;
-    gpgme_data_t exported;
-    unsigned char *raw = NULL;
     size_t len = 0;
-    if (!gpgme_data_new(&exported)) {
-        if (!gpgme_op_export(ctx, fpr, GPGME_EXPORT_MODE_MINIMAL, exported)) {
-            gpgme_data_seek(exported, 0, SEEK_SET);
-            raw = (unsigned char *)gpgme_data_release_and_get_mem(exported, &len);
-        } else {
-            gpgme_data_release(exported);
-        }
-    }
-    gpgme_release(ctx);
+    unsigned char *raw = pgpid_export_key(fpr, true, &len);
     if (!raw) {
         pgpid_error(_("Error: Cannot export %s."), fpr);
         return PGPID_FAIL;
     }
     char *ks = pgpid_preferred_keyserver(raw, len, fpr);
-    gpgme_free(raw);
-    if (!ks || !*ks)
-        return PGPID_NOTHING;
+    free(raw);
+    if (!ks || !*ks) {
+        pgpid_error(_("Notice: %s carries no %s."), fpr, KSPREFRD);
+        return PGPID_OK;
+    }
 
     const char *const columns[] = { KSPREFRD };
     const char *values[] = { ks };
+    pgpid_table_start(columns, 1);
+    pgpid_table_row(values);
+    pgpid_table_end();
+    return PGPID_OK;
+}
+
+/**
+ * When the certificate runs out, and until when the new one does.
+ *
+ * Read from the certificate, written by re-signing -- so it needs the secret
+ * key, which for a PGP ID identity means the card and its PIN. Primary and
+ * every standing subkey together: prolonging the primary alone leaves an
+ * identity whose signing key died last year, which is not a certificate that
+ * runs to the new date, it is one that looks like it does.
+ *
+ * There is no way to ask for no expiry, and that is deliberate: nothing lasts,
+ * and a certificate saying otherwise is saying something false. A certificate
+ * that already carries none is reported rather than silently blessed.
+ */
+static int do_expire(const char *fpr, const char *add, bool revoking,
+                     const char *keyservers)
+{
+    if (revoking) {
+        pgpid_error(_("Error: '%s' cannot be revoked — it is a property of a "
+                    "signature, not a uid. Set another value instead."), EXPIRE);
+        return PGPID_USAGE;
+    }
+
+    if (add) {
+        /* gpg spells 'no expiry' 0, and would take 'never' or 'none' as well.
+         * Refused here, in the words somebody would have typed: a certificate
+         * that never runs out is a promise nobody can keep. */
+        if (!strcmp(add, "0") || !strcmp(add, "never") || !strcmp(add, "none")
+            || !strcmp(add, "-") || !strcmp(add, "seconds=0")) {
+            pgpid_error(_("Error: A certificate has to run out; nothing lasts."));
+            pgpid_error(_("Notice: Give a date, or a duration: 2y, 18m, 90d."));
+            return PGPID_USAGE;
+        }
+        /* And not so far off that it amounts to the same thing. A date is
+         * measured from now, a duration is already one. */
+        if (add[0] >= '0' && add[0] <= '9' && strchr(add, '-')) {
+            struct tm want = { 0 };
+            if (!strptime(add, "%Y-%m-%d", &want)) {
+                pgpid_error(_("Error: '%s' is not a date (YYYY-MM-DD) nor a duration."), add);
+                return PGPID_USAGE;
+            }
+            double years = difftime(timegm(&want), time(NULL)) / (365.2425 * 86400);
+            if (years > EXPIRE_MAX_YEARS) {
+                pgpid_error(_("Error: %s is more than %d years off, which is no expiry at all."),
+                            add, EXPIRE_MAX_YEARS);
+                return PGPID_USAGE;
+            }
+        }
+        const char *primary[] = { "--batch", "--quick-set-expire", fpr, add, NULL };
+        const char *subs[] = { "--batch", "--quick-set-expire", fpr, add, "*", NULL };
+        if (pgpid_run_engine(primary) || pgpid_run_engine(subs)) {
+            pgpid_error(_("Error: Cannot set the expiry — right PIN, and is '%s' a date?"), add);
+            return PGPID_FAIL;
+        }
+        return pgpid_send_to_keyservers(fpr, keyservers ? keyservers : PGPID_KEYSERVERS);
+    }
+
+    const char *pat[] = { fpr };
+    struct pgpid_keyring *kr = pgpid_keys_load(pat, 1, 0);
+    if (!kr || !pgpid_keys_count(kr)) {
+        pgpid_keys_free(kr);
+        pgpid_error(_("Error: Cannot read %s."), fpr);
+        return PGPID_FAIL;
+    }
+    long when = pgpid_keys_at(kr, 0)->expires;
+    pgpid_keys_free(kr);
+
+    /* A certificate with no expiry is not a certificate with the value
+     * 'never': it is one that never says when it stops being true. Said as
+     * what it is, and the column stays empty rather than carrying a word that
+     * would read as a setting somebody chose. */
+    if (when <= 0) {
+        pgpid_error(_("Warning: %s carries no expiry, which is a promise nobody can keep."), fpr);
+        pgpid_error(_("Notice: '--replace-to 3y' gives it one."));
+        pgpid_table_start((const char *const[]){ EXPIRE }, 1);
+        pgpid_table_end();
+        return PGPID_OK;
+    }
+
+    char text[32];
+    struct tm tm;
+    time_t t = (time_t)when;
+    gmtime_r(&t, &tm);
+    strftime(text, sizeof text, "%Y-%m-%d", &tm);
+    const char *const columns[] = { EXPIRE };
+    const char *values[] = { text };
     pgpid_table_start(columns, 1);
     pgpid_table_row(values);
     pgpid_table_end();
@@ -300,34 +410,34 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " property NAME [OPTIONS]... [SEARCH]\n"
+        " cert_property PROPERTY [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
         "\n"
-        "Show the values of one vCard property carried by a certificate, one per\n"
-        "line, or add and revoke them. Without SEARCH, the certificate is the one\n"
-        "whose secret key is at hand — the plugged security key.\n"
-        "\n"
-        "NAME is one of: name, note, phone, address, url, lang, geo, ksprefrd.\n"
-        "name and note hold a single value: adding one revokes the one before.\n"
-        "A certificate always keeps at least one name.\n"
-        "\n"
-        "Addresses are not vCard properties — they keep the 'Name <addr>' shape\n"
-        "every mail client reads. Use '"
+        "Display and add or revoke vCard-property uids inside OpenPGP certificate.\n"
+        "PROPERTY is one of: { name, note, address, phone, url, lang, geo, ksprefrd,\n"
+        "expire }.\n"
+        "Email addresses are not vCard-property uids (they keep the 'Name <addr>' shape\n"
+        "every mail client understands): manage them with '"
         "%s"
-        " email' for those.\n"
-        "\n"
-        "'ksprefrd' is the certificate server this certificate names as its own.\n"
-        "It is a signature subpacket rather than a uid, so it can be replaced but\n"
-        "never revoked.\n"
+        " cert_email'.\n"
+        "'ksprefrd' (preferred certificate server, used when generating vCard) and\n"
+        "'expire' are not uids either: they live in the self-signature, and can be\n"
+        "replaced, never revoked. 'expire' takes a date or a duration (2y, 18m, 90d),\n"
+        "at most 30 years off, and moves the primary key and every standing subkey\n"
+        "together. There is no way to ask for no expiry: nothing lasts.\n"
+        "'name' is the one PGP ID requires: asking for a missing one answers 141,\n"
+        "where every other property answers 0.\n"
+        "Missing NAME|EMAIL|KEYID|U4|U5 => the certificate whose secret key is at hand.\n"
+        "Free-text values (name, note) with , ; \\ or newlines are stored RFC 6350-escaped\n"
+        "and decoded back on display (address keeps its structural ';')\n"
         "\n"
         "OPTIONS:\n"
-        "  -A, --add VALUE             Add a value (repeatable)\n"
-        "      --replace-to VALUE      The same word, for the properties that hold one\n"
-        "  -R, --revoke VALUE          Revoke the uid carrying VALUE (repeatable)\n"
-        "      --revoke-all            Revoke every value, bar the newest where one is kept\n"
-        "  -y, --yes                   Assume yes: skip the irreversibility warning\n"
-        "      --show-unusable         Also show the values that no longer stand\n"
-        "  -K, --keyservers SERVERS    Send the changed certificate to these\n"
-        "                              Empty for none. Default: "
+        "  -A, --add VALUE             Add ({name,note,ksprefrd,expire} ⇒ replace) a PROPERTY (may be used more than once)\n"
+        "      --replace-to VALUE      Exact synonym of --add — terminology is just more relevant for {name,note,ksprefrd,expire}\n"
+        "  -R, --revoke VALUE          Revoke the PROPERTY uid carrying VALUE (may be used more than once)\n"
+        "      --revoke-all            Revoke every usable PROPERTY uid — all but the newest for {name,email}\n"
+        "  -y, --yes                   Assume yes: skip the irreversible-revocation confirmation\n"
+        "      --show-unusable         Also display the uids that no longer stand: revoked, expired, or without a valid self-signature\n"
+        "  -K, --keyservers KEYSERVERS If non-empty, send updated certificate to this keyservers - Default: "
         "%s"
         "\n"
         "  -h, --help                  Print this help and exit\n"
@@ -338,7 +448,7 @@ static void usage(FILE *out)
             PGPID_NAME, PGPID_NAME, PGPID_KEYSERVERS);
 }
 
-int pgpid_action_property(int argc, char **argv)
+int pgpid_action_cert_property(int argc, char **argv)
 {
     const char *name = NULL, *pattern = NULL, *keyservers = NULL;
     char toadd[16][1024], torev[16][1024];
@@ -381,7 +491,7 @@ int pgpid_action_property(int argc, char **argv)
             continue;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("property");
+            pgpid_try_help("cert_property");
             return PGPID_USAGE;
         } else if (!name) {
             name = a;
@@ -401,7 +511,8 @@ int pgpid_action_property(int argc, char **argv)
     const char *vcard = NULL;
     bool singular = false, keepone = false, free_text = false, structural = false;
     bool is_ks = !strcmp(name, KSPREFRD);
-    if (!is_ks) {
+    bool is_expire = !strcmp(name, EXPIRE);
+    if (!is_ks && !is_expire) {
         for (size_t i = 0; i < sizeof PROPERTIES / sizeof *PROPERTIES; i++) {
             if (strcmp(name, PROPERTIES[i].name))
                 continue;
@@ -414,8 +525,8 @@ int pgpid_action_property(int argc, char **argv)
         }
         if (!vcard) {
             pgpid_error(_("Error: Unknown property '%s'."), name);
-            pgpid_error(_("Notice: One of name, note, phone, address, url, lang, geo, %s."),
-                        KSPREFRD);
+            pgpid_error(_("Notice: One of name, note, phone, address, url, lang, geo, %s, %s."),
+                        KSPREFRD, EXPIRE);
             return PGPID_USAGE;
         }
     }
@@ -437,6 +548,14 @@ int pgpid_action_property(int argc, char **argv)
             return PGPID_USAGE;
         }
         return do_ksprefrd(fpr, nadd ? toadd[0] : NULL, nrev || revoke_all, keyservers);
+    }
+
+    if (is_expire) {
+        if (nadd > 1) {
+            pgpid_error(_("Error: Only one --add at a time for '%s'."), EXPIRE);
+            return PGPID_USAGE;
+        }
+        return do_expire(fpr, nadd ? toadd[0] : NULL, nrev || revoke_all, keyservers);
     }
 
     /* Free text is stored escaped, so what is asked for has to be escaped too
@@ -464,7 +583,7 @@ int pgpid_action_property(int argc, char **argv)
     bool modified = false;
 
     if (nadd || nrev || revoke_all) {
-        if (!pgpid_upgrade_uids(fpr))
+        if (!pgpid_upgrade_uids(fpr, keyservers))
             return PGPID_FAIL;
         nuids = pgpid_list_uids(fpr, true, uids, 256);
         if (!nuids) {
@@ -583,7 +702,7 @@ int pgpid_action_property(int argc, char **argv)
         ret = pgpid_send_to_keyservers(fpr, keyservers ? keyservers : PGPID_KEYSERVERS);
     }
 
-    /* From the colon listing, not gpgme: an expired uid arrives from gpgme as
+    /* From the colon listing's own letters: an expired uid would otherwise read as
      * unknown, indistinguishable from one nobody has vouched for, and
      * --show-unusable would then have nothing to show. */
     nuids = pgpid_list_uids(fpr, false, uids, 256);
@@ -607,7 +726,17 @@ int pgpid_action_property(int argc, char **argv)
     /* An empty property is an answer, not a failure: this certificate has no
      * phone number, and saying so with a non-zero code turns an ordinary fact
      * into an error for every caller that checks. "Nothing found" is reserved
-     * for the search that matched no certificate at all, above. */
-    (void)found;
+     * for the search that matched no certificate at all, above. It is said all
+     * the same -- silence and success together read as "done", and somebody
+     * reading a terminal deserves to know the difference. */
+    if (!found) {
+        pgpid_error(_("Notice: %s carries no %s."), fpr, name);
+        /* PGP ID requires a name and nothing else, so a missing name is the
+         * one absence a caller has to be able to act on. Every other property
+         * is optional, and answering an ordinary fact with a failure would
+         * make each of them look like a fault. */
+        if (keepone)
+            ret = PGPID_NOTHING;
+    }
     return ret;
 }

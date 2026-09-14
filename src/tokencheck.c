@@ -1,6 +1,6 @@
 /* Is the security key configured to carry an identity?
  *
- * Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
  *
  * SPDX-License-Identifier: GPL-3.0-only
@@ -91,9 +91,19 @@ static bool take_email(const char *line, char *out, size_t max)
         const char *end = at + 1;
         while (*end && (isalnum((unsigned char)*end) || *end == '.' || *end == '-'))
             end++;
-        /* A domain needs a dot and letters after it, or it is not one. */
-        const char *dot = memchr(at, '.', (size_t)(end - at));
-        if (start == at || !dot || dot + 1 >= end)
+        /* A sentence's full stop is not part of the address it ends. */
+        while (end > at + 1 && end[-1] == '.')
+            end--;
+        /* A domain needs a dot, and its *last* label must be letters -- the
+         * first dot is the wrong one to look at, and looking there is how
+         * "a@mail.example.org" and "a@example.co.uk" were both thrown away:
+         * anything with more than two labels failed. Two letters at least,
+         * since no top-level domain is shorter. */
+        const char *dot = NULL;
+        for (const char *p = at + 1; p < end; p++)
+            if (*p == '.')
+                dot = p;
+        if (start == at || !dot || end - dot < 3)
             continue;
         bool tail_alpha = true;
         for (const char *p = dot + 1; p < end; p++)
@@ -118,25 +128,42 @@ static bool take_email(const char *line, char *out, size_t max)
  * different surroundings — and looking for it with the wrong reader is how
  * the field came back empty while sitting in plain sight.
  */
+/* Three spellings have existed for one identifier: the current glued form, a
+ * deprecated "u4=" separator, and an older "udid4=" still. A card written years
+ * ago carries what it carried then, and an identifier is for life -- so all
+ * three are read, and the glued form is what comes back. */
 static bool take_bare_eid(const char *line, char *out, size_t max)
 {
-    const char *found = NULL;
     for (const char *p = line; *p; p++) {
-        if (p[0] != 'u' || (p[1] != '4' && p[1] != '5'))
+        const char *q = p;
+        if (!strncmp(q, "udid", 4))
+            q += 4;
+        else if (*q == 'u')
+            q += 1;
+        else
             continue;
-        if (!pgpid_eid_body_is_sound(p))
+        if (*q != '4' && *q != '5')
             continue;
-        found = p;
-        break;
+        char digit = *q++;
+        if (*q == '=')
+            q++;
+
+        size_t body = (digit == '4') ? 22 + 14 : 16 + 14;
+        char glued[64];
+        if (2 + body + 1 > sizeof glued || 2 + body >= max)
+            continue;
+        if (strlen(q) < body)
+            continue;
+        glued[0] = 'u';
+        glued[1] = digit;
+        memcpy(glued + 2, q, body);
+        glued[2 + body] = '\0';
+        if (!pgpid_eid_body_is_sound(glued))
+            continue;
+        memcpy(out, glued, 2 + body + 1);
+        return true;
     }
-    if (!found)
-        return false;
-    size_t n = (found[1] == '4') ? 2 + 22 + 14 : 2 + 16 + 14;
-    if (n >= max)
-        return false;
-    memcpy(out, found, n);
-    out[n] = '\0';
-    return true;
+    return false;
 }
 
 /**
@@ -179,74 +206,37 @@ static void usage(FILE *out)
         "%s"
         " token_check [OPTIONS]...\n"
         "\n"
-        "Say whether the connected security key is configured to carry a PGP\n"
-        "ID, and what it holds. Tries to fetch the certificate named in the\n"
-        "key's own metadata unless told not to.\n"
+        "Check if security token is correctly configured for PGP ID ; may output informations.\n"
+        "Will try to import cleaned certificate indicated in 'URL of public key' field.\n"
         "\n"
         "OPTIONS:\n"
-        "  -f, --no-fetch              Do not fetch the certificate from the key's URL\n"
-        "  -p, --cert-fpr              Print the certification key's fingerprint\n"
-        "  -i, --info                  Print every field as key='value'\n"
-        "  -q, --quiet                 Say nothing on the error stream\n"
+        "  -f, --no-fetch              Don't try to fetch public certificate (from URL indicated in token metadata)\n"
+        "  -q, --quiet                 Don't errput 'Info' or 'Notice' messages\n"
+        "  -p, --cert-fpr              Output certificate fingerprint (Certification key fpr)\n"
+        "  -i, --info                  Output the metadata as pairs key='value' ready to be evaluated in bash\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"
         "\n"
-        "Returns 0 when the key carries a complete identity, otherwise 100 plus\n"
-        "the number of fields missing — so 107 is a key that carries nothing,\n"
-        "which is a blank key rather than a broken one.\n"),
+        "Return value:\n"
+        "-   0 if no error and security token is correctly configured for PGP ID.\n"
+        "- 100 + number of missing PGP ID data fields.\n"
+        "- then 107 if all required data are missing (OpenPGP card is probably empty).\n"
+        "- Other non-zero on other errors.\n"),
             PGPID_NAME);
 }
 
-/** The certificate's own FN, which has room where the card's field has not. */
+/**
+ * The certificate's own FN, which has room where the card's field has not.
+ *
+ * The reading itself lives in common.c, so that a certificate is called the
+ * same thing here, on a vCard, and in a list of certifiers.
+ */
 static bool certificate_name(const char *fpr, char *out, size_t max)
 {
-    gpgme_ctx_t ctx;
-    if (pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL))
-        return false;
-    gpgme_key_t key = NULL;
-    bool found = false;
-    if (!gpgme_op_keylist_start(ctx, fpr, 0) && !gpgme_op_keylist_next(ctx, &key)) {
-        char validity[256];
-        size_t nvalid = pgpid_uid_validities(fpr, validity, sizeof validity);
-        unsigned k = 0;
-        for (gpgme_user_id_t u = key->uids; u && !found; u = u->next, k++) {
-            char l = (k < nvalid) ? validity[k] : '-';
-            if (!u->uid || !strchr("ounmfqws-", l))
-                continue;
-            if (strncmp(u->uid, "FN", 2))
-                continue;
-            const char *p = u->uid + 2;
-            if (*p == ';')
-                p = strchr(p, ':');
-            if (!p || *p != ':')
-                continue;
-            p++;
-            if (*p == ' ')
-                p++;
-            /* RFC 6350 §3.4 escapes, undone. The backslash goes last so its
-             * own undoing does not eat the others. */
-            size_t o = 0;
-            for (; *p && o + 1 < max; p++) {
-                if (*p != '\\') {
-                    out[o++] = *p;
-                    continue;
-                }
-                switch (*++p) {
-                case 'n': case 'N': out[o++] = '\n'; break;
-                case ',': out[o++] = ','; break;
-                case ';': out[o++] = ';'; break;
-                case '\\': out[o++] = '\\'; break;
-                case '\0': out[o++] = '\\'; p--; break;
-                default: out[o++] = '\\'; out[o++] = *p; break;
-                }
-            }
-            out[o] = '\0';
-            found = o > 0;
-        }
-        gpgme_key_unref(key);
-    }
-    gpgme_op_keylist_end(ctx);
-    gpgme_release(ctx);
+    const char *pat[] = { fpr };
+    struct pgpid_keyring *kr = pgpid_keys_load(pat, 1, 0);
+    bool found = pgpid_key_name(pgpid_keys_at(kr, 0), out, max);
+    pgpid_keys_free(kr);
     return found;
 }
 
@@ -275,8 +265,7 @@ int pgpid_action_token_check(int argc, char **argv)
     memset(&f, 0, sizeof f);
 
     char status[16384];
-    const char *card[] = { "--card-status", NULL };
-    if (pgpid_capture_engine(card, status, sizeof status) < 0 || !*status) {
+    if (pgpid_capture_card_status(status, sizeof status) < 0 || !*status) {
         pgpid_error(_("Error: No security key answered."));
         return PGPID_FAIL;
     }
@@ -312,8 +301,12 @@ int pgpid_action_token_check(int argc, char **argv)
                     close(fd);
                     const char *import[] = { "--import", path, NULL };
                     pgpid_run_engine(import);
-                    /* Read the card again: what it says may now resolve. */
-                    pgpid_capture(card, status, sizeof status);
+                    /* Read the card again: what it says may now resolve.
+                     * Through the engine -- this called pgpid_capture with
+                     * gpg's arguments but no gpg, so it execed "--card-status"
+                     * as a program, failed, and emptied what it meant to
+                     * refresh. */
+                    pgpid_capture_card_status(status, sizeof status);
                 } else {
                     close(fd);
                 }
@@ -396,18 +389,12 @@ int pgpid_action_token_check(int argc, char **argv)
     const char *anchor = *f.v[F_SKEY] ? f.v[F_SKEY]
                        : *f.v[F_EKEY] ? f.v[F_EKEY] : f.v[F_AKEY];
     if (*anchor) {
-        gpgme_ctx_t ctx;
-        if (!pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL)) {
-            gpgme_key_t key = NULL;
-            if (!gpgme_op_keylist_start(ctx, anchor, 0)
-                && !gpgme_op_keylist_next(ctx, &key)) {
-                if (key->subkeys && key->subkeys->fpr)
-                    snprintf(f.v[F_CKEY], sizeof f.v[0], "%s", key->subkeys->fpr);
-                gpgme_key_unref(key);
-            }
-            gpgme_op_keylist_end(ctx);
-            gpgme_release(ctx);
-        }
+        const char *pat[] = { anchor };
+        struct pgpid_keyring *kr = pgpid_keys_load(pat, 1, 0);
+        const struct pgpid_key *key = pgpid_keys_at(kr, 0);
+        if (key && *key->fpr)
+            snprintf(f.v[F_CKEY], sizeof f.v[0], "%s", key->fpr);
+        pgpid_keys_free(kr);
     }
     if (!*f.v[F_CKEY] && !quiet)
         pgpid_error(_("Warning: No certification key known. Share or fetch the certificate."));
@@ -444,5 +431,20 @@ int pgpid_action_token_check(int argc, char **argv)
     if (!quiet)
         pgpid_error(_("Info: A PGP ID key, certified by %s, carrying %s."),
                     f.v[F_CKEY], f.v[F_ID]);
+
+    /* Valid, so it gets remembered -- beside GnuPG's stub, which says only
+     * which card holds the secret and has no room for the rest. Written here
+     * and only here: a key that fails the check is not one we want to answer
+     * questions about later. */
+    if (*f.v[F_TOKEN_ID]) {
+        char note[4096] = "";
+        for (unsigned i = 0; i < F_COUNT; i++) {
+            char line[640];
+            snprintf(line, sizeof line, "%s='%s'\n", FIELD_NAME[i], f.v[i]);
+            if (strlen(note) + strlen(line) < sizeof note)
+                strcat(note, line);
+        }
+        pgpid_token_remember(f.v[F_TOKEN_ID], note);
+    }
     return PGPID_OK;
 }

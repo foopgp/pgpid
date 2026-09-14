@@ -1,12 +1,12 @@
-/* When a certificate was revoked — the one date gpgme does not carry.
+/* When a certificate was revoked — the one date a key listing does not carry.
  *
- * Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
  *
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * A key revocation is a signature on the primary key, not on a uid, and
- * gpgme's key structure only walks uid signatures: `key->revoked` says *that*
+ * A key record only says *that* it is revoked, never when:
  * it was revoked and nothing says *when*. GnuPG does, in a `rev:` record of
  * `--list-sigs --with-colons`:
  *

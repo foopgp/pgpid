@@ -16,7 +16,7 @@ footer: pgpid 0.0.7
 
 # NAME
 
-pgpid - Czyta certyfikaty OpenPGP i działa na nich wedle modelu pgpid: identyfikatory jednostek, ważność, ownertrust.
+pgpid - Czyta certyfikaty OpenPGP i działa na nich wedle modelu pgpid: identyfikatory jednostek, ważność, wiarygodność.
 
 # SYNOPSIS
 
@@ -25,7 +25,7 @@ pgpid - Czyta certyfikaty OpenPGP i działa na nich wedle modelu pgpid: identyfi
 # DESCRIPTION
 
 Czyta certyfikaty OpenPGP i działa na nich wedle modelu pgpid:
-identyfikatory jednostek, ważność, ownertrust.
+identyfikatory jednostek, ważność, wiarygodność.
 
 ## ACTIONS:
 
@@ -45,10 +45,6 @@ sigs
 
 :   Wypisać, kto poświadczył certyfikat
 
-ownertrust
-
-:   Wypisać lub ustawić, jak dalece się poświadcza
-
 del
 
 :   Usunąć certyfikaty, tylko po odcisku palca
@@ -63,11 +59,7 @@ push
 
 gen_u4
 
-:   Wypisać identyfikator, który daje stan cywilny
-
-mrz_to_u4
-
-:   Ten, który daje strefa paszportu
+:   Wypisać identyfikator ze stanu cywilnego lub paszportu
 
 gen_uid
 
@@ -85,9 +77,9 @@ certify
 
 :   Poręczyć za kogoś innego
 
-update_trustdb
+trustdb
 
-:   Przeliczyć zaufanie z podpisanych delegacji
+:   Czytać, publikować i stosować wiarygodność innych
 
 gen_key
 
@@ -174,8 +166,8 @@ WZORZEC, jeśli podany, trafia do silnika bez zmian; bez niego wypisywany
 jest cały zbiór kluczy.
 
 OPTIONS:
-  -S, --short                 Wiersz na adres: odcisk palca, adres, identyfikator
-                              To, co odpowiada „bl-pgpid get --no-fetch”, kolumna w kolumnę
+  -S, --short                 Wiersz na adres: odcisk palca, identyfikator, adres
+                              To, co odpowiada „pgpid get --no-fetch”, kolumna w kolumnę
   -L, --no-check-eid          Dawne: nie uznawać certyfikatu bez spójnego eid za „broken”
       --count-certs           Policzyć odrębnych poświadczających każdy certyfikat i wypełnić kolumnę *certifications* (może potrwać!)
       --hide-trust            Wiarygodność (ownertrust) jest wrażliwa i służy do wyliczenia ważności — czasem obie muszą pozostać prywatne
@@ -186,63 +178,60 @@ OPTIONS:
 ## pgpid get
 
 ```
-Usage: pgpid get [OPTIONS]... NAZWA|ADRES|KEYID|U4|U5|'*'
+Usage: pgpid get [OPTIONS]... NAZWA|U4|U5|ADRES...
 
-Wypisuje odciski palca, adresy i identyfikatory jednostek certyfikatów
-pasujących do zapytania, po jednym wierszu na adres. Najpierw odświeża je
-z serwerów kluczy, o ile nie powiedziano inaczej.
-
-Wymagany jest wzorzec wyszukiwania — „*” dla całego zbioru kluczy. To
-`list` pokazuje wszystko, gdy nic się od niego nie żąda.
+Wypisuje odciski, adresy i eid certyfikatów pasujących do
+NAZWA|U4|U5|ADRES.
+Może też pobrać lub odświeżyć certyfikaty z serwerów kluczy.
+'*' znaczy cały pęk; `list` jest tą, która pokazuje wszystko, gdy się jej o
+nic nie pyta.
 
 OPTIONS:
   -F, --fingerprint           Wypisać tylko odciski palca
   -E, --email                 Wypisać tylko adresy
   -f, --no-fetch              Nie odświeżać z serwerów kluczy ani z WKD
-  -m, --errexit-g=N           Zawieść, jeśli pasuje więcej niż N certyfikatów
-  -K, --keyservers SERWERY    Odświeżyć z tych, rozdzielonych spacjami
-                              Puste dla żadnego, jak --no-fetch. Domyślnie: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -m, --errexit-g=1           Zawieść, jeśli pasuje więcej niż N certyfikatów
+  -K, --keyservers KEYSERVERS Odświeżyć z tych, rozdzielonych spacjami - Domyślnie: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Wypisać tę pomoc i zakończyć
   -V, --version               Wypisać wersję i zakończyć
 
 Nie ma „cert_check”: `list` odpowiada to, co odpowiadał, mniejszym kosztem.
+
 ```
 
 ## pgpid property
 
 ```
-Usage: pgpid property NAZWA [OPTIONS]... [WZORZEC]
+Usage: pgpid property PROPERTY [OPTIONS]... [NAZWA|ADRES|KEYID|U4|U5]
 
-Pokazuje wartości jednej właściwości vCard niesionej przez certyfikat, po
-jednej w wierszu, albo je dodaje i unieważnia. Bez WZORCA — certyfikat,
-którego klucz tajny jest pod ręką, czyli podłączony klucz bezpieczeństwa.
-
-NAZWA to jedno z: name, note, phone, address, url, lang, geo, ksprefrd.
-name i note niosą jedną wartość: dodanie jednej unieważnia poprzednią.
-Certyfikat zawsze zachowuje co najmniej jedną nazwę.
-
-Adresy nie są właściwościami vCard — zachowują postać „Nazwa <adres>”,
-którą czyta każdy program pocztowy. Do tego służy „pgpid email”.
-
-„ksprefrd” to serwer certyfikatów, który ten certyfikat zwie swoim. To
-podpakiet podpisu, a nie uid: da się go zastąpić, nigdy unieważnić.
+Pokazać, dodać lub unieważnić uid właściwości vCard w certyfikacie OpenPGP.
+PROPERTY to jedno z: { name, note, address, phone, url, lang, geo, ksprefrd }.
+Adresy poczty nie są uid właściwości vCard (zachowują postać
+'Nazwa <adres>', którą rozumie każdy klient poczty): zarządzaj nimi przez
+'pgpid email'.
+'ksprefrd' to preferowany serwer certyfikatów. Nie jest przechowywany jako uid
+właściwości vCard, lecz używany przy tworzeniu vCard: da się go zastąpić,
+nigdy unieważnić.
+Brak NAZWA|ADRES|KEYID|U4|U5 ⇒ certyfikat, którego klucz tajny jest pod ręką.
+Wartości swobodne (name, note) z , ; \ lub końcami wierszy są przechowywane
+z ucieczkami wedle RFC 6350 i odkodowywane przy wyświetlaniu (address
+zachowuje swój strukturalny ';')
 
 OPTIONS:
-  -A, --add WARTOŚĆ           Dodać wartość (powtarzalne)
-      --replace-to WARTOŚĆ    To samo słowo, dla tych o jednej wartości
-  -R, --revoke WARTOŚĆ        Unieważnić uid niosący WARTOŚĆ (powtarzalne)
+  -A, --add VALUE             Dodać wartość (powtarzalne)
+      --replace-to VALUE      To samo słowo, dla tych o jednej wartości
+  -R, --revoke VALUE          Unieważnić uid niosący WARTOŚĆ (powtarzalne)
       --revoke-all            Unieważnić wszystkie wartości prócz najnowszej
-                              tam, gdzie jedna musi pozostać
   -y, --yes                   Przyjąć tak: pominąć ostrzeżenie o nieodwracalności
       --show-unusable         Pokazać też wartości, które już nie obowiązują
-  -K, --keyservers SERWERY    Wysłać zmieniony certyfikat na te
-                              Puste dla żadnego. Domyślnie: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -K, --keyservers KEYSERVERS Wysłać zmieniony certyfikat na te - Domyślnie: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Wypisać tę pomoc i zakończyć
   -V, --version               Wypisać wersję i zakończyć
 
 Unieważnienie jest nieodwracalne: OpenPGP zachowuje uid na certyfikacie
 na zawsze, oznaczony jako unieważniony, a identycznego nigdy już nie da
 się dodać.
+
 ```
 
 ## pgpid sigs
@@ -266,23 +255,6 @@ OPTIONS:
   -h, --help                  Wypisać tę pomoc i zakończyć
 ```
 
-## pgpid ownertrust
-
-```
-Usage: pgpid ownertrust [OPTIONS]... ODCISK
-
-Wypisuje, jak dalece ufa się temu certyfikatowi w poświadczaniu innych:
-jedno z unknown, never, marginal, full, ultimate.
-
-„undefined” da się ustawić i odczytuje się jako „unknown”: silnik ich nie
-rozróżnia, i nikt, kto musiał kiedyś tłumaczyć różnicę, też nie. Jeden
-szczebel, dwie pisownie.
-
-OPTIONS:
-  -r, --replace-to WARTOŚĆ    Ustawić na WARTOŚĆ zamiast wypisywać
-  -h, --help                  Wypisać tę pomoc i zakończyć
-```
-
 ## pgpid del
 
 ```
@@ -303,25 +275,22 @@ OPTIONS:
 ```
 Usage: pgpid avatar [OPTIONS]... [NAZWA|ADRES|KEYID|U4|U5]
 
-Wydobywa obraz, który nosi certyfikat OpenPGP, i wypisuje jego ścieżkę.
-Ten, który obowiązuje dziś, idzie pierwszy: pierwszy wiersz to zatem
-awatar. Bez wskazania — pierwszy tajny certyfikat.
-
-Zapis wymaga klucza tajnego certyfikatu i przyjmuje tylko odcisk palca:
-unieważnienia nie da się cofnąć, wyszukiwanie nigdy więc nie powinno stać
-się celem. Nowy obraz jest wpierw sprowadzany do 180x180, a zmieniony
-certyfikat trafia na domyślne serwery kluczy, o ile nie powiedziano
-inaczej.
+Wydobyć obraz z certyfikatu OpenPGP albo go tam dodać.
+Brak NAZWA|ADRES|KEYID|U4|U5 ⇒ pierwszy certyfikat tajny.
+Zapis przyjmuje tylko odcisk: unieważnienia nie da się cofnąć, a szukanie
+nie może stać się celem.
+Nowy OBRAZ powinien mieć 180×180 pikseli, inaczej zostanie przeskalowany.
+Wypisuje ścieżkę obrazu, który dziś obowiązuje, najnowszy pierwszy.
 
 OPTIONS:
-  -E, --extract-all           Wypisać wszystkie obrazy, wraz z unieważnionymi
-  -A, --replace-to OBRAZ      Zdjąć obowiązujące obrazy i położyć OBRAZ
-  -R, --revoke                Tylko zdjąć obowiązujące obrazy
-  -K, --keyservers SERWERY    Wysłać zmieniony certyfikat na te, rozdzielone
-                              spacjami. Puste dla żadnego. Domyślnie: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -W, --workdir KATALOG       Gdzie zapisywane są obrazy
+  -E, --extract-all           Wypisać każdy obraz, unieważnione i wygasłe też, najnowszy pierwszy
+  -A, --replace-to OBRAZ      Przeskalować i dodać OBRAZ do certyfikatu OpenPGP (unieważniając poprzednie)
+  -R, --revoke                Tylko unieważnić wszystkie istniejące obrazy w certyfikacie OpenPGP
+  -W, --workdir KATALOG       Katalog roboczy. Będzie zawierał poprzednie i nowe przeskalowane obrazy
+  -K, --keyservers SERWERY    Jeśli niepuste, wysłać zmieniony certyfikat do tych serwerów - Domyślnie: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Wypisać tę pomoc i zakończyć
   -V, --version               Wypisać wersję i zakończyć
+
 ```
 
 ## pgpid push
@@ -343,41 +312,34 @@ OPTIONS:
 
 ```
 Usage: pgpid gen_u4 [OPTIONS]...
+   or: pgpid gen_u4 --from-passport-mrz [OPTIONS]... MRZ...
 
-Wypisuje identyfikator jednostki, który daje stan cywilny: ostatni człon
-nazwiska, dwa pierwsze imiona, datę urodzenia i kraj.
+Wytworzyć ciąg eid u4 ze stanu cywilnego: ostatni człon nazwiska, dwa
+pierwsze imiona, datę urodzenia i kraj.
 
-OPTIONS:
-  -s, --surname NAZWISKO           Nazwisko rodowe
-  -g, --given-names IMIONA         Imiona nadane, rozdzielone spacją lub przecinkiem
-  -d, --birth-date RRRR-MM-DD      Data urodzenia
-  -c, --birth-country KOD          Trzyliterowy kod kraju miejsca urodzenia
-  -h, --help                       Wypisać tę pomoc i zakończyć
-  -V, --version                    Wypisać wersję i zakończyć
-
-Wszystko jest wymagane: pytanie o to, czego brak, należy do tego, kto ma
-kogo zapytać.
-```
-
-## pgpid mrz_to_u4
-
-```
-Usage: pgpid mrz_to_u4 [OPTIONS]... MRZ...
-
-Wypisuje identyfikator jednostki, który daje strefa do odczytu
-maszynowego paszportu. Strefa ma 88 znaków w dwóch wierszach; spacje
-i końce wierszy są pomijane, można ją więc wkleić tak, jak odczytano.
+Przy --from-passport-mrz podaje się zamiast tego strefę do odczytu
+maszynowego paszportu międzynarodowego — 88 znaków w dwóch wierszach, spacje
+i końce wierszy pomijane, można ją więc wkleić tak, jak odczytano. Cztery
+opcje poniżej działają obok niej i zastępują to, co mówi strefa: tak poprawia
+się nazwisko skrócone, by się zmieściło, bez przepisywania reszty.
 
 OPTIONS:
-  -d, --birth-date RRRR-MM-DD  Data urodzenia, gdy dwie cyfry nie wystarczą
-  -u, --uncheck                Zgłosić błędną cyfrę kontrolną, bez odmowy
-  -h, --help                   Wypisać tę pomoc i zakończyć
-  -V, --version                Wypisać wersję i zakończyć
+  -s, --surname SURNAME       Nazwisko rodowe
+  -g, --given-names GIVEN_NAMES Imiona nadane, rozdzielone spacją lub przecinkiem
+  -d, --birth-date            RRRR-MM-DD      Data urodzenia
+  -c, --birth-country COUNTRY_CODE Trzyliterowy kod kraju miejsca urodzenia
+      --from-passport-mrz     Czytać stan cywilny ze strefy podanej w argumentach
+  -u, --uncheck               Przy strefie: zgłosić błędną cyfrę kontrolną
+  -h, --help                  Wypisać tę pomoc i zakończyć
+  -V, --version               Wypisać wersję i zakończyć
 
-Mniej więcej co piąty paszport daje błędny identyfikator: nazwisko
-skrócone, by się zmieściło, imię zmienione od urodzenia, inna
-transliteracja, albo rok, którego dwie cyfry nie umieszczają. Trzeba to
-sprawdzić.
+Wpisywane — wszystko jest wymagane: pytanie o to, czego brak, należy do tego,
+kto ma kogo zapytać. Z paszportu nic nie jest — i warto dodać tylko
+--birth-date, gdy dwie cyfry nie wystarczą.
+
+Jest ~20% szans, że *u4* wytworzone z paszportu jest błędne: nazwisko
+skrócone, by się zmieściło, imię zmienione od urodzenia, inna transliteracja,
+albo rok urodzenia, którego dwie cyfry nie umieszczają. Sprawdź je.
 ```
 
 ## pgpid gen_uid
@@ -385,18 +347,18 @@ sprawdzić.
 ```
 Usage: pgpid gen_uid [OPTIONS]... U4|U5|CIĄG
 
-Wypisuje numer konta uniksowego, który daje identyfikator jednostki,
-z przedziału od 262144 do 2147483646. Ten sam identyfikator zawsze daje ten sam
-numer, na dowolnej maszynie — to właśnie pozwala otworzyć konto gdzie
-indziej z samego certyfikatu.
+Wytworzyć 32-bitowy identyfikator użytkownika Unix, od 2^18 do (2^31)-2
+([262144,2147483646]).
+Ten sam identyfikator daje zawsze tę samą liczbę, na dowolnej maszynie — i to
+pozwala otworzyć konto gdzie indziej z samego certyfikatu.
 
 OPTIONS:
   -f, --free-input            Przyjąć dowolny ciąg, nie tylko identyfikator
   -h, --help                  Wypisać tę pomoc i zakończyć
   -V, --version               Wypisać wersję i zakończyć
 
-Interaktywne pytanie o stan cywilny należy do wywołującego: to czyta, co
-mu się poda, i nic więcej.
+Wymagany jest argument: pytanie o stan cywilny interaktywnie należy do
+wywołującego.
 ```
 
 ## pgpid to_vcard
@@ -404,14 +366,15 @@ mu się poda, i nic więcej.
 ```
 Usage: pgpid to_vcard [OPTIONS]... [NAZWA|ADRES|KEYID|U4|U5]
 
-Zapisuje certyfikat jako vCard 4.0, którą potrafi odczytać książka
-adresowa. Bez wskazania — certyfikat, którego klucz tajny jest pod ręką.
+Przekształcić certyfikat OpenPGP w vCard (format 4.0).
+Brak NAZWA|ADRES|KEYID|U4|U5 ⇒ certyfikat, którego klucz tajny jest pod ręką.
 
 OPTIONS:
-  -o, --output PLIK           Zapisać tam zamiast na wyjście standardowe
+  -o, --output FILE           Zapisać tam zamiast na wyjście standardowe
       --raw                   Wypisać każdy uid, po jednym akapicie
   -h, --help                  Wypisać tę pomoc i zakończyć
   -V, --version               Wypisać wersję i zakończyć
+
 ```
 
 ## pgpid email
@@ -419,60 +382,58 @@ OPTIONS:
 ```
 Usage: pgpid email [OPTIONS]... [NAZWA|ADRES|KEYID|U4|U5]
 
-Pokazuje adresy, które nosi certyfikat, albo je dodaje i unieważnia. Bez
-celu — ten, do którego należy podłączona karta.
-
-Pokazywane są tylko adresy, które wciąż obowiązują — ani unieważnione,
-ani wygasłe, ani te, których podpis własny już nie trzyma.
+Pokazać, dodać lub unieważnić adresy w certyfikacie OpenPGP.
+Brak NAZWA|ADRES|KEYID|U4|U5 ⇒ certyfikat, do którego należy podłączony
+klucz bezpieczeństwa.
+Wypisuje adresy zdatne do użytku (nieunieważnione i niewygasłe).
 
 OPTIONS:
-  -A, --add ADRES             Dodać jako uid „Nazwa <ADRES>” (powtarzalne)
-  -R, --revoke ADRES          Unieważnić uid, który go nosi (powtarzalne)
+  -R, --revoke EMAIL          Unieważnić uid, który go nosi (powtarzalne)
       --revoke-all            Unieważnić wszystkie adresy prócz najnowszego
+  -A, --add EMAIL             Dodać jako uid „Nazwa <ADRES>” (powtarzalne)
+  -N, --name NAME             Nazwa przed dodanym adresem
+                              Domyślnie: FN: certyfikatu, w przeciwnym razie część lokalna
   -y, --yes                   Przyjąć tak: pominąć ostrzeżenie o nieodwracalności
-  -N, --name NAZWA            Nazwa przed dodanym adresem
-                              Domyślnie: FN: certyfikatu, inaczej część lokalna
   -c, --certs-count           Policzyć też poświadczenia każdego adresu
       --show-unusable         Pokazać też adresy, które już nie obowiązują
       --info                  Wypisać pary klucz=wartość gotowe dla basha
-  -K, --keyservers SERWERY    Wysłać zmieniony certyfikat na te
-                              Puste dla żadnego. Domyślnie: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -K, --keyservers KEYSERVERS Wysłać zmieniony certyfikat na te - Domyślnie: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Wypisać tę pomoc i zakończyć
   -V, --version               Wypisać wersję i zakończyć
 
 Unieważnienie jest nieodwracalne: OpenPGP zachowuje adres na certyfikacie
 na zawsze, oznaczony jako unieważniony, a identycznego nigdy już nie da
 się dodać.
+
 ```
 
 ## pgpid certify
 
 ```
-Usage: pgpid certify [OPTIONS]... ODCISK [U4|U5]
+Usage: pgpid certify [OPTIONS]... TARGET_KEYFPR [TARGET_U4|TARGET_U5]
 
-Poręczyć za kogoś innego: oświadczyć, że ten certyfikat należy do niego.
+Poświadczyć kogoś innego, wskazanego odciskiem jego klucza TARGET_KEYFPR.
+Całe czterdzieści znaków, odczytane z karty tamtej osoby i z nią
+porównane — nigdy wzorzec wyszukiwania, bo poświadczenia nie da się
+cofnąć. Podanie także TARGET_U4 wymaga, by certyfikat je nosił, i w
+przeciwnym razie odmawia.
 
-ODCISK to pełny odcisk palca, czterdzieści znaków, odczytany z karty
-drugiej osoby i z nią porównany — nigdy wzorzec wyszukiwania, bo
-poświadczenia nie da się cofnąć. Podanie także identyfikatora wymaga, aby
-certyfikat go nosił, i odmawia w przeciwnym razie.
-
-Poświadczanie zobowiązuje. Buduje twoją wiarygodność i wydaje ją, jeśli
-robisz to bez patrzenia.
+Poświadczyć znaczy: wiem, że ten inny certyfikat należy do tej rzeczywistej osoby.
+Wymaga to sprawdzenia stanu cywilnego i odcisku klucza publicznego CELU.
+Pozwala to rozszerzyć i wzmocnić twoją sieć zaufania i sieci twoich bliskich.
+To zobowiązanie: im więcej poświadczasz, tym bardziej rośnie twoja reputacja,
+ale jeśli zrobisz to źle, zrujnujesz swoją wiarygodność.
 
 OPTIONS:
-  -u, --use-privkey NAZWA|KEYID Poświadczyć tym kluczem
-                                Domyślnie: ten, do którego należy karta
-  -E, --all-emails              Poświadczyć też każdy uid z adresem,
-                                dla programów, które go tam oczekują
-  -R, --revoke                  Unieważnić swoje wcześniejsze poświadczenia
-  -o, --ownertrust WARTOŚĆ      Jak dalece oni z kolei poświadczają innych
-                                {undefined,marginal,full,never} — domyśl.: marginal
-  -l, --local                   Poświadczyć bez eksportu — przydatne do prób
-  -K, --keyservers SERWERY      Wysłać wynik na te, rozdzielone spacjami
-                                Puste dla żadnego. Domyślnie: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -h, --help                    Wypisać tę pomoc i zakończyć
-  -V, --version                 Wypisać wersję i zakończyć
+  -u, --use-privkey NAME|KEYID Poświadczyć tym kluczem
+  -E, --all-emails            Poświadczyć też każdy uid z adresem,
+  -R, --revoke                Unieważnić swoje wcześniejsze poświadczenia
+  -o, --credibility VALUE     Jak dalece oni z kolei poświadczają innych
+      --ownertrust VALUE      To samo, pod nazwą, którą daje mu gpg
+  -l, --local                 Poświadczyć bez eksportu — przydatne do prób
+  -K, --keyservers KEYSERVERS Wysłać wynik na te, rozdzielone spacjami - Domyślnie: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -h, --help                  Wypisać tę pomoc i zakończyć
+  -V, --version               Wypisać wersję i zakończyć
 
 Wartość zwracana:
 -   0 Brak błędu
@@ -481,23 +442,38 @@ Wartość zwracana:
 - 141 Żaden certyfikat nie nosi tego odcisku palca
 - 142 Poświadczanie samego siebie nie jest niczym nowym! ;-)
 - 143 Ten certyfikat nie nosi tego identyfikatora
-```
-
-## pgpid update_trustdb
 
 ```
-Usage: pgpid update_trustdb [OPTIONS]... [OWNERTRUST.GPG]...
 
-Przelicza bazę zaufania GnuPG po zastosowaniu delegacji, które niosą
-podane pliki.
+## pgpid trustdb
 
-Każdy plik musi być podpisaną wiadomością OpenPGP, a jego podpisujący
-musi być już ważny, gdy przyjdzie jego kolej — dlatego kolejność plików
-należy do tego, co znaczą. To, co mówią o twoich własnych kluczach, jest
-pomijane: można rozciągnąć zaufanie na innych, nie przedefiniować twojego.
+```
+Usage: pgpid trustdb local|export|import [OPTIONS]... [ODCISK|OWNERTRUSTS.GPG]...
+
+Czyta wiarygodność innych i przenosi ją dalej.
+
+  local    Co ta maszyna mówi o podanych certyfikatach, albo o każdym z
+           nich, gdy nie podano żadnego.
+  export   To samo, podpisane, by inni mogli to odtworzyć. Pisze na stdout.
+  import   Zastosować to, co podpisali inni, pobierając klucze, które
+           wymienia. Kolejność należy do znaczenia: podpisujący musi być już
+           ważny, gdy przyjdzie jego kolej, a każdy plik waży się wobec
+           tego, co orzekł poprzedni.
 
 OPTIONS:
-      --batch                 Przeliczyć bez pytania o pozostałe klucze
+  -r, --replace-to WARTOŚĆ    local: ustawić zamiast wypisywać — wymaga co
+                              najmniej jednego odcisku
+      --long                  local: także identyfikator i główny adres
+      --check                 local, import: przeliczyć sieć zaufania
+      --update                to samo, z pytaniem o klucze nierozstrzygnięte
+      --export-file PLIK      export: pisać tam zamiast na stdout
+  -u, --use-privkey NAZWA|KEYID  export: podpisać tym kluczem
+      --export-all            export: objąć także ultimate i unknown
+      --armor                 export: ASCII zamiast binarnego, by go wersjonować
+      --import-fetch-all      import: pobrać lub odświeżyć wszystkie jego klucze,
+                              nie tylko te, których tu brak
+  -K, --keyservers SERWERY    import: pytać tych, rozdzielonych spacjami
+                              — puste, by nikogo nie pytać
   -q, --quiet                 Tylko błędy i ostrzeżenia
   -h, --help                  Wypisać tę pomoc i zakończyć
   -V, --version               Wypisać wersję i zakończyć
@@ -508,48 +484,45 @@ OPTIONS:
 ```
 Usage: pgpid gen_key [OPTIONS]... ADRES
 
-Generuje parę kluczy OpenPGP na sposób PGP ID i wypisuje trzy uzyskane
-odciski palca: klucz główny, który podpisuje i poświadcza, ten, który
-odszyfrowuje, i ten, który uwierzytelnia.
+Wytworzyć parę kluczy OpenPGP (jawny i tajny) wedle norm PGP ID.
+Wypisuje 3 wiersze, po jednym na odcisk:
+* klucz główny (Podpis Poświadczenie)
+* klucz deszyfrujący (Szyfrowanie)
+* klucz uwierzytelniający (Auth)
 
 OPTIONS:
-  -N, --name PSEUDONIM             Nazwa zwyczajowa lub pseudonim
-                                   Domyślnie: część ADRESU przed „@”
-  -c, --eid U4|U5                  Identyfikator jednostki. Wymagany: wyliczenie
-                                   go wymaga stanu cywilnego, o który trzeba prosić
-  -C, --extra-comment NOTATKA      Notatka o jednostce
-  -p, --passphrase FRAZA           Fraza. Widoczna dla wszystkiego, co potrafi
-                                   odczytać listę procesów tej maszyny
-  -P, --passfrom PLIK              Odczytać ją z pierwszego wiersza PLIKU
-                                   (fifo, coś na tmpfs, /dev/stdin)
-  -e, --expiration LATA            Lata do wygaśnięcia - Domyślnie: 11
-  -k, --keyserver SERWER           Serwer, który ten certyfikat zwie swoim
-                                   Domyślnie: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -h, --help                       Wypisać tę pomoc i zakończyć
-  -V, --version                    Wypisać wersję i zakończyć
+  -N, --name PSEUDONYM        Nazwa zwyczajowa lub pseudonim
+  -c, --eid U4|U5             Identyfikator jednostki. Wymagany: wyliczenie
+  -C, --extra-comment NOTE    Notatka o jednostce
+  -p, --passphrase PASSPHRASE Fraza. Widoczna dla wszystkiego, co potrafi
+  -P, --passfrom FILE         Odczytać ją z pierwszego wiersza PLIKU
+  -e, --expiration YEARS      Lata do wygaśnięcia - Domyślnie: 11
+  -k, --keyserver KEYSERVER   Serwer, który ten certyfikat zwie swoim - Domyślnie: hkps://keys.foopgp.org
+  -h, --help                  Wypisać tę pomoc i zakończyć
+  -V, --version               Wypisać wersję i zakończyć
 
-Oba sposoby podania frazy mają swoją wadę, a drugi ma ich mniej: argument
-jest widoczny dla każdego procesu maszyny, dopóki ten trwa.
+Oba sposoby podania hasła mają swoją wadę, a drugi mniejszą: argument jest
+widoczny dla każdego procesu na maszynie, dopóki ten trwa.
 ```
 
 ## pgpid change_passphrase
 
 ```
-Usage: pgpid change_passphrase [OPTIONS]... KLUCZ
+Usage: pgpid change_passphrase [OPTIONS]... KEY_ID|FPR|ADRES|NAZWA
 
-Zmienia frazę chroniącą tajne części klucza OpenPGP na tej maszynie.
-KLUCZ to odcisk palca, identyfikator klucza, adres albo nazwa.
+Zmienić hasło GnuPG chroniące tajne części klucza OpenPGP.
 
 OPTIONS:
-  -p, --passphrase FRAZA          Obecna, "" gdy żadnej nie ma
-  -P, --passfrom PLIK             Odczytać ją z pierwszego wiersza PLIKU
-  -n, --newpassphrase FRAZA       Nowa, "" dla żadnej
-  -N, --newpassfrom PLIK          Odczytać ją z pierwszego wiersza PLIKU
-  -h, --help                      Wypisać tę pomoc i zakończyć
-  -V, --version                   Wypisać wersję i zakończyć
+  -p, --passphrase PASSPHRASE Obecna, "" gdy żadnej nie ma
+  -P, --passfrom FILE         Odczytać ją z pierwszego wiersza PLIKU
+  -n, --newpassphrase PASSPHRASE Nowa, "" dla żadnej
+  -N, --newpassfrom FILE      Odczytać ją z pierwszego wiersza PLIKU
+  -h, --help                  Wypisać tę pomoc i zakończyć
+  -V, --version               Wypisać wersję i zakończyć
 
 Podanie frazy jako argumentu pokazuje ją wszystkiemu, co potrafi odczytać
 listę procesów tej maszyny. Postacie plikowe istnieją właśnie dlatego.
+
 ```
 
 ## pgpid token_check
@@ -557,21 +530,23 @@ listę procesów tej maszyny. Postacie plikowe istnieją właśnie dlatego.
 ```
 Usage: pgpid token_check [OPTIONS]...
 
-Mówi, czy podłączony klucz bezpieczeństwa jest przygotowany, by nieść
-PGP ID, i co zawiera. Próbuje pobrać certyfikat wskazany w metadanych
-klucza, o ile nie powiedziano inaczej.
+Sprawdzić, czy klucz bezpieczeństwa jest poprawnie skonfigurowany dla PGP ID ;
+może wypisać informacje.
+Spróbuje wczytać oczyszczony certyfikat wskazany w polu „URL of public key”.
 
 OPTIONS:
   -f, --no-fetch              Nie pobierać certyfikatu spod adresu URL
+  -q, --quiet                 Nic nie mówić na strumieniu błędów
   -p, --cert-fpr              Odcisk palca klucza poświadczającego
   -i, --info                  Wypisać każde pole jako klucz='wartość'
-  -q, --quiet                 Nic nie mówić na strumieniu błędów
   -h, --help                  Wypisać tę pomoc i zakończyć
   -V, --version               Wypisać wersję i zakończyć
 
-Zwraca 0, gdy klucz niesie pełną tożsamość, w przeciwnym razie 100 plus
-liczbę brakujących pól — 107 to zatem klucz, który nie niesie niczego,
-czyli klucz czysty, a nie zepsuty.
+Wartość zwracana:
+-   0 gdy nie ma błędu i klucz bezpieczeństwa jest poprawnie skonfigurowany dla PGP ID.
+- 100 + liczba brakujących pól PGP ID.
+- czyli 107, gdy brak wszystkich wymaganych danych (karta OpenPGP jest zapewne pusta).
+- inna wartość niezerowa przy pozostałych błędach.
 ```
 
 ## pgpid token_retries
@@ -579,8 +554,8 @@ czyli klucz czysty, a nie zepsuty.
 ```
 Usage: pgpid token_retries [OPTIONS]...
 
-Wypisuje, ile prób zostało na kodach podłączonego klucza bezpieczeństwa,
-zanim każdy się zablokuje. Wszystkie trzy, chyba że zażądano jednego.
+Wypisać pozostałe próby dla kodu PIN, kodu resetu lub kodu Admin podłączonej
+karty OpenPGP. Wszystkie trzy, chyba że o jeden poproszono.
 
 OPTIONS:
   -P, --pin                   PIN, zwykle sześć cyfr
@@ -589,33 +564,33 @@ OPTIONS:
   -q, --quiet                 Same liczby, po jednej w wierszu
   -h, --help                  Wypisać tę pomoc i zakończyć
   -V, --version               Wypisać wersję i zakończyć
+
 ```
 
 ## pgpid totoken
 
 ```
-Usage: pgpid totoken [OPTIONS]... KLUCZ
+Usage: pgpid totoken [OPTIONS]... KEY_ID|FPR
 
-Przenosi tajny klucz OpenPGP na podłączony klucz bezpieczeństwa i
-wypisuje certyfikat, nowy PIN oraz nowy kod Admin.
+Przenieść sekrety OpenPGP na klucz bezpieczeństwa (kartę OpenPGP).
+Klucz bezpieczeństwa (karta OpenPGP) musi być podłączony.
+Wypisuje certyfikat OpenPGP w zbroi ASCII, kod PIN i kod admin.
 
 To czyści kartę i zabiera części tajne z tej maszyny. Jedno i drugie jest
 ostateczne. Wydrukuj klucz wcześniej, jeśli nie jest:
 pgpid print_secret.
 
 OPTIONS:
-  -p, --passphrase FRAZA       Fraza chroniąca części tajne
-  -P, --passfrom PLIK          Odczytać ją z pierwszego wiersza PLIKU
-  -U, --certurl URL            Skąd można pobrać certyfikat
-                               Domyślnie: wyszukiwanie serwera dla tego klucza
-  -L, --lang JĘZYK             Preferowany język karty - Domyślnie: z locale
-  -k, --keyserver SERWER       Wysłać tam certyfikat i zbudować z tego
-                               domyślny adres URL. Puste, aby nigdzie nie
-                               wysyłać i zachować domyślny adres URL
-  -K, --pubkey PLIK            Zapisać tam także certyfikat w zbroi
-      --force                  Wyczyścić kartę, która nie jest pusta
-  -h, --help                   Wypisać tę pomoc i zakończyć
-  -V, --version                Wypisać wersję i zakończyć
+  -p, --passphrase PASSPHRASE Fraza chroniąca części tajne
+  -P, --passfrom FILE         Odczytać ją z pierwszego wiersza PLIKU
+  -U, --certurl URL           Skąd można pobrać certyfikat
+  -L, --lang LANG             Preferowany język karty - Domyślnie: z locale
+  -k, --keyserver KEYSERVER   Wysłać tam certyfikat i zbudować z tego
+  -K, --pubkey FILE           Zapisać tam także certyfikat w zbroi
+      --force                 Wyczyścić kartę, która nie jest pusta
+  -h, --help                  Wypisać tę pomoc i zakończyć
+  -V, --version               Wypisać wersję i zakończyć
+
 ```
 
 ## pgpid change_token_code
@@ -623,29 +598,26 @@ OPTIONS:
 ```
 Usage: pgpid change_token_code [OPTIONS]...
 
-Sprawdza lub zmienia PIN albo kod Admin podłączonego klucza
-bezpieczeństwa. Oba wymagane są w całości: nic tutaj nie pyta o to, czego
-brakuje.
+Sprawdzić i zmienić kod PIN (lub Admin) chroniący użycie klucza
+bezpieczeństwa (karty OpenPGP). Obu kodów oczekuje się w całości: nic tu nie
+pyta o to, czego brak.
 
 OPTIONS:
-  -p, --code KOD            Kod taki, jaki jest
-  -P, --codefrom PLIK       Odczytać go z pierwszego wiersza PLIKU
-  -n, --newcode KOD         Czym ma się stać
-  -N, --newcodefrom PLIK    Odczytać to z pierwszego wiersza PLIKU
-  -C, --onlycheck           Tylko sprawdzić obecny kod, nic nie zmieniać
-  -A, --admin               Kod Admin zamiast PIN-u
-  -U, --unblock             Odblokować PIN: --code to wtedy kod Admin,
-                            a --newcode PIN do ustawienia
-  -h, --help                Wypisać tę pomoc i zakończyć
-  -V, --version             Wypisać wersję i zakończyć
+  -p, --code CURRENTCODE      Kod taki, jaki jest
+  -P, --codefrom FILE         Odczytać go z pierwszego wiersza PLIKU
+  -n, --newcode NEWCODE       Czym ma się stać
+  -N, --newcodefrom FILE      Odczytać to z pierwszego wiersza PLIKU
+  -C, --onlycheck             Tylko sprawdzić obecny kod, nic nie zmieniać
+  -A, --admin                 Kod Admin zamiast PIN-u
+  -U, --unblock               Odblokować PIN: --code to wtedy kod Admin,
+  -h, --help                  Wypisać tę pomoc i zakończyć
+  -V, --version               Wypisać wersję i zakończyć
 
 Wartość zwracana:
--   0 Brak błędu
--   2 Błąd argumentu lub użycia
-- 194 Błędny kod — zostały dwie próby
-- 193 Błędny kod — została jedna próba
-- 192 Kod jest zablokowany
-- inna wartość niezerowa przy pozostałych błędach
+- 194 (0xC2) gdy zostały tylko 2 próby.
+- 193 (0xC1) gdy została tylko 1 próba.
+- 192 (0xC0) gdy kod jest zablokowany.
+- inna wartość niezerowa przy pozostałych błędach.
 ```
 
 ## pgpid change_token_meta
@@ -653,8 +625,8 @@ Wartość zwracana:
 ```
 Usage: pgpid change_token_meta [OPTIONS]... METADANA
 
-Zapisuje jedną z trzech rzeczy, które klucz bezpieczeństwa mówi o swoim
-posiadaczu. Którą — odczytuje się z METADANEJ:
+Zmienić metadaną tekstową klucza bezpieczeństwa (karty OpenPGP).
+Wykrywa, czy NEW_METADATA to email, certurl czy język:
 
   adres             nazwa posiadacza (DO 5B)
   adres http(s)     gdzie mieszka certyfikat publiczny (DO 5F50)
@@ -665,62 +637,62 @@ certyfikat wciąż nosi, a adres URL musi podawać certyfikat niosący trzy
 podklucze tej karty.
 
 OPTIONS:
-  -A, --admincode KOD          Kod Admin, zwykle osiem cyfr
-  -p, --admincodefrom PLIK     Odczytać go z pierwszego wiersza PLIKU
-  -h, --help                   Wypisać tę pomoc i zakończyć
-  -V, --version                Wypisać wersję i zakończyć
+  -A, --admincode CODE        Kod Admin, zwykle osiem cyfr
+  -p, --admincodefrom FILE    Odczytać go z pierwszego wiersza PLIKU
+  -h, --help                  Wypisać tę pomoc i zakończyć
+  -V, --version               Wypisać wersję i zakończyć
+
 ```
 
 ## pgpid print_secret
 
 ```
-Usage: pgpid print_secret [OPTIONS]... KLUCZ
+Usage: pgpid print_secret [OPTIONS]... KEY_ID|FPR
 
-Drukuje tajny klucz OpenPGP jako kody QR, podzielony tak, by żadna kartka
-nie niosła go sama. Domyślnie pięć fragmentów, z których dowolne trzy go
-odtwarzają.
+Wyeksportować i wydrukować sekrety OpenPGP na wielu kodach QR metodą
+podziału sekretu Shamira, tak podzielone, by żadna kartka nie niosła klucza.
 
 OPTIONS:
-  -p, --passphrase FRAZA         Fraza chroniąca części tajne
-  -P, --passfrom PLIK            Odczytać ją z pierwszego wiersza PLIKU
-  -t, --printer DRUKARKA         Gdzie drukować. Puste, by wytworzyć kartki
-                                 i nic nie wysyłać — zostają na miejscu
-  -w, --with-passphrase          Wydrukować frazę obok kodów QR
-                                 Wygodniej, i tajemnica nie jest już dzielona
-  -W, --workdir KATALOG          Pracować tutaj zamiast w tymczasowym
-                                 Jego zawartość trzeba będzie potem zniszczyć
-  -S, --split LICZBA             Fragmentów do wytworzenia - Domyślnie: 5
-  -T, --threshold LICZBA         Fragmentów do odtworzenia - Domyślnie: 3
-  -h, --help                     Wypisać tę pomoc i zakończyć
-  -V, --version                  Wypisać wersję i zakończyć
+  -p, --passphrase PASSPHRASE Fraza chroniąca części tajne
+  -P, --passfrom FILE         Odczytać ją z pierwszego wiersza PLIKU
+  -t, --printer PRINTER       Gdzie drukować. Puste, by wytworzyć kartki
+  -w, --with-passphrase       Wydrukować frazę obok kodów QR
+  -W, --workdir DIRECTORY     Pracować tutaj zamiast w tymczasowym
+  -S, --split NUM             Fragmentów, od 3 do 10 - Domyślnie: 5
+  -T, --threshold NUM         Fragmentów do odtworzenia - Domyślnie: 3
+  -h, --help                  Wypisać tę pomoc i zakończyć
+  -V, --version               Wypisać wersję i zakończyć
 
-Gdy --split równa się --threshold, nie ma dzielenia tajemnicy: fragmenty
-są kolejnymi kawałkami i każdy zdradza swoją część. Wszystko opiera się
-wtedy na frazie, a wydrukowanie jej obok nie zostawia nic.
+Uwaga: liczba fragmentów powinna być większa niż próg.
+      Gdy są równe, zamiast podziału Shamira stosuje się zwykłe pocięcie,
+      a cała ochrona sekretu opiera się na haśle.
+      Innymi słowy: gdy (fragmenty == próg), brak hasła albo jego wydrukowanie
+      jest BARDZO NIEBEZPIECZNE.
 
 Zdjęcia nie idą do druku. Kopia zapasowa nie potrzebuje twojej twarzy, a
 papier bierze do ręki ten, kto go znajdzie.
+
 ```
 
 ## pgpid scan
 
 ```
-Usage: pgpid scan [OPTIONS]... OBRAZ...
+Usage: pgpid scan [OPTIONS]... IMAGES...
 
-Odtwarza tajny klucz OpenPGP z kodów QR w OBRAZ..., importuje go i
-wypisuje odcisk palca odzyskanego klucza poświadczającego. Obrazy mogą
-być PNG, JPEG albo PDF.
+Odtworzyć sekrety OpenPGP z kodów QR zeskanowanych w IMAGES.
+Wypisuje odcisk klucza poświadczającego OpenPGP.
+Obrazy mogą być w PNG, JPEG lub PDF.
 
 OPTIONS:
-  -p, --passphrase FRAZA        Fraza, pod którą są części tajne
-  -P, --passfrom PLIK           Odczytać ją z pierwszego wiersza PLIKU
-  -W, --workdir KATALOG         Pracować tutaj zamiast w tymczasowym
-                                Jego zawartość trzeba będzie potem zniszczyć
-  -h, --help                    Wypisać tę pomoc i zakończyć
-  -V, --version                 Wypisać wersję i zakończyć
+  -p, --passphrase PASSPHRASE Fraza, pod którą są części tajne
+  -P, --passfrom FILE         Odczytać ją z pierwszego wiersza PLIKU
+  -W, --workdir DIRECTORY     Pracować tutaj zamiast w tymczasowym
+  -h, --help                  Wypisać tę pomoc i zakończyć
+  -V, --version               Wypisać wersję i zakończyć
 
 Brakujące fragmenty są nazywane, a nie obchodzone: to czyta, co mu się
 poda, i nie otwiera kamery, by szukać.
+
 ```
 
 ## pgpid print_card
@@ -728,20 +700,20 @@ poda, i nie otwiera kamery, by szukać.
 ```
 Usage: pgpid print_card [OPTIONS]... [NAZWA|ADRES|KEYID|U4|U5]
 
-Wytwarza lub drukuje naklejkę albo wizytówkę PGP ID. Bez celu —
-certyfikat, do którego należy podłączona karta.
-
-Widnieje na niej jeden adres: podany jako argument, jeśli nim jest, w
-przeciwnym razie najnowszy, który certyfikat wciąż nosi.
+Wytworzyć lub wydrukować znaczek albo wizytówkę PGP ID.
+Brak NAZWA|ADRES|KEYID|U4|U5 ⇒ certyfikat, do którego należy podłączony klucz
+bezpieczeństwa.
+Na wyjściu pojawia się jeden adres: jeśli argument jest adresem, bierze się
+go wprost; inaczej wybiera się najnowszy nieunieważniony adres certyfikatu.
 
 OPTIONS:
-  -P, --print DRUKARKA|P.svg    Drukarka albo plik SVG do zapisania,
-                                gdy nazwa kończy się na „.svg”
-  -t, --template PLIK.svg       Użyć tego szablonu zamiast naklejki
-  -N, --name NAZWA              Wymusić pokazywaną nazwę
-  -g, --no-color                Odcienie szarości zamiast koloru
-  -h, --help                    Wypisać tę pomoc i zakończyć
-  -V, --version                 Wypisać wersję i zakończyć
+  -P, --print PRINTER|FILE.svg Drukarka albo plik SVG do zapisania,
+  -t, --template FILE.svg     Użyć tego szablonu zamiast naklejki
+  -N, --name NAME             Wymusić pokazywaną nazwę
+  -g, --no-color              Odcienie szarości zamiast koloru
+  -h, --help                  Wypisać tę pomoc i zakończyć
+  -V, --version               Wypisać wersję i zakończyć
+
 ```
 
 # DIAGNOSTICS

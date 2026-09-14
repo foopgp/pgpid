@@ -1,6 +1,6 @@
 /* Changing what protects a secret key on this machine.
  *
- * Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
  *
  * SPDX-License-Identifier: GPL-3.0-only
@@ -23,18 +23,18 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " change_passphrase [OPTIONS]... KEY\n"
+        " secret_passphrase [OPTIONS]... KEY_ID|FPR|EMAIL|NAME\n"
         "\n"
-        "Change the passphrase protecting the secret parts of an OpenPGP key on\n"
-        "this machine. KEY is a fingerprint, a key id, an address or a name.\n"
+        "Change GnuPG passphrase protecting secret parts of an OpenPGP key.\n"
         "\n"
         "OPTIONS:\n"
-        "  -p, --passphrase PASSPHRASE     The current one, \"\" when there is none\n"
-        "  -P, --passfrom FILE             Read it from the first line of FILE instead\n"
-        "  -n, --newpassphrase PASSPHRASE  The new one, \"\" for none\n"
-        "  -N, --newpassfrom FILE          Read it from the first line of FILE instead\n"
-        "  -h, --help                      Print this help and exit\n"
-        "  -V, --version                   Print the version and exit\n"
+        "  -p, --passphrase PASSPHRASE    Current passphrase protecting secret parts of OpenPGP key (empty \"\" for none)\n"
+        "  -P, --passfrom FILE            Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
+        "  -n, --newpassphrase PASSPHRASE New passphrase to protect secret parts of OpenPGP key (empty \"\" for none)\n"
+        "  -N, --newpassfrom FILE         Get new passphrase from the first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
+        "  -r, --replace                  Change the passphrase, instead of only checking it\n"
+        "  -h, --help                     Print this help and exit\n"
+        "  -V, --version                  Print the version and exit\n"
         "\n"
         "Passing a passphrase as an argument shows it to everything that can read\n"
         "this machine's process list. The file forms exist for that reason.\n"),
@@ -58,10 +58,14 @@ static bool first_line_of(const char *path, char *out, size_t max)
     return true;
 }
 
-int pgpid_action_change_passphrase(int argc, char **argv)
+int pgpid_action_secret_passphrase(int argc, char **argv)
 {
     char current[512] = "", fresh[512] = "";
     bool current_given = false, fresh_given = false;
+    /* Checking is the harmless half, so it is what a bare secret_passphrase
+     * does: gpg's --dry-run --change-passphrase answers whether the current
+     * one is right without writing anything. --replace does the writing. */
+    bool replace = false;
     const char *keyid = NULL;
 
     for (int i = 1; i < argc; i++) {
@@ -98,6 +102,11 @@ int pgpid_action_change_passphrase(int argc, char **argv)
             continue;
         }
 
+        if (!strcmp(a, "-r") || !strcmp(a, "--replace")) {
+            replace = true;
+            continue;
+        }
+
         if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             usage(stdout);
             return PGPID_OK;
@@ -108,7 +117,7 @@ int pgpid_action_change_passphrase(int argc, char **argv)
             continue;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("change_passphrase");
+            pgpid_try_help("secret_passphrase");
             return PGPID_USAGE;
         } else if (!keyid) {
             keyid = a;
@@ -116,12 +125,19 @@ int pgpid_action_change_passphrase(int argc, char **argv)
     }
 
     if (!keyid) {
-        pgpid_error(_("Error: Which key? Naming it is not something to guess at:"));
-        pgpid_error(_("this machine may hold several secret keys."));
-        usage(stderr);
-        return PGPID_USAGE;
+        /* Offered rather than guessed: the shell shows the list too, and a
+         * machine holding several secret keys is exactly where guessing
+         * re-locks the wrong one. --batch refuses instead of asking. */
+        static char picked[41];
+        if (!pgpid_choose_secret_key(_("Which key? Its number: "),
+                                     picked, sizeof picked)) {
+            pgpid_error(_("Error: Which key? Naming it is not something to guess at:"));
+            pgpid_error(_("this machine may hold several secret keys."));
+            return PGPID_USAGE;
+        }
+        keyid = picked;
     }
-    if (!current_given || !fresh_given) {
+    if (!current_given || (replace && !fresh_given)) {
         pgpid_error(_("Error: Both passphrases are needed — the current one with "
                     "--passphrase or --passfrom, the new one with"));
         pgpid_error(_("--newpassphrase or --newpassfrom. Empty strings mean none."));
@@ -148,6 +164,11 @@ int pgpid_action_change_passphrase(int argc, char **argv)
         /* gpg's own code, not ours: the caller can tell a wrong passphrase
          * from a key that would not open for another reason. */
         return said;
+    }
+
+    if (!replace) {
+        pgpid_error(_("Notice: Passphrase verified."));
+        return PGPID_OK;
     }
 
     if (!strcmp(current, fresh)) {

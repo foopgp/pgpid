@@ -202,7 +202,7 @@ if [[ -n "$PGPI_U5ID" ]] ; then
 		|| bl_log crit "Invalid u5 identifier: '$PGPI_U5ID'"
 	PGPID[comment]="u5=$u5id"
 	bl_log info "${PGPID[comment]}"
-elif PGPID[udid4]=$("$PGPID_BIN" mrz_to_u4 "${mrz[@]}" 2> >(bl_log notice)) ; then
+elif PGPID[udid4]=$("$PGPID_BIN" gen_u4 --from-passport-mrz "${mrz[@]}" 2> >(bl_log notice)) ; then
 	PGPID[comment]="u4=${PGPID[udid4]}"
 	bl_log info "${PGPID[comment]}"
 else

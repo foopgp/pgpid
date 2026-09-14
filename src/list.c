@@ -1,6 +1,6 @@
 /* One pass over the keyring, everything a contact card needs.
  *
- * Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
  *
  * SPDX-License-Identifier: GPL-3.0-only
@@ -28,77 +28,29 @@
 
 /* The best validity any surviving uid reaches — validity is carried per uid,
  * and it takes one good uid to answer yes. */
-static gpgme_validity_t best_uid_validity(gpgme_key_t key)
+static char best_uid_validity(const struct pgpid_key *key)
 {
-    gpgme_validity_t best = GPGME_VALIDITY_UNKNOWN;
-    for (gpgme_user_id_t u = key->uids; u; u = u->next) {
+    char best = '-';
+    for (size_t i = 0; i < key->nuid; i++) {
+        const struct pgpid_keyuid *u = &key->uid[i];
         if (u->revoked || u->invalid)
             continue;
-        if (u->validity > best)
+        if (pgpid_validity_rank(u->validity) > pgpid_validity_rank(best))
             best = u->validity;
     }
     return best;
 }
 
-/* The first address on a uid that still stands. A certificate carries its
- * name and its identifier on uids of their own, so the first uid is rarely
- * the one with an address on it. */
-static const char *first_mbox(gpgme_key_t key)
+/* How many distinct certificates have signed a uid of this one, its own
+ * included: a self-signature is a certification like any other, and counting
+ * it is what makes the number mean "signatures this certificate carries"
+ * rather than "signatures minus one that is always there". It also separates
+ * two states that read alike otherwise -- a certificate nobody has vouched
+ * for counts 1, and a certificate with no valid self-signature at all counts
+ * 0, which is exactly the difference between uncertified and broken.
+ * Needs GPGME_KEYLIST_MODE_SIGS, which costs a second pass in gpg. */
+static unsigned count_certifiers(const struct pgpid_key *key)
 {
-    for (gpgme_user_id_t u = key->uids; u; u = u->next) {
-        if (u->revoked || u->invalid)
-            continue;
-        if (u->email && *u->email)
-            return u->email;
-    }
-    return NULL;
-}
-
-/*
- * The identifier the certificate claims — and how many distinct ones it
- * claims, which is the interesting part.
- *
- * Two identifiers on one certificate is not more information than one: it is
- * a certificate saying two things about whose it is. The caller reads that as
- * broken. Caller frees.
- */
-/* The identifier a certificate carries.
- *
- * `standing_only` is the difference between the two questions one can ask.
- * The long form asks what the certificate asserts *today*, so a revoked uid
- * carrying an old identifier must not count — otherwise replacing one's
- * identifier would make the certificate read as broken ever after. The short
- * form asks what the shell's `get` answers, and that one reads every uid
- * whatever its validity; the shell's own helper takes the same parameter, for
- * the same reason. */
-static char *eid_of_key(gpgme_key_t key, unsigned *count, bool standing_only)
-{
-    char *found = NULL;
-    *count = 0;
-    for (gpgme_user_id_t u = key->uids; u; u = u->next) {
-        if (standing_only && (u->revoked || u->invalid))
-            continue;
-        char *eid = pgpid_eid_of_uid(u->uid);
-        if (!eid)
-            continue;
-        if (!found) {
-            found = eid;
-            *count = 1;
-        } else {
-            if (strcmp(found, eid))
-                (*count)++;
-            free(eid);
-        }
-    }
-    return found;
-}
-
-/* How many distinct other certificates have signed a uid of this one.
- * Self-signatures do not count: a certificate vouching for itself says
- * nothing. Needs GPGME_KEYLIST_MODE_SIGS, which costs a second pass in gpg. */
-static unsigned count_certifiers(gpgme_key_t key)
-{
-    const char *own = key->subkeys ? key->subkeys->keyid : NULL;
     unsigned n = 0;
     /* Small and quadratic on purpose: a certificate with enough signatures
      * for this to matter does not exist in a personal keyring, and a hash
@@ -106,13 +58,13 @@ static unsigned count_certifiers(gpgme_key_t key)
     const char *seen[256];
     unsigned nseen = 0;
 
-    for (gpgme_user_id_t u = key->uids; u; u = u->next) {
+    for (size_t ui = 0; ui < key->nuid; ui++) {
+        const struct pgpid_keyuid *u = &key->uid[ui];
         if (u->revoked || u->invalid)
             continue;
-        for (gpgme_key_sig_t s = u->signatures; s; s = s->next) {
-            if (s->revoked || s->invalid || s->expired || !s->keyid)
-                continue;
-            if (own && !strcmp(s->keyid, own))
+        for (size_t si = 0; si < u->nsig; si++) {
+            const struct pgpid_keysig *s = &u->sig[si];
+            if (!*s->keyid)
                 continue;
             bool dup = false;
             for (unsigned i = 0; i < nseen; i++)
@@ -211,8 +163,39 @@ static int by_key(const void *a, const void *b)
                    ((const struct short_row *)b)->key);
 }
 
+/* The columns the short listing shows, for the formats that name them.
+ *
+ * Opened by the caller and not by the walk: `get` runs the walk once per
+ * pattern, and several patterns are one answer rather than several tables.
+ * Raw stays hand-printed below — its column at 80 is what the shell has
+ * always printed, and `get` must keep answering to the column.
+ */
+void pgpid_list_short_start(bool only_fpr, bool only_mbox)
+{
+    static const char *const FPR_ONLY[] = { "fingerprint" };
+    static const char *const MBOX_ONLY[] = { "email" };
+    static const char *const BOTH[] = { "fingerprint", "eid", "email" };
+
+    if (pgpid_format == PGPID_FMT_RAW)
+        return;
+    if (only_fpr)
+        pgpid_table_start(FPR_ONLY, 1);
+    else if (only_mbox)
+        pgpid_table_start(MBOX_ONLY, 1);
+    else
+        pgpid_table_start(BOTH, 3);
+}
+
+void pgpid_list_short_end(void)
+{
+    if (pgpid_format != PGPID_FMT_RAW)
+        pgpid_table_end();
+}
+
 static void short_flush(struct short_lines *s, bool only_fpr, bool only_mbox)
 {
+    const bool raw = pgpid_format == PGPID_FMT_RAW;
+
     qsort(s->row, s->n, sizeof *s->row, by_key);
     const char *previous = NULL;
     for (size_t i = 0; i < s->n; i++) {
@@ -230,16 +213,34 @@ static void short_flush(struct short_lines *s, bool only_fpr, bool only_mbox)
              * with a second `sort -u`. */
             if (i > 0 && !strcmp(r->fpr, s->row[i - 1].fpr))
                 continue;
-            puts(r->fpr);
+            if (raw) {
+                puts(r->fpr);
+            } else {
+                const char *values[] = { r->fpr };
+                pgpid_table_row(values);
+            }
         } else if (only_mbox) {
-            puts(r->email);
-        } else {
+            if (raw) {
+                puts(r->email);
+            } else {
+                const char *values[] = { r->email };
+                pgpid_table_row(values);
+            }
+        } else if (raw) {
+            /* The identifier comes before the address, as everywhere else
+             * in this tool: what a certificate *is* reads before how one
+             * writes to it. */
             char left[512];
-            snprintf(left, sizeof left, "%s %s", r->fpr, r->email);
-            if (r->eid)
-                printf("%-80s %s\n", left, r->eid);
+            snprintf(left, sizeof left, "%s %s", r->fpr, r->eid ? r->eid : "-");
+            if (r->email)
+                printf("%-80s %s\n", left, r->email);
             else
                 printf("%-80s\n", left);
+        } else {
+            const char *values[] = {
+                r->fpr, r->eid ? r->eid : "-", r->email ? r->email : "-",
+            };
+            pgpid_table_row(values);
         }
     }
     for (size_t i = 0; i < s->n; i++) {
@@ -264,54 +265,39 @@ static void short_flush(struct short_lines *s, bool only_fpr, bool only_mbox)
 int pgpid_list_short(const char *pattern, bool only_fpr, bool only_mbox,
                      size_t *certificates)
 {
-    gpgme_ctx_t ctx;
-    gpgme_error_t err = pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL);
-    if (err) {
-        pgpid_gpgme_error(_("gpgme_new"), err);
-        return PGPID_FAIL;
-    }
-    err = gpgme_op_keylist_start(ctx, pattern, 0);
-    if (err) {
-        gpgme_release(ctx);
-        pgpid_gpgme_error(_("gpgme_op_keylist_start"), err);
+    const char *pat[1];
+    size_t npat = 0;
+    if (pattern)
+        pat[npat++] = pattern;
+    struct pgpid_keyring *kr = pgpid_keys_load(pat, npat, 0);
+    if (!kr) {
+        pgpid_error(_("Error: Cannot read the keyring."));
         return PGPID_FAIL;
     }
 
     struct short_lines lines = { NULL, 0, 0 };
     size_t rows = 0;
-    for (;;) {
-        gpgme_key_t key = NULL;
-        err = gpgme_op_keylist_next(ctx, &key);
-        if (gpg_err_code(err) == GPG_ERR_EOF)
-            break;
-        if (err) {
-            pgpid_gpgme_error(_("reading a certificate"), err);
-            gpgme_op_keylist_end(ctx);
-            gpgme_release(ctx);
-            return PGPID_FAIL;
-        }
-        const char *fpr = key->subkeys ? key->subkeys->fpr : NULL;
-        if (!fpr) {
-            gpgme_key_unref(key);
+    for (size_t n = 0; n < pgpid_keys_count(kr); n++) {
+        const struct pgpid_key *key = pgpid_keys_at(kr, n);
+        if (!*key->fpr)
             continue;
-        }
+        const char *fpr = key->fpr;
         unsigned neids = 0;
-        char *eid = eid_of_key(key, &neids, false);
+        char *eid = pgpid_eid_of_key(key, &neids, false);
         if (neids > 1)
             pgpid_error(_("Warning: Certificate %s carries more than one identifier."), fpr);
-        for (gpgme_user_id_t u = key->uids; u; u = u->next) {
-            if (!u->email || !*u->email || !strchr(u->email, '@'))
+        for (size_t i = 0; i < key->nuid; i++) {
+            const struct pgpid_keyuid *u = &key->uid[i];
+            if (!*u->address || !strchr(u->address, '@'))
                 continue;
             if ((u->revoked || u->invalid) && !key->revoked)
                 continue;
-            short_add(&lines, fpr, u->email, neids == 1 ? eid : "-");
+            short_add(&lines, fpr, u->address, neids == 1 ? eid : "-");
         }
         free(eid);
-        gpgme_key_unref(key);
         rows++;
     }
-    gpgme_op_keylist_end(ctx);
-    gpgme_release(ctx);
+    pgpid_keys_free(kr);
     short_flush(&lines, only_fpr, only_mbox);
     if (certificates)
         *certificates = rows;
@@ -322,7 +308,7 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " list [OPTIONS]... [SEARCH]\n"
+        " cert_list [OPTIONS]... [SEARCH]\n"
         "\n"
         "List the certificates of the keyring, one per line.\n"
         "\n"
@@ -342,8 +328,8 @@ static void usage(FILE *out)
         "the whole keyring is listed.\n"
         "\n"
         "OPTIONS:\n"
-        "  -S, --short                 One line per address: fingerprint, address, entity identifier\n"
-        "                              What 'bl-pgpid get --no-fetch' answers, to the column\n"
+        "  -S, --short                 One line per address: fingerprint, identifier, address\n"
+        "                              What 'pgpid get --no-fetch' answers, to the column\n"
         "  -L, --no-check-eid          Legacy: don't consider certificate as 'broken' if there is no consistent eid inside\n"
         "      --count-certs           Count the distinct certifiers of each certificates and fill *certifications* column (may take time !)\n"
         "      --hide-trust            Credibility (aka ownertrust) is a sensible information used to calculate validity — sometimes both need to stay private\n"
@@ -352,7 +338,7 @@ static void usage(FILE *out)
             PGPID_NAME);
 }
 
-int pgpid_action_list(int argc, char **argv)
+int pgpid_action_cert_list(int argc, char **argv)
 {
     bool check_eid = true, count_certs = false, hide_trust = false, machine = false;
     bool short_form = false;
@@ -379,7 +365,7 @@ int pgpid_action_list(int argc, char **argv)
             break;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("list");
+            pgpid_try_help("cert_list");
             return PGPID_USAGE;
         } else {
             pattern = a;
@@ -387,27 +373,24 @@ int pgpid_action_list(int argc, char **argv)
         }
     }
 
-    if (short_form)
-        return pgpid_list_short(pattern, false, false, NULL);
+    if (short_form) {
+        pgpid_list_short_start(false, false);
+        int rc = pgpid_list_short(pattern, false, false, NULL);
+        pgpid_list_short_end();
+        return rc;
+    }
 
-    gpgme_keylist_mode_t mode = GPGME_KEYLIST_MODE_LOCAL | GPGME_KEYLIST_MODE_VALIDATE;
     /* Signatures are what a certifier count and a revocation date are made
      * of, and they are what makes a listing slow — 6 s against 140 ms on a
      * keyring of 128. Asked for only when one of the two is wanted. */
-    if (count_certs)
-        mode |= GPGME_KEYLIST_MODE_SIGS;
-
-    gpgme_ctx_t ctx = NULL;
-    gpgme_error_t err = pgpid_ctx_new(&ctx, mode);
-    if (err) {
-        pgpid_gpgme_error(_("opening the engine"), err);
-        return PGPID_FAIL;
-    }
-
-    err = gpgme_op_keylist_start(ctx, pattern, 0);
-    if (err) {
-        pgpid_gpgme_error(_("listing the keyring"), err);
-        gpgme_release(ctx);
+    unsigned flags = count_certs ? PGPID_KEYS_SIGS : 0;
+    const char *pat[1];
+    size_t npat = 0;
+    if (pattern)
+        pat[npat++] = pattern;
+    struct pgpid_keyring *kr = pgpid_keys_load(pat, npat, flags);
+    if (!kr) {
+        pgpid_error(_("Error: Cannot read the keyring."));
         return PGPID_FAIL;
     }
 
@@ -419,38 +402,27 @@ int pgpid_action_list(int argc, char **argv)
     pgpid_table_start(COLUMNS, sizeof COLUMNS / sizeof *COLUMNS);
 
     unsigned rows = 0;
-    for (;;) {
-        gpgme_key_t key = NULL;
-        err = gpgme_op_keylist_next(ctx, &key);
-        if (gpg_err_code(err) == GPG_ERR_EOF)
-            break;
-        if (err) {
-            pgpid_gpgme_error(_("reading a certificate"), err);
-            gpgme_release(ctx);
-            return PGPID_FAIL;
-        }
-
-        const char *fpr = key->subkeys ? key->subkeys->fpr : NULL;
-        if (!fpr) {
-            gpgme_key_unref(key);
+    for (size_t n = 0; n < pgpid_keys_count(kr); n++) {
+        const struct pgpid_key *key = pgpid_keys_at(kr, n);
+        if (!*key->fpr)
             continue;
-        }
+        const char *fpr = key->fpr;
 
         unsigned neids = 0;
-        char *eid = eid_of_key(key, &neids, true);
+        char *eid = pgpid_eid_of_key(key, &neids, true);
 
-        /* --short answers what `bl-pgpid get --no-fetch` answers: one line
+        /* --short answers what `pgpid get --no-fetch` answers: one line
          * per address rather than per certificate, fingerprint and address
          * inside eighty columns, then the identifier. The shell pads exactly
          * so, and callers have been reading those columns for a year — the
          * point of this option is to be indistinguishable, not similar. */
-        const char *mbox = first_mbox(key);
-        gpgme_validity_t uidv = best_uid_validity(key);
+        const char *mbox = pgpid_first_mbox(key);
+        char uidv = best_uid_validity(key);
 
         /* Order of importance, as agreed: broken beats revoked beats
          * expired. A certificate that says two things about whose it is, or
          * nothing at all, is broken whatever else is true of it. */
-        char vflag[2] = { pgpid_validity_letter(uidv), '\0' };
+        char vflag[2] = { uidv, '\0' };
         const char *validity;
         if (check_eid && neids != 1)
             validity = machine ? "b" : "broken";
@@ -458,27 +430,25 @@ int pgpid_action_list(int argc, char **argv)
             validity = machine ? "r" : "revoked";
         else if (key->expired)
             validity = machine ? "e" : "expired";
-        else if (uidv >= GPGME_VALIDITY_FULL)
+        else if (pgpid_validity_rank(uidv) >= pgpid_validity_rank('f'))
             validity = machine ? vflag : "certified";
         else
             validity = machine ? vflag : "uncertified";
 
-        char credflag[2] = { pgpid_validity_letter(key->owner_trust), '\0' };
+        char credflag[2] = { key->ownertrust, '\0' };
         const char *credibility = hide_trust
             ? "-"
-            : machine ? credflag : pgpid_validity_word(key->owner_trust);
+            : machine ? credflag : pgpid_validity_word(key->ownertrust);
 
         char certs[16] = "-";
         if (count_certs)
             snprintf(certs, sizeof certs, "%u", count_certifiers(key));
 
         char created[24], expires[24], revoked[24];
-        put_date(created, sizeof created,
-                 key->subkeys ? key->subkeys->timestamp : 0, machine);
-        put_date(expires, sizeof expires,
-                 key->subkeys ? key->subkeys->expires : 0, machine);
+        put_date(created, sizeof created, key->created, machine);
+        put_date(expires, sizeof expires, key->expires, machine);
         /* Paid for only when a revoked certificate actually turns up: the
-         * date lives in a gpg record gpgme does not carry. */
+         * date lives in a gpg record the listing does not carry. */
         put_date(revoked, sizeof revoked,
                  key->revoked ? pgpid_revocation_time(fpr, pattern) : 0, machine);
 
@@ -489,10 +459,9 @@ int pgpid_action_list(int argc, char **argv)
         pgpid_table_row(values);
         free(eid);
         rows++;
-        gpgme_key_unref(key);
     }
 
     pgpid_table_end();
-    gpgme_release(ctx);
+    pgpid_keys_free(kr);
     return rows ? PGPID_OK : PGPID_NOTHING;
 }

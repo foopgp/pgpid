@@ -1,6 +1,6 @@
 /* Putting a secret key on paper, in pieces.
  *
- * Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
  *
  * SPDX-License-Identifier: GPL-3.0-only
@@ -35,32 +35,33 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " print_secret [OPTIONS]... KEY\n"
+        " secret_print [OPTIONS]... KEY_ID|FPR\n"
         "\n"
-        "Print an OpenPGP secret key as QR codes, split so that no single sheet\n"
-        "carries it. By default five fragments of which any three rebuild it.\n"
+        "Export and print OpenPGP secrets on multiple QRcode using Shamir's secret\n"
+        "sharing, split so that no single sheet carries the key.\n"
+        "\n"
+        "Missing input will be asked interactively, unless --batch.\n"
         "\n"
         "OPTIONS:\n"
-        "  -p, --passphrase PASSPHRASE    The passphrase protecting the secret parts\n"
-        "  -P, --passfrom FILE            Read it from the first line of FILE instead\n"
-        "  -t, --printer PRINTER          Where to print. Empty to produce the sheets\n"
-        "                                 and send nothing — they stay in the workdir\n"
-        "  -w, --with-passphrase          Print the passphrase beside the QR codes\n"
-        "                                 Easier to use, and no longer a split secret\n"
-        "  -W, --workdir DIRECTORY        Work here instead of a temporary directory\n"
-        "                                 Its contents must be shredded afterwards\n"
-        "  -S, --split NUM                Fragments to produce - Default: 5\n"
-        "  -T, --threshold NUM            Fragments needed to rebuild - Default: 3\n"
+        "  -p, --passphrase PASSPHRASE    Passphrase to access secret parts of OpenPGP key\n"
+        "  -P, --passfrom FILE            Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
+        "  -t, --printer PRINTER          Name of printer to use. Empty to produce the sheets and send nothing\n"
+        "  -w, --with-passphrase          Also print passphrase beside QR codes (INCREASE UX, DECREASE SECURITY)\n"
+        "  -W, --workdir DIRECTORY        Use given working directory instead of a temporary directory (don't forget to shred its content)\n"
+        "  -S, --split NUM                Number of shares to be generated, 3 to %d - Default: 5\n"
+        "  -T, --threshold NUM            Number of shares necessary to reconstruct the secret - Default: 3\n"
         "  -h, --help                     Print this help and exit\n"
         "  -V, --version                  Print the version and exit\n"
         "\n"
-        "With --split equal to --threshold there is no secret sharing: the\n"
-        "fragments are consecutive pieces and each one leaks its part. Everything\n"
-        "then rests on the passphrase, and printing it alongside leaves nothing.\n"
+        "Note: Split number should be greater than threshold number.\n"
+        "      If they are equal, a simple split is used instead of Shamir's secret sharing,\n"
+        "      and all secret protection relies on the passphrase.\n"
+        "      In other terms: if (split_NUM == threshold_NUM), then no passphrase or\n"
+        "      printing passphrase is VERY UNSECURE.\n"
         "\n"
         "Photographs are left out of what is printed. A backup does not need your\n"
         "face, and paper is handled by whoever finds it.\n"),
-            PGPID_NAME);
+            PGPID_NAME, PGPID_SPLIT_MAX);
 }
 
 /* Is there anything called SECRET* here already? Reusing a directory that
@@ -121,18 +122,11 @@ static size_t choose_three(const struct pgpid_uid *uids, size_t n,
             identity = uids[i].text;
         if (!fn && !strncmp(uids[i].text, "FN:", 3))
             fn = uids[i].text;
-        if (!pgpid_uid_has_address(uids[i].text))
-            continue;
-        /* gpg lists the primary first, so the first address seen is it when
-         * the primary is one. Anything later only wins on being newer. */
-        if (!address) {
-            address = uids[i].text;
-            newest = (i == 0) ? (long)0x7fffffff : uids[i].created;
-        } else if (uids[i].created > newest) {
-            address = uids[i].text;
-            newest = uids[i].created;
-        }
     }
+    /* The same rule as everywhere else, now that there is only one. */
+    const struct pgpid_uid *picked = pgpid_preferred_uid(uids, n);
+    address = picked ? picked->text : NULL;
+    (void)newest;
     if (identity)
         keep[nkeep++] = identity;
     if (fn)
@@ -220,7 +214,53 @@ static void uid_block(const char *fpr, char *out, size_t max)
     }
 }
 
-int pgpid_action_print_secret(int argc, char **argv)
+/* The destinations CUPS knows, plus the choice of printing nowhere.
+ *
+ * `lpstat -e` rather than the `lpstat -p` the shell parses: it prints the
+ * names alone, one per line, with no sentence around them for a translation
+ * to move out from under the parser. The shell works around that with
+ * `LANG=`; not needing the workaround is better than carrying it.
+ *
+ * No CUPS at all is not fatal here — the sheets can still be produced and
+ * sent nowhere, which is entry zero.
+ */
+#define PRINTERS_MAX 32
+
+static bool choose_printer(char *out, size_t max)
+{
+    char listing[4096] = "";
+    const char *lpstat[] = { "lpstat", "-e", NULL };
+    /* A byte count, not a status: this one returns what it read. */
+    if (pgpid_capture(lpstat, listing, sizeof listing) <= 0)
+        listing[0] = '\0';
+
+    const char *items[PRINTERS_MAX];
+    char names[PRINTERS_MAX][128];
+    size_t n = 0;
+    items[n++] = _("none - produce the sheets and send nothing");
+
+    for (char *line = listing, *nl; *line && n < PRINTERS_MAX; line = nl) {
+        nl = strchr(line, '\n');
+        if (nl)
+            *nl++ = '\0';
+        else
+            nl = line + strlen(line);
+        if (!*line)
+            continue;
+        snprintf(names[n], sizeof names[n], "%s", line);
+        items[n] = names[n];
+        n++;
+    }
+
+    size_t picked = 0;
+    if (!pgpid_choose(_("Which printer? Its number: "), items, n, &picked))
+        return false;
+    /* Entry zero is the one that is not a printer. */
+    snprintf(out, max, "%s", picked ? items[picked] : "");
+    return true;
+}
+
+int pgpid_action_secret_print(int argc, char **argv)
 {
     char passphrase[512] = "";
     const char *printer = NULL, *given_workdir = NULL, *keyid = NULL;
@@ -288,7 +328,7 @@ int pgpid_action_print_secret(int argc, char **argv)
             continue;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("print_secret");
+            pgpid_try_help("secret_print");
             return PGPID_USAGE;
         } else if (!keyid) {
             keyid = a;
@@ -296,22 +336,46 @@ int pgpid_action_print_secret(int argc, char **argv)
     }
 
     if (!keyid) {
-        pgpid_error(_("Error: Which secret key? This machine may hold several."));
-        usage(stderr);
-        return PGPID_USAGE;
+        /* Same question the shell puts through a radiolist. Printing the
+         * wrong secret key onto paper is not a mistake one takes back. */
+        static char picked[41];
+        if (!pgpid_choose_secret_key(_("Which secret key? Its number: "),
+                                     picked, sizeof picked)) {
+            pgpid_error(_("Error: Which secret key should be printed?"));
+            usage(stderr);
+            return PGPID_USAGE;
+        }
+        keyid = picked;
     }
     if (!passphrase_given) {
-        pgpid_error(_("Error: The passphrase is needed to export the secret parts."));
-        pgpid_error(_("Give --passphrase, or --passfrom to keep it off the process list."));
-        return PGPID_USAGE;
+        /* Nothing is echoed, and an empty answer is an answer: a key that
+         * carries no passphrase is exported by giving none. */
+        if (!pgpid_ask_secret(_("Passphrase of the secret key (empty if none): "),
+                              passphrase, sizeof passphrase)) {
+            pgpid_error(_("Error: The passphrase is needed to export the secret parts."));
+            pgpid_error(_("Give --passphrase, or --passfrom to keep it off the process list."));
+            return PGPID_USAGE;
+        }
     }
     if (!printer_given) {
-        pgpid_error(_("Error: Where should this be printed? Name a printer, or pass"));
-        pgpid_error(_("--printer '' to produce the sheets and send nothing."));
-        return PGPID_USAGE;
+        static char chosen[128];
+        if (!choose_printer(chosen, sizeof chosen)) {
+            pgpid_error(_("Error: Where should this be printed? Name a printer, or pass"));
+            pgpid_error(_("--printer '' to produce the sheets and send nothing."));
+            return PGPID_USAGE;
+        }
+        printer = chosen;
     }
     if (splits < 3) {
         pgpid_error(_("Error: Splits number (%d) can't be lower than 3."), splits);
+        return PGPID_USAGE;
+    }
+    /* Refused here rather than found out on paper: the QR header spells the
+     * fragment's number as a single digit, so `scan` cannot read back more
+     * than ten of them. */
+    if (splits > PGPID_SPLIT_MAX) {
+        pgpid_error(_("Error: Splits number (%d) can't be higher than %d: the QR header "
+                    "spells it as one digit."), splits, PGPID_SPLIT_MAX);
         return PGPID_USAGE;
     }
     if (splits < threshold) {
@@ -463,16 +527,42 @@ int pgpid_action_print_secret(int argc, char **argv)
                     splits, workdir);
 
     /* The fragments in order: gfsplit numbers them, and reading the directory
-     * gives them back in whatever order the filesystem feels like. */
-    char names[64][64];
+     * gives them back in whatever order the filesystem feels like.
+     *
+     * Counted before they are collected. --split takes any number, and with
+     * --workdir the directory belongs to the caller besides — a fragment left
+     * out of the sheet is a secret nobody will put back together. */
     size_t nfrag = 0;
     DIR *d = opendir(workdir);
     if (!d)
         return PGPID_FAIL;
-    for (struct dirent *e; (e = readdir(d)) && nfrag < 64;)
+    for (struct dirent *e; (e = readdir(d));)
         if (!strncmp(e->d_name, "SECRET-", 7))
-            snprintf(names[nfrag++], sizeof names[0], "%.63s", e->d_name);
+            nfrag++;
+    if (!nfrag) {
+        closedir(d);
+        pgpid_error(_("Error: No fragment was produced."));
+        return PGPID_FAIL;
+    }
+    char (*names)[64] = calloc(nfrag, sizeof *names);
+    if (!names) {
+        closedir(d);
+        pgpid_error(_("Error: Out of memory."));
+        return PGPID_FAIL;
+    }
+    rewinddir(d);
+    size_t got = 0;
+    for (struct dirent *e; (e = readdir(d)) && got < nfrag;)
+        if (!strncmp(e->d_name, "SECRET-", 7))
+            snprintf(names[got++], sizeof names[0], "%.63s", e->d_name);
     closedir(d);
+    nfrag = got;
+    if (nfrag > PGPID_SPLIT_MAX) {
+        pgpid_error(_("Error: %zu fragments in %s, and a QR header can only number "
+                    "%d."), nfrag, workdir, PGPID_SPLIT_MAX);
+        free(names);
+        return PGPID_FAIL;
+    }
     for (size_t i = 1; i < nfrag; i++)
         for (size_t k = i; k && strcmp(names[k - 1], names[k]) > 0; k--) {
             char t[64];
@@ -480,10 +570,6 @@ int pgpid_action_print_secret(int argc, char **argv)
             snprintf(names[k - 1], sizeof names[0], "%.63s", names[k]);
             snprintf(names[k], sizeof names[0], "%.63s", t);
         }
-    if (!nfrag) {
-        pgpid_error(_("Error: No fragment was produced."));
-        return PGPID_FAIL;
-    }
 
     for (size_t i = 0; i < nfrag; i++) {
         char frag[600], png[620], pdf[620], header[16];
@@ -503,6 +589,7 @@ int pgpid_action_print_secret(int argc, char **argv)
         FILE *in = fopen(frag, "r");
         if (!in) {
             pgpid_error(_("Error: Cannot read the fragment %s."), frag);
+            free(names);
             return PGPID_FAIL;
         }
         static char payload[262144];
@@ -516,6 +603,7 @@ int pgpid_action_print_secret(int argc, char **argv)
                              "--dpi=50", "--output", png, NULL };
         if (pgpid_run_program(qr, payload, NULL)) {
             pgpid_error(_("Error: qrencode would not draw fragment %zu."), i + 1);
+            free(names);
             return PGPID_FAIL;
         }
 
@@ -542,11 +630,13 @@ int pgpid_action_print_secret(int argc, char **argv)
                               "-fmarkdown-implicit_figures", NULL };
         if (pgpid_run_program(doc, sheet, rough)) {
             pgpid_error(_("Error: pandoc would not lay fragment %zu out."), i + 1);
+            free(names);
             return PGPID_FAIL;
         }
         const char *crop[] = { "pdfcrop", "--quiet", "--margins", "4", rough, pdf, NULL };
         if (pgpid_run_program(crop, NULL, NULL)) {
             pgpid_error(_("Error: pdfcrop would not trim fragment %zu."), i + 1);
+            free(names);
             return PGPID_FAIL;
         }
         unlink(rough);
@@ -555,7 +645,8 @@ int pgpid_action_print_secret(int argc, char **argv)
             const char *print[] = { "lpr", "-#", "1", "-P", printer, pdf, NULL };
             if (pgpid_run_program(print, NULL, NULL)) {
                 pgpid_error(_("Error: lpr would not print fragment %zu."), i + 1);
-                return PGPID_FAIL;
+                free(names);
+            return PGPID_FAIL;
             }
         }
     }
@@ -578,5 +669,6 @@ int pgpid_action_print_secret(int argc, char **argv)
         pgpid_error(_("Notice: The fragments are in %s. Shred it once they are on "
                     "paper: bl-security shred_path --remove '%s'"), workdir, workdir);
     }
+    free(names);
     return PGPID_OK;
 }

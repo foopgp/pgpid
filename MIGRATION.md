@@ -1,6 +1,6 @@
 <!--
 SPDX-FileCopyrightText: 2021-2026 Friends Of OpenPGP organization <info@foopgp.org>
-SPDX-FileCopyrightText: 2021-2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+SPDX-FileCopyrightText: 2021-2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
 SPDX-FileCopyrightText: 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
 
 SPDX-License-Identifier: GPL-3.0-only
@@ -19,6 +19,11 @@ les commits d'avant cette date disent l'autre nom.
 
 Vingt-et-une actions, environ 2 900 lignes de bash. Sept sont déjà passées :
 `list`, `property` (lecture), `sigs`, `ownertrust`, `del`, `avatar`, `push`.
+
+`ownertrust` et `update_trustdb` ont fusionné depuis en une seule action,
+`trustdb`, avec ses trois verbes `local`, `export` et `import`. Les noms qui
+suivent sont ceux d'alors : ce texte raconte le portage, il ne décrit pas
+l'interface d'aujourd'hui.
 
 ## Le critère qui décide de l'ordre
 

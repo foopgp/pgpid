@@ -1,6 +1,6 @@
 /* What the card says about its holder.
  *
- * Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
  *
  * SPDX-License-Identifier: GPL-3.0-only
@@ -28,10 +28,10 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " change_token_meta [OPTIONS]... NEW_METADATA\n"
+        " token_meta [OPTIONS]... NEW_METADATA\n"
         "\n"
-        "Write one of the three things a security key says about its holder. Which\n"
-        "one is read off NEW_METADATA:\n"
+        "Change a textual metadata of a security token (OpenPGP smartcard).\n"
+        "Detect if NEW_METADATA is an email, a certurl or a lang:\n"
         "\n"
         "  an address        the cardholder name (DO 5B)\n"
         "  an http(s) URL    where the public certificate lives (DO 5F50)\n"
@@ -42,8 +42,9 @@ static void usage(FILE *out)
         "carrying this key's three subkeys.\n"
         "\n"
         "OPTIONS:\n"
-        "  -A, --admincode CODE         The Admin code, usually eight digits\n"
-        "  -p, --admincodefrom FILE     Read it from the first line of FILE instead\n"
+        "  -A, --admincode CODE         Admin code (usually 8 digits) protecting writes to security token metadata\n"
+        "  -p, --admincodefrom FILE     Get admin code from first line of FILE (eg: fifo, tmpfs, /dev/stdin)\n"
+        "  -r, --replace                Write NEW_METADATA, instead of showing what is there\n"
         "  -h, --help                   Print this help and exit\n"
         "  -V, --version                Print the version and exit\n"),
             PGPID_NAME);
@@ -93,12 +94,59 @@ static bool looks_like_language(const char *s)
     return strlen(s) == 2 && isalpha((unsigned char)s[0]) && isalpha((unsigned char)s[1]);
 }
 
+/** One labelled line of gpg --card-status, everything after its colon. */
+static bool card_field(const char *status, const char *label, char *out, size_t max)
+{
+    *out = '\0';
+    const char *at = strstr(status, label);
+    if (!at)
+        return false;
+    const char *colon = strchr(at, ':');
+    if (!colon)
+        return false;
+    colon++;
+    while (*colon == ' ')
+        colon++;
+    size_t n = 0;
+    while (colon[n] && colon[n] != '\n' && n + 1 < max)
+        n++;
+    while (n && colon[n - 1] == ' ')
+        n--;
+    snprintf(out, max, "%.*s", (int)n, colon);
+    return *out != '\0';
+}
+
+/* The three the card is meant to carry for us, in the shape token_check
+ * --info already prints: the address gpg keeps in the cardholder name field,
+ * the certificate URL, and the language preference. */
+static int list_meta(void)
+{
+    char status[16384];
+    if (pgpid_capture_card_status(status, sizeof status) <= 0) {
+        pgpid_error(_("Error: No security token detected."));
+        return PGPID_FAIL;
+    }
+    static const struct { const char *label, *key; } WATCHED[] = {
+        { "Name of cardholder", "pgpid_email" },
+        { "URL of public key",  "pgpid_certurl" },
+        { "Language prefs",     "token_lang" },
+    };
+    for (unsigned i = 0; i < 3; i++) {
+        char value[1024];
+        if (!card_field(status, WATCHED[i].label, value, sizeof value)
+            || !strcmp(value, "[not set]"))
+            printf("%s=''\n", WATCHED[i].key);
+        else
+            printf("%s='%s'\n", WATCHED[i].key, value);
+    }
+    return PGPID_OK;
+}
+
 /** The three subkey fingerprints the connected card carries. */
 static bool card_subkeys(char s[41], char e[41], char a[41], char serial[64])
 {
     char status[16384];
-    const char *argv[] = { "--card-status", NULL };
-    if (pgpid_capture_engine(argv, status, sizeof status) <= 0)
+    if (pgpid_capture_card_status(status, sizeof status) <= 0)
         return false;
 
     static const char *const WANTED[] = {
@@ -123,10 +171,13 @@ static bool card_subkeys(char s[41], char e[41], char a[41], char serial[64])
     return *serial || *s;
 }
 
-int pgpid_action_change_token_meta(int argc, char **argv)
+int pgpid_action_token_meta(int argc, char **argv)
 {
     char admincode[128] = "";
     bool admin_given = false;
+    /* Reading is the harmless half: a bare token_meta says what the card
+     * carries. --replace is what writes to it, and it needs the Admin code. */
+    bool replace = false;
     const char *value = NULL;
 
     for (int i = 1; i < argc; i++) {
@@ -147,22 +198,40 @@ int pgpid_action_change_token_meta(int argc, char **argv)
         } else if (!strcmp(a, "-V") || !strcmp(a, "--version")) {
             printf("%s %s\n", argv[0], PGPID_VERSION);
             return PGPID_OK;
+        } else if (!strcmp(a, "-r") || !strcmp(a, "--replace")) {
+            replace = true;
         } else if (!strcmp(a, "--")) {
             continue;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("change_token_meta");
+            pgpid_try_help("token_meta");
             return PGPID_USAGE;
         } else if (!value) {
             value = a;
         }
     }
 
+    /* Without --replace this only reads, and reading needs no value and no
+     * Admin code -- which is the point: the harmless half must be the one that
+     * asks nothing. */
+    if (!replace) {
+        if (value)
+            pgpid_error(_("Notice: Add --replace to write '%s' to the card."), value);
+        return list_meta();
+    }
+
+    static char typed[256];
     if (!value) {
-        pgpid_error(_("Error: What should the card say? An address, an http URL, or "
-                    "a two-letter language code."));
-        usage(stderr);
-        return PGPID_USAGE;
+        /* Asked for rather than refused, as the shell does. What it should
+         * hold is said in the question, so nobody has to go back to the help
+         * to learn what shape is expected. */
+        if (!pgpid_ask(_("What should the card say? An address, an http URL, "
+                       "or a two-letter language code: "), typed, sizeof typed)
+            || !*typed) {
+            pgpid_error(_("Error: Nothing to write."));
+            return PGPID_USAGE;
+        }
+        value = typed;
     }
 
     char lowered[512];
@@ -206,18 +275,12 @@ int pgpid_action_change_token_meta(int argc, char **argv)
          * saying otherwise misleads whoever reads it, not whoever set it. */
         struct pgpid_uid uids[256];
         char owner[41] = "";
-        gpgme_ctx_t ctx;
-        if (!pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL)) {
-            gpgme_key_t key = NULL;
-            if (!gpgme_op_keylist_start(ctx, skey, 0)
-                && !gpgme_op_keylist_next(ctx, &key)) {
-                if (key->subkeys && key->subkeys->fpr)
-                    snprintf(owner, sizeof owner, "%s", key->subkeys->fpr);
-                gpgme_key_unref(key);
-            }
-            gpgme_op_keylist_end(ctx);
-            gpgme_release(ctx);
-        }
+        const char *pat[] = { skey };
+        struct pgpid_keyring *kr = pgpid_keys_load(pat, 1, 0);
+        const struct pgpid_key *key = pgpid_keys_at(kr, 0);
+        if (key && *key->fpr)
+            snprintf(owner, sizeof owner, "%s", key->fpr);
+        pgpid_keys_free(kr);
         if (!*owner) {
             pgpid_error(_("Error: Can't find the token's certificate here."));
             return PGPID_FAIL;
@@ -294,10 +357,14 @@ int pgpid_action_change_token_meta(int argc, char **argv)
     }
 
     if (!admin_given) {
-        pgpid_error(_("Error: The Admin code is needed to write to the card."));
-        pgpid_error(_("Give --admincode, or --admincodefrom to keep it off the "
-                    "process list."));
-        return PGPID_USAGE;
+        /* Without echo: a code the terminal showed stays in the scrollback
+         * for the rest of the session. */
+        if (!pgpid_ask_secret(_("Admin code (8 digits): "),
+                              admincode, sizeof admincode)) {
+            pgpid_error(_("Notice: Give --admincode, or --admincodefrom to "
+                        "keep it off the process list."));
+            return PGPID_USAGE;
+        }
     }
     if (strlen(admincode) < 8)
         pgpid_error(_("Warning: Admin code shorter than 8 digits."));

@@ -1,6 +1,6 @@
 /* A card somebody can hand over.
  *
- * Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
  *
  * SPDX-License-Identifier: GPL-3.0-only
@@ -30,20 +30,20 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " print_card [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
+        " cert_tobizcard [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
         "\n"
-        "Produce or print a PGP ID sticker or business card. Without a target,\n"
-        "the certificate the connected card belongs to.\n"
-        "\n"
-        "One address appears on it: the argument itself when that is what was\n"
-        "given, otherwise the most recent one the certificate still stands by.\n"
+        "Produce or print a PGP ID stamp or business card.\n"
+        "Missing NAME|EMAIL|KEYID|U4|U5 => the certificate the connected security\n"
+        "token belongs to.\n"
+        "A single email appears on the output: if the argument is an email it is used\n"
+        "verbatim; otherwise the most recent non-revoked email of the certificate is\n"
+        "picked.\n"
         "\n"
         "OPTIONS:\n"
-        "  -P, --print PRINTER|FILE.svg  Printer to send to, or an SVG file to write\n"
-        "                                when the name ends in '.svg'\n"
-        "  -t, --template FILE.svg       Use this template instead of the sticker\n"
-        "  -N, --name NAME               Override the displayed name\n"
-        "  -g, --no-color                Grayscale instead of colour\n"
+        "  -P, --print PRINTER|FILE.svg  Printer name to send to, or output SVG file if it ends with '.svg'\n"
+        "  -t, --template FILE.svg       Use this template to produce business card\n"
+        "  -N, --name NAME               Override the displayed name (default: guessed from OpenPGP certificate and email)\n"
+        "  -g, --no-color                Output in grayscale instead of color\n"
         "  -h, --help                    Print this help and exit\n"
         "  -V, --version                 Print the version and exit\n"),
             PGPID_NAME);
@@ -102,7 +102,7 @@ static bool address_of(const char *uid, char *out, size_t max)
     return true;
 }
 
-int pgpid_action_print_card(int argc, char **argv)
+int pgpid_action_cert_tobizcard(int argc, char **argv)
 {
     const char *printer = NULL, *template_path = NULL, *given_name = NULL;
     const char *target = NULL;
@@ -141,7 +141,7 @@ int pgpid_action_print_card(int argc, char **argv)
             continue;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("print_card");
+            pgpid_try_help("cert_tobizcard");
             return PGPID_USAGE;
         } else if (!target) {
             target = a;
@@ -153,32 +153,41 @@ int pgpid_action_print_card(int argc, char **argv)
 
     /* Which certificate. An address may sit on several, and printing a card
      * for the wrong one is worse than printing none. */
-    gpgme_ctx_t ctx;
-    if (pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL))
-        return PGPID_FAIL;
-    char candidates[16][41];
+    char (*candidates)[41] = NULL;
+    size_t cand_cap = 0;
     size_t ncand = 0;
     const char *pattern = target;
     char card_key[41];
     if (!pattern) {
         if (!pgpid_card_certification_key(card_key, sizeof card_key)) {
-            gpgme_release(ctx);
             pgpid_error(_("Error: No card answered, so there is no certificate to print."));
             pgpid_error(_("Name one instead."));
             return PGPID_FAIL;
         }
         pattern = card_key;
     }
-    if (!gpgme_op_keylist_start(ctx, pattern, 0)) {
-        gpgme_key_t key = NULL;
-        while (ncand < 16 && !gpgme_op_keylist_next(ctx, &key)) {
-            if (!key->revoked && key->subkeys && key->subkeys->fpr)
-                snprintf(candidates[ncand++], 41, "%.40s", key->subkeys->fpr);
-            gpgme_key_unref(key);
+    {
+        const char *pat[] = { pattern };
+        struct pgpid_keyring *kr = pgpid_keys_load(pat, 1, 0);
+        for (size_t i = 0; i < pgpid_keys_count(kr); i++) {
+            const struct pgpid_key *key = pgpid_keys_at(kr, i);
+            if (key->revoked || !*key->fpr)
+                continue;
+            /* However many the pattern matches. A fixed few would let an
+             * ambiguous address look settled, and a card would be printed
+             * for whichever certificate happened to be sampled. */
+            if (ncand == cand_cap) {
+                size_t grown = cand_cap ? cand_cap * 2 : 16;
+                char (*bigger)[41] = realloc(candidates, grown * sizeof *bigger);
+                if (!bigger)
+                    break;
+                candidates = bigger;
+                cand_cap = grown;
+            }
+            snprintf(candidates[ncand++], 41, "%.40s", key->fpr);
         }
+        pgpid_keys_free(kr);
     }
-    gpgme_op_keylist_end(ctx);
-    gpgme_release(ctx);
 
     if (email_given) {
         snprintf(email, sizeof email, "%s", target);
@@ -201,48 +210,47 @@ int pgpid_action_print_card(int argc, char **argv)
         }
         if (!kept) {
             pgpid_error(_("Error: No usable certificate for %s."), email);
+            free(candidates);
             return PGPID_FAIL;
         }
         if (kept > 1) {
             pgpid_error(_("Error: Email %s matches several certificates that still "
                         "stand by it (%zu)."), email, kept);
+            free(candidates);
             return PGPID_FAIL;
         }
         snprintf(fpr, sizeof fpr, "%s", keeper);
     } else {
         if (!ncand) {
             pgpid_error(_("Error: No certificate matches '%s'."), pattern);
+            free(candidates);
             return PGPID_FAIL;
         }
         if (ncand > 1) {
             pgpid_error(_("Error: '%s' matches %zu certificates. Name one."), pattern, ncand);
+            free(candidates);
             return PGPID_FAIL;
         }
         snprintf(fpr, sizeof fpr, "%s", candidates[0]);
     }
+    free(candidates);
 
     struct pgpid_uid uids[MAX_UIDS];
     size_t nuids = pgpid_list_uids(fpr, false, uids, MAX_UIDS);
 
-    /* The most recent address the certificate still stands by. */
+    /* The address the rest of the tool would write to. This used to take the
+     * most recent and ignore the primary, so a card could carry one address
+     * while the listing showed another. */
     if (!*email) {
-        long newest = -1;
-        for (size_t i = 0; i < nuids; i++) {
-            char addr[320];
-            if (!pgpid_uid_stands(uids[i].validity))
-                continue;
-            if (!address_of(uids[i].text, addr, sizeof addr))
-                continue;
-            if (uids[i].created >= newest) {
-                newest = uids[i].created;
-                snprintf(email, sizeof email, "%s", addr);
-            }
-        }
+        const struct pgpid_uid *pick = pgpid_preferred_uid(uids, nuids);
+        if (pick)
+            address_of(pick->text, email, sizeof email);
         if (!*email) {
             pgpid_error(_("Error: No usable (non-revoked) email in certificate %s."), fpr);
             return PGPID_FAIL;
         }
-        pgpid_error(_("Notice: Picking most recent email %s."), email);
+        pgpid_error(_("Notice: Picking %s, the address this certificate is written to."),
+                    email);
     }
 
     /* The name: what was asked for, else the certificate's own FN:, else the

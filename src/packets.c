@@ -1,11 +1,11 @@
-/* Reading an OpenPGP certificate's packets, for what gpgme will not say.
+/* Reading an OpenPGP certificate's packets, for what a key listing will not say.
  *
- * Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
  *
  * SPDX-License-Identifier: GPL-3.0-only
  *
- * gpgme hands over a user id's text, its validity and its signatures, and
+ * A listing hands over a user id's text, its validity and its signatures, and
  * nothing else. The image a certificate wears, and the keyserver it names as
  * its own, are both in packets it never surfaces — so they are read here,
  * once, by whoever needs them. Two copies of a packet walk would be two

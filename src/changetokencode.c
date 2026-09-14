@@ -1,6 +1,6 @@
 /* Checking and changing the codes that guard a card.
  *
- * Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
  *
  * SPDX-License-Identifier: GPL-3.0-only
@@ -25,30 +25,28 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " change_token_code [OPTIONS]...\n"
+        " token_code [OPTIONS]...\n"
         "\n"
-        "Check or change the PIN, or the Admin code, of the connected security\n"
-        "key. Both are needed in full: nothing here asks for what it is missing.\n"
+        "Check and change PIN (or Admin) code protecting use of a security token\n"
+        "(OpenPGP smartcard). Both codes are needed in full: nothing here asks for\n"
+        "what it is missing.\n"
         "\n"
         "OPTIONS:\n"
-        "  -p, --code CURRENTCODE    The code as it stands\n"
-        "  -P, --codefrom FILE       Read it from the first line of FILE instead\n"
-        "  -n, --newcode NEWCODE     What it should become\n"
-        "  -N, --newcodefrom FILE    Read that from the first line of FILE instead\n"
-        "  -C, --onlycheck           Only check the current code, change nothing\n"
-        "  -A, --admin               The Admin code rather than the PIN\n"
-        "  -U, --unblock             Unblock the PIN: --code is then the Admin code\n"
-        "                            and --newcode the PIN to set\n"
+        "  -p, --code CURRENTCODE    Current PIN (or Admin) code protecting use of security token (empty \"\" for none)\n"
+        "  -P, --codefrom FILE       Get current PIN (or Admin) code from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
+        "  -n, --newcode NEWCODE     New PIN (or Admin) code to protect use of security token\n"
+        "  -N, --newcodefrom FILE    Get new PIN (or Admin) code from the first line of FILE (eg: fifo, tmpfs ...)\n"
+        "  -r, --replace             Change the code, instead of only checking it\n"
+        "  -A, --admin               Change (or check) Admin code instead of PIN code\n"
+        "  -U, --unblock             Unblock PIN. Need Admin code to be passed to --code, and new PIN code to be passed to --newcode\n"
         "  -h, --help                Print this help and exit\n"
         "  -V, --version             Print the version and exit\n"
         "\n"
         "Return value:\n"
-        "-   0 No error\n"
-        "-   2 Input/Usage error\n"
-        "- 194 Wrong code — two attempts left\n"
-        "- 193 Wrong code — one attempt left\n"
-        "- 192 The code is blocked\n"
-        "- other non-zero on other errors\n"),
+        "- 194 (0xC2) if only 2 remaining attempt.\n"
+        "- 193 (0xC1) if only 1 remaining attempt.\n"
+        "- 192 (0xC0) if code is blocked.\n"
+        "- other non-zero value on other errors.\n"),
             PGPID_NAME);
 }
 
@@ -78,11 +76,14 @@ static bool all_digits(const char *s, size_t want)
     return true;
 }
 
-int pgpid_action_change_token_code(int argc, char **argv)
+int pgpid_action_token_code(int argc, char **argv)
 {
     char current[128] = "", fresh[128] = "";
     bool current_given = false, fresh_given = false;
-    bool only_check = false, unblock = false, admin = false;
+    /* Checking is what this does unless told otherwise: a bare token_code
+     * asks for a code and says whether it is right, which is the harmless
+     * half. --replace is the half that writes. */
+    bool replace = false, unblock = false, admin = false;
 
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
@@ -105,8 +106,8 @@ int pgpid_action_change_token_code(int argc, char **argv)
             if (!first_line_of(argv[i], fresh, sizeof fresh))
                 return PGPID_FAIL;
             fresh_given = true;
-        } else if (!strcmp(a, "-C") || !strcmp(a, "--onlycheck") || !strcmp(a, "--only-check")) {
-            only_check = true;
+        } else if (!strcmp(a, "-r") || !strcmp(a, "--replace")) {
+            replace = true;
         } else if (!strcmp(a, "-U") || !strcmp(a, "--unblock")) {
             /* Unblocking is done with the Admin code, so it implies --admin;
              * the shell falls through to it for the same reason. */
@@ -124,7 +125,7 @@ int pgpid_action_change_token_code(int argc, char **argv)
             continue;
         } else {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("change_token_code");
+            pgpid_try_help("token_code");
             return PGPID_USAGE;
         }
     }
@@ -133,15 +134,35 @@ int pgpid_action_change_token_code(int argc, char **argv)
     const char *reference = admin ? "83" : "81";
     size_t length = admin ? 8 : 6;
 
+    /* Asked for rather than refused, as the shell does — and asked for without
+     * echo: a code read over a shoulder is a code lost, and one the terminal
+     * echoed stays in the scrollback for the rest of the session. A caller
+     * that has nobody to ask says so with --batch. */
+    char prompt[128];
     if (!current_given) {
-        pgpid_error(_("Error: The current %s code is needed. Give --code, or "
-                    "--codefrom to keep it off the process list."), kind);
-        return PGPID_USAGE;
+        snprintf(prompt, sizeof prompt,
+                 _("Current %s code (%zu digits): "), kind, length);
+        if (!pgpid_ask_secret(prompt, current, sizeof current)) {
+            pgpid_error(_("Notice: Give --code, or --codefrom to keep it off "
+                        "the process list."));
+            return PGPID_USAGE;
+        }
     }
-    if (!only_check && !fresh_given) {
-        pgpid_error(_("Error: What should the code become? Give --newcode, or "
-                    "--onlycheck to only check the current one."));
-        return PGPID_USAGE;
+    if ((replace || unblock) && !fresh_given) {
+        snprintf(prompt, sizeof prompt,
+                 _("New %s code (%zu digits): "), kind, length);
+        if (!pgpid_ask_secret(prompt, fresh, sizeof fresh)) {
+            pgpid_error(_("Notice: Give --newcode, or drop --replace to only "
+                        "check the current one."));
+            return PGPID_USAGE;
+        }
+        char again[sizeof fresh];
+        if (!pgpid_ask_secret(_("The same again: "), again, sizeof again))
+            return PGPID_USAGE;
+        if (strcmp(fresh, again)) {
+            pgpid_error(_("Error: The two do not match."));
+            return PGPID_USAGE;
+        }
     }
 
     int ret = PGPID_OK;
@@ -177,7 +198,7 @@ int pgpid_action_change_token_code(int argc, char **argv)
         return ret;
     }
 
-    if (only_check) {
+    if (!replace && !unblock) {
         pgpid_error(_("Notice: %s code successfully verified."), kind);
         return PGPID_OK;
     }

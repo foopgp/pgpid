@@ -1,6 +1,6 @@
 /* Moving the secrets onto a card.
  *
- * Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
  *
  * SPDX-License-Identifier: GPL-3.0-only
@@ -29,34 +29,49 @@
 #include <sys/random.h>
 #include <unistd.h>
 
+/* Two ways the passphrase can stop this, told apart because a caller that
+ * drives pgpid has to know which one to act on: ask for a passphrase, or say
+ * the one it was given is wrong. 41 and 42 read together — something is
+ * missing, or the holder refused. */
+#define TOTOKEN_BAD_PASS  40
+#define TOTOKEN_NEED_PASS 41
+
 static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " totoken [OPTIONS]... KEY\n"
+        " secret_totoken [OPTIONS]... KEY_ID|FPR\n"
         "\n"
-        "Move an OpenPGP secret key onto the connected security key, and print the\n"
-        "certificate, the new PIN and the new Admin code.\n"
+        "Move OpenPGP secrets to security token (OpenPGP smartcard).\n"
+        "Security token (OpenPGP smartcard) must be connected.\n"
+        "Output ASCII armored OpenPGP certificate, PIN code and admin code.\n"
         "\n"
         "This wipes the card and takes the secret parts off this machine. Both are\n"
         "final. Print the key first if it is not printed: "
         "%s"
-        " print_secret.\n"
+        " secret_print.\n"
         "\n"
         "OPTIONS:\n"
-        "  -p, --passphrase PASSPHRASE  The passphrase protecting the secret parts\n"
-        "  -P, --passfrom FILE          Read it from the first line of FILE instead\n"
-        "  -U, --certurl URL            Where the certificate can be fetched\n"
-        "                               Default: the keyserver's lookup for this key\n"
-        "  -L, --lang LANG              The card's language preference - Default: the locale's\n"
-        "  -k, --keyserver KEYSERVER    Send the certificate there, and build the\n"
-        "                               default URL from it. Empty to send it\n"
-        "                               nowhere and keep the default URL\n"
-        "  -K, --pubkey FILE            Also write the armored certificate to FILE\n"
-        "      --force                  Wipe a card that is not blank\n"
+        "  -p, --passphrase PASSPHRASE  Passphrase to access secret parts of OpenPGP key\n"
+        "  -P, --passfrom FILE          Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
+        "  -U, --certurl URL            URL to retrieve your OpenPGP certificate\n"
+        "                               Default: https://%s/pks/lookup?op=get&search=0x<FPR>\n"
+        "  -L, --lang LANG              Security token (OpenPGP smartcard) prefered language (default: the locale's)\n"
+        "  -k, --keyserver KEYSERVER    Send OpenPGP certificate to this public keys server\n"
+        "                               Empty to send it nowhere. Does not change --certurl\n"
+        "                               Default: %s\n"
+        "  -K, --pubkey FILE            Also write armored OpenPGP certificate to given FILE\n"
+        "      --force                  Don't ask before resetting unempty security token (OpenPGP smartcard)\n"
         "  -h, --help                   Print this help and exit\n"
-        "  -V, --version                Print the version and exit\n"),
-            PGPID_NAME, PGPID_NAME);
+        "  -V, --version                Print the version and exit\n"
+        "\n"
+        "Return value:\n"
+        "-   0 No error\n"
+        "-   2 Input/Usage error\n"
+        "- %d The passphrase given does not open the secret key\n"
+        "- %d The key is protected and no passphrase was given\n"),
+            PGPID_NAME, PGPID_NAME, PGPID_KEYSERVERS_HOST, PGPID_KEYSERVERS_FIRST,
+            TOTOKEN_BAD_PASS, TOTOKEN_NEED_PASS);
 }
 
 static bool first_line_of(const char *path, char *out, size_t max)
@@ -99,7 +114,7 @@ static bool draw_code(char *out, size_t digits)
     return true;
 }
 
-int pgpid_action_totoken(int argc, char **argv)
+int pgpid_action_secret_totoken(int argc, char **argv)
 {
     char passphrase[512] = "";
     const char *certurl = NULL, *keyserver = NULL, *pubkeyfile = NULL, *keyid = NULL;
@@ -150,7 +165,7 @@ int pgpid_action_totoken(int argc, char **argv)
             continue;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("totoken");
+            pgpid_try_help("secret_totoken");
             return PGPID_USAGE;
         } else if (!keyid) {
             keyid = a;
@@ -161,9 +176,15 @@ int pgpid_action_totoken(int argc, char **argv)
         pgpid_error(_("Warning: Only 2 lower case ASCII letters can define a preferred "
                     "language; leaving it out."));
     if (!keyid) {
-        pgpid_error(_("Error: Which secret key should move onto the card?"));
-        usage(stderr);
-        return PGPID_USAGE;
+        /* Same question the shell puts through a radiolist: moving the wrong
+         * secret key onto a card is not a small mistake. --batch refuses. */
+        static char picked[41];
+        if (!pgpid_choose_secret_key(_("Which secret key? Its number: "),
+                                     picked, sizeof picked)) {
+            pgpid_error(_("Error: Which secret key should move onto the card?"));
+            return PGPID_USAGE;
+        }
+        keyid = picked;
     }
 
     char listing[16384], fpr[41] = "";
@@ -189,14 +210,16 @@ int pgpid_action_totoken(int argc, char **argv)
         return PGPID_FAIL;
     }
 
-    /* Where to send and what URL to write down are two questions. An empty
-       --keyserver answers the first with "nowhere" — the same escape hatch
-       bl-pgpid spells --keyservers '' — but the card should still say where
-       the certificate will be findable once somebody publishes it. */
+    /* Where to send and what URL to write down are two questions, and only
+       --certurl answers the second. --keyserver used to move the card's URL
+       as well, which reads as one option quietly editing another: sending a
+       copy somewhere for today's convenience would have engraved that
+       somewhere on the card for the life of the key. An empty --keyserver
+       answers the first with "nowhere" -- the escape hatch bl-pgpid spells
+       --keyservers '' -- and the card still says where the certificate will
+       be findable once somebody publishes it. */
     const char *host = keyserver ? keyserver : PGPID_KEYSERVERS_FIRST;
-    const char *urlhost = *host ? host : PGPID_KEYSERVERS_FIRST;
-    const char *bare = strstr(urlhost, "//");
-    bare = bare ? bare + 2 : urlhost;
+    const char *bare = PGPID_KEYSERVERS_HOST;
     char url[512];
     if (certurl)
         snprintf(url, sizeof url, "%.500s", certurl);
@@ -243,9 +266,8 @@ int pgpid_action_totoken(int argc, char **argv)
     (void)skey; (void)ekey; (void)akey;
     {
         char status[16384];
-        const char *argv2[] = { "--card-status", NULL };
         *serial = '\0';
-        if (pgpid_capture_engine(argv2, status, sizeof status) > 0) {
+        if (pgpid_capture_card_status(status, sizeof status) > 0) {
             const char *at = strstr(status, "Serial number");
             const char *colon = at ? strchr(at, ':') : NULL;
             size_t n = 0;
@@ -278,19 +300,30 @@ int pgpid_action_totoken(int argc, char **argv)
     const char *dry[] = { "--batch", "--pinentry-mode", "loopback", "--passphrase", "",
                           "--dry-run", "--change-passphrase", fpr, NULL };
     if (pgpid_run_engine_quiet(dry)) {
-        if (!*passphrase) {
-            pgpid_error(_("Error: The key is protected by a passphrase, which has to "
-                        "come off before it can move to a card."));
-            pgpid_error(_("Give --passphrase, or --passfrom to keep it off the process list."));
-            return PGPID_USAGE;
-        }
-        char script[1200];
-        snprintf(script, sizeof script, "%.500s\n\n\n\n", passphrase);
-        const char *strip[] = { "--command-fd", "0", "--batch", "--pinentry-mode",
-                                "loopback", "--change-passphrase", fpr, NULL };
-        if (pgpid_run_engine_input(strip, script)) {
-            pgpid_error(_("Error: Cannot take the passphrase off '%s' — right passphrase?"), fpr);
-            return PGPID_FAIL;
+        /* Asked for when there is somebody to ask, and three tries because a
+         * fourth is no longer a typo. Under --batch nobody is there: the
+         * caller is told which of the two things went wrong, so it can ask
+         * for the passphrase itself rather than guess from a usage error. */
+        for (unsigned tries = 0; ; tries++) {
+            if (!*passphrase
+                && !pgpid_ask_secret(_("Passphrase protecting the secret key: "),
+                                     passphrase, sizeof passphrase)) {
+                pgpid_error(_("Error: The key is protected by a passphrase, which has "
+                            "to come off before it can move to a card."));
+                pgpid_error(_("Notice: Give --passphrase, or --passfrom to keep it off "
+                            "the process list."));
+                return TOTOKEN_NEED_PASS;
+            }
+            char script[1200];
+            snprintf(script, sizeof script, "%.500s\n\n\n\n", passphrase);
+            const char *strip[] = { "--command-fd", "0", "--batch", "--pinentry-mode",
+                                    "loopback", "--change-passphrase", fpr, NULL };
+            if (!pgpid_run_engine_input(strip, script))
+                break;
+            pgpid_error(_("Error: That passphrase does not open '%s'."), fpr);
+            if (pgpid_batch || tries >= 2)
+                return TOTOKEN_BAD_PASS;
+            *passphrase = '\0';
         }
     }
 
@@ -370,7 +403,7 @@ int pgpid_action_totoken(int argc, char **argv)
         if (codes[i].admin)
             sub[n++] = (char *)"--admin";
         sub[n] = NULL;
-        int ret = pgpid_action_change_token_code(n, sub);
+        int ret = pgpid_action_token_code(n, sub);
         if (ret) {
             unlink(pinfile);
             pgpid_error(_("Error: Changing the %s code failed (%d). The card is left "

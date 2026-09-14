@@ -1,6 +1,6 @@
 /* A certificate, written as a contact card.
  *
- * Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
  *
  * SPDX-License-Identifier: GPL-3.0-only
@@ -13,7 +13,7 @@
  * telephone and the rest on uids shaped like vCard lines, so those pass
  * through as they stand. What has to be built is the rest — the address from
  * an ordinary `Name <addr>` uid, the key itself, and the photograph, which
- * gpgme cannot see and packets.c reads.
+ * a listing cannot see and packets.c reads.
  */
 #include "pgpid.h"
 
@@ -55,26 +55,6 @@ static void fold(const char *line)
         printf(" %.*s\r\n", (int)(next - at), line + at);
         at = next;
     }
-}
-
-/** Is this uid one of ours, `PROPERTY:value` or `PROPERTY;PARAM:value`? */
-static const char *vcard_property(const char *uid, char *name, size_t max)
-{
-    size_t i = 0;
-    while (uid[i] >= 'A' && uid[i] <= 'Z' && i < max - 1)
-        i++;
-    if (!i)
-        return NULL;
-    const char *p = uid + i;
-    if (*p == ';')
-        p = strchr(p, ':');
-    if (!p || *p != ':')
-        return NULL;
-    memcpy(name, uid, i);
-    name[i] = '\0';
-    /* One optional space after the colon, which the vCard-uid experiment
-     * used and which is not part of the value. */
-    return p[1] == ' ' ? p + 2 : p + 1;
 }
 
 /** The address inside the angle brackets of a `Name <addr>` uid, or NULL. */
@@ -263,7 +243,7 @@ char *pgpid_preferred_keyserver(const unsigned char *buf, size_t len,
  * A card already carries the photograph as PHOTO; carrying it a second time
  * inside the inlined key doubles the size of the file for nothing — nine
  * kilobytes of the fourteen, measured. gpg has `no-export-attributes` for
- * this and gpgme has no flag for it, so the packets are dropped here.
+ * this and no listing has a flag for it, so the packets are dropped here.
  *
  * An attribute's certifications go with it: a signature over a packet that is
  * no longer there is not a signature, and leaving it would make the key look
@@ -343,20 +323,21 @@ static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
         "%s"
-        " to_vcard [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
+        " cert_tovcard [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
         "\n"
-        "Write a certificate as a vCard 4.0, which an address book can read.\n"
-        "Without a selector, the certificate whose secret key is at hand.\n"
+        "Convert OpenPGP certificate to vCard (format 4.0).\n"
+        "Missing NAME|EMAIL|KEYID|U4|U5 => the certificate whose secret key is at\n"
+        "hand.\n"
         "\n"
         "OPTIONS:\n"
-        "  -o, --output FILE           Write there rather than to standard output\n"
-        "      --raw                   Print every uid instead, one per paragraph\n"
+        "  -o, --output FILE           Write into given FILE instead of standard output\n"
+        "      --raw                   Don't convert, but raw output all OpenPGP uids strings, separated by empty lines\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"),
             PGPID_NAME);
 }
 
-int pgpid_action_to_vcard(int argc, char **argv)
+int pgpid_action_cert_tovcard(int argc, char **argv)
 {
     const char *selector = NULL, *output = NULL;
     bool raw = false;
@@ -383,7 +364,7 @@ int pgpid_action_to_vcard(int argc, char **argv)
             break;
         } else if (a[0] == '-' && a[1]) {
             pgpid_error(_("Error: Unrecognized option '%s'."), a);
-            pgpid_try_help("to_vcard");
+            pgpid_try_help("cert_tovcard");
             return PGPID_USAGE;
         } else {
             selector = a;
@@ -391,45 +372,37 @@ int pgpid_action_to_vcard(int argc, char **argv)
         }
     }
 
-    gpgme_ctx_t ctx;
-    gpgme_error_t err = pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL);
-    if (err) {
-        pgpid_gpgme_error(_("gpgme_new"), err);
-        return PGPID_FAIL;
-    }
-
-    gpgme_key_t key = NULL;
-    err = gpgme_op_keylist_start(ctx, selector, selector ? 0 : 1);
-    if (!err)
-        err = gpgme_op_keylist_next(ctx, &key);
-    gpgme_op_keylist_end(ctx);
-    if (err || !key) {
-        gpgme_release(ctx);
+    const char *pat[1] = { NULL };
+    size_t npat = 0;
+    if (selector)
+        pat[npat++] = selector;
+    struct pgpid_keyring *kr =
+        pgpid_keys_load(pat, npat, selector ? 0 : PGPID_KEYS_SECRET);
+    const struct pgpid_key *key = pgpid_keys_at(kr, 0);
+    if (!key) {
+        pgpid_keys_free(kr);
         pgpid_error(_("Error: No certificate for what was asked."));
         return PGPID_NOTHING;
     }
-    const char *fpr = key->subkeys ? key->subkeys->fpr : "";
+    const char *fpr = key->fpr;
 
     FILE *out = stdout;
     if (output && !(out = freopen(output, "w", stdout))) {
         pgpid_error(_("Error: Cannot write '%s'."), output);
-        gpgme_key_unref(key);
-        gpgme_release(ctx);
+        pgpid_keys_free(kr);
         return PGPID_FAIL;
     }
 
     if (raw) {
-        for (gpgme_user_id_t u = key->uids; u; u = u->next)
-            if (u->uid)
-                printf("%s\n\n", u->uid);
-        gpgme_key_unref(key);
-        gpgme_release(ctx);
+        for (size_t i = 0; i < key->nuid; i++)
+            printf("%s\n\n", key->uid[i].text);
+        pgpid_keys_free(kr);
         return PGPID_OK;
     }
 
     /* Which uids count: the shell keeps validities [ounmfqws-] and drops
-     * revoked, expired, invalid and disabled. gpgme cannot report expiry, so
-     * the letters come from the engine and are read in step. */
+     * revoked, expired, invalid and disabled. The letters come from the
+     * engine's own listing, in step with the uids. */
     char line[4096];
     char validity[256];
     size_t nvalid = pgpid_uid_validities(fpr, validity, sizeof validity);
@@ -442,35 +415,36 @@ int pgpid_action_to_vcard(int argc, char **argv)
     {
         unsigned k = 0;
         char nm[64];
-        for (gpgme_user_id_t u = key->uids; u; u = u->next, k++) {
+        for (size_t i = 0; i < key->nuid; i++, k++) {
+            const struct pgpid_keyuid *u = &key->uid[i];
             char l = (k < nvalid) ? validity[k] : '-';
-            if (!u->uid || !strchr("ounmfqws-", l))
+            if (!strchr("ounmfqws-", l))
                 continue;
-            const char *v = vcard_property(u->uid, nm, sizeof nm);
+            const char *v = pgpid_uid_property(u->text, nm, sizeof nm);
             if (v && !strcmp(nm, "FN")) {
                 fn[0] = '\0';   /* the certificate says it itself */
                 break;
             }
             if (!v && !*fn)
-                display_name(u->uid, fn, sizeof fn);
+                display_name(u->text, fn, sizeof fn);
         }
         if (*fn) {
             /* Nothing to derive it from either: no name, no card. */
         } else {
             bool has_own_fn = false;
             k = 0;
-            for (gpgme_user_id_t u = key->uids; u; u = u->next, k++) {
+            for (size_t i = 0; i < key->nuid; i++, k++) {
+                const struct pgpid_keyuid *u = &key->uid[i];
                 char l = (k < nvalid) ? validity[k] : '-';
-                if (!u->uid || !strchr("ounmfqws-", l))
+                if (!strchr("ounmfqws-", l))
                     continue;
-                if (vcard_property(u->uid, nm, sizeof nm) && !strcmp(nm, "FN"))
+                if (pgpid_uid_property(u->text, nm, sizeof nm) && !strcmp(nm, "FN"))
                     has_own_fn = true;
             }
             if (!has_own_fn) {
                 pgpid_error(_("Error: This certificate carries no name."));
                 pgpid_error(_("Notice: A vCard needs FN; there is no card to write."));
-                gpgme_key_unref(key);
-                gpgme_release(ctx);
+                pgpid_keys_free(kr);
                 return PGPID_NOTHING;
             }
         }
@@ -484,11 +458,12 @@ int pgpid_action_to_vcard(int argc, char **argv)
 
     unsigned pref = 0, at = 0;
     char name[64], value[512];
-    for (gpgme_user_id_t u = key->uids; u; u = u->next, at++) {
+    for (size_t i = 0; i < key->nuid; i++, at++) {
+        const struct pgpid_keyuid *u = &key->uid[i];
         char letter = (at < nvalid) ? validity[at] : '-';
-        if (!u->uid || !strchr("ounmfqws-", letter))
+        if (!strchr("ounmfqws-", letter))
             continue;
-        const char *v = vcard_property(u->uid, name, sizeof name);
+        const char *v = pgpid_uid_property(u->text, name, sizeof name);
         if (v) {
             if (!strcmp(name, "EMAIL")) {
                 /* The 'EMAIL: <addr>' shape the vCard-uid experiment used.
@@ -507,9 +482,9 @@ int pgpid_action_to_vcard(int argc, char **argv)
                 snprintf(line, sizeof line, "EMAIL;PREF=%u:%s", ++pref, a);
                 fold(line);
             } else {
-                fold(u->uid);   /* already a valid, escaped vCard line */
+                fold(u->text);  /* already a valid, escaped vCard line */
             }
-        } else if (bracketed_address(u->uid, value, sizeof value)) {
+        } else if (bracketed_address(u->text, value, sizeof value)) {
             /* A plain 'Name <addr>' uid: only its address becomes a line.
              * The name is carried by FN:, the identifier by UID:urn:eid:. */
             snprintf(line, sizeof line, "EMAIL;PREF=%u:%s", ++pref, value);
@@ -520,17 +495,8 @@ int pgpid_action_to_vcard(int argc, char **argv)
     /* The certificate itself, twice: where to fetch it, and inline. The URL
      * is worth having because a card outlives the bytes in it — a key gains
      * signatures, an address is revoked. */
-    gpgme_data_t exported;
-    unsigned char *raw_key = NULL;
     size_t raw_len = 0;
-    if (!gpgme_data_new(&exported)) {
-        if (!gpgme_op_export(ctx, fpr, GPGME_EXPORT_MODE_MINIMAL, exported)) {
-            gpgme_data_seek(exported, 0, SEEK_SET);
-            raw_key = (unsigned char *)gpgme_data_release_and_get_mem(exported, &raw_len);
-        } else {
-            gpgme_data_release(exported);
-        }
-    }
+    unsigned char *raw_key = pgpid_export_key(fpr, true, &raw_len);
 
     char url[512];
     const char *ks = raw_key ? pgpid_preferred_keyserver(raw_key, raw_len, fpr) : NULL;
@@ -555,7 +521,7 @@ int pgpid_action_to_vcard(int argc, char **argv)
             free(b64);
         }
         free(lean);
-        /* The photograph, which gpgme does not carry — and the one that
+        /* The photograph, which no listing carries — and the one that
          * stands, not the first in packet order. The shell takes the first,
          * which on a certificate carrying several is the oldest: the card
          * would then show a face its owner replaced. */
@@ -576,7 +542,7 @@ int pgpid_action_to_vcard(int argc, char **argv)
                 free(b);
             }
         }
-        gpgme_free(raw_key);
+        free(raw_key);
     }
 
     printf("END:VCARD\r\n");
@@ -584,7 +550,6 @@ int pgpid_action_to_vcard(int argc, char **argv)
         fflush(out);
         pgpid_error(_("Notice: Written into '%s'."), output);
     }
-    gpgme_key_unref(key);
-    gpgme_release(ctx);
+    pgpid_keys_free(kr);
     return PGPID_OK;
 }

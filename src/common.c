@@ -1,6 +1,6 @@
 /* The bits every action needs: a context, an error, a vocabulary.
  *
- * Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
  *
  * SPDX-License-Identifier: GPL-3.0-only
@@ -13,35 +13,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <limits.h>
+#include <pwd.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 const char *pgpid_homedir = NULL;
 
-gpgme_error_t pgpid_ctx_new(gpgme_ctx_t *ctx, gpgme_keylist_mode_t mode)
-{
-    gpgme_error_t err = gpgme_new(ctx);
-    if (err)
-        return err;
-    err = gpgme_set_protocol(*ctx, GPGME_PROTOCOL_OpenPGP);
-    if (err)
-        goto fail;
-    /* NULL file_name keeps the engine gpgme found; only the home moves. */
-    err = gpgme_ctx_set_engine_info(*ctx, GPGME_PROTOCOL_OpenPGP, NULL, pgpid_homedir);
-    if (err)
-        goto fail;
-    if (mode) {
-        err = gpgme_set_keylist_mode(*ctx, mode);
-        if (err)
-            goto fail;
-    }
-    return 0;
-fail:
-    gpgme_release(*ctx);
-    *ctx = NULL;
-    return err;
-}
 
 void pgpid_try_help(const char *action)
 {
@@ -62,67 +41,65 @@ void pgpid_error(const char *fmt, ...)
     fputc('\n', stderr);
 }
 
-void pgpid_gpgme_error(const char *what, gpgme_error_t err)
-{
-    pgpid_error(_("Error: %s: %s (%s)"), what,
-                gpgme_strerror(err), gpgme_strsource(err));
-}
 
 /* gpg writes one letter for a validity and the same letter for an ownertrust,
  * and the trustdb stores the same enum for both. One table, therefore. */
-char pgpid_validity_letter(gpgme_validity_t v)
+
+const char *pgpid_validity_word(char v)
 {
     switch (v) {
-    case GPGME_VALIDITY_UNKNOWN:   return '-';
-    case GPGME_VALIDITY_UNDEFINED: return 'q';
-    case GPGME_VALIDITY_NEVER:     return 'n';
-    case GPGME_VALIDITY_MARGINAL:  return 'm';
-    case GPGME_VALIDITY_FULL:      return 'f';
-    case GPGME_VALIDITY_ULTIMATE:  return 'u';
+    case 'q': return "undefined";
+    case 'n': return "never";
+    case 'm': return "marginal";
+    case 'f': return "full";
+    case 'u': return "ultimate";
+    default:  return "unknown";
     }
-    return '-';
 }
 
-const char *pgpid_validity_word(gpgme_validity_t v)
+/* What --import-ownertrust reads, from the letter --list-keys prints. Three
+ * vocabularies say the same thing here: a word is written, a letter is read
+ * back in colon field 9, and a number is what the ownertrust file carries.
+ * 'unknown' has no number: it is the absence of a decision, not a value, and
+ * gpg answers "Invalid argument" to anyone who tries to write it. */
+int pgpid_ownertrust_code(char v)
 {
     switch (v) {
-    case GPGME_VALIDITY_UNKNOWN:   return "unknown";
-    case GPGME_VALIDITY_UNDEFINED: return "undefined";
-    case GPGME_VALIDITY_NEVER:     return "never";
-    case GPGME_VALIDITY_MARGINAL:  return "marginal";
-    case GPGME_VALIDITY_FULL:      return "full";
-    case GPGME_VALIDITY_ULTIMATE:  return "ultimate";
+    case 'q': return 2;
+    case 'n': return 3;
+    case 'm': return 4;
+    case 'f': return 5;
+    case 'u': return 6;
+    default:  return 0;
     }
-    return "unknown";
+}
+
+/* An order over the validity letters, because callers compare validities
+ * to find the best one a key reaches. */
+int pgpid_validity_rank(char v)
+{
+    switch (v) {
+    case 'q': return 1;
+    case 'n': return 2;
+    case 'm': return 3;
+    case 'f': return 4;
+    case 'u': return 5;
+    default:  return 0;
+    }
 }
 
 int pgpid_validity_from_word(const char *word)
 {
-    static const struct { const char *word; gpgme_validity_t v; } words[] = {
-        { "unknown",   GPGME_VALIDITY_UNKNOWN   },
-        { "undefined", GPGME_VALIDITY_UNDEFINED },
-        { "never",     GPGME_VALIDITY_NEVER     },
-        { "marginal",  GPGME_VALIDITY_MARGINAL  },
-        { "full",      GPGME_VALIDITY_FULL      },
-        { "ultimate",  GPGME_VALIDITY_ULTIMATE  },
+    static const struct { const char *word; char v; } words[] = {
+        { "unknown",   '-' }, { "undefined", 'q' }, { "never",    'n' },
+        { "marginal",  'm' }, { "full",      'f' }, { "ultimate", 'u' },
     };
     for (size_t i = 0; i < sizeof words / sizeof *words; i++)
         if (!strcmp(word, words[i].word))
-            return (int)words[i].v;
+            return words[i].v;
     return -1;
 }
 
-/* The engine gpgme resolved, so that the two agree on which gpg they mean. */
-static const char *engine_path(void)
-{
-    gpgme_engine_info_t info;
-    if (gpgme_get_engine_info(&info))
-        return "gpg";
-    for (; info; info = info->next)
-        if (info->protocol == GPGME_PROTOCOL_OpenPGP && info->file_name)
-            return info->file_name;
-    return "gpg";
-}
 
 /* The child side of a pipe: replace this process with the engine. Never
  * returns on success. Used where the output has to be read back. */
@@ -135,7 +112,7 @@ void pgpid_exec_engine(const char *const *argv)
     if (!full)
         return;
     size_t at = 0;
-    full[at++] = engine_path();
+    full[at++] = "gpg";
     if (pgpid_homedir) {
         full[at++] = "--homedir";
         full[at++] = pgpid_homedir;
@@ -143,11 +120,13 @@ void pgpid_exec_engine(const char *const *argv)
     for (size_t i = 0; i < n; i++)
         full[at++] = argv[i];
     full[at] = NULL;
-    execv(full[0], (char *const *)full);
+    /* execvp, not execv: the engine is found on PATH, and not through
+     * a shell -- --homedir and the fingerprints go through untouched. */
+    execvp(full[0], (char *const *)full);
     free(full);
 }
 
-/* For the one thing gpgme has no call for. execv, not a shell: --homedir and
+/* Running the engine directly. execvp, not a shell: --homedir and
  * the fingerprints go through as they are, with nothing to quote and nothing
  * to get wrong. argv is NULL-terminated and starts after the program name;
  * --homedir is prepended here when one was given. */
@@ -227,7 +206,7 @@ static const char **with_engine(const char *const *argv)
     if (!full)
         return NULL;
     size_t at = 0;
-    full[at++] = engine_path();
+    full[at++] = "gpg";
     if (pgpid_homedir) {
         full[at++] = "--homedir";
         full[at++] = pgpid_homedir;
@@ -316,12 +295,12 @@ int pgpid_send_to_keyservers(const char *fpr, const char *list)
 /**
  * The validity letter gpg gives each uid, in the order it lists them.
  *
- * Needed because gpgme cannot say "expired": a uid gpg marks 'e' arrives
+ * Needed because the record's own flags cannot say "expired": a uid gpg marks 'e' arrives
  * here as revoked=0, invalid=0, validity=unknown — indistinguishable from
- * one nobody has vouched for. Measured 2026-08-22; the third thing gpgme
+ * one nobody has vouched for. Measured 2026-08-22; the third thing a plain
  * will not tell us, after attribute packets and their images.
  *
- * Zipping by position is sound here and only here: gpgme parses this very
+ * Zipping by position is sound here and only here: the reader walks this very
  * output, so the two lists are the same list.
  */
 size_t pgpid_uid_validities(const char *fpr, char *out, size_t max)
@@ -370,7 +349,7 @@ size_t pgpid_uid_validities(const char *fpr, char *out, size_t max)
  * Run a program and keep what it writes, up to `max` bytes.
  *
  * Not the engine: the card is reached through gpg-connect-agent, which
- * speaks to scdaemon. gpgme has no call for it — its business is keys and
+ * speaks to scdaemon. A key listing has nothing for it — its business is keys and
  * data, and a smartcard's remaining attempts are neither.
  *
  * Returns the number of bytes captured, or -1 if the program could not run.
@@ -429,7 +408,7 @@ int pgpid_capture_engine(const char *const *argv, char *out, size_t max)
     if (!full)
         return -1;
     size_t at = 0;
-    full[at++] = engine_path();
+    full[at++] = "gpg";
     if (pgpid_homedir) {
         full[at++] = "--homedir";
         full[at++] = pgpid_homedir;
@@ -450,11 +429,40 @@ int pgpid_capture_engine(const char *const *argv, char *out, size_t max)
  * place. So the card is asked for a subkey it does have, and the keyring is
  * asked which certificate that subkey belongs to.
  */
+/**
+ * gpg's card status, read in a locale that will not translate it.
+ *
+ * Everything this feeds is parsed against English: the labels ("URL", "Name
+ * of cardholder", "Signature key") and, worse, the value gpg writes for an
+ * empty field -- "[not set]", which becomes "[non positionne]" in French. A
+ * field that fails to read as empty reads as filled, so the count of what is
+ * missing drops and token_check returns 102 where it owes 103.
+ *
+ * The shell guards the same read with `LANG=C.UTF-8`. LC_ALL is used here
+ * because it also wins when LC_ALL is what the environment sets, which LANG
+ * does not -- the shell is wrong in that case and this is not. C.UTF-8 and
+ * not C: a cardholder name may carry accents, and they must stay characters.
+ */
+int pgpid_capture_card_status(char *out, size_t max)
+{
+    const char *argv[] = { "--card-status", NULL };
+    const char *had = getenv("LC_ALL");
+    char saved[128] = "";
+    if (had)
+        snprintf(saved, sizeof saved, "%s", had);
+    setenv("LC_ALL", "C.UTF-8", 1);
+    int got = pgpid_capture_engine(argv, out, max);
+    if (had)
+        setenv("LC_ALL", saved, 1);
+    else
+        unsetenv("LC_ALL");
+    return got;
+}
+
 bool pgpid_card_certification_key(char *out, size_t max)
 {
     char status[16384];
-    const char *argv[] = { "--card-status", NULL };
-    if (pgpid_capture_engine(argv, status, sizeof status) <= 0)
+    if (pgpid_capture_card_status(status, sizeof status) <= 0)
         return false;
 
     /* Whichever of the three the card holds: any of them names the same
@@ -482,28 +490,22 @@ bool pgpid_card_certification_key(char *out, size_t max)
     if (!*anchor)
         return false;
 
-    gpgme_ctx_t ctx;
-    if (pgpid_ctx_new(&ctx, GPGME_KEYLIST_MODE_LOCAL))
-        return false;
-    gpgme_key_t key = NULL;
+    const char *pat[] = { anchor };
+    struct pgpid_keyring *kr = pgpid_keys_load(pat, 1, 0);
+    const struct pgpid_key *k = pgpid_keys_at(kr, 0);
     bool got = false;
-    if (!gpgme_op_keylist_start(ctx, anchor, 0)
-        && !gpgme_op_keylist_next(ctx, &key)) {
-        if (key->subkeys && key->subkeys->fpr) {
-            snprintf(out, max, "%s", key->subkeys->fpr);
-            got = true;
-        }
-        gpgme_key_unref(key);
+    if (k && *k->fpr) {
+        snprintf(out, max, "%s", k->fpr);
+        got = true;
     }
-    gpgme_op_keylist_end(ctx);
-    gpgme_release(ctx);
+    pgpid_keys_free(kr);
     return got;
 }
 
 /* gpg's colon listing escapes ':' and '\' and every control byte as \xNN.
  * What the caller wants back is the uid as its owner wrote it — gpg's own
  * --quick-*-uid will not match anything else. */
-static void colon_unescape(const char *in, char *out, size_t max)
+void pgpid_colon_unescape(const char *in, char *out, size_t max)
 {
     size_t n = 0;
     for (; *in && n + 1 < max; in++) {
@@ -535,6 +537,324 @@ static void colon_unescape(const char *in, char *out, size_t max)
  * that the address is dead; leaving it out hid a third of the addresses on a
  * real certificate.
  */
+/* The address an entity is written to — one rule, in one place.
+ *
+ * The primary uid when it carries an address, which is where this project puts
+ * it; failing that the most recent standing uid that does. gpg lists the
+ * primary first, so the first address seen is the primary's when the primary
+ * is one.
+ *
+ * It was written three times before, and the copies disagreed: the business
+ * card took the most recent and ignored the primary, the paper backup
+ * preferred the primary, the listing had its own. Three answers to the same
+ * question about the same certificate.
+ */
+const struct pgpid_uid *pgpid_preferred_uid(const struct pgpid_uid *uids, size_t n)
+{
+    const struct pgpid_uid *pick = NULL;
+    long newest = -1;
+
+    for (size_t i = 0; i < n; i++) {
+        if (!pgpid_uid_stands(uids[i].validity))
+            continue;
+        if (!pgpid_uid_has_address(uids[i].text))
+            continue;
+        if (!pick) {
+            pick = &uids[i];
+            /* The primary outranks any date; anything later wins only on
+             * being newer than the last one taken. */
+            newest = (i == 0) ? LONG_MAX : uids[i].created;
+        } else if (uids[i].created > newest) {
+            pick = &uids[i];
+            newest = uids[i].created;
+        }
+    }
+    return pick;
+}
+
+/**
+ * The user id the certificate flags as its primary — subpacket 25.
+ *
+ * Walked from the packets rather than read off the colon listing, which does
+ * not say: gpg happens to list the primary first today, and a program that
+ * relies on that is relying on an ordering nobody promised.
+ *
+ * For each uid, its newest binding self-signature counts, unless a revocation
+ * on that uid is newer still. The last one flagged primary wins, which is what
+ * gpg does when two signatures disagree.
+ */
+bool pgpid_primary_uid(const char *user, char *out, size_t max)
+{
+    *out = '\0';
+    char fpr[41] = "";
+    const char *pat[] = { user };
+    struct pgpid_keyring *kr = pgpid_keys_load(pat, 1, 0);
+    if (kr && pgpid_keys_count(kr))
+        snprintf(fpr, sizeof fpr, "%s", pgpid_keys_at(kr, 0)->fpr);
+    pgpid_keys_free(kr);
+    if (!*fpr)
+        return false;
+
+    size_t len = 0;
+    unsigned char *raw = pgpid_export_key(fpr, true, &len);
+    if (!raw)
+        return false;
+
+    const char *keyid = strlen(fpr) >= 16 ? fpr + strlen(fpr) - 16 : fpr;
+    const unsigned char *p = raw, *end = raw + len;
+    struct pgpid_packet pkt;
+    char current[512] = "";
+    unsigned long newest_binding = 0, newest_revocation = 0;
+    bool uid_primary = false;
+
+    while (pgpid_packet_next(p, end, &pkt)) {
+        p = pkt.next;
+        if (pkt.tag == TAG_USER_ID) {
+            if (*current && uid_primary && newest_binding > newest_revocation)
+                snprintf(out, max, "%s", current);
+            snprintf(current, sizeof current, "%.*s",
+                     (int)(pkt.len < sizeof current ? pkt.len : sizeof current - 1),
+                     (const char *)pkt.body);
+            newest_binding = newest_revocation = 0;
+            uid_primary = false;
+            continue;
+        }
+        if (pkt.tag != TAG_SIGNATURE) {
+            if (*current && uid_primary && newest_binding > newest_revocation)
+                snprintf(out, max, "%s", current);
+            *current = '\0';
+            continue;
+        }
+        if (!*current)
+            continue;
+
+        unsigned type;
+        unsigned long created;
+        const char *issuer;
+        if (!pgpid_signature_read(&pkt, &type, &created, &issuer))
+            continue;
+        /* Only what the certificate says about itself. */
+        if (!issuer || strcasecmp(issuer, keyid))
+            continue;
+        if (type == SIG_CERT_REVOKE) {
+            if (created > newest_revocation)
+                newest_revocation = created;
+            continue;
+        }
+        if (type < SIG_CERT_LOWEST || type > SIG_CERT_HIGHEST)
+            continue;
+        if (created < newest_binding)
+            continue;
+        newest_binding = created;
+        const unsigned char *flag;
+        size_t flen = 0;
+        uid_primary = pgpid_signature_subpacket(&pkt, 25, &flag, &flen)
+                      && flen >= 1 && flag[0];
+    }
+    if (*current && uid_primary && newest_binding > newest_revocation)
+        snprintf(out, max, "%s", current);
+
+    free(raw);
+    return *out != '\0';
+}
+
+/**
+ * The number gpg's --edit-key menu gives this user id.
+ *
+ * Its place among the uid *and* attribute lines, counted from one: a photo
+ * takes a number in that menu just as a name does, so a certificate carrying
+ * one shifts every uid after it. Counting only the uids -- which is what a
+ * listing of them gives -- names the wrong one on exactly the certificates
+ * that carry an avatar, which is most of ours.
+ */
+unsigned pgpid_uid_index(const char *user, const char *text)
+{
+    char listing[262144];
+    const char *argv[] = { "--with-colons", "--list-key", user, NULL };
+    if (pgpid_capture_engine(argv, listing, sizeof listing) <= 0)
+        return 0;
+
+    unsigned index = 0, keys = 0;
+    for (char *line = listing, *save; (line = strtok_r(line, "\n", &save)); line = NULL) {
+        if (!strncmp(line, "pub:", 4) && ++keys > 1)
+            break;
+        bool is_uid = !strncmp(line, "uid:", 4);
+        if (!is_uid && strncmp(line, "uat:", 4))
+            continue;
+        index++;
+        if (!is_uid)
+            continue;
+        /* Field 10 is the uid itself, colon-escaped. */
+        unsigned field = 1;
+        char *start = line;
+        for (char *q = line; ; q++) {
+            if (*q != ':' && *q)
+                continue;
+            if (field == 10) {
+                char plain[512];
+                char saved = *q;
+                *q = '\0';
+                pgpid_colon_unescape(start, plain, sizeof plain);
+                *q = saved;
+                if (!strcmp(plain, text))
+                    return index;
+                break;
+            }
+            if (!*q)
+                break;
+            field++;
+            start = q + 1;
+        }
+    }
+    return 0;
+}
+
+/**
+ * Is this uid one of ours, `PROPERTY:value` or `PROPERTY;PARAM:value`?
+ *
+ * The vCard properties an entity publishes live in uids of their own, and
+ * three actions now read them -- the card writer, the account opener, and
+ * the address rule. One reading, so that a uid means the same thing to all.
+ */
+const char *pgpid_uid_property(const char *uid, char *name, size_t max)
+{
+    size_t i = 0;
+    while (uid[i] >= 'A' && uid[i] <= 'Z' && i < max - 1)
+        i++;
+    if (!i)
+        return NULL;
+    const char *p = uid + i;
+    if (*p == ';')
+        p = strchr(p, ':');
+    if (!p || *p != ':')
+        return NULL;
+    memcpy(name, uid, i);
+    name[i] = '\0';
+    /* One optional space after the colon, which the vCard-uid experiment
+     * used and which is not part of the value. */
+    return p[1] == ' ' ? p + 2 : p + 1;
+}
+
+/**
+ * What a certificate is called: the FN it carries, or nothing.
+ *
+ * FN is the field made to hold a name, and the only one that is a name: an
+ * address is where to write, an identifier is who, a comment is whatever
+ * somebody typed. Read here rather than in each caller, so that a certificate
+ * is called the same thing by the card writer, the key page and the list of
+ * certifiers.
+ *
+ * Revoked and unusable uids are passed over: a name its owner has taken back
+ * is not what they are called.
+ */
+bool pgpid_key_name(const struct pgpid_key *key, char *out, size_t max)
+{
+    if (!key || !out || !max)
+        return false;
+    for (size_t k = 0; k < key->nuid; k++) {
+        const struct pgpid_keyuid *u = &key->uid[k];
+        if (u->revoked || u->invalid)
+            continue;
+        char name[64];
+        const char *value = pgpid_uid_property(u->text, name, sizeof name);
+        if (!value || strcmp(name, "FN") || !*value)
+            continue;
+        snprintf(out, max, "%s", value);
+        return true;
+    }
+    return false;
+}
+
+/**
+ * The account named USER, or the one whose identifier is EID.
+ *
+ * The two name the same thing: an entity holds an entry under its identifier
+ * and, usually, a shorter one beside it. An account laid out before this tool
+ * has only the short name and carries the identifier in the path of its home,
+ * so that counts as naming it too.
+ */
+bool pgpid_account_name(const char *who, char *out, size_t max)
+{
+    if (!who || !*who)
+        return false;
+    if (getpwnam(who)) {
+        snprintf(out, max, "%s", who);
+        return true;
+    }
+    bool found = false;
+    setpwent();
+    const struct passwd *p;
+    while ((p = getpwent())) {
+        const char *base = strrchr(p->pw_dir, '/');
+        if (base && !strcmp(base + 1, who)) {
+            snprintf(out, max, "%s", p->pw_name);
+            found = true;
+            break;
+        }
+    }
+    endpwent();
+    return found;
+}
+
+/** The identifier an account carries: in its name, or in the path of its home. */
+bool pgpid_account_eid(const struct passwd *pw, char *out, size_t max)
+{
+    *out = '\0';
+    if (!pw)
+        return false;
+    /* The home first: it holds the identifier whole, and the name may be it
+     * cut to what shadow allows -- which no longer reads as one. */
+    const char *base = strrchr(pw->pw_dir, '/');
+    if (base && pgpid_eid_body_is_sound(base + 1)) {
+        snprintf(out, max, "%s", base + 1);
+        return true;
+    }
+    if (pgpid_eid_body_is_sound(pw->pw_name)) {
+        snprintf(out, max, "%s", pw->pw_name);
+        return true;
+    }
+    return false;
+}
+
+bool pgpid_preferred_address(const struct pgpid_key *key, char *out, size_t max)
+{
+    struct pgpid_uid light[64];
+    size_t n = 0;
+    *out = '\0';
+    for (size_t i = 0; i < key->nuid && n < 64; i++) {
+        snprintf(light[n].text, sizeof light[0].text, "%s", key->uid[i].text);
+        light[n].validity = key->uid[i].validity;
+        light[n].created = key->uid[i].created;
+        n++;
+    }
+    const struct pgpid_uid *pick = pgpid_preferred_uid(light, n);
+    if (!pick)
+        return false;
+    size_t len = 0;
+    const char *at = pgpid_uid_address(pick->text, &len);
+    if (!at || !len || len >= max)
+        return false;
+    snprintf(out, max, "%.*s", (int)len, at);
+    return true;
+}
+
+/* Our own path, so that a part of this program calling another part reaches
+ * the binary that is running rather than whatever "pgpid" resolves to -- or
+ * fails to resolve to, which is what happens on a machine where it is built
+ * but not installed. */
+const char *pgpid_self(void)
+{
+    static char path[512];
+    if (*path)
+        return path;
+    ssize_t n = readlink("/proc/self/exe", path, sizeof path - 1);
+    if (n > 0)
+        path[n] = '\0';
+    else
+        snprintf(path, sizeof path, "%s", PGPID_NAME);
+    return path;
+}
+
 bool pgpid_uid_stands(char validity)
 {
     return strchr("ounmfqws-", validity) != NULL;
@@ -543,7 +863,7 @@ bool pgpid_uid_stands(char validity)
 /**
  * The uids of a certificate, with what gpg knows about each.
  *
- * From the colon listing rather than gpgme, for two things gpgme does not
+ * Read straight from the colon listing, for two things a key record does not
  * carry: the letter that tells an expired uid from an uncertified one, and
  * the date the uid's self-signature was made — which is how "the newest
  * address" gets decided when one has to be kept.
@@ -589,7 +909,7 @@ size_t pgpid_list_uids(const char *user, bool secret,
             continue;
         out[n].validity = field[1] && *field[1] ? field[1][0] : '-';
         out[n].created = field[5] && *field[5] ? strtol(field[5], NULL, 10) : 0;
-        colon_unescape(field[9] ? field[9] : "", out[n].text, sizeof out[n].text);
+        pgpid_colon_unescape(field[9] ? field[9] : "", out[n].text, sizeof out[n].text);
         n++;
     }
     return n;

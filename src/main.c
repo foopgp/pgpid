@@ -1,6 +1,6 @@
 /* pgpid — the pgpid API, while it migrates out of the shell libraries.
  *
- * Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
  *
  * SPDX-License-Identifier: GPL-3.0-only
@@ -20,6 +20,96 @@
 #include <stdio.h>
 #include <string.h>
 
+
+/* Every action, once. The dispatch reads it, and so does the completion:
+ * a list of actions kept in two places is a list that disagrees with
+ * itself the day one is added. */
+/* Every action, once: its name, the group it belongs to, what it does, and
+ * what runs it. The dispatch reads this, the completion reads this, and so
+ * does the help -- which used to keep a second list of its own, three lines
+ * under a comment saying a list kept twice is a list that disagrees with
+ * itself. It did. */
+static const struct {
+    const char *name;
+    const char *section;   /* NULL: continues the previous one */
+    const char *desc;
+    int (*run)(int, char **);
+} ACTIONS[] = {
+    { "cert_list",         N_("Certificates"),
+      N_("List the certificates of the keyring"),            pgpid_action_cert_list },
+    { "cert_get",          NULL,
+      N_("Look a certificate up, refreshing it first"),      pgpid_action_cert_get },
+    { "cert_property",     NULL,
+      N_("Show, add or revoke a vCard property it carries"), pgpid_action_cert_property },
+    { "cert_email",        NULL,
+      N_("Show, add or revoke the addresses it carries"),    pgpid_action_cert_email },
+    { "cert_avatar",       NULL,
+      N_("Extract the image it wears"),                      pgpid_action_cert_avatar },
+    { "cert_sigs",         NULL,
+      N_("List who has certified it"),                       pgpid_action_cert_sigs },
+    { "cert_tovcard",      NULL,
+      N_("Write it out as a vCard document"),                pgpid_action_cert_tovcard },
+    { "cert_tobizcard",    NULL,
+      N_("Produce or print a sticker or business card"),     pgpid_action_cert_tobizcard },
+    { "cert_push",         NULL,
+      N_("Send certificates to the keyservers"),             pgpid_action_cert_push },
+    { "cert_revoke",       NULL,
+      N_("Revoke one for good, and tell the keyservers"),    pgpid_action_cert_revoke },
+    { "cert_del",          NULL,
+      N_("Delete certificates, by fingerprint only"),        pgpid_action_cert_del },
+
+    { "secret_list",       N_("Secret keys held on this machine"),
+      N_("List the secret keys that are really here"),       pgpid_action_secret_list },
+    { "secret_passphrase", NULL,
+      N_("Check, or --replace, what protects one"),          pgpid_action_secret_passphrase },
+    { "secret_print",      NULL,
+      N_("Put one on paper, in fragments"),                  pgpid_action_secret_print },
+    { "secret_scan",       NULL,
+      N_("Put it back together from the fragments"),         pgpid_action_secret_scan },
+    { "secret_totoken",    NULL,
+      N_("Move one onto a security key"),                    pgpid_action_secret_totoken },
+
+    { "secret_del",        NULL,
+      N_("Delete the secret material held here"),           pgpid_action_secret_del },
+
+    { "token_list",        N_("Security keys"),
+      N_("List the security keys this system knows"),        pgpid_action_token_list },
+    { "token_check",       NULL,
+      N_("Check what the connected one carries"),            pgpid_action_token_check },
+    { "token_retries",     NULL,
+      N_("Attempts left on its codes"),                      pgpid_action_token_retries },
+    { "token_code",        NULL,
+      N_("Check, or --replace, its PIN or Admin code"),      pgpid_action_token_code },
+    { "token_del",         NULL,
+      N_("Forget one: remove its stubs, or --reset to wipe it"), pgpid_action_token_del },
+    { "token_meta",        NULL,
+      N_("Show, or --replace, what it says about its holder"), pgpid_action_token_meta },
+
+    { "gen_key",           N_("Generators"),
+      N_("Generate a key pair the PGP ID way"),              pgpid_action_gen_key },
+    { "gen_u4",            NULL,
+      N_("Print the identifier a civil status or a passport gives"), pgpid_action_gen_u4 },
+    { "gen_uid",           NULL,
+      N_("Print the Unix account number an identifier gives"), pgpid_action_gen_uid },
+
+    { "system_users",      N_("This computer"),
+      N_("List the accounts, and which are PGP ID entities"), pgpid_action_system_users },
+
+    { "system_adduser",    NULL,
+      N_("Open a local account for a PGP ID entity"),        pgpid_action_system_adduser },
+    { "system_deluser",    NULL,
+      N_("Close a local account, alias included"),           pgpid_action_system_deluser },
+    { "system_confhome",   NULL,
+      N_("Lay out a home directory for PGP ID use"),         pgpid_action_system_confhome },
+    { "system_admins",     NULL,
+      N_("List, add or remove local administrators"),        pgpid_action_system_admins },
+
+    { "certify",           N_("Other people"),
+      N_("Vouch for somebody else"),                         pgpid_action_certify },
+    { "trustdb",           NULL,
+      N_("Read, publish and apply the credibility of others"), pgpid_action_trustdb },
+};
+
 static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
@@ -27,43 +117,29 @@ static void usage(FILE *out)
         " [OPTIONS]... ACTION [ARGS]...\n"
         "\n"
         "Read and act on OpenPGP certificates through the pgpid model: entity\n"
-        "identifiers, validity, ownertrust.\n"
+        "identifiers, validity, credibility.\n"
         "\n"
-        "ACTIONS:\n"
-        "  list                        List the certificates of the keyring\n"
-        "  get                         Look a certificate up, refreshing it first\n"
-        "  property                    Print a vCard property of one certificate\n"
-        "  sigs                        List who has certified one certificate\n"
-        "  ownertrust                  Print or set how far one is trusted to certify\n"
-        "  del                         Delete certificates, by fingerprint only\n"
-        "  avatar                      Extract the image a certificate wears\n"
-        "  push                        Send certificates to the keyservers\n"
-        "  gen_u4                      Print the identifier a civil status gives\n"
-        "  mrz_to_u4                   Print the identifier a passport's machine zone gives\n"
-        "  gen_uid                     Print the Unix account number an identifier gives\n"
-        "  to_vcard                    Print a certificate as a vCard\n"
-        "  email                       Show, add or revoke the addresses a certificate carries\n"
-        "  certify                     Vouch for somebody else\n"
-        "  update_trustdb              Recompute trust from signed delegations\n"
-        "  gen_key                     Generate a key pair the PGP ID way\n"
-        "  change_passphrase           Change what protects a secret key here\n"
-        "  token_check                 Check what the connected security key carries\n"
-        "  token_retries               Attempts left on the key's codes\n"
-        "  totoken                     Move a secret key onto a security key\n"
-        "  change_token_code           Check or change its PIN or Admin code\n"
-        "  change_token_meta           Write what it says about its holder\n"
-        "  print_secret                Put a secret key on paper, in fragments\n"
-        "  scan                        Put it back together from the fragments\n"
-        "  print_card                  Produce or print a sticker or business card\n"
-        "\n"
+        "ACTIONS:\n"),
+            PGPID_NAME);
+
+    /* Straight off the dispatch table, so an action cannot be listed here and
+     * missing there, or the other way round. A section header is printed
+     * whenever it changes. */
+    for (size_t k = 0; k < sizeof ACTIONS / sizeof ACTIONS[0]; k++) {
+        if (ACTIONS[k].section)
+            fprintf(out, "\n %s:\n", _(ACTIONS[k].section));
+        fprintf(out, "  %-22s%s\n", ACTIONS[k].name, _(ACTIONS[k].desc));
+    }
+
+    fprintf(out, _("\n"
         "OPTIONS:\n"
-        "  -H, --homedir DIR           GnuPG home directory - Environment variable: GNUPGHOME\n"
+        "  -H, --homedir DIR           GnuPG and pgpid home directory - Environment variable: GNUPGHOME\n"
         "      --output-format=FORMAT  Specify output format between {raw, info, md} - Default: 'raw'\n"
+        "  -B, --batch                 Never ask: fail instead of prompting for what is missing\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"
         "\n"
-        "Every action takes --help of its own.\n"),
-            PGPID_NAME);
+        "Every action takes --help of its own.\n"));
 }
 
 int main(int argc, char **argv)
@@ -71,10 +147,9 @@ int main(int argc, char **argv)
     setlocale(LC_ALL, "");
     bindtextdomain(PGPID_TEXTDOMAIN, PGPID_LOCALEDIR);
     textdomain(PGPID_TEXTDOMAIN);
-    /* Required before anything else in gpgme, and it also selects the
+    /* The locale still has to be set before anything else -- it selects the
      * gettext domain the engine speaks. */
-    gpgme_check_version(NULL);
-    gpgme_set_locale(NULL, LC_ALL, setlocale(LC_ALL, NULL));
+    setlocale(LC_ALL, "");
 
     int i = 1;
     for (; i < argc; i++) {
@@ -98,12 +173,19 @@ int main(int argc, char **argv)
                 pgpid_error(_("Notice: One of raw, info, md."));
                 return PGPID_USAGE;
             }
+        } else if (!strcmp(a, "--bash-completion")) {
+            const char *names[sizeof ACTIONS / sizeof ACTIONS[0]];
+            for (size_t k = 0; k < sizeof names / sizeof names[0]; k++)
+                names[k] = ACTIONS[k].name;
+            pgpid_emit_completion(names, sizeof names / sizeof names[0]);
+            return PGPID_OK;
+        } else if (!strcmp(a, "-B") || !strcmp(a, "--batch")) {
+            pgpid_batch = true;
         } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             usage(stdout);
             return PGPID_OK;
         } else if (!strcmp(a, "-V") || !strcmp(a, "--version")) {
-            printf("%s %s (gpgme %s)\n", PGPID_NAME, PGPID_VERSION,
-                   gpgme_check_version(NULL));
+            printf("%s %s\n", PGPID_NAME, PGPID_VERSION);
             return PGPID_OK;
         } else if (!strcmp(a, "--")) {
             i++;
@@ -126,56 +208,9 @@ int main(int argc, char **argv)
     int sub_argc = argc - i;
     char **sub_argv = argv + i;
 
-    if (!strcmp(action, "list"))
-        return pgpid_action_list(sub_argc, sub_argv);
-    if (!strcmp(action, "property"))
-        return pgpid_action_property(sub_argc, sub_argv);
-    if (!strcmp(action, "sigs"))
-        return pgpid_action_sigs(sub_argc, sub_argv);
-    if (!strcmp(action, "ownertrust"))
-        return pgpid_action_ownertrust(sub_argc, sub_argv);
-    if (!strcmp(action, "del"))
-        return pgpid_action_del(sub_argc, sub_argv);
-    if (!strcmp(action, "avatar"))
-        return pgpid_action_avatar(sub_argc, sub_argv);
-    if (!strcmp(action, "push"))
-        return pgpid_action_push(sub_argc, sub_argv);
-    if (!strcmp(action, "get"))
-        return pgpid_action_get(sub_argc, sub_argv);
-    if (!strcmp(action, "gen_uid"))
-        return pgpid_action_gen_uid(sub_argc, sub_argv);
-    if (!strcmp(action, "gen_u4"))
-        return pgpid_action_gen_u4(sub_argc, sub_argv);
-    if (!strcmp(action, "mrz_to_u4"))
-        return pgpid_action_mrz_to_u4(sub_argc, sub_argv);
-    if (!strcmp(action, "to_vcard"))
-        return pgpid_action_to_vcard(sub_argc, sub_argv);
-    if (!strcmp(action, "token_retries"))
-        return pgpid_action_token_retries(sub_argc, sub_argv);
-    if (!strcmp(action, "token_check"))
-        return pgpid_action_token_check(sub_argc, sub_argv);
-    if (!strcmp(action, "certify"))
-        return pgpid_action_certify(sub_argc, sub_argv);
-    if (!strcmp(action, "email"))
-        return pgpid_action_email(sub_argc, sub_argv);
-    if (!strcmp(action, "update_trustdb"))
-        return pgpid_action_update_trustdb(sub_argc, sub_argv);
-    if (!strcmp(action, "gen_key"))
-        return pgpid_action_gen_key(sub_argc, sub_argv);
-    if (!strcmp(action, "change_passphrase"))
-        return pgpid_action_change_passphrase(sub_argc, sub_argv);
-    if (!strcmp(action, "print_secret"))
-        return pgpid_action_print_secret(sub_argc, sub_argv);
-    if (!strcmp(action, "scan"))
-        return pgpid_action_scan(sub_argc, sub_argv);
-    if (!strcmp(action, "print_card"))
-        return pgpid_action_print_card(sub_argc, sub_argv);
-    if (!strcmp(action, "change_token_code"))
-        return pgpid_action_change_token_code(sub_argc, sub_argv);
-    if (!strcmp(action, "change_token_meta"))
-        return pgpid_action_change_token_meta(sub_argc, sub_argv);
-    if (!strcmp(action, "totoken"))
-        return pgpid_action_totoken(sub_argc, sub_argv);
+    for (size_t k = 0; k < sizeof ACTIONS / sizeof ACTIONS[0]; k++)
+        if (!strcmp(action, ACTIONS[k].name))
+            return ACTIONS[k].run(sub_argc, sub_argv);
 
     pgpid_error(_("Error: Unknown action '%s'."), action);
     pgpid_try_help(NULL);

@@ -1,11 +1,11 @@
 /* What the security key says about itself.
  *
- * Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
  *
  * SPDX-License-Identifier: GPL-3.0-only
  *
- * The card is not reached through gpgme: its business is keys and data, and
+ * The card is not reached through a key listing: that is about keys and data, and
  * how many attempts remain before a PIN locks is neither. It comes from
  * scdaemon, asked through gpg-connect-agent — the same road the shell takes.
  *
@@ -25,14 +25,14 @@ static void usage(FILE *out)
         "%s"
         " token_retries [OPTIONS]...\n"
         "\n"
-        "Print how many attempts remain on the connected security key's codes,\n"
-        "before each one locks. All three unless one is asked for.\n"
+        "Output remaining retry counter of PIN code, Reset Code or Admin code from\n"
+        "connected OpenPGP card. All three unless one is asked for.\n"
         "\n"
         "OPTIONS:\n"
-        "  -P, --pin                   The PIN, usually six digits\n"
-        "  -R, --rc                    The reset code, usually unused\n"
-        "  -A, --admin                 The admin code, usually eight digits\n"
-        "  -q, --quiet                 The numbers alone, one per line\n"
+        "  -P, --pin                   Output remaining retries for PIN code (usually 6 digits)\n"
+        "  -R, --rc                    Output remaining retries for Reset Code (usually unused)\n"
+        "  -A, --admin                 Output remaining retries for Admin code (usually 8 digits)\n"
+        "  -q, --quiet                 Decrease verbosity (stdout)\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"),
             PGPID_NAME);

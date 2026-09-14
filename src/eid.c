@@ -1,6 +1,6 @@
 /* The entity identifier carried by an OpenPGP uid.
  *
- * Copyright 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+ * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
  *
  * SPDX-License-Identifier: GPL-3.0-only
@@ -20,6 +20,7 @@
  * up owning the definition, it will not be two copies for long.
  */
 #include "pgpid.h"
+#include <stdio.h>
 
 #include <regex.h>
 #include <stdlib.h>
@@ -145,4 +146,42 @@ bool pgpid_eid_body_is_sound(const char *at)
             return false;
     }
     return true;
+}
+
+/*
+ * The identifier a certificate carries, and how many distinct ones it claims.
+ *
+ * Two identifiers on one certificate is not more information than one: it is a
+ * certificate saying two things about whose it is. The caller reads that as
+ * broken.
+ *
+ * `standing_only` is the difference between the two questions one can ask. It
+ * asks what the certificate asserts *today*, so a revoked uid carrying an old
+ * identifier must not count — otherwise replacing one's identifier would make
+ * the certificate read as broken ever after. Without it every uid is read
+ * whatever its validity, which is what the shell's `get` has always answered.
+ *
+ * Caller frees.
+ */
+char *pgpid_eid_of_key(const struct pgpid_key *key, unsigned *count, bool standing_only)
+{
+    char *found = NULL;
+    *count = 0;
+    for (size_t i = 0; i < key->nuid; i++) {
+        const struct pgpid_keyuid *u = &key->uid[i];
+        if (standing_only && (u->revoked || u->invalid))
+            continue;
+        char *eid = pgpid_eid_of_uid(u->text);
+        if (!eid)
+            continue;
+        if (!found) {
+            found = eid;
+            *count = 1;
+        } else {
+            if (strcmp(found, eid))
+                (*count)++;
+            free(eid);
+        }
+    }
+    return found;
 }
