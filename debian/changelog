@@ -29,6 +29,10 @@ pgpid (0.1.0-1) unstable; urgency=medium
     fingerprint. An entity identifier is looked up by its body, which is what
     the old spelling (u4=…) and the new one (u4…) share, so a certificate
     minted before the separator went away is found again.
+  * secret_scan reads a camera again, as bl-pgpkey scan did: --camera, and
+    pgpid-qrscan falls back to it when no sheet is named.
+  * pgpid-gen and pgpid-qrscan call the actions by the names they have had
+    since they were put into groups. Both died on their first real step.
 
  -- Mnêmê <mneme@foopgp.org>  Mon, 14 Sep 2026 15:33:32 +0200
 
