@@ -20,6 +20,7 @@ set -u
 export LC_ALL=C.UTF-8
 unset LANGUAGE
 
+PGPI_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 BIN=${1:-./build/pgpid}
 [[ -x "$BIN" ]] || { printf 'run.sh: Error: no binary at %s\n' "$BIN" >&2 ; exit 2 ; }
 BIN=$(readlink --canonicalize "$BIN")
@@ -278,6 +279,24 @@ out=$("$BIN" cert_sigs "$FPR")
 is "an unheld certifier keeps its key identifier" \
    "$(awk '{print $1}' <<<"$out" | grep --count --extended-regexp "^${PFPR: -16}$")" "1"
 is "and no row is ever a dash"    "$(awk '$1=="-"' <<<"$out" | wc --lines)" "0"
+
+printf '\nthe shell programs call actions that exist\n'
+# pgpid-gen and pgpid-qrscan drive the compiled binary, and the day the actions
+# were put into groups -- gen_*, cert_*, secret_*, token_* -- nobody renamed
+# the calls inside them. Both programs died on their first real step for weeks,
+# and their --help kept working, so nothing looked wrong. Every action either
+# script invokes is asked of the binary here.
+called=$(grep --only-matching --extended-regexp \
+    '\$\{?PGPID_BIN"?\}?( --homedir "[^"]+")? [a-z0-9_]+' \
+    "$PGPI_ROOT"/bin/pgpid-gen "$PGPI_ROOT"/bin/pgpid-qrscan 2>/dev/null \
+  | grep --only-matching --extended-regexp '(gen|cert|secret|token|system)_[a-z0-9_]+' \
+  | sort --unique)
+missing=0
+for action in $called ; do
+    "$BIN" "$action" --help >/dev/null 2>&1 || { printf '  missing: %s\n' "$action" ; missing=$((missing+1)) ; }
+done
+is "every action the shell programs call exists" "$missing" "0"
+is "and they call at least a few" "$(wc --words <<<"$called")" "7"
 
 printf '\navatar\n'
 # A certificate wearing two standing images is out of spec and it happened:

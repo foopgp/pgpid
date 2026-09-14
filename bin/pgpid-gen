@@ -257,11 +257,11 @@ FPRS=($("$PGPID_BIN" --homedir "$outdir/gnupg" gen_key --passphrase "${PGPID[pas
 PGPID[frps]="$(declare -p FPRS)"
 
 # print QR codes
-if ! "$PGPID_BIN" --homedir "$outdir/gnupg" print_secret --printer "${printer}" --split "${PGPI_SPLITN}" --threshold "$PGPI_THRESN" --passphrase "${PGPID[passphrase]}" --with-passphrase --tmpdir "$outdir/temp/" "${FPRS[0]}" > >(bl_log debug) 2> >(bl_log notice) ; then
+if ! "$PGPID_BIN" --homedir "$outdir/gnupg" secret_print --printer "${printer}" --split "${PGPI_SPLITN}" --threshold "$PGPI_THRESN" --passphrase "${PGPID[passphrase]}" --with-passphrase --workdir "$outdir/temp/" "${FPRS[0]}" > >(bl_log debug) 2> >(bl_log notice) ; then
 	bl_log crit "Printing QR codes FAIL ($?)"
 fi
 
-"$PGPID_BIN" --homedir "$outdir/gnupg" print_card --printer "${printer}" --usename "${PGPID[pseudonym]}" "${FPRS[0]}" > >(bl_log debug) 2> >(bl_log notice)
+"$PGPID_BIN" --homedir "$outdir/gnupg" cert_tobizcard --print "${printer}" --name "${PGPID[pseudonym]}" "${FPRS[0]}" > >(bl_log debug) 2> >(bl_log notice)
 
 bl_log info "Export OpenPGP first certificate and public ssh key..."
 gpg --homedir "$outdir/gnupg" --armor --export 2> >(bl_log crit) > "$outdir/PGPcert.gpg.asc"

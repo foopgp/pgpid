@@ -88,7 +88,7 @@ chmod -R go-rwx "$TMPDIR"
 # Force restart gpg-agent
 gpgconf --kill gpg-agent
 
-FPR=$("$PGPID_BIN" --homedir "$TMPDIR/gnupg" scan --workdir "$TMPDIR" "$@" 2> >(bl_log notice))
+FPR=$("$PGPID_BIN" --homedir "$TMPDIR/gnupg" secret_scan --workdir "$TMPDIR" "$@" 2> >(bl_log notice))
 
 while ! gpg --homedir "$TMPDIR/gnupg" --card-status > >(bl_log debug) 2> >(bl_log notice) ; do
 	sleep 1
@@ -99,8 +99,8 @@ done
 # written by pgpid totoken itself — it no longer has to be read off the uid
 # here and passed back in.
 if [[ -f "$TMPDIR/passphrase" ]] ; then
-	"$PGPID_BIN" --homedir "$TMPDIR/gnupg" totoken "${nosend[@]}" --passfrom "$TMPDIR/passphrase" "$FPR"
+	"$PGPID_BIN" --homedir "$TMPDIR/gnupg" secret_totoken "${nosend[@]}" --passfrom "$TMPDIR/passphrase" "$FPR"
 else
-	"$PGPID_BIN" --homedir "$TMPDIR/gnupg" totoken "${nosend[@]}" "$FPR"
+	"$PGPID_BIN" --homedir "$TMPDIR/gnupg" secret_totoken "${nosend[@]}" "$FPR"
 fi
 
