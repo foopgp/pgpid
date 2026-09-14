@@ -52,14 +52,80 @@ static void usage(FILE *out)
 }
 
 /**
- * Refresh what the engine knows how to refresh on its own.
+ * What actually goes to a keyserver.
  *
- * An address goes through `--locate-external-keys`, which asks the Web Key
- * Directory of its domain and then the keyservers. A fingerprint or key
- * identifier goes through `--recv-keys`. A free-text name goes nowhere: the
- * shell searches keyservers by name over HTTP, and doing the same here would
- * mean carrying an HTTP client for a case that is rare and ambiguous — a name
- * matches whoever else chose it. Said plainly rather than silently skipped.
+ * HKP is one request — `op=get&search=…` — and `search` takes whatever one
+ * has: a fingerprint, a key identifier, an address, a name. The C used to
+ * refuse everything but the first three, on the grounds that a name search
+ * was "rare and ambiguous". That was wrong twice over: it is neither rare
+ * (it is how one finds somebody one has only been told about) nor a reason
+ * to refuse (an imprecise search returns several certificates, which is an
+ * answer, not a failure).
+ *
+ * **An entity identifier is searched by its body** — what follows the `u4`,
+ * `u5` or `=` — because that is the one string both spellings share. A
+ * certificate minted before the separator went away carries
+ * `udid4=sRyU…`; one minted after carries `u4sRyU…`; searching either
+ * spelling whole finds only its own generation, and there were forty-two
+ * legacy-only certificates in one ordinary keyring on the day this was
+ * written. The body finds both.
+ */
+static char *eid_body(const char *term)
+{
+    char *eid = pgpid_eid_of_uid(term);
+    if (!eid)
+        return NULL;
+    /* pgpid_eid_of_uid answers the glued spelling, `u4…` or `u5…`; the body
+     * is what follows those two characters, and it is what both spellings
+     * have in common. */
+    char *body = strlen(eid) > 2 ? strdup(eid + 2) : NULL;
+    free(eid);
+    return body;
+}
+
+/* Percent-encode everything a query string does not take unescaped. The
+ * unreserved set of RFC 3986, and nothing else: an eid carries '.' and '-'
+ * and '_', which are in it, and a name carries spaces and accents, which
+ * are not. */
+static char *url_encode(const char *s)
+{
+    static const char *HEX = "0123456789ABCDEF";
+    size_t n = strlen(s);
+    char *out = malloc(n * 3 + 1);
+    if (!out)
+        return NULL;
+    char *w = out;
+    for (const unsigned char *p = (const unsigned char *)s; *p; p++) {
+        if ((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z')
+            || (*p >= '0' && *p <= '9') || *p == '-' || *p == '.'
+            || *p == '_' || *p == '~') {
+            *w++ = (char)*p;
+        } else {
+            *w++ = '%';
+            *w++ = HEX[*p >> 4];
+            *w++ = HEX[*p & 0x0F];
+        }
+    }
+    *w = '\0';
+    return out;
+}
+
+/**
+ * Ask every keyserver for [term], and the Web Key Directory too when it is
+ * an address.
+ *
+ * Both, and not one or the other. WKD says which certificate an address's own
+ * domain stands behind, which is the only authority on the question when one
+ * address sits on several certificates — but today more than ninety-nine
+ * addresses in a hundred have no WKD at all, so a lookup that stopped there
+ * would find nothing for almost everybody.
+ *
+ * The request goes through `gpg --fetch-keys`, which takes a URL and imports
+ * what comes back. No HTTP client of our own: gpg is already required, and
+ * asking it is what this program does everywhere else.
+ *
+ * Failure is ordinary — a server may be down, a key absent — and must not
+ * stop the answer: what is already local is still worth printing.
  */
 void pgpid_refresh(const char *term, const char *keyservers)
 {
@@ -67,43 +133,53 @@ void pgpid_refresh(const char *term, const char *keyservers)
         return;
 
     bool is_address = strchr(term, '@') != NULL;
-    bool is_key = pgpid_is_fingerprint(term);
-    if (!is_key) {
-        /* A key identifier: sixteen or eight hexadecimal characters, with or
-         * without the 0x a keyserver would print. */
-        const char *p = term + (strncmp(term, "0x", 2) == 0 || strncmp(term, "0X", 2) == 0 ? 2 : 0);
-        size_t n = strlen(p);
-        if (n == 8 || n == 16) {
-            is_key = true;
-            for (size_t i = 0; i < n && is_key; i++)
-                is_key = (p[i] >= '0' && p[i] <= '9')
-                      || (p[i] >= 'a' && p[i] <= 'f')
-                      || (p[i] >= 'A' && p[i] <= 'F');
-        }
-    }
 
-    if (!is_address && !is_key) {
-        pgpid_error(_("Notice: '%s' is a name, not an address or a key — asking nobody."), term);
-        pgpid_error(_("Notice: Searching keyservers by name is not here yet; give an address or a fingerprint."));
-        return;
-    }
+    /* Two searches at most, and usually one: the body of an identifier, which
+     * both spellings share, and the term as it was given. The second is not
+     * redundant — this was measured against our own keyserver, where every
+     * spelling answers, and against keys.openpgp.org, which refuses them all
+     * with a 400; a server we have not met may sit between the two. A lookup
+     * happens because somebody asked for it, so a second request costs
+     * nothing anybody notices. */
+    char *body = eid_body(term);
+    const char *wanted[2] = { body ? body : term, NULL };
+    if (body && strcmp(body, term) != 0)
+        wanted[1] = term;
 
     char *copy = strdup(keyservers);
-    if (!copy)
+    if (!copy) {
+        free(body);
         return;
+    }
     for (char *save = NULL, *ks = strtok_r(copy, " \t,", &save); ks;
          ks = strtok_r(NULL, " \t,", &save)) {
-        const char *locate[] = {
-            "--keyserver", ks, "--auto-key-locate", "clear,wkd,keyserver",
-            "--locate-external-keys", term, NULL,
-        };
-        const char *recv[] = { "--keyserver", ks, "--recv-keys", term, NULL };
-        /* Failure is ordinary here — a server may be down, a key absent —
-         * and it must not stop the answer: what is already local is still
-         * worth printing. */
-        pgpid_run_engine(is_address ? locate : recv);
+        if (is_address) {
+            /* The domain's own word on which certificate is its address's —
+             * the only authority when one address sits on several. */
+            const char *locate[] = {
+                "--keyserver", ks, "--auto-key-locate", "clear,wkd",
+                "--locate-external-keys", term, NULL,
+            };
+            pgpid_run_engine(locate);
+        }
+        for (size_t i = 0; i < 2 && wanted[i]; i++) {
+            char *escaped = url_encode(wanted[i]);
+            if (!escaped)
+                continue;
+            /* `options=mr` asks for the machine-readable answer: the armoured
+             * certificates and nothing around them. */
+            char url[1024];
+            size_t len = strlen(ks);
+            int trim = (len && ks[len - 1] == '/') ? 1 : 0;
+            snprintf(url, sizeof url, "%.*s/pks/lookup?op=get&options=mr&search=%s",
+                     (int)(len - trim), ks, escaped);
+            const char *fetch[] = { "--fetch-keys", url, NULL };
+            pgpid_run_engine(fetch);
+            free(escaped);
+        }
     }
     free(copy);
+    free(body);
 }
 
 /* Fetch the certificates that signed these, then the ones that signed those,
@@ -272,7 +348,14 @@ int pgpid_action_cert_get(int argc, char **argv)
     pgpid_list_short_start(only_fpr, only_mbox);
     for (int i = first; i < argc; i++) {
         size_t n = 0;
-        int r = pgpid_list_short(everything ? NULL : argv[i], only_fpr, only_mbox, &n);
+        /* Locally as remotely: an identifier is looked up by its body, the
+         * one string `u4=sRyU…` and `u4sRyU…` share. gpg matches a pattern
+         * as a substring of the uid, so asking for one spelling whole finds
+         * only certificates of that generation. */
+        char *body = everything ? NULL : eid_body(argv[i]);
+        int r = pgpid_list_short(everything ? NULL : (body ? body : argv[i]),
+                                 only_fpr, only_mbox, &n);
+        free(body);
         if (r == PGPID_FAIL)
             return PGPID_FAIL;
         if (r == PGPID_OK)
