@@ -34,7 +34,10 @@ pgpid (0.1.0-1) unstable; urgency=medium
     asked of the kernel rather than left to zbarcam's default, and named when
     there is more than one; the size is the largest the camera streams up to
     1920x1080, since 640x480 cannot resolve a secret printed as a single QR
-    code.
+    code. --cameras answers the list on its own, for a caller with nobody to
+    ask.
+  * gen_u4 says when the reference transliteration did not take a name as it
+    was typed — MÜLLER as MULLER — which the shell said and this did not.
   * pgpid-gen and pgpid-qrscan call the actions by the names they have had
     since they were put into groups. Both died on their first real step.
 
