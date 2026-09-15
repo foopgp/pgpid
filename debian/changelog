@@ -46,7 +46,13 @@ pgpid (0.1.0-1) unstable; urgency=medium
   * secret_totoken asks before wiping a card that carries something, instead
     of refusing outright, and asks nothing of a blank one.
   * secret_scan says when it has every fragment, and what it put back
-    together.
+    together, and shreds the working directory it made itself — without
+    --workdir it left the pieces of a reconstituted secret key under /tmp.
+  * pgpid-gen mints an identifier without a passport again, and --verify shows
+    the civil status for correction before anything is computed, as the shell
+    did. The country keeps the shell's FRA default.
+  * Nothing suggests `bl-security` any more: the package does not pull the
+    shell libraries in, so a person told to run it would find nothing.
   * Carries the business-card template cert_tobizcard renders, in
     /usr/share/pgpid/svg/card.svg. bash-libs keeps its copy, which bl-pgpid
     still reads; the two paths are disjoint.
