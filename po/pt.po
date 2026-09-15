@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid 0.0.7-35-g8512aa6\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-09-15 15:56+0200\n"
+"POT-Creation-Date: 2026-09-15 16:46+0200\n"
 "PO-Revision-Date: 2026-08-22 22:58+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -2565,28 +2565,43 @@ msgstr "Error: %zu fragmentos em %s, e um cabeçalho QR só sabe numerar %d."
 msgid "Error: Cannot read the fragment %s."
 msgstr "Error: Não é possível ler o fragmento %s."
 
-#: ../src/printsecret.c:787
+#: ../src/printsecret.c:799
+#, fuzzy, c-format
+#| msgid "Error: basenc would not encode %s."
+msgid "Error: Fragment %zu holds %zu characters; a QR code takes %zu."
+msgstr "Error: basenc recusou-se a codificar %s."
+
+#: ../src/printsecret.c:802
+msgid "Notice: Each share is the size of the whole secret, so sharing it out more will not make one smaller."
+msgstr ""
+
+#: ../src/printsecret.c:805
+#, c-format
+msgid "Suggestion: --split %d --threshold %d cuts it instead, a piece to a sheet — and then every sheet is needed."
+msgstr ""
+
+#: ../src/printsecret.c:815
 #, c-format
 msgid "Error: qrencode would not draw fragment %zu."
 msgstr "Error: qrencode recusou-se a desenhar o fragmento %zu."
 
-#: ../src/printsecret.c:796
+#: ../src/printsecret.c:824
 #, fuzzy, c-format
 #| msgid "Error: pdfjam would not lay the page out."
 msgid "Error: Fragment %zu could not be laid out."
 msgstr "Error: pdfjam recusou-se a compor a página."
 
-#: ../src/printsecret.c:804
+#: ../src/printsecret.c:832
 #, c-format
 msgid "Error: lpr would not print fragment %zu."
 msgstr "Error: lpr recusou-se a imprimir o fragmento %zu."
 
-#: ../src/printsecret.c:823
+#: ../src/printsecret.c:851
 #, c-format
 msgid "Notice: The working copies are removed. Shred %s if anything is left."
 msgstr "Notice: As cópias de trabalho foram removidas. Triture %s se algo restar."
 
-#: ../src/printsecret.c:829
+#: ../src/printsecret.c:857
 #, fuzzy, c-format
 #| msgid "Notice: The fragments are in %s. Shred it once they are on paper: bl-security shred_path --remove '%s'"
 msgid "Notice: The fragments are in %s. Shred them once they are on paper: find '%s' -type f -exec shred --remove {} +"

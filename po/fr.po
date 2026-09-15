@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid 0.0.7-35-g8512aa6\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-09-15 15:56+0200\n"
+"POT-Creation-Date: 2026-09-15 16:46+0200\n"
 "PO-Revision-Date: 2026-08-22 22:58+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -1246,29 +1246,6 @@ msgstr ""
 
 #: ../src/genkey.c:28
 #, c-format
-#| msgid ""
-#| "Usage: %s gen_key [OPTIONS]... EMAIL\n"
-#| "\n"
-#| "Generate a PGP key pair (public and secret) according to PGP ID standards.\n"
-#| "Output 3 lines for each fingerprints:\n"
-#| "* main key (Sign Certify)\n"
-#| "* decryption key (Encrypt)\n"
-#| "* authentication key (Auth)\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -N, --name PSEUDONYM             Common name or pseudonym. Default: first part of email\n"
-#| "  -c, --eid U4|U5                  Entity ID. Worldwide and decentralised entity identifier. Required here\n"
-#| "  -C, --extra-comment NOTE         Supplemental information or comment associated with the entity\n"
-#| "  -p, --passphrase PASSPHRASE      Passphrase to (symetric) encrypt secret part of PGP key. CAN'T BE EMPTY (at this stage)\n"
-#| "  -P, --passfrom FILE              Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin …)\n"
-#| "  -e, --expiration YEARS           Number of years before certificate expiration. Default: 11\n"
-#| "  -k, --keyserver KEYSERVER        Prefered PGP certificate server. Default: %s\n"
-#| "  -h, --help                       Print this help and exit\n"
-#| "  -V, --version                    Print the version and exit\n"
-#| "\n"
-#| "Both ways of giving the passphrase have their drawback, and the second has\n"
-#| "fewer: an argument is visible to every process on the machine for as long\n"
-#| "as this one runs.\n"
 msgid ""
 "Usage: %s gen_key [OPTIONS]... EMAIL\n"
 "\n"
@@ -1348,13 +1325,11 @@ msgid "Error: keyserver MUST be hkp(s)://…"
 msgstr "Error: le serveur de clés DOIT être en hkp(s)://…"
 
 #: ../src/genkey.c:220
-#| msgid "Error: Which certificate?"
 msgid "Email address for this certificate: "
 msgstr "Adresse de courriel pour ce certificat : "
 
 #: ../src/genkey.c:227
 #, c-format
-#| msgid "Error: '%s' wants an address."
 msgid "Error: '%s' does not look like an email address."
 msgstr "Error: « %s » ne ressemble pas à une adresse de courriel."
 
@@ -1376,7 +1351,6 @@ msgstr ""
 
 #: ../src/genkey.c:246
 #, c-format
-#| msgid "Notice: Minting the identity uid %s…"
 msgid "Notice: Entity identifier: %s"
 msgstr "Notice: Identifiant d'entité : %s"
 
@@ -1390,8 +1364,6 @@ msgid "Passphrase"
 msgstr "Phrase secrète"
 
 #: ../src/genkey.c:256
-#| msgid ""
-#| "Notice: Give --passphrase, or --passfrom to keep it off the process list."
 msgid ""
 "Error: A passphrase is needed. Give --passphrase, or --passfrom to keep it "
 "off the process list."
@@ -1757,7 +1729,6 @@ msgid "Retype %s: "
 msgstr "Retapez %s : "
 
 #: ../src/interactive.c:272
-#| msgid "Error: The two do not match."
 msgid "Notice: The two do not match. Please retype."
 msgstr "Notice: Les deux ne correspondent pas. Retapez."
 
@@ -2167,28 +2138,23 @@ msgid "in '.svg' to keep it."
 msgstr "par « .svg » pour le garder."
 
 #: ../src/printcard.c:528 ../src/printcard.c:535
-#| msgid "Error: '%s' could not be removed."
 msgid "Error: The card could not be read back."
 msgstr "Error: La carte n'a pas pu être relue."
 
 #: ../src/printcard.c:542
 #, c-format
-#| msgid "Error: %s carries no uid worth printing."
 msgid "Error: %s does not open with an <svg> tag."
 msgstr "Error: %s ne commence pas par une balise <svg>."
 
 #: ../src/printcard.c:555
-#| msgid "Error: The card answered %zu hex digits, not four."
 msgid "Error: The card is too big to lay out."
 msgstr "Error: La carte est trop grosse pour être composée."
 
 #: ../src/printcard.c:573
-#| msgid "Error: The engine would not edit %s."
 msgid "Error: The page could not be written."
 msgstr "Error: La page n'a pas pu être écrite."
 
 #: ../src/printcard.c:579
-#| msgid "Error: rsvg-convert would not render the card."
 msgid "Error: rsvg-convert would not render the page."
 msgstr "Error: rsvg-convert a refusé de rendre la page."
 
@@ -2368,7 +2334,6 @@ msgstr ""
 
 #: ../src/printsecret.c:661
 #, c-format
-#| msgid "Error: The engine would not edit %s."
 msgid "Error: The export could not be cut in %d."
 msgstr "Error: L'export n'a pas pu être coupé en %d."
 
@@ -2378,7 +2343,6 @@ msgstr "Error: gfsplit a refusé de partager le secret."
 
 #: ../src/printsecret.c:685
 #, c-format
-#| msgid "Error: '%s' could not be removed."
 msgid "Error: %s could not be encoded."
 msgstr "Error: %s n'a pas pu être encodé."
 
@@ -2412,30 +2376,52 @@ msgstr ""
 msgid "Error: Cannot read the fragment %s."
 msgstr "Error: Impossible de lire le fragment %s."
 
-#: ../src/printsecret.c:787
+#: ../src/printsecret.c:799
+#, c-format
+#| msgid "Error: Fragment %zu would not decode."
+msgid "Error: Fragment %zu holds %zu characters; a QR code takes %zu."
+msgstr "Error: Le fragment %zu fait %zu caractères ; un QR code en prend %zu."
+
+#: ../src/printsecret.c:802
+msgid ""
+"Notice: Each share is the size of the whole secret, so sharing it out more "
+"will not make one smaller."
+msgstr ""
+"Notice: Chaque part fait la taille du secret entier : en faire plus n'en "
+"rendra aucune plus petite."
+
+#: ../src/printsecret.c:805
+#, c-format
+msgid ""
+"Suggestion: --split %d --threshold %d cuts it instead, a piece to a sheet — "
+"and then every sheet is needed."
+msgstr ""
+"Suggestion: --split %d --threshold %d le découpe, un morceau par feuille — "
+"et alors toutes les feuilles sont nécessaires."
+
+#: ../src/printsecret.c:815
 #, c-format
 msgid "Error: qrencode would not draw fragment %zu."
 msgstr "Error: qrencode a refusé de dessiner le fragment %zu."
 
-#: ../src/printsecret.c:796
+#: ../src/printsecret.c:824
 #, c-format
-#| msgid "Error: pdfjam would not lay the page out."
 msgid "Error: Fragment %zu could not be laid out."
 msgstr "Error: Le fragment %zu n'a pas pu être composé."
 
-#: ../src/printsecret.c:804
+#: ../src/printsecret.c:832
 #, c-format
 msgid "Error: lpr would not print fragment %zu."
 msgstr "Error: lpr a refusé d'imprimer le fragment %zu."
 
-#: ../src/printsecret.c:823
+#: ../src/printsecret.c:851
 #, c-format
 msgid "Notice: The working copies are removed. Shred %s if anything is left."
 msgstr ""
 "Notice: Les copies de travail sont supprimées. Broyez %s s'il en reste "
 "quelque chose."
 
-#: ../src/printsecret.c:829
+#: ../src/printsecret.c:857
 #, c-format
 msgid ""
 "Notice: The fragments are in %s. Shred them once they are on paper: find "
@@ -2915,13 +2901,11 @@ msgid "Error: %zu fragment(s) of the %d needed; missing: %s."
 msgstr "Error: %zu fragment(s) sur les %d nécessaires ; manquants : %s."
 
 #: ../src/scan.c:590
-#| msgid "Error: basenc would not encode %s."
 msgid "Error: The fragments would not decode."
 msgstr "Error: Les fragments n'ont pas pu être décodés."
 
 #: ../src/scan.c:602
 #, c-format
-#| msgid "Error: basenc would not encode %s."
 msgid "Error: Fragment %zu would not decode."
 msgstr "Error: Le fragment %zu n'a pas pu être décodé."
 
