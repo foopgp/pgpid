@@ -53,6 +53,7 @@ static void usage(FILE *out)
 
         "  -c, --camera [V4LDEVICE]      Read the fragments off a camera (/dev/v4l/by-id/...)\n"
         "      --cameras                 List the cameras this machine has, and read nothing\n"
+        "      --camera-size WIDTHxHEIGHT  Ask the camera for that frame instead of 640x480\n"
         "  -W, --workdir DIRECTORY       Use given working directory instead of a temporary directory (don't forget to shred its content)\n"
         "  -h, --help                    Print this help and exit\n"
         "  -V, --version                 Print the version and exit\n"
@@ -145,82 +146,6 @@ static int take_payloads(char *raw, char parts[][262144], bool *have,
 /* How many cameras we are willing to enumerate. More than this on one machine
  * and naming the one wanted is the shorter conversation anyway. */
 #define MAX_CAMERAS 8
-
-/* V4L2 lists the frames a camera can produce, not the ones it can stream at a
- * usable rate: a webcam offering 4656x3496 offers it at a frame every couple
- * of seconds, and in front of somebody holding up a sheet that is worse than a
- * smaller picture. */
-#define CAPTURE_CEILING_W 1920u
-#define CAPTURE_CEILING_H 1080u
-
-/**
- * The largest frame this camera streams, up to that ceiling.
- *
- * zbarcam is asked for a size, and asking for the wrong one is the difference
- * between reading a sheet and staring at it. `bl-pgpkey scan` asked for
- * 640x480 and this was ported with it. That is enough for a fragment of a
- * split secret — sixty-odd modules, ten pixels each — and it is not enough for
- * a secret printed whole: such a sheet carries a hundred and twenty modules,
- * under four pixels each at 640 wide, and no decoder gets those back. Measured
- * rather than reasoned: the same code at 920 pixels reads, at 310 it does not.
- *
- * A camera bought to scan with is a camera with the resolution to scan, so
- * asking it for 640x480 throws away the reason it was plugged in.
- */
-static bool best_capture_size(const char *device, unsigned *w, unsigned *h)
-{
-    int fd = open(device, O_RDONLY | O_NONBLOCK);
-    if (fd < 0)
-        return false;
-
-    unsigned bw = 0, bh = 0;
-    for (unsigned fi = 0; ; fi++) {
-        struct v4l2_fmtdesc fmt;
-        memset(&fmt, 0, sizeof fmt);
-        fmt.index = fi;
-        fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        if (ioctl(fd, VIDIOC_ENUM_FMT, &fmt))
-            break;
-        for (unsigned si = 0; ; si++) {
-            struct v4l2_frmsizeenum sz;
-            memset(&sz, 0, sizeof sz);
-            sz.index = si;
-            sz.pixel_format = fmt.pixelformat;
-            if (ioctl(fd, VIDIOC_ENUM_FRAMESIZES, &sz))
-                break;
-            unsigned cw, ch;
-            if (sz.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
-                cw = sz.discrete.width;
-                ch = sz.discrete.height;
-                /* A discrete size is taken or left; there is no asking for
-                 * something between two of them. */
-                if (cw > CAPTURE_CEILING_W || ch > CAPTURE_CEILING_H)
-                    continue;
-            } else {
-                /* Anything inside the range, which the driver rounds to its
-                 * step. One entry describes the whole range, so this is also
-                 * the last one worth looking at. */
-                cw = sz.stepwise.max_width < CAPTURE_CEILING_W
-                   ? sz.stepwise.max_width : CAPTURE_CEILING_W;
-                ch = sz.stepwise.max_height < CAPTURE_CEILING_H
-                   ? sz.stepwise.max_height : CAPTURE_CEILING_H;
-            }
-            if ((unsigned long)cw * ch > (unsigned long)bw * bh) {
-                bw = cw;
-                bh = ch;
-            }
-            if (sz.type != V4L2_FRMSIZE_TYPE_DISCRETE)
-                break;
-        }
-    }
-    close(fd);
-
-    if (!bw || !bh)
-        return false;
-    *w = bw;
-    *h = bh;
-    return true;
-}
 
 struct camera {
     char path[32];
@@ -335,7 +260,7 @@ static const char *choose_camera(char *buf, size_t max)
  * that reads nothing three times is a camera pointed at a wall, or a lens
  * cap, and looping for ever in front of one helps nobody.
  */
-static int scan_camera(const char *device, const char *workdir,
+static int scan_camera(const char *device, const char *size, const char *workdir,
                        char parts[][262144], bool *have,
                        int *version, int *needed_less_one)
 {
@@ -360,11 +285,16 @@ static int scan_camera(const char *device, const char *workdir,
      * and one that does not, and because a camera named on the command line
      * never goes through choose_camera and would otherwise say nothing at
      * all. */
-    unsigned width = 640, height = 480;
+    /* 640x480, as `bl-pgpkey scan` asked for, and for a reason that only
+     * shows with a camera in your hand: zbarcam's viewfinder *is* the frame.
+     * Asked for the largest a camera streams, it covered the screen and every
+     * frame was slow to scan — the opposite of help while somebody holds up a
+     * sheet. A fragment of a split secret is sixty-odd modules and reads at
+     * this size; a secret printed whole is twice that and needs
+     * --camera-size, which is the one place to pay for it. */
     char prescale[40];
-    best_capture_size(device, &width, &height);
-    snprintf(prescale, sizeof prescale, "--prescale=%ux%u", width, height);
-    pgpid_error(_("Info: %s, %ux%u."), device, width, height);
+    snprintf(prescale, sizeof prescale, "--prescale=%s", size ? size : "640x480");
+    pgpid_error(_("Info: %s, %s."), device, size ? size : "640x480");
 
     for (;;) {
         int needed = *needed_less_one >= 0 ? *needed_less_one + 1 : -1;
@@ -372,8 +302,13 @@ static int scan_camera(const char *device, const char *workdir,
         for (size_t i = 0; i < MAX_PARTS; i++)
             if (have[i])
                 got++;
-        if (needed > 0 && (int)got >= needed)
+        if (needed > 0 && (int)got >= needed) {
+            /* Said out loud: the loop has been asking for one more each time
+             * round, so it owes the person the moment it stops asking. */
+            pgpid_error(_("Info: %d of %d fragments — that is all of them."),
+                        needed, needed);
             return PGPID_OK;
+        }
 
         /* It waits, and it waits without a deadline: zbarcam --oneshot returns
          * when it reads a code and not before. Three *refusals* end the loop,
@@ -431,6 +366,7 @@ int pgpid_action_secret_scan(int argc, char **argv)
 {
     const char *given_workdir = NULL;
     const char *camera = NULL;
+    const char *given_size = NULL;
     bool list_only = false;
     /* A secret is cut into PGPID_SPLIT_MAX fragments at most, so that is how
      * many images there can be to read. More is not a longer job, it is a
@@ -458,6 +394,17 @@ int pgpid_action_secret_scan(int argc, char **argv)
         } else if (!strcmp(a, "-V") || !strcmp(a, "--version")) {
             printf("%s %s\n", argv[0], PGPID_VERSION);
             return PGPID_OK;
+        } else if (!strcmp(a, "--camera-size") || !strcmp(a, "--camerasize")) {
+            if (++i >= argc) {
+                pgpid_error(_("Error: '%s' wants a size, as WIDTHxHEIGHT."), a);
+                return PGPID_USAGE;
+            }
+            unsigned w = 0, h = 0;
+            if (sscanf(argv[i], "%ux%u", &w, &h) != 2 || !w || !h) {
+                pgpid_error(_("Error: '%s' is not a size. Give it as WIDTHxHEIGHT."), argv[i]);
+                return PGPID_USAGE;
+            }
+            given_size = argv[i];
         } else if (!strcmp(a, "--cameras")) {
             list_only = true;
         } else if (!strcmp(a, "-c") || !strcmp(a, "--camera")) {
@@ -568,7 +515,7 @@ int pgpid_action_secret_scan(int argc, char **argv)
     }
 
     if (camera) {
-        int rc = scan_camera(camera, workdir, parts, have, &version, &needed_less_one);
+        int rc = scan_camera(camera, given_size, workdir, parts, have, &version, &needed_less_one);
         if (rc)
             return rc;
     }
@@ -676,6 +623,13 @@ int pgpid_action_secret_scan(int argc, char **argv)
                 while (p[n] && strchr("0123456789ABCDEFabcdef", p[n]))
                     n++;
                 if (n == 40) {
+                    /* Both, and they are not the same thing. stdout is the
+                     * fingerprint, for whatever runs this and reads it back;
+                     * stderr is the sentence, for the person at the terminal
+                     * -- who otherwise watches a scan end in silence, the one
+                     * line that said it worked having been swallowed by the
+                     * caller's $( ). */
+                    pgpid_error(_("Notice: Secret key put back together: %.40s."), p);
                     printf("%.40s\n", p);
                     return PGPID_OK;
                 }
@@ -683,5 +637,6 @@ int pgpid_action_secret_scan(int argc, char **argv)
                     p += n - 1;
             }
         }
+    pgpid_error(_("Notice: Secret key put back together, and imported."));
     return PGPID_OK;
 }

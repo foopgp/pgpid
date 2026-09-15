@@ -114,6 +114,59 @@ static bool draw_code(char *out, size_t digits)
     return true;
 }
 
+/** One field of the card status, trimmed. Empty when gpg wrote none. */
+static void card_field(const char *status, const char *label, char *out, size_t max)
+{
+    *out = '\0';
+    const char *at = strstr(status, label);
+    const char *colon = at ? strchr(at, ':') : NULL;
+    if (!colon)
+        return;
+    const char *end = strchr(colon, '\n');
+    size_t len = end ? (size_t)(end - colon - 1) : strlen(colon + 1);
+    if (len >= max)
+        len = max - 1;
+    snprintf(out, max, "%.*s", (int)len, colon + 1);
+    char *v = out;
+    while (*v == ' ')
+        v++;
+    memmove(out, v, strlen(v) + 1);
+    for (char *p = out + strlen(out); p > out && p[-1] == ' '; p--)
+        p[-1] = '\0';
+    /* What gpg writes for a field nobody filled, and for a slot with no key.
+     * Both read as empty here, so that a caller never has to know them. */
+    if (!strcmp(out, "[not set]") || !strcmp(out, "[none]"))
+        *out = '\0';
+}
+
+/**
+ * Does this card carry anything at all?
+ *
+ * The question somebody is owed before it is wiped, and the one the shell
+ * asked by reading token_check's count: 107 meant every field missing, which
+ * meant blank. Answered here off the status gpg has already printed rather
+ * than by reading the card a second time.
+ *
+ * gpg writes "[none]" for a key slot with no key and "[not set]" for a field
+ * nobody filled. Both are English whatever the locale, because
+ * pgpid_capture_card_status forces one -- a value is translated too, and a
+ * field that fails to read as empty reads as filled.
+ */
+static bool card_is_blank(const char *status)
+{
+    static const char *const FIELDS[] = {
+        "Name of cardholder", "Login data", "URL of public key",
+        "Signature key", "Encryption key", "Authentication key",
+    };
+    for (size_t i = 0; i < sizeof FIELDS / sizeof *FIELDS; i++) {
+        char value[256];
+        card_field(status, FIELDS[i], value, sizeof value);
+        if (*value)
+            return false;
+    }
+    return true;
+}
+
 int pgpid_action_secret_totoken(int argc, char **argv)
 {
     char passphrase[512] = "";
@@ -264,10 +317,12 @@ int pgpid_action_secret_totoken(int argc, char **argv)
 
     char skey[41], ekey[41], akey[41], serial[64];
     (void)skey; (void)ekey; (void)akey;
+    static char card[16384];
     {
-        char status[16384];
+        char *status = card;
+        *status = '\0';
         *serial = '\0';
-        if (pgpid_capture_card_status(status, sizeof status) > 0) {
+        if (pgpid_capture_card_status(status, sizeof card) > 0) {
             const char *at = strstr(status, "Serial number");
             const char *colon = at ? strchr(at, ':') : NULL;
             size_t n = 0;
@@ -281,14 +336,41 @@ int pgpid_action_secret_totoken(int argc, char **argv)
         pgpid_error(_("Error: No security token detected."));
         return PGPID_FAIL;
     }
-    pgpid_error(_("Notice: Detected OpenPGP security token: %s."), serial);
+    /* Who it says it belongs to, when it says anything: the serial alone
+     * names a card, and the question below is about whose card it is. The
+     * shell printed the holder here for the same reason. */
+    char holder[256], login[256];
+    card_field(card, "Name of cardholder", holder, sizeof holder);
+    card_field(card, "Login data", login, sizeof login);
+    if (*holder || *login)
+        pgpid_error(_("Notice: Detected OpenPGP security token: %s — holder: %s %s."),
+                    serial, *holder ? holder : "-", *login ? login : "-");
+    else
+        pgpid_error(_("Notice: Detected OpenPGP security token: %s."), serial);
 
-    /* Wiping the card is the point of no return for whatever is on it. */
-    if (!force) {
-        pgpid_error(_("Error: This wipes card %s and everything on it, then takes the"), serial);
-        pgpid_error(_("secret parts of %s off this machine. Neither can be undone."), fpr);
-        pgpid_error(_("Pass --force when that is what you mean."));
-        return PGPID_USAGE;
+    /* Wiping the card is the point of no return for whatever is on it -- so
+     * the question is asked where there is something to lose, and not asked
+     * where there is not. A blank card is the ordinary case of step II: a
+     * secret has just come back off paper and the card was reset for it.
+     *
+     * Refusing outright is what this did, and it stopped the terminal dead in
+     * front of a card that merely had something on it. The shell said what
+     * was there and asked; --force still skips the question, and --batch
+     * still refuses, having nobody to ask. */
+    if (!force && !card_is_blank(card)) {
+        pgpid_error(_("Warning: Card %s is not empty: it already carries keys or a"), serial);
+        pgpid_error(_("holder. This wipes all of it, and takes the secret parts of"));
+        pgpid_error(_("%s off this machine. Neither can be undone."), fpr);
+        if (pgpid_batch) {
+            pgpid_error(_("Error: --batch was given, so nothing is asked. Add --force."));
+            return PGPID_USAGE;
+        }
+        char answer[8];
+        if (!pgpid_ask(_("Type yes to wipe it: "), answer, sizeof answer)
+            || strcmp(answer, "yes")) {
+            pgpid_error(_("Notice: Nothing done."));
+            return PGPID_CANCEL;
+        }
     }
 
     /* Only now: gpg will not move a protected key to a card, so the
@@ -393,9 +475,16 @@ int pgpid_action_secret_totoken(int argc, char **argv)
         }
         fprintf(f, "%s\n", codes[i].fresh);
         fclose(f);
-        char *sub[8];
+        char *sub[9];
         int n = 0;
-        sub[n++] = (char *)"change_token_code";
+        sub[n++] = (char *)"token_code";
+        /* --replace, or the card keeps its factory code while this prints a
+         * random one. token_code without it only *verifies*, and verifying
+         * 123456 on a card that has just been reset succeeds — so every check
+         * passed, the codes were announced, and the card stayed open to
+         * anybody who picked it up. Found by writing a real key to a real
+         * card and then failing to use it. */
+        sub[n++] = (char *)"--replace";
         sub[n++] = (char *)"--code";
         sub[n++] = (char *)codes[i].current;
         sub[n++] = (char *)"--newcodefrom";
@@ -423,6 +512,6 @@ int pgpid_action_secret_totoken(int argc, char **argv)
 
     printf("\nADMIN_CODE=%s\nPIN_CODE=%s\n", admin, pin);
     pgpid_error(_("Notice: Write these down. Nothing else knows them. They can be "
-                  "changed with '%s change_token_code'."), PGPID_NAME);
+                  "changed with '%s token_code --replace'."), PGPID_NAME);
     return PGPID_OK;
 }

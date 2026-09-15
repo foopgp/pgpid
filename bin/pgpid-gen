@@ -193,6 +193,16 @@ if [[ "$imgfile" ]] ; then
 	fi
 fi
 
+# A passport is one way in and typing is the other: the zone goes in when
+# there is one, and gen_u4 asks for what it has not got. Its stderr is left
+# alone on purpose — the questions travel there, and a logger swallows a
+# prompt that carries no newline, leaving the terminal waiting for an answer
+# to a question nobody has seen.
+mrzarg=()
+if [[ "${mrz[*]}" ]] ; then
+	mrzarg=(--from-passport-mrz "${mrz[@]}")
+fi
+
 #PGPID[birth_date]=$(bl_input --iso-8601 "Birth date (YYYY-mm-dd)") # also used as a default passphrase
 if [[ -n "$PGPI_U5ID" ]] ; then
 	u5id=${PGPI_U5ID#u5} ; u5id=${u5id#[=:]}
@@ -202,7 +212,7 @@ if [[ -n "$PGPI_U5ID" ]] ; then
 		|| bl_log crit "Invalid u5 identifier: '$PGPI_U5ID'"
 	PGPID[comment]="u5=$u5id"
 	bl_log info "${PGPID[comment]}"
-elif PGPID[udid4]=$("$PGPID_BIN" gen_u4 --from-passport-mrz "${mrz[@]}" 2> >(bl_log notice)) ; then
+elif PGPID[udid4]=$("$PGPID_BIN" gen_u4 --verify "${mrzarg[@]}") ; then
 	PGPID[comment]="u4=${PGPID[udid4]}"
 	bl_log info "${PGPID[comment]}"
 else

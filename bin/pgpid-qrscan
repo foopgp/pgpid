@@ -30,6 +30,7 @@ and import this secrets into a factory reset OpenPGP secured device (eg yubikey)
 
 soptions="
   -c, --camera [V4LDEVICE] read the fragments off a camera (default when no IMAGES given)
+  -s, --camera-size WxH    ask the camera for that frame instead of 640x480
   -k, --no-send            don't send the public key (certificate) to any keyserver
   -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (current: $LOGLEVEL)
   -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (current: $LOGLEVEL)
@@ -46,10 +47,12 @@ Options: $soptions
 
 nosend=()
 camera=()
+camsize=()
 
 for ((i=0;$#;)) ; do
 case "$1" in
-    -c|--cam*) if [[ "$2" && "$2" != -* ]] ; then shift ; camera=(--camera "$1") ; else camera=(--camera) ; fi ;;
+    -c|--camera) if [[ "$2" && "$2" != -* ]] ; then shift ; camera=(--camera "$1") ; else camera=(--camera) ; fi ;;
+    -s|--camera-size|--camerasize) shift ; camsize=(--camera-size "$1") ;;
     -k|--no-send) nosend=(--keyserver '') ;;
 	-l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; exit 2 ; } ;;
 	-L|--log-e*) shift ; LOGEXITPRIO="$1"
@@ -95,7 +98,12 @@ gpgconf --kill gpg-agent
 # that is what it meant. Naming images and asking for the camera together is
 # allowed — the images are read first, the camera makes up what they lacked.
 (( $# )) || [[ "${camera[*]}" ]] || camera=(--camera)
-FPR=$("$PGPID_BIN" --homedir "$TMPDIR/gnupg" secret_scan --workdir "$TMPDIR" "${camera[@]}" "$@" 2> >(bl_log notice))
+# stderr straight to the terminal, as the shell library's had it. It carries
+# the question of which camera to read — and a prompt has no newline at its
+# end, so a logger holds it back and the terminal waits, in silence, for an
+# answer to a question nobody has seen. It carries the count of fragments as
+# they arrive, too, which is the only sign the scan is going anywhere.
+FPR=$("$PGPID_BIN" --homedir "$TMPDIR/gnupg" secret_scan --workdir "$TMPDIR" "${camera[@]}" "${camsize[@]}" "$@")
 
 while ! gpg --homedir "$TMPDIR/gnupg" --card-status > >(bl_log debug) 2> >(bl_log notice) ; do
 	sleep 1

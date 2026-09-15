@@ -323,6 +323,23 @@ is "and it answers a list, or that there is none" \
 is "reading nothing, it wants no images and no working directory" \
    "$(grep --count --extended-regexp "Which images|directory" <<<"$out")" "0"
 
+printf '\ntoken_code: a new code that would not be written\n'
+# secret_totoken verified the factory code, announced a random one, and left
+# the card open: it had called token_code without --replace, which only
+# checks. Found by writing a real key to a real card and then failing to use
+# it. Refused now, rather than succeeding while changing nothing.
+is "a new code without --replace is refused" \
+   "$("$BIN" --batch token_code --code 123456 --newcode 654321 >/dev/null 2>&1 ; echo $?)" "2"
+is "and says why" \
+   "$("$BIN" --batch token_code --code 123456 --newcode 654321 2>&1 | grep --count -- '--replace')" "2"
+is "checking alone still asks for no new code" \
+   "$("$BIN" --batch token_code --code 123456 2>&1 | grep --count -- 'not --replace')" "0"
+# And the caller that made the mistake: secret_totoken drives token_code
+# in-process, so no test can reach it from outside. What can be checked is
+# that the flag is there at all.
+is "secret_totoken asks for a replacement, not a check" \
+   "$(grep --count -- '"--replace"' "$PGPI_ROOT"/src/totoken.c)" "1"
+
 printf '\nthe shell programs call actions that exist\n'
 # pgpid-gen and pgpid-qrscan drive the compiled binary, and the day the actions
 # were put into groups -- gen_*, cert_*, secret_*, token_* -- nobody renamed
@@ -530,11 +547,42 @@ is "--output writes a file"        "$("$BIN" cert_tovcard --output "$GNUPGHOME/c
 is "the card shows the avatar"     "$(grep --only-matching --extended-regexp '^PHOTO:data:image/jpeg;base64,.{40}' <<<"$card")" \
                                    "PHOTO:data:image/jpeg;base64,$(base64 --wrap=0 < "$("$BIN" cert_avatar --workdir "$GNUPGHOME" "$FPR")" | cut --characters=1-40)"
 
+# --verify is what the shell called it, and what pgpid-gen passes: a civil
+# status read by OCR is wrong about one character often enough, and an
+# identifier minted from a wrong one belongs to somebody else.
+printf '\ngen_u4 --verify\n'
+is "shows the four values, and goes on when told yes" \
+   "$(printf 'y\n' | "$BIN" gen_u4 --verify -s DOE -g John -d 1970-01-01 -c FRA 2>/dev/null)" \
+   "$(u4 DOE John 1970-01-01 FRA)"
+is "and shows them where they can be read" \
+   "$(printf 'y\n' | "$BIN" gen_u4 --verify -s DOE -g John -d 1970-01-01 -c FRA 2>&1 >/dev/null \
+      | grep --count --extended-regexp 'Surname at birth|Given names|Date of birth|Country of birth')" "4"
+# Anything but yes re-asks each field, keeping what is there when the answer
+# is empty: that is the whole point -- one field is wrong, not four.
+is "a correction is taken, the rest kept" \
+   "$(printf 'no\nDOE\n\n\n\ny\n' | "$BIN" gen_u4 --verify -s ROE -g John -d 1970-01-01 -c FRA 2>/dev/null)" \
+   "$(u4 DOE John 1970-01-01 FRA)"
+is "under --batch it does nothing rather than block" \
+   "$("$BIN" --batch gen_u4 --verify -s DOE -g John -d 1970-01-01 -c FRA 2>/dev/null)" \
+   "$(u4 DOE John 1970-01-01 FRA)"
 printf '\ngen_u4 --from-passport-mrz\n'
 # A specimen zone: 'Anna Maria Eriksson' is ICAO's own example and nobody's
 # real passport. The country is changed to one the table knows.
 MRZ='P<FRAERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<L898902C36FRA7408122F1204159ZE184226B<<<<<10'
 is "reads a passport zone"        "$("$BIN" gen_u4 --from-passport-mrz --uncheck "$MRZ")" "d5lxCVBGwMMSrx3sAJrgZQe_42.17-002.76"
+
+# The zone is shown as a person writes it, not as the format stores it.
+is "a passport zone is shown without its filler" \
+   "$(printf 'y\n' | "$BIN" gen_u4 --verify --from-passport-mrz "$MRZ" 2>&1 >/dev/null \
+      | grep --count -- 'Given names:         ANNA MARIA')" "1"
+is "and yields what the zone yields" \
+   "$(printf 'y\n' | "$BIN" gen_u4 --verify --from-passport-mrz "$MRZ" 2>/dev/null)" \
+   "$("$BIN" gen_u4 --from-passport-mrz --uncheck "$MRZ" 2>/dev/null)"
+# --verify carries --uncheck's tolerance: a failing digit is what you are
+# there to correct, not a reason to be sent away.
+is "a failing check digit warns instead of refusing" \
+   "$(printf 'y\n' | "$BIN" gen_u4 --verify --from-passport-mrz "$MRZ" >/dev/null 2>&1 ; echo $?)" "0"
+
 # The point of reading a passport at all: it must agree with the same civil
 # status typed by hand, or the document is useless.
 is "agrees with the civil status typed" \
