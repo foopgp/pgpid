@@ -42,6 +42,7 @@ static void usage(FILE *out)
         "OPTIONS:\n"
         "  -P, --print PRINTER|FILE.svg  Printer name to send to, or output SVG file if it ends with '.svg'\n"
         "  -t, --template FILE.svg       Use this template to produce business card\n"
+        "                                (one is shipped: " PGPID_CARD_TEMPLATE ")\n"
         "  -N, --name NAME               Override the displayed name (default: guessed from OpenPGP certificate and email)\n"
         "  -g, --no-color                Output in grayscale instead of color\n"
         "  -h, --help                    Print this help and exit\n"

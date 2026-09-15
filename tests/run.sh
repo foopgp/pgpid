@@ -949,6 +949,28 @@ is "keyserver names its default"     "$(grep --count -- 'Default: hkps://keys.fo
 is "and says it engraves nothing"    "$(grep --count -- 'Does not change --certurl' <<<"$H")" "1"
 is "empty means send nowhere"        "$(grep --count -- 'Empty to send it nowhere' <<<"$H")" "1"
 
+printf '\nthe business card template the package carries\n'
+# It lived in bash-libs, which is where bl-pgpid still reads it from. A foodjis
+# that no longer calls the shell libraries has no reason to depend on them for
+# one SVG, so pgpid carries its own copy -- and a template that is shipped but
+# not rendered is a template nobody notices has rotted.
+is "the template is where the help says it is" \
+   "$( [ -f "$PGPI_ROOT/svg/card.svg" ] && echo yes )" "yes"
+is "and the help says where" \
+   "$("$BIN" cert_tobizcard --help | grep --count -- '/usr/share/pgpid/svg/card.svg')" "1"
+is "it reaches the running tree the way data/ does" \
+   "$( [ -f "$PGPI_ROOT/share/pgpid/svg/card.svg" ] && echo yes )" "yes"
+# Whichever certificate the keyring still holds here: the one this file opens
+# with is deleted by the cert_del block above.
+TFPR=$(gpg --with-colons --list-keys 2>/dev/null | awk --field-separator=: '$1=="fpr"{print $10; exit}')
+out=$("$BIN" --batch cert_tobizcard --template "$PGPI_ROOT/svg/card.svg" \
+      --print "$GNUPGHOME/card.svg" --name "A Person" "$TFPR" 2>&1 || true)
+is "it renders" "$( [ -s "$GNUPGHOME/card.svg" ] && echo yes )" "yes"
+# envsubst leaves what it cannot fill, so a placeholder in the output is a
+# field the tool stopped writing.
+is "with nothing left unfilled" \
+   "$(grep --count -- '\${' "$GNUPGHOME/card.svg" 2>/dev/null || true)" "0"
+
 printf '\nupgrading a legacy certificate\n'
 # The shape a certificate had before vCard-property uids: one uid carrying
 # the name, the eid in a comment, and the address. Touching a property mints
