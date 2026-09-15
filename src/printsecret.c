@@ -781,6 +781,34 @@ int pgpid_action_secret_print(int argc, char **argv)
         payload[at] = '\0';
         fclose(in);
 
+        /* The end of the format, not a setting: version 40 is the largest QR
+         * symbol there is, and in byte mode it holds 2953 characters at level
+         * L and 2331 at level M. base64url is byte mode — it has lowercase,
+         * which alphanumeric mode does not.
+         *
+         * A 4096-bit RSA secret is 3324 characters once encoded, so it does
+         * not go on a sheet whole however many shares are made: a share of a
+         * shared secret is the size of the secret. Cutting it does fit, at
+         * the price the help already names. Said here because qrencode's own
+         * refusal says only that it refused. */
+        size_t room = qrversion == 5 ? 2953 : 2331;
+        if (at > room) {
+            int pieces = (int)((at + room - 1) / room);
+            if (pieces < 3)
+                pieces = 3;
+            pgpid_error(_("Error: Fragment %zu holds %zu characters; a QR code takes %zu."),
+                        i + 1, at, room);
+            if (qrversion == 5)
+                pgpid_error(_("Notice: Each share is the size of the whole secret, so "
+                            "sharing it out more will not make one smaller."));
+            if (pieces <= 10)
+                pgpid_error(_("Suggestion: --split %d --threshold %d cuts it instead, "
+                            "a piece to a sheet — and then every sheet is needed."),
+                            pieces, pieces);
+            free(names);
+            return PGPID_FAIL;
+        }
+
         const char *qr[] = { "qrencode", "--level", qrversion == 5 ? "L" : "M",
                              "--dpi=50", "--output", png, NULL };
         if (pgpid_run_program(qr, payload, NULL)) {
