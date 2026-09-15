@@ -531,6 +531,9 @@ Note : le nombre de parts devrait dépasser le seuil.
        et toute la protection du secret repose sur la phrase secrète.
        Autrement dit : si (parts == seuil), alors pas de phrase secrète — ou
        une phrase imprimée — est TRÈS PEU SÛR.
+       Une part fait la taille du secret entier : au-delà de 720 octets un
+       secret ne va sur papier que découpé, c'est-à-dire à valeurs égales.
+       C'est refusé avec les chiffres plutôt qu'imprimé trop dense.
 
 Les photographies sont laissées hors de ce qui est imprimé. Une sauvegarde n'a
 pas besoin de votre visage, et le papier est manipulé par qui le trouve.

@@ -522,6 +522,9 @@ Note: Split number should be greater than threshold number.
       and all secret protection relies on the passphrase.
       In other terms: if (split_NUM == threshold_NUM), then no passphrase or
       printing passphrase is VERY UNSECURE.
+      A share is the size of the whole secret, so a secret above 720 bytes
+      only goes on paper cut, which is the equal case. It is refused with
+      the numbers rather than printed too dense to scan.
 
 Photographs are left out of what is printed. A backup does not need your
 face, and paper is handled by whoever finds it.

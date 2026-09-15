@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid 0.0.7-35-g8512aa6\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-09-15 15:56+0200\n"
+"POT-Creation-Date: 2026-09-15 17:31+0200\n"
 "PO-Revision-Date: 2026-08-22 22:58+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -158,7 +158,7 @@ msgstr "Error: «%s» очікує зображення."
 msgid "Error: '%s' wants a list of servers, empty for none."
 msgstr "Error: «%s» очікує перелік серверів, порожній — жодного."
 
-#: ../src/avatar.c:508 ../src/main.c:159 ../src/printsecret.c:488
+#: ../src/avatar.c:508 ../src/main.c:159 ../src/printsecret.c:491
 #: ../src/scan.c:402
 #, c-format
 msgid "Error: '%s' wants a directory."
@@ -169,7 +169,7 @@ msgstr "Error: «%s» очікує каталог."
 #: ../src/changetokenmeta.c:206 ../src/del.c:78 ../src/email.c:424
 #: ../src/genkey.c:207 ../src/genu4.c:523 ../src/genuid.c:162 ../src/get.c:318
 #: ../src/list.c:377 ../src/main.c:194 ../src/printcard.c:222
-#: ../src/printsecret.c:518 ../src/property.c:493 ../src/push.c:81
+#: ../src/printsecret.c:521 ../src/property.c:493 ../src/push.c:81
 #: ../src/scan.c:438 ../src/secretdel.c:78 ../src/secretlist.c:59
 #: ../src/sigs.c:145 ../src/systemadduser.c:416 ../src/systemadmins.c:93
 #: ../src/systemconfhome.c:115 ../src/systemdeluser.c:171
@@ -677,7 +677,7 @@ msgstr ""
 "\n"
 
 #: ../src/changepass.c:49 ../src/changetokencode.c:57
-#: ../src/changetokenmeta.c:57 ../src/genkey.c:164 ../src/printsecret.c:86
+#: ../src/changetokenmeta.c:57 ../src/genkey.c:164 ../src/printsecret.c:89
 #: ../src/property.c:378 ../src/totoken.c:81
 #, c-format
 msgid "Error: Cannot read %s."
@@ -708,7 +708,7 @@ msgstr "Error: Потрібні обидві парольні фрази — т�
 msgid "--newpassphrase or --newpassfrom. Empty strings mean none."
 msgstr "--newpassphrase чи --newpassfrom. Порожній рядок означає жодної."
 
-#: ../src/changepass.c:151 ../src/printsecret.c:614 ../src/secretdel.c:117
+#: ../src/changepass.c:151 ../src/printsecret.c:617 ../src/secretdel.c:117
 #: ../src/totoken.c:262
 #, c-format
 msgid "Error: No secret for '%s' here."
@@ -817,7 +817,7 @@ msgid "Error: '%s' wants a code."
 msgstr "Error: «%s» очікує код."
 
 #: ../src/changetokencode.c:95 ../src/changetokencode.c:105
-#: ../src/changetokenmeta.c:191 ../src/genkey.c:159 ../src/printsecret.c:470
+#: ../src/changetokenmeta.c:191 ../src/genkey.c:159 ../src/printsecret.c:473
 #: ../src/totoken.c:188 ../src/totoken.c:203 ../src/tovcard.c:349
 #, c-format
 msgid "Error: '%s' wants a file."
@@ -1390,7 +1390,7 @@ msgstr ""
 msgid "Error: '%s' wants an identifier."
 msgstr "Error: «%s» очікує ідентифікатор."
 
-#: ../src/genkey.c:152 ../src/printsecret.c:462 ../src/totoken.c:185
+#: ../src/genkey.c:152 ../src/printsecret.c:465 ../src/totoken.c:185
 #, c-format
 msgid "Error: '%s' wants a passphrase."
 msgstr "Error: «%s» очікує парольну фразу."
@@ -2260,7 +2260,7 @@ msgstr "Error: У сертифікаті %s немає придатної (не�
 msgid "Notice: Picking %s, the address this certificate is written to."
 msgstr ""
 
-#: ../src/printcard.c:383 ../src/printsecret.c:585 ../src/scan.c:485
+#: ../src/printcard.c:383 ../src/printsecret.c:588 ../src/scan.c:485
 msgid "Error: Cannot make a working directory."
 msgstr "Error: Не вдається створити робочий каталог."
 
@@ -2391,6 +2391,9 @@ msgid ""
 "      and all secret protection relies on the passphrase.\n"
 "      In other terms: if (split_NUM == threshold_NUM), then no passphrase or\n"
 "      printing passphrase is VERY UNSECURE.\n"
+"      A share is the size of the whole secret, so a secret above %d bytes\n"
+"      only goes on paper cut, which is the equal case. It is refused with\n"
+"      the numbers rather than printed too dense to scan.\n"
 "\n"
 "Photographs are left out of what is printed. A backup does not need your\n"
 "face, and paper is handled by whoever finds it.\n"
@@ -2423,166 +2426,201 @@ msgstr ""
 "папір бере до рук той, хто його знайде.\n"
 "\n"
 
-#: ../src/printsecret.c:428
+#: ../src/printsecret.c:431
 msgid "none - produce the sheets and send nothing"
 msgstr "немає — створити аркуші й нічого не надсилати"
 
-#: ../src/printsecret.c:444
+#: ../src/printsecret.c:447
 msgid "Which printer? Its number: "
 msgstr "Який принтер? Його номер: "
 
-#: ../src/printsecret.c:478
+#: ../src/printsecret.c:481
 #, c-format
 msgid "Error: '%s' wants a printer, empty for none."
 msgstr "Error: «%s» очікує принтер, порожньо — жодного."
 
-#: ../src/printsecret.c:493 ../src/scan.c:407
+#: ../src/printsecret.c:496 ../src/scan.c:407
 #, c-format
 msgid "Error: Nonexistent or unattainable directory (%s)."
 msgstr "Error: Неіснуючий чи недоступний каталог (%s)."
 
-#: ../src/printsecret.c:499 ../src/printsecret.c:505
+#: ../src/printsecret.c:502 ../src/printsecret.c:508
 #, c-format
 msgid "Error: '%s' wants a number."
 msgstr "Error: «%s» очікує число."
 
-#: ../src/printsecret.c:530 ../src/totoken.c:235
+#: ../src/printsecret.c:533 ../src/totoken.c:235
 msgid "Which secret key? Its number: "
 msgstr "Який таємний ключ? Його номер: "
 
-#: ../src/printsecret.c:532
+#: ../src/printsecret.c:535
 msgid "Error: Which secret key should be printed?"
 msgstr "Error: Який таємний ключ слід надрукувати?"
 
-#: ../src/printsecret.c:541
+#: ../src/printsecret.c:544
 msgid "Passphrase of the secret key (empty if none): "
 msgstr "Парольна фраза таємного ключа (порожньо, якщо немає): "
 
-#: ../src/printsecret.c:543
+#: ../src/printsecret.c:546
 msgid "Error: The passphrase is needed to export the secret parts."
 msgstr "Error: Для вивезення таємних частин потрібна парольна фраза."
 
-#: ../src/printsecret.c:544
+#: ../src/printsecret.c:547
 msgid "Give --passphrase, or --passfrom to keep it off the process list."
 msgstr "Дайте --passphrase або --passfrom, щоб вона не потрапила до переліку процесів."
 
-#: ../src/printsecret.c:551
+#: ../src/printsecret.c:554
 msgid "Error: Where should this be printed? Name a printer, or pass"
 msgstr "Error: Де це друкувати? Назвіть принтер або передайте"
 
-#: ../src/printsecret.c:552
+#: ../src/printsecret.c:555
 msgid "--printer '' to produce the sheets and send nothing."
 msgstr "--printer '', щоб виготовити аркуші й нічого не надсилати."
 
-#: ../src/printsecret.c:558
+#: ../src/printsecret.c:561
 #, c-format
 msgid "Error: Splits number (%d) can't be lower than 3."
 msgstr "Error: Кількість фрагментів (%d) не може бути меншою за 3."
 
-#: ../src/printsecret.c:565
+#: ../src/printsecret.c:568
 #, c-format
 msgid "Error: Splits number (%d) can't be higher than %d: the QR header spells it as one digit."
 msgstr "Error: Кількість фрагментів (%d) не може перевищувати %d: заголовок QR пише її однією цифрою."
 
-#: ../src/printsecret.c:570
+#: ../src/printsecret.c:573
 #, c-format
 msgid "Warning: Threshold can't be greater than the number of splits, reducing threshold to %d."
 msgstr "Warning: Поріг не може перевищувати кількість фрагментів; поріг знижено до %d."
 
-#: ../src/printsecret.c:590 ../src/scan.c:490
+#: ../src/printsecret.c:593 ../src/scan.c:490
 msgid "Error: Working directory is unclean (it holds SECRET*)."
 msgstr "Error: Робочий каталог нечистий (у ньому є SECRET*)."
 
-#: ../src/printsecret.c:591
+#: ../src/printsecret.c:594
 #, fuzzy, c-format
 #| msgid "Suggestion: bl-security shred_path --remove '%s'"
 msgid "Suggestion: shred --remove '%s'/* && rmdir '%s'"
 msgstr "Suggestion: bl-security shred_path --remove '%s'"
 
-#: ../src/printsecret.c:628
+#: ../src/printsecret.c:631
 msgid "Error: gpg would not export the secret key — right passphrase?"
 msgstr "Error: gpg відмовився вивезти таємний ключ — правильна парольна фраза?"
 
-#: ../src/printsecret.c:641
+#: ../src/printsecret.c:644
 #, c-format
 msgid "Error: %s carries no uid worth printing."
 msgstr "Error: %s не несе жодного uid, який варто було б друкувати."
 
-#: ../src/printsecret.c:645
+#: ../src/printsecret.c:648
 msgid "Error: Cannot trim the export down to its three uids."
 msgstr "Error: Не вдається врізати вивезення до трьох uid."
 
-#: ../src/printsecret.c:648
+#: ../src/printsecret.c:651
 #, c-format
 msgid "Notice: Printing %zu uid(s) of %zu — the rest comes back from a keyring."
 msgstr "Notice: Надруковано %zu uid із %zu — решта повернеться з в'язки ключів."
 
 #: ../src/printsecret.c:661
+#, fuzzy
+#| msgid "Error: gpg would not add %s."
+msgid "Error: The export could not be measured."
+msgstr "Error: gpg відмовився додати %s."
+
+#: ../src/printsecret.c:672
+#, c-format
+msgid "Error: One sheet would carry %zu bytes of the secret, and %d is what one can still be read back from."
+msgstr ""
+
+#: ../src/printsecret.c:675
+msgid "Notice: Every share of a shared secret is the size of the secret, so more shares make none of them smaller. Cutting does, and a cut is asked for by making --threshold equal to --split."
+msgstr ""
+
+#: ../src/printsecret.c:679
+#, c-format
+msgid "Notice: Even %d pieces would not be enough, and %d is as many as a fragment's header can number."
+msgstr ""
+
+#: ../src/printsecret.c:682
+#, c-format
+msgid "Suggestion: --threshold %d, or --split %d. Every sheet is then needed."
+msgstr ""
+
+#: ../src/printsecret.c:685
+#, c-format
+msgid "Suggestion: --threshold %d. Every sheet is then needed."
+msgstr ""
+
+#: ../src/printsecret.c:688
+#, c-format
+msgid "Suggestion: --split %d --threshold %d. Every sheet is then needed."
+msgstr ""
+
+#: ../src/printsecret.c:702
 #, fuzzy, c-format
 #| msgid "Error: gpg would not add %s."
 msgid "Error: The export could not be cut in %d."
 msgstr "Error: gpg відмовився додати %s."
 
-#: ../src/printsecret.c:671
+#: ../src/printsecret.c:712
 msgid "Error: gfsplit would not share the secret out."
 msgstr "Error: gfsplit відмовився поділити таємницю."
 
-#: ../src/printsecret.c:685
+#: ../src/printsecret.c:726
 #, fuzzy, c-format
 #| msgid "Error: gpg would not revoke %s."
 msgid "Error: %s could not be encoded."
 msgstr "Error: gpg відмовився відкликати %s."
 
-#: ../src/printsecret.c:705
+#: ../src/printsecret.c:746
 #, c-format
 msgid "Notice: Printing the secret split into %d fragments on %s…"
 msgstr "Notice: Друк таємниці в %d фрагментах на %s…"
 
-#: ../src/printsecret.c:708
+#: ../src/printsecret.c:749
 #, c-format
 msgid "Notice: Producing %d fragments in %s, sending nothing."
 msgstr "Notice: Виготовлення %d фрагментів у %s, без надсилання."
 
-#: ../src/printsecret.c:726
+#: ../src/printsecret.c:767
 msgid "Error: No fragment was produced."
 msgstr "Error: Не виготовлено жодного фрагмента."
 
-#: ../src/printsecret.c:732 ../src/trustdb.c:620
+#: ../src/printsecret.c:773 ../src/trustdb.c:620
 msgid "Error: Out of memory."
 msgstr "Error: Бракує пам'яті."
 
-#: ../src/printsecret.c:743
+#: ../src/printsecret.c:784
 #, c-format
 msgid "Error: %zu fragments in %s, and a QR header can only number %d."
 msgstr "Error: %zu фрагментів у %s, а заголовок QR уміє пронумерувати лише %d."
 
-#: ../src/printsecret.c:773
+#: ../src/printsecret.c:814
 #, c-format
 msgid "Error: Cannot read the fragment %s."
 msgstr "Error: Не вдається прочитати фрагмент %s."
 
-#: ../src/printsecret.c:787
+#: ../src/printsecret.c:828
 #, c-format
 msgid "Error: qrencode would not draw fragment %zu."
 msgstr "Error: qrencode відмовився намалювати фрагмент %zu."
 
-#: ../src/printsecret.c:796
+#: ../src/printsecret.c:837
 #, fuzzy, c-format
 #| msgid "Error: pdfjam would not lay the page out."
 msgid "Error: Fragment %zu could not be laid out."
 msgstr "Error: pdfjam відмовився розкласти сторінку."
 
-#: ../src/printsecret.c:804
+#: ../src/printsecret.c:845
 #, c-format
 msgid "Error: lpr would not print fragment %zu."
 msgstr "Error: lpr відмовився надрукувати фрагмент %zu."
 
-#: ../src/printsecret.c:823
+#: ../src/printsecret.c:864
 #, c-format
 msgid "Notice: The working copies are removed. Shred %s if anything is left."
 msgstr "Notice: Робочі копії вилучено. Знищте %s, якщо щось лишилося."
 
-#: ../src/printsecret.c:829
+#: ../src/printsecret.c:870
 #, fuzzy, c-format
 #| msgid "Notice: The fragments are in %s. Shred it once they are on paper: bl-security shred_path --remove '%s'"
 msgid "Notice: The fragments are in %s. Shred them once they are on paper: find '%s' -type f -exec shred --remove {} +"
