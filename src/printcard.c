@@ -422,39 +422,72 @@ int pgpid_action_cert_tobizcard(int argc, char **argv)
         return PGPID_USAGE;
     }
 
-    char single[600], duped[600], page[600];
-    snprintf(single, sizeof single, "%.500s/single.pdf", workdir);
-    snprintf(duped, sizeof duped, "%.500s/duped.pdf", workdir);
+    char page[600];
     snprintf(page, sizeof page, "%.500s/page.pdf", workdir);
-    const char *render[] = { "rsvg-convert", "--format=pdf",
-                             "--output", single, svg, NULL };
-    if (pgpid_run_program(render, NULL, NULL)) {
-        pgpid_error(_("Error: rsvg-convert would not render the card."));
-        return PGPID_FAIL;
-    }
 
     /* A4 landscape: the sticker is 85×25 mm, so 3×7 to a page; a full card
-     * template is bigger and takes 3×3. pdfjam tiles one page per slot, so
-     * the single page is repeated first. --noautoscale keeps the real size —
-     * without it the output is about a fifth too big and bleeds off. */
+     * template is 85×55 and takes 3×3.
+     *
+     * Laid out here rather than by pdfunite and pdfjam. Those meant
+     * poppler-utils and a TeX distribution — 275 MB to repeat one drawing on
+     * a page — where the renderer already in hand does it: an SVG page with
+     * the card placed in each slot, as an image carrying the card's own SVG.
+     * Real size is what the slots are, so nothing autoscales and nothing
+     * bleeds off, which is what --noautoscale was there to stop. */
     const char *nup = template_path ? "3x3" : "3x7";
-    int copies = template_path ? 9 : 21;
-    const char *unite[32];
-    size_t at = 0;
-    unite[at++] = "pdfunite";
-    for (int i = 0; i < copies && at < 30; i++)
-        unite[at++] = single;
-    unite[at++] = duped;
-    unite[at] = NULL;
-    if (pgpid_run_program(unite, NULL, NULL)) {
-        pgpid_error(_("Error: pdfunite would not repeat the card."));
+    int cols = 3, rows = template_path ? 3 : 7;
+    int cw = 85, ch = template_path ? 55 : 25;
+    int mx = (297 - cols * cw) / (cols + 1), my = (210 - rows * ch) / (rows + 1);
+
+    /* The card carries its QR as a data: URI already, so it is not small —
+     * half a megabyte is ordinary. Written into the page once, inside
+     * <defs>, and each slot is a <use> of it: twenty-one copies of that
+     * string would be fifteen megabytes of SVG for a sheet of stickers. */
+    static char inner[1 << 21];
+    {
+        FILE *card = fopen(svg, "rb");
+        if (!card) {
+            pgpid_error(_("Error: The card could not be read back."));
+            return PGPID_FAIL;
+        }
+        static unsigned char drawing[1 << 20];
+        size_t n = fread(drawing, 1, sizeof drawing, card);
+        bool whole = feof(card) && !ferror(card);
+        fclose(card);
+        if (!n || !whole) {
+            pgpid_error(_("Error: The card could not be read back."));
+            return PGPID_FAIL;
+        }
+        snprintf(inner, sizeof inner, "data:image/svg+xml;base64,");
+        pgpid_base64(drawing, n, inner + strlen(inner));
+    }
+
+    static char sheet[(1 << 21) + 8192];
+    size_t at = (size_t)snprintf(sheet, sizeof sheet,
+        "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'"
+        " width='297mm' height='210mm' viewBox='0 0 297 210'>\n"
+        "<rect width='297' height='210' fill='white'/>\n"
+        "<defs><image id='card' width='%d' height='%d' xlink:href='%s'/></defs>\n",
+        cw, ch, inner);
+    for (int r = 0; r < rows; r++)
+        for (int c = 0; c < cols; c++)
+            at += (size_t)snprintf(sheet + at, sizeof sheet - at,
+                     "<use xlink:href='#card' x='%d' y='%d'/>\n",
+                     mx + c * (cw + mx), my + r * (ch + my));
+    snprintf(sheet + at, sizeof sheet - at, "</svg>\n");
+
+    char sheetpath[640];
+    snprintf(sheetpath, sizeof sheetpath, "%.500s/page.svg", workdir);
+    FILE *pagefile = fopen(sheetpath, "wb");
+    if (!pagefile || fwrite(sheet, 1, strlen(sheet), pagefile) != strlen(sheet)
+        || fclose(pagefile)) {
+        pgpid_error(_("Error: The page could not be written."));
         return PGPID_FAIL;
     }
-    const char *jam[] = { "pdfjam", "--quiet", "--paper", "a4paper", "--landscape",
-                          "--nup", nup, "--noautoscale", "true",
-                          "--outfile", page, duped, NULL };
-    if (pgpid_run_program(jam, NULL, NULL)) {
-        pgpid_error(_("Error: pdfjam would not lay the page out."));
+    const char *render[] = { "rsvg-convert", "--format=pdf",
+                             "--output", page, sheetpath, NULL };
+    if (pgpid_run_program(render, NULL, NULL)) {
+        pgpid_error(_("Error: rsvg-convert would not render the page."));
         return PGPID_FAIL;
     }
 
