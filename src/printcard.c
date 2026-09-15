@@ -18,6 +18,7 @@
 #include "pgpid.h"
 #include "sticker.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -89,6 +90,83 @@ static void xml_escape(const char *in, char *out, size_t max)
         }
     }
     out[n] = '\0';
+}
+
+/**
+ * The card document, ready to be dropped into a page and used by reference.
+ *
+ * It goes in as SVG, not as an <image> whose href is SVG. librsvg draws such
+ * an image once at its natural size and then scales that bitmap into the
+ * slot: a sheet of cards came out visibly soft beside a single one — three
+ * times the half-toned pixels, counted at 600 dpi, and the fingerprint lines
+ * turned to mush. Inlined, every line stays a line all the way into the PDF.
+ *
+ * What changes is the root tag: an id to point at, and width and height in
+ * the page's units instead of millimetres, since a nested viewport reads
+ * "85mm" against the page rather than against its own slot. The rest of the
+ * attributes are passed through, the viewBox among them — that is what maps
+ * the drawing onto the slot, and every template of ours carries one.
+ *
+ * Returns a string to free, or NULL if this does not look like an SVG.
+ */
+static char *card_for_reuse(const char *body, const char *id, int cw, int ch)
+{
+    const char *open = strstr(body, "<svg");
+    const char *close = open ? strchr(open, '>') : NULL;
+    if (!close)
+        return NULL;
+
+    char tag[2048];
+    size_t at = (size_t)snprintf(tag, sizeof tag, "<svg id=\"%s\"", id);
+    for (const char *a = open + 4; a < close;) {
+        while (a < close && isspace((unsigned char)*a))
+            a++;
+        const char *name = a;
+        while (a < close && *a != '=' && !isspace((unsigned char)*a))
+            a++;
+        int nlen = (int)(a - name);
+        if (!nlen)
+            break;
+        while (a < close && isspace((unsigned char)*a))
+            a++;
+        if (a >= close || *a != '=') {      /* an attribute with no value */
+            at += (size_t)snprintf(tag + at, sizeof tag - at, " %.*s", nlen, name);
+            continue;
+        }
+        while (++a < close && isspace((unsigned char)*a))
+            ;
+        if (a >= close || (*a != '"' && *a != '\''))
+            return NULL;
+        char quote = *a++;
+        const char *value = a;
+        while (a < close && *a != quote)
+            a++;
+        int vlen = (int)(a - value);
+        if (a < close)
+            a++;
+
+        if (nlen == 5 && !strncmp(name, "width", 5))
+            at += (size_t)snprintf(tag + at, sizeof tag - at, " width=\"%d\"", cw);
+        else if (nlen == 6 && !strncmp(name, "height", 6))
+            at += (size_t)snprintf(tag + at, sizeof tag - at, " height=\"%d\"", ch);
+        else
+            at += (size_t)snprintf(tag + at, sizeof tag - at, " %.*s=\"%.*s\"",
+                                   nlen, name, vlen, value);
+        if (at >= sizeof tag)
+            return NULL;
+    }
+    at += (size_t)snprintf(tag + at, sizeof tag - at, ">");
+    if (at >= sizeof tag)
+        return NULL;
+
+    /* Everything before the root tag is dropped: an XML declaration is legal
+     * only at the head of a document, and this one is on its way inside one. */
+    char *out = malloc(at + strlen(close + 1) + 1);
+    if (!out)
+        return NULL;
+    memcpy(out, tag, at);
+    strcpy(out + at, close + 1);
+    return out;
 }
 
 /** The address in a uid, copied out. */
@@ -439,41 +517,52 @@ int pgpid_action_cert_tobizcard(int argc, char **argv)
     int cw = 85, ch = template_path ? 55 : 25;
     int mx = (297 - cols * cw) / (cols + 1), my = (210 - rows * ch) / (rows + 1);
 
-    /* The card carries its QR as a data: URI already, so it is not small —
-     * half a megabyte is ordinary. Written into the page once, inside
-     * <defs>, and each slot is a <use> of it: twenty-one copies of that
-     * string would be fifteen megabytes of SVG for a sheet of stickers. */
-    static char inner[1 << 21];
+    /* The card is written into the page once, inside <defs>, and each slot is
+     * a <use> of it. It carries its QR as a data: URI, so it is not small —
+     * twenty-one copies of it would be half a megabyte of SVG for a sheet of
+     * stickers, and nothing would be gained by the repetition. */
+    static char drawing[1 << 20];
     {
         FILE *card = fopen(svg, "rb");
         if (!card) {
             pgpid_error(_("Error: The card could not be read back."));
             return PGPID_FAIL;
         }
-        static unsigned char drawing[1 << 20];
-        size_t n = fread(drawing, 1, sizeof drawing, card);
+        size_t n = fread(drawing, 1, sizeof drawing - 1, card);
         bool whole = feof(card) && !ferror(card);
         fclose(card);
         if (!n || !whole) {
             pgpid_error(_("Error: The card could not be read back."));
             return PGPID_FAIL;
         }
-        snprintf(inner, sizeof inner, "data:image/svg+xml;base64,");
-        pgpid_base64(drawing, n, inner + strlen(inner));
+        drawing[n] = '\0';
+    }
+    char *reusable = card_for_reuse(drawing, "pgpid-card", cw, ch);
+    if (!reusable) {
+        pgpid_error(_("Error: %s does not open with an <svg> tag."),
+                    template_path ? template_path : "The card");
+        return PGPID_FAIL;
     }
 
-    static char sheet[(1 << 21) + 8192];
+    static char sheet[(1 << 20) + 8192];
     size_t at = (size_t)snprintf(sheet, sizeof sheet,
         "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'"
         " width='297mm' height='210mm' viewBox='0 0 297 210'>\n"
         "<rect width='297' height='210' fill='white'/>\n"
-        "<defs><image id='card' width='%d' height='%d' xlink:href='%s'/></defs>\n",
-        cw, ch, inner);
+        "<defs>%s</defs>\n", reusable);
+    free(reusable);
+    if (at >= sizeof sheet) {
+        pgpid_error(_("Error: The card is too big to lay out."));
+        return PGPID_FAIL;
+    }
+    /* width and height on the <use> too: a <use> of an <svg> that gives
+     * neither takes the page's, and one card would cover the sheet. */
     for (int r = 0; r < rows; r++)
         for (int c = 0; c < cols; c++)
             at += (size_t)snprintf(sheet + at, sizeof sheet - at,
-                     "<use xlink:href='#card' x='%d' y='%d'/>\n",
-                     mx + c * (cw + mx), my + r * (ch + my));
+                     "<use xlink:href='#pgpid-card' x='%d' y='%d'"
+                     " width='%d' height='%d'/>\n",
+                     mx + c * (cw + mx), my + r * (ch + my), cw, ch);
     snprintf(sheet + at, sizeof sheet - at, "</svg>\n");
 
     char sheetpath[640];
