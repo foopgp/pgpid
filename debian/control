@@ -5,7 +5,7 @@ Maintainer: Sébastien Picardeau <piseb@mailo.com>
 Build-Depends: debhelper-compat (= 13),
   gettext,
   help2man,
-  pandoc
+  lowdown
 Standards-Version: 4.5.1
 Homepage: https://foopgp.org
 Rules-Requires-Root: no

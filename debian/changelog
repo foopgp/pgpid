@@ -68,6 +68,20 @@ pgpid (0.1.0-1) unstable; urgency=medium
     business card and it writes PDF, so both pages are SVG now and one
     program draws them. The sticker page defines the card once and places it
     with <use>, the card carrying its own QR as a data: URI.
+  * The manual pages are rendered by lowdown, not pandoc. Same roff, three
+    hundred kilobytes of C in the build dependencies instead of a hundred and
+    ninety megabytes of Haskell: 17 differing lines out of 879 on the longest
+    page, all of them line wrapping. pandoc is still what writes the markdown,
+    which is done by hand when the helps change and not by whoever builds
+    the package.
+  * gen_key asks for the address, the identifier and the passphrase when it
+    was given none of them, as `bl-pgpid gen_key` did and said it did. The
+    identifier is minted through gen_u4's own questions and its --verify
+    read-back; the passphrase is typed twice. --batch keeps every refusal.
+  * cert_tobizcard prints sharp again. The sheet placed the card as an
+    <image> of an SVG, which librsvg draws once at its natural size and
+    scales up: the fingerprint lines came out as mush. The card is inlined
+    once and each slot is a <use> of it.
   * The dependencies say what an action actually spawns. scdaemon was missing
     and is half the tool: gnupg does not pull it. pandoc and
     texlive-extra-utils are gone — 275 MB that nothing calls at run time any
