@@ -670,7 +670,7 @@ int pgpid_action_secret_print(int argc, char **argv)
          * person running this actually has, and pgpid does not pull the shell
          * libraries in. coreutils is always there. */
         pgpid_error(_("Notice: The fragments are in %s. Shred them once they are on "
-                    "paper: shred --remove '%s'/*"), workdir, workdir);
+                    "paper: find '%s' -type f -exec shred --remove {} +"), workdir, workdir);
     }
     free(names);
     return PGPID_OK;

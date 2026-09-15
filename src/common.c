@@ -9,6 +9,7 @@
 
 #include <ctype.h>
 #include <stdarg.h>
+#include <dirent.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,6 +18,7 @@
 #include <pwd.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 const char *pgpid_homedir = NULL;
@@ -429,6 +431,74 @@ int pgpid_capture_engine(const char *const *argv, char *out, size_t max)
  * place. So the card is asked for a subkey it does have, and the keyring is
  * asked which certificate that subkey belongs to.
  */
+/**
+ * Overwrite, then remove — a file, or everything under a directory.
+ *
+ * `shred` takes files and not paths, which is why bash-libs wraps it in
+ * shred_path. In C the walk *is* the wrapper, and there is no reason to make
+ * the package depend on a shell library for a recursion.
+ *
+ * Used for what pgpid made itself and is finished with. secret_scan without
+ * --workdir mints one under /tmp, writes the pieces of a secret key into it
+ * and, until now, walked away: a key reconstituted from paper stayed there
+ * until the next reboot.
+ *
+ * One pass of random bytes, then unlink. Best effort by design — a
+ * copy-on-write filesystem or a journal can hold a block this never touches,
+ * and the honest claim is the difference between leaving a key lying in /tmp
+ * and making somebody work for it. Answers false if anything was left behind.
+ */
+bool pgpid_shred_path(const char *path)
+{
+    struct stat st;
+    if (lstat(path, &st))
+        return false;
+
+    if (S_ISDIR(st.st_mode)) {
+        DIR *d = opendir(path);
+        if (!d)
+            return false;
+        bool whole = true;
+        for (struct dirent *e; (e = readdir(d));) {
+            if (!strcmp(e->d_name, ".") || !strcmp(e->d_name, ".."))
+                continue;
+            char child[4096];
+            if (snprintf(child, sizeof child, "%s/%s", path, e->d_name) >= (int)sizeof child) {
+                whole = false;
+                continue;
+            }
+            if (!pgpid_shred_path(child))
+                whole = false;
+        }
+        closedir(d);
+        return rmdir(path) == 0 && whole;
+    }
+
+    /* A symlink or a socket has no content of ours to overwrite; the name is
+     * all there is to remove. */
+    if (S_ISREG(st.st_mode) && st.st_size > 0) {
+        int fd = open(path, O_WRONLY);
+        if (fd >= 0) {
+            FILE *urandom = fopen("/dev/urandom", "rb");
+            unsigned char block[65536];
+            for (off_t left = st.st_size; left > 0;) {
+                size_t want = (size_t)(left < (off_t)sizeof block ? left : (off_t)sizeof block);
+                if (!urandom || fread(block, 1, want, urandom) != want)
+                    memset(block, 0xA5, want);   /* no entropy is still not the key */
+                ssize_t wrote = write(fd, block, want);
+                if (wrote <= 0)
+                    break;
+                left -= wrote;
+            }
+            if (urandom)
+                fclose(urandom);
+            fsync(fd);
+            close(fd);
+        }
+    }
+    return unlink(path) == 0;
+}
+
 /**
  * gpg's card status, read in a locale that will not translate it.
  *

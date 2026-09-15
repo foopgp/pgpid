@@ -456,6 +456,7 @@ int pgpid_action_secret_scan(int argc, char **argv)
     }
 
     char workdir[512];
+    int rc;
     if (given_workdir) {
         snprintf(workdir, sizeof workdir, "%s", given_workdir);
     } else {
@@ -467,8 +468,8 @@ int pgpid_action_secret_scan(int argc, char **argv)
     }
     if (workdir_is_unclean(workdir)) {
         pgpid_error(_("Error: Working directory is unclean (it holds SECRET*)."));
-        pgpid_error(_("Suggestion: shred --remove '%s'/* && rmdir '%s'"), workdir, workdir);
-        return PGPID_USAGE;
+        pgpid_error(_("Suggestion: find '%s' -type f -exec shred --remove {} +"), workdir);
+        { rc = PGPID_USAGE; goto done; }
     }
 
     char parts[MAX_PARTS][262144];
@@ -485,7 +486,7 @@ int pgpid_action_secret_scan(int argc, char **argv)
             const char *conv[] = { "convert", from, converted, NULL };
             if (pgpid_run_program(conv, NULL, NULL)) {
                 pgpid_error(_("Error: Can't convert pdf %s."), images[i]);
-                return PGPID_FAIL;
+                { rc = PGPID_FAIL; goto done; }
             }
             snprintf(image, sizeof image, "%s", converted);
         }
@@ -500,7 +501,7 @@ int pgpid_action_secret_scan(int argc, char **argv)
         /* Bytes kept, not a status — see the camera loop. */
         if (pgpid_capture(zbar, raw, sizeof raw) <= 0) {
             pgpid_error(_("Error: No QR code with expected data in '%s'."), images[i]);
-            return PGPID_FAIL;
+            { rc = PGPID_FAIL; goto done; }
         }
 
         int taken = take_payloads(raw, parts, have, &version, &needed_less_one);
@@ -509,15 +510,15 @@ int pgpid_action_secret_scan(int argc, char **argv)
         bool any = taken > 0;
         if (!any) {
             pgpid_error(_("Error: No QR code with expected data in '%s'."), images[i]);
-            return PGPID_FAIL;
+            { rc = PGPID_FAIL; goto done; }
         }
         pgpid_error(_("Info: QR code(s) with expected data read from '%s'."), images[i]);
     }
 
     if (camera) {
-        int rc = scan_camera(camera, given_size, workdir, parts, have, &version, &needed_less_one);
+        rc = scan_camera(camera, given_size, workdir, parts, have, &version, &needed_less_one);
         if (rc)
-            return rc;
+            goto done;
     }
 
     if (version != 4 && version != 5) {
@@ -542,7 +543,7 @@ int pgpid_action_secret_scan(int argc, char **argv)
                          "%s%zu", *missing ? ", " : "", i + 1);
         pgpid_error(_("Error: %zu fragment(s) of the %d needed; missing: %s."),
                     got, needed, missing);
-        return PGPID_FAIL;
+        { rc = PGPID_FAIL; goto done; }
     }
 
     char secret[600];
@@ -563,7 +564,7 @@ int pgpid_action_secret_scan(int argc, char **argv)
         const char *dec[] = { "basenc", "--decode", "--base64url", NULL };
         if (pgpid_run_program(dec, joined, secret)) {
             pgpid_error(_("Error: basenc would not decode the fragments."));
-            return PGPID_FAIL;
+            { rc = PGPID_FAIL; goto done; }
         }
     } else {
         /* Shares: the first three characters of each are the number gfsplit
@@ -576,7 +577,7 @@ int pgpid_action_secret_scan(int argc, char **argv)
             const char *dec[] = { "basenc", "--decode", "--base64url", NULL };
             if (pgpid_run_program(dec, parts[i] + 3, share)) {
                 pgpid_error(_("Error: basenc would not decode fragment %zu."), i + 1);
-                return PGPID_FAIL;
+                { rc = PGPID_FAIL; goto done; }
             }
         }
         const char *comb[MAX_PARTS + 2];
@@ -594,7 +595,7 @@ int pgpid_action_secret_scan(int argc, char **argv)
         comb[at] = NULL;
         if (pgpid_run_program(comb, NULL, NULL)) {
             pgpid_error(_("Error: gfcombine would not put the fragments back together."));
-            return PGPID_FAIL;
+            { rc = PGPID_FAIL; goto done; }
         }
     }
 
@@ -607,7 +608,7 @@ int pgpid_action_secret_scan(int argc, char **argv)
     if (pgpid_run_engine(import)) {
         pgpid_error(_("Error: gpg would not import what came back."));
         pgpid_error(_("Fragments from two different printings, most likely."));
-        return PGPID_FAIL;
+        { rc = PGPID_FAIL; goto done; }
     }
 
     /* The fingerprint of what was just restored, read off the packets. */
@@ -631,12 +632,26 @@ int pgpid_action_secret_scan(int argc, char **argv)
                      * caller's $( ). */
                     pgpid_error(_("Notice: Secret key put back together: %.40s."), p);
                     printf("%.40s\n", p);
-                    return PGPID_OK;
+                    rc = PGPID_OK;
+                    goto done;
                 }
                 if (n)
                     p += n - 1;
             }
         }
     pgpid_error(_("Notice: Secret key put back together, and imported."));
-    return PGPID_OK;
+    rc = PGPID_OK;
+
+done:
+    /* What pgpid made, pgpid removes. Without --workdir this mints a
+     * directory under /tmp and writes the pieces of a secret key into it;
+     * walking away from that left a key reconstituted from paper sitting
+     * there until the next reboot. A directory somebody else named is
+     * theirs — it is said, not touched. */
+    if (!given_workdir)
+        pgpid_shred_path(workdir);
+    else if (rc == PGPID_OK)
+        pgpid_error(_("Notice: %s still holds the pieces. Shred it: "
+                    "find '%s' -type f -exec shred --remove {} +"), workdir, workdir);
+    return rc;
 }

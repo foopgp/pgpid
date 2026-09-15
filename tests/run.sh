@@ -323,6 +323,16 @@ is "and it answers a list, or that there is none" \
 is "reading nothing, it wants no images and no working directory" \
    "$(grep --count --extended-regexp "Which images|directory" <<<"$out")" "0"
 
+# Without --workdir it mints one under /tmp and writes the pieces of a secret
+# key into it. It used to walk away from that: sixteen of them were sitting
+# there when this was written. What pgpid makes, pgpid removes.
+if command -v qrencode >/dev/null 2>&1 && command -v zbarimg >/dev/null 2>&1 ; then
+    before=$(ls -d /tmp/pgpid-scan.* 2>/dev/null | wc -l)
+    "$BIN" --batch secret_scan "$GNUPGHOME/frag4.png" >/dev/null 2>&1 || true
+    is "a working directory of its own is not left behind" \
+       "$(ls -d /tmp/pgpid-scan.* 2>/dev/null | wc -l)" "$before"
+fi
+
 printf '\ntoken_code: a new code that would not be written\n'
 # secret_totoken verified the factory code, announced a random one, and left
 # the card open: it had called token_code without --replace, which only

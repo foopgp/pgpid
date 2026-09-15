@@ -348,6 +348,11 @@ int pgpid_capture(const char *const *argv, char *out, size_t max);
 
 /* Same, with the engine and the home directory already in front. */
 int pgpid_capture_engine(const char *const *argv, char *out, size_t max);
+/* Overwrite and remove a file, or everything under a directory. `shred` takes
+ * files; this takes a path, which is what a working directory is. Best effort:
+ * answers false if anything was left behind. */
+bool pgpid_shred_path(const char *path);
+
 int pgpid_capture_card_status(char *out, size_t max);
 
 /* Send one ISO 7816 command to the card and keep its status word — for what
