@@ -10,3 +10,16 @@ man/*.draft
 man/*/*.draft
 _build/
 po/*.mo
+
+# What a package build leaves behind, wherever it is run from. dpkg-buildpackage
+# fills debian/pgpid/ and debian/.debhelper/ with a copy of everything it is
+# about to wrap, and those are the files a careless `git add -A` sweeps in --
+# which happened on 2026-09-15, forty-five of them, onto main and out to the
+# remote. Ignored on every branch: on debian they are build output, and on main
+# the directory only exists because a build was run there.
+debian/pgpid/
+debian/.debhelper/
+debian/files
+debian/*.substvars
+debian/debhelper-build-stamp
+
