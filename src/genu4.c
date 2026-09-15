@@ -201,7 +201,8 @@ static void split_zone_names(const char *field, char *surname, size_t sn,
  * format's alphabet, a date, and the coordinates of a country. Both ways in
  * end here, which is what makes them the same identifier.
  */
-static bool u4_print(const char *field, const char *date, const char *coord)
+static bool u4_print(const char *field, const char *date, const char *coord,
+                    char *out, size_t max)
 {
     char names[640];
     if (!pgpid_extract_names(field, names, sizeof names)) {
@@ -221,7 +222,10 @@ static bool u4_print(const char *field, const char *date, const char *coord)
     pgpid_base64url(digest, 16, b64);
     b64[22] = '\0';   /* the padding says nothing; twenty-two characters do */
 
-    printf("%s%s\n", b64, coord);
+    if (out)
+        snprintf(out, max, "%s%s", b64, coord);
+    else
+        printf("%s%s\n", b64, coord);
     return true;
 }
 
@@ -309,7 +313,7 @@ static bool verify_civil_status(char *surname, size_t sn, char *given, size_t gn
  */
 static int u4_from_fields(char *surname, size_t sn, char *given, size_t gn,
                           char *date, size_t dn, char *country, size_t cn,
-                          bool verify)
+                          bool verify, char *out, size_t max)
 {
     if (verify && !pgpid_batch && !verify_civil_status(surname, sn, given, gn,
                                                        date, dn, country, cn))
@@ -336,7 +340,76 @@ static int u4_from_fields(char *surname, size_t sn, char *given, size_t gn,
     warn_if_transliterated(given, g);
     compose_names(s, g, field, sizeof field);
 
-    return u4_print(field, birth, coord) ? PGPID_OK : PGPID_USAGE;
+    return u4_print(field, birth, coord, out, max) ? PGPID_OK : PGPID_USAGE;
+}
+
+/**
+ * Fill in whatever the caller did not give, one question at a time.
+ *
+ * Asked for one by one rather than refused wholesale, as the shell does:
+ * somebody typing their civil status has no reason to be sent back to the
+ * usage for the one field they left out. --batch refuses instead, which is
+ * pgpid_ask's doing and not this function's business.
+ *
+ * ASKED holds what gets typed, and the slots are pointed at it, so it has to
+ * outlive the call — hence a caller-owned array rather than four statics.
+ */
+static bool ask_missing_fields(const char **surname, const char **given,
+                               const char **date, const char **country,
+                               char asked[4][128])
+{
+    /* The country comes with the one the shell offered: on this side of the
+     * association it is right nine times out of ten, and a default is only
+     * ever one word to overtype. The other three have no sensible one. */
+    const struct { const char **slot; const char *question; const char *fallback; } fields[] = {
+        { surname, N_("Birth surname (family name)"),   "" },
+        { given,   N_("Birth names (all given names)"), "" },
+        { date,    N_("Birth date (YYYY-MM-DD)"),       "" },
+        { country, N_("Birth country (3 letter code)"), "FRA" },
+    };
+    for (size_t f = 0; f < 4; f++) {
+        if (*fields[f].slot)
+            continue;
+        snprintf(asked[f], sizeof asked[f], "%s", fields[f].fallback);
+        if (!ask_with_default(_(fields[f].question), asked[f], sizeof asked[f])
+            || !*asked[f]) {
+            pgpid_error(_("Error: Surname, given names, date and country are all needed."));
+            return false;
+        }
+        *fields[f].slot = asked[f];
+    }
+    return true;
+}
+
+/**
+ * A u4 minted here and now, for a caller that needs one and was given none.
+ *
+ * `gen_key` without --eid, which is how a first certificate is usually made:
+ * the shell reached for `bl_pgpid_gen_u4 --verify` at that point and so does
+ * this, by the same road rather than by spawning ourselves. --verify is not
+ * optional here — an identifier minted from a wrong civil status belongs to
+ * somebody else, and this is the last moment anyone will look at it.
+ *
+ * Writes the identifier whole, "u4" and all.
+ */
+bool pgpid_ask_for_u4(char *out, size_t max)
+{
+    const char *surname = NULL, *given = NULL, *date = NULL, *country = NULL;
+    char asked[4][128];
+    if (!ask_missing_fields(&surname, &given, &date, &country, asked))
+        return false;
+
+    char f_surname[300], f_given[300], f_date[16], f_country[8], body[64];
+    snprintf(f_surname, sizeof f_surname, "%s", surname);
+    snprintf(f_given, sizeof f_given, "%s", given);
+    snprintf(f_date, sizeof f_date, "%s", date);
+    snprintf(f_country, sizeof f_country, "%s", country);
+    if (u4_from_fields(f_surname, sizeof f_surname, f_given, sizeof f_given,
+                       f_date, sizeof f_date, f_country, sizeof f_country,
+                       true, body, sizeof body) != PGPID_OK)
+        return false;
+    snprintf(out, max, "u4%s", body);
+    return true;
 }
 
 static int from_passport_mrz(int argc, char **argv, int first,
@@ -419,13 +492,14 @@ static int from_passport_mrz(int argc, char **argv, int first,
 
     return u4_from_fields(f_surname, sizeof f_surname, f_given, sizeof f_given,
                           f_date, sizeof f_date, f_country, sizeof f_country,
-                          verify);
+                          verify, NULL, 0);
 }
 
 int pgpid_action_gen_u4(int argc, char **argv)
 {
     const char *surname = NULL, *given = NULL, *date = NULL, *country = NULL;
     bool from_mrz = false, uncheck = false, verify = false;
+    char asked[4][128];
     int first = 0;
 
     for (int i = 1; i < argc; i++) {
@@ -483,30 +557,8 @@ int pgpid_action_gen_u4(int argc, char **argv)
         pgpid_try_help("gen_u4");
         return PGPID_USAGE;
     }
-    /* Asked for one by one rather than refused wholesale, as the shell does:
-     * somebody typing their civil status has no reason to be sent back to the
-     * usage for the one field they left out. --batch refuses instead. */
-    char asked[4][128];
-    /* The country comes with the one the shell offered: on this side of the
-     * association it is right nine times out of ten, and a default is only
-     * ever one word to overtype. The other three have no sensible one. */
-    const struct { const char **slot; const char *question; const char *fallback; } fields[] = {
-        { &surname, N_("Birth surname (family name)"),   "" },
-        { &given,   N_("Birth names (all given names)"), "" },
-        { &date,    N_("Birth date (YYYY-MM-DD)"),       "" },
-        { &country, N_("Birth country (3 letter code)"), "FRA" },
-    };
-    for (size_t f = 0; f < 4; f++) {
-        if (*fields[f].slot)
-            continue;
-        snprintf(asked[f], sizeof asked[f], "%s", fields[f].fallback);
-        if (!ask_with_default(_(fields[f].question), asked[f], sizeof asked[f])
-            || !*asked[f]) {
-            pgpid_error(_("Error: Surname, given names, date and country are all needed."));
-            return PGPID_USAGE;
-        }
-        *fields[f].slot = asked[f];
-    }
+    if (!ask_missing_fields(&surname, &given, &date, &country, asked))
+        return PGPID_USAGE;
 
     char f_surname[300], f_given[300], f_date[16], f_country[8];
     snprintf(f_surname, sizeof f_surname, "%s", surname);
@@ -515,5 +567,5 @@ int pgpid_action_gen_u4(int argc, char **argv)
     snprintf(f_country, sizeof f_country, "%s", country);
     return u4_from_fields(f_surname, sizeof f_surname, f_given, sizeof f_given,
                           f_date, sizeof f_date, f_country, sizeof f_country,
-                          verify);
+                          verify, NULL, 0);
 }

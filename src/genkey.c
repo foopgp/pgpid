@@ -30,6 +30,7 @@ static void usage(FILE *out)
         " gen_key [OPTIONS]... EMAIL\n"
         "\n"
         "Generate a PGP key pair (public and secret) according to PGP ID standards.\n"
+        "Missing input will be asked interactively, unless --batch.\n"
         "Output 3 lines for each fingerprints:\n"
         "* main key (Sign Certify)\n"
         "* decryption key (Encrypt)\n"
@@ -37,7 +38,7 @@ static void usage(FILE *out)
         "\n"
         "OPTIONS:\n"
         "  -N, --name PSEUDONYM             Common name or pseudonym. Default: first part of email\n"
-        "  -c, --eid U4|U5                  Entity ID. Worldwide and decentralised entity identifier. Required here\n"
+        "  -c, --eid U4|U5                  Entity ID. Worldwide and decentralised entity identifier. Minted here if missing\n"
         "  -C, --extra-comment NOTE         Supplemental information or comment associated with the entity\n"
         "  -p, --passphrase PASSPHRASE      Passphrase to (symetric) encrypt secret part of PGP key. CAN'T BE EMPTY (at this stage)\n"
         "  -P, --passfrom FILE              Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin …)\n"
@@ -211,27 +212,49 @@ int pgpid_action_gen_key(int argc, char **argv)
         }
     }
 
+    /* Three things are needed and none of them is guessable, so each missing
+     * one is asked for. --batch turns every question below into the refusal
+     * it used to be, which is what a caller driving this wants. */
+    char typed_email[320];
+    if (!email && !pgpid_batch) {
+        if (!pgpid_ask(_("Email address for this certificate: "),
+                       typed_email, sizeof typed_email))
+            return PGPID_USAGE;
+        email = typed_email;
+    }
     if (!email || !looks_like_address(email)) {
+        if (email)
+            pgpid_error(_("Error: '%s' does not look like an email address."), email);
         usage(stderr);
         return PGPID_USAGE;
     }
 
     char eid[64];
     if (!given_eid) {
-        pgpid_error(_("Error: Which entity is this key for? Give --eid."));
-        pgpid_error(_("Deriving one needs a civil status, which is somebody's to give:"));
-        pgpid_error(_("  %s gen_u4 --surname … --given-names … --birth-date … --birth-country …"),
-                    PGPID_NAME);
-        return PGPID_USAGE;
-    }
-    if (!read_eid(given_eid, eid, sizeof eid)) {
+        /* No identifier: mint one, the way `bl-pgpid gen_key` did, by asking
+         * for the civil status it is computed from. It is not derivable from
+         * anything this action already has -- it is somebody's to give. */
+        if (pgpid_batch) {
+            pgpid_error(_("Error: Which entity is this key for? Give --eid."));
+            pgpid_error(_("Deriving one needs a civil status, which is somebody's to give:"));
+            pgpid_error(_("  %s gen_u4 --surname … --given-names … --birth-date … --birth-country …"),
+                        PGPID_NAME);
+            return PGPID_USAGE;
+        }
+        if (!pgpid_ask_for_u4(eid, sizeof eid))
+            return PGPID_USAGE;
+        pgpid_error(_("Notice: Entity identifier: %s"), eid);
+    } else if (!read_eid(given_eid, eid, sizeof eid)) {
         pgpid_error(_("Error: No eid in given '%s'."), given_eid);
         return PGPID_USAGE;
     }
+
+    if (!*passphrase && !pgpid_batch
+        && !pgpid_ask_new_secret(_("Passphrase"), passphrase, sizeof passphrase))
+        return PGPID_USAGE;
     if (!*passphrase) {
-        pgpid_error(_("Error: A passphrase is needed, and asking for one is not this "
-                    "program's job. Give --passphrase, or --passfrom to keep it off"));
-        pgpid_error(_("the process list."));
+        pgpid_error(_("Error: A passphrase is needed. Give --passphrase, or "
+                    "--passfrom to keep it off the process list."));
         return PGPID_USAGE;
     }
 
