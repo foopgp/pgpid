@@ -20,6 +20,20 @@ SPDX-FileCopyrightText = [
 ]
 SPDX-License-Identifier = "GPL-3.0-only"
 
+# The business-card template. Carried here from bash-libs, where
+# tools/build_card.sh regenerates it from the website's own card and the
+# sticker block of bl-pgpid — so a header written into it by hand would be
+# wiped on the next run there. CC-BY-SA, as it is there: it is artwork before
+# it is code.
+[[annotations]]
+path = "svg/card.svg"
+precedence = "aggregate"
+SPDX-FileCopyrightText = [
+    "2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>",
+    "2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>",
+]
+SPDX-License-Identifier = "CC-BY-SA-4.0"
+
 # --- reference material, not ours -------------------------------------------
 
 # ICAO Doc 9303, Machine Readable Travel Documents. The specification pgpid

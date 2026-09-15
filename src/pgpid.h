@@ -28,6 +28,13 @@
 #define PGPID_LOCALEDIR "/usr/share/locale"
 #endif
 
+/* The business-card template the package installs. Named rather than used:
+ * cert_tobizcard still falls back to its inline sticker when no --template is
+ * given, and this only tells a reader of the help where the other one is. */
+#ifndef PGPID_CARD_TEMPLATE
+#define PGPID_CARD_TEMPLATE "/usr/share/pgpid/svg/card.svg"
+#endif
+
 /* Every sentence a person reads goes through this. What does not: the
  * Error:/Warning:/Notice:/Info: prefixes, which say the level rather than
  * anything in a language, and the key=value names, which callers parse. */
