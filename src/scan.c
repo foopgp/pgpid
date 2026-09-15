@@ -503,7 +503,12 @@ int pgpid_action_secret_scan(int argc, char **argv)
             char converted[600], from[620];
             snprintf(converted, sizeof converted, "%.500s/scan-%zu.png", workdir, i);
             snprintf(from, sizeof from, "pdf:%.550s", images[i]);
-            const char *conv[] = { "convert", from, converted, NULL };
+            /* GraphicsMagick rather than ImageMagick: it is already here for
+             * the avatars, and given one output name it writes the first page
+             * and stops — where `convert` would write scan-0-0.png and
+             * scan-0-1.png, neither of which is the name we then open. One
+             * sheet holds one fragment, so the first page is the fragment. */
+            const char *conv[] = { "gm", "convert", from, converted, NULL };
             if (pgpid_run_program(conv, NULL, NULL)) {
                 pgpid_error(_("Error: Can't convert pdf %s."), images[i]);
                 { rc = PGPID_FAIL; goto done; }

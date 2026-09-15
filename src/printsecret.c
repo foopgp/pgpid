@@ -200,6 +200,130 @@ static bool encode_and_cut(const char *priv, const char *workdir, int splits)
     return true;
 }
 
+
+/** XML-escaped copy of TEXT, for dropping into an SVG. */
+static void xml_escape(const char *in, char *out, size_t max)
+{
+    size_t o = 0;
+    for (const char *p = in; *p && o + 8 < max; p++) {
+        const char *rep = *p == '&' ? "&amp;" : *p == '<' ? "&lt;"
+                        : *p == '>' ? "&gt;" : NULL;
+        if (rep) {
+            size_t n = strlen(rep);
+            memcpy(out + o, rep, n);
+            o += n;
+        } else {
+            out[o++] = *p;
+        }
+    }
+    out[o] = '\0';
+}
+
+/**
+ * One fragment, laid out on an A4 page and rendered to PDF.
+ *
+ * Was markdown through pandoc and then pdfcrop: two programs, and between
+ * them a TeX distribution — 275 MB of dependency for a page with six lines
+ * and a picture on it. rsvg-convert was already here for the business card,
+ * and it writes PDF. So the sheet is an SVG, the QR goes in as a data: URI
+ * the way the card's already does, and one renderer does what three did.
+ *
+ * The layout follows the old one line for line, because somebody who has a
+ * drawer of these should not have to look twice to see it is the same sheet.
+ */
+static bool sheet_to_pdf(const char *png, const char *pdf, const char *host,
+                         const char *today, int qrversion, int threshold,
+                         size_t index, int splits, const char *uids,
+                         const char *fpr, const char *passphrase)
+{
+    FILE *f = fopen(png, "rb");
+    if (!f)
+        return false;
+    static unsigned char raw[262144];
+    size_t rawlen = fread(raw, 1, sizeof raw, f);
+    fclose(f);
+    if (!rawlen)
+        return false;
+    static char href[400000];
+    snprintf(href, sizeof href, "data:image/png;base64,");
+    pgpid_base64(raw, rawlen, href + strlen(href));
+
+    /* The uid block, one <text> line each: SVG has no flow text, and the
+     * lines are what the reader checks the sheet by. */
+    /* Integers, not %f: snprintf writes the *locale's* decimal separator, so
+     * under a French locale a coordinate came out "78,0" and librsvg read it
+     * as something else entirely — the QR landed at the top of the page, over
+     * the text. Nothing generated for a machine should pass through the
+     * locale, on the way out any more than on the way in. Millimetres are
+     * precise enough for a sheet of paper. */
+    static char lines[8192];
+    size_t at = 0;
+    int y = 78;
+    char copy[4096];
+    snprintf(copy, sizeof copy, "%s", uids);
+    for (char *line = copy, *save; (line = strtok_r(line, "\n", &save)); line = NULL) {
+        char safe[1024];
+        xml_escape(line, safe, sizeof safe);
+        at += (size_t)snprintf(lines + at, sizeof lines - at,
+                 "<text x='20' y='%d' font-family='monospace' font-size='3.2'>%s</text>\n",
+                 y, safe);
+        y += 5;
+        if (at > sizeof lines - 1200)
+            break;
+    }
+
+    char safehost[512], safepass[512], pass_line[700] = "";
+    xml_escape(host, safehost, sizeof safehost);
+    xml_escape(passphrase ? passphrase : "", safepass, sizeof safepass);
+    /* Only when it was asked for: --with-passphrase puts the one thing on the
+     * sheet that makes a single sheet worth stealing. */
+    if (*safepass)
+        snprintf(pass_line, sizeof pass_line,
+                 "<text x='20' y='%d' font-family='serif' font-size='3.5'>"
+                 "Passphrase: %s</text>\n", y + 136, safepass);
+
+    static char svg[420000];
+    snprintf(svg, sizeof svg,
+        "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'"
+        " width='210mm' height='297mm' viewBox='0 0 210 297'>\n"
+        "<rect width='210' height='297' fill='white'/>\n"
+        "<text x='20' y='48' font-family='serif' font-style='italic' font-size='3.5'>%s - %s</text>\n"
+        "<text x='20' y='54' font-family='serif' font-style='italic' font-size='3.5'>"
+        PGPID_NAME " secret_print " PGPID_VERSION " - QR version: %d</text>\n"
+        "<text x='20' y='66' font-family='serif' font-weight='bold' font-size='6'>"
+        "PGPID SECRET (/%d) - FRAGMENT %zu/%d</text>\n"
+        "%s"
+        "<text x='26' y='%d' font-family='monospace' font-size='3.2'>"
+        "0x %.4s %.4s %.4s %.4s %.4s %.4s %.4s %.4s %.4s %.4s</text>\n"
+        "<image x='45' y='%d' width='120' height='120' xlink:href='%s'/>\n"
+        "%s"
+        "</svg>\n",
+        safehost, today, qrversion, threshold, index, splits, lines,
+        y + 1,
+        fpr, fpr + 4, fpr + 8, fpr + 12, fpr + 16, fpr + 20, fpr + 24,
+        fpr + 28, fpr + 32, fpr + 36,
+        y + 8, href,
+        pass_line);
+
+    char svgpath[640];
+    snprintf(svgpath, sizeof svgpath, "%.599s.svg", pdf);
+    FILE *out = fopen(svgpath, "wb");
+    if (!out)
+        return false;
+    size_t wrote = fwrite(svg, 1, strlen(svg), out);
+    /* From here on the file exists and holds the fragment's QR, so every way
+     * out of this function goes past the unlink. A half-written sheet is
+     * still half a secret. */
+    bool ok = fclose(out) == 0 && wrote == strlen(svg);
+    if (ok) {
+        const char *render[] = { "rsvg-convert", "--format", "pdf",
+                                 "--output", pdf, svgpath, NULL };
+        ok = pgpid_run_program(render, NULL, NULL) == 0;
+    }
+    pgpid_shred_path(svgpath);
+    return ok;
+}
+
 /**
  * Rewrite an exported key, keeping only the uids named.
  *
@@ -665,39 +789,14 @@ int pgpid_action_secret_print(int argc, char **argv)
             return PGPID_FAIL;
         }
 
-        char sheet[8192];
-        snprintf(sheet, sizeof sheet,
-                 "\\pagenumbering{gobble}\n\n"
-                 "*%s - %s*\n\n"
-                 "*" PGPID_NAME " print_secret " PGPID_VERSION
-                 " - QR version: %d*\n\n"
-                 "## PGPID SECRET (/%d) - FRAGMENT %zu/%d\n\n"
-                 "```\n\n%s```\n"
-                 ">     0x %.4s %.4s %.4s %.4s %.4s %.4s %.4s %.4s %.4s %.4s\n\n"
-                 "![qrcode %zu](%s)\n\n%s%s\n",
-                 host, today, qrversion, threshold, i + 1, splits, uids,
-                 fpr, fpr + 4, fpr + 8, fpr + 12, fpr + 16, fpr + 20, fpr + 24,
-                 fpr + 28, fpr + 32, fpr + 36,
-                 i + 1, png,
-                 with_passphrase ? "Passphrase: " : "",
-                 with_passphrase ? passphrase : "");
 
-        char rough[640];
-        snprintf(rough, sizeof rough, "%.599s.rough.pdf", frag);
-        const char *doc[] = { "pandoc", "--from", "markdown", "--to", "pdf",
-                              "-fmarkdown-implicit_figures", NULL };
-        if (pgpid_run_program(doc, sheet, rough)) {
-            pgpid_error(_("Error: pandoc would not lay fragment %zu out."), i + 1);
+        if (!sheet_to_pdf(png, pdf, host, today, qrversion, threshold,
+                          i + 1, splits, uids, fpr,
+                          with_passphrase ? passphrase : NULL)) {
+            pgpid_error(_("Error: Fragment %zu could not be laid out."), i + 1);
             free(names);
             return PGPID_FAIL;
         }
-        const char *crop[] = { "pdfcrop", "--quiet", "--margins", "4", rough, pdf, NULL };
-        if (pgpid_run_program(crop, NULL, NULL)) {
-            pgpid_error(_("Error: pdfcrop would not trim fragment %zu."), i + 1);
-            free(names);
-            return PGPID_FAIL;
-        }
-        unlink(rough);
 
         if (*printer) {
             const char *print[] = { "lpr", "-#", "1", "-P", printer, pdf, NULL };
