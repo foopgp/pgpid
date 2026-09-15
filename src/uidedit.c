@@ -7,7 +7,7 @@
  *
  * Three operations that `email` and `property` both need, written once.
  *
- * Revoking a uid is irreversible in a way that surprises people: OpenPGP
+ * Revoking a uid is irreversible in a way that surprises people: PGP
  * keeps the revoked uid on the certificate forever, marked revoked, and gpg
  * then refuses to add an identical one. "Undo" means living with a name
  * struck through, not without it.
@@ -66,7 +66,7 @@ const char *pgpid_uid_address(const char *uid, size_t *len)
 bool pgpid_revoke_uid(const char *user, const char *uid, bool assume_yes)
 {
     if (!assume_yes) {
-        pgpid_error(_("Error: Revoking a User ID is irreversible — OpenPGP keeps it"));
+        pgpid_error(_("Error: Revoking a User ID is irreversible — PGP keeps it"));
         pgpid_error(_("on the certificate forever, marked revoked, and an identical one"));
         pgpid_error(_("can never be added again. Pass --yes if that is what you want:"));
         pgpid_error(_("  %s"), uid);

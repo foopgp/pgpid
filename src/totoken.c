@@ -42,9 +42,9 @@ static void usage(FILE *out)
         "%s"
         " secret_totoken [OPTIONS]... KEY_ID|FPR\n"
         "\n"
-        "Move OpenPGP secrets to security token (OpenPGP smartcard).\n"
+        "Move PGP secrets to security token (OpenPGP smartcard).\n"
         "Security token (OpenPGP smartcard) must be connected.\n"
-        "Output ASCII armored OpenPGP certificate, PIN code and admin code.\n"
+        "Output ASCII armored PGP certificate, PIN code and admin code.\n"
         "\n"
         "This wipes the card and takes the secret parts off this machine. Both are\n"
         "final. Print the key first if it is not printed: "
@@ -52,15 +52,15 @@ static void usage(FILE *out)
         " secret_print.\n"
         "\n"
         "OPTIONS:\n"
-        "  -p, --passphrase PASSPHRASE  Passphrase to access secret parts of OpenPGP key\n"
+        "  -p, --passphrase PASSPHRASE  Passphrase to access secret parts of PGP key\n"
         "  -P, --passfrom FILE          Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
-        "  -U, --certurl URL            URL to retrieve your OpenPGP certificate\n"
+        "  -U, --certurl URL            URL to retrieve your PGP certificate\n"
         "                               Default: https://%s/pks/lookup?op=get&search=0x<FPR>\n"
         "  -L, --lang LANG              Security token (OpenPGP smartcard) prefered language (default: the locale's)\n"
-        "  -k, --keyserver KEYSERVER    Send OpenPGP certificate to this public keys server\n"
+        "  -k, --keyserver KEYSERVER    Send PGP certificate to this public keys server\n"
         "                               Empty to send it nowhere. Does not change --certurl\n"
         "                               Default: %s\n"
-        "  -K, --pubkey FILE            Also write armored OpenPGP certificate to given FILE\n"
+        "  -K, --pubkey FILE            Also write armored PGP certificate to given FILE\n"
         "      --force                  Don't ask before resetting unempty security token (OpenPGP smartcard)\n"
         "  -h, --help                   Print this help and exit\n"
         "  -V, --version                Print the version and exit\n"
@@ -311,7 +311,7 @@ int pgpid_action_secret_totoken(int argc, char **argv)
         }
     }
     if (!*email) {
-        pgpid_error(_("Error: No email for OpenPGP key '%s'."), fpr);
+        pgpid_error(_("Error: No email for PGP key '%s'."), fpr);
         return PGPID_FAIL;
     }
 
@@ -438,7 +438,7 @@ int pgpid_action_secret_totoken(int argc, char **argv)
         return PGPID_FAIL;
     }
 
-    pgpid_error(_("Notice: Moving OpenPGP secrets to security token…"));
+    pgpid_error(_("Notice: Moving PGP secrets to security token…"));
     const char *move[] = { "--command-fd", "0", "--batch", "--pinentry-mode",
                            "loopback", "--passphrase", "12345678", "--edit-key", fpr, NULL };
     if (pgpid_run_engine_input(move,

@@ -288,7 +288,7 @@ int pgpid_transliterate(const char *in, char *out, size_t max);
  * revoke as they replace, so a long history is normal and a thousand is not.
  */
 
-/* Walking an OpenPGP packet stream — what a colon listing does not surface.
+/* Walking an PGP packet stream — what a colon listing does not surface.
  * See packets.c: the image a certificate wears and the keyserver it names
  * both live in packets its user id chain never mentions. */
 struct pgpid_packet {
@@ -420,7 +420,7 @@ bool pgpid_uid_has_address(const char *uid);
 /* The address inside such a uid, pointing into it, or NULL. */
 const char *pgpid_uid_address(const char *uid, size_t *len);
 
-/* Revoke one uid. Irreversible: OpenPGP keeps it on the certificate forever
+/* Revoke one uid. Irreversible: PGP keeps it on the certificate forever
  * and gpg then refuses an identical one, which is what the confirmation is
  * there to say. */
 bool pgpid_revoke_uid(const char *user, const char *uid, bool assume_yes);

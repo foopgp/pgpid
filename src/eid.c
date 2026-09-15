@@ -1,4 +1,4 @@
-/* The entity identifier carried by an OpenPGP uid.
+/* The entity identifier carried by a PGP uid.
  *
  * Copyright 2026 Jean-Jacques Brucker (u4sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
  * Copyright 2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>

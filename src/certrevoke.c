@@ -72,7 +72,7 @@ static void usage(FILE *out)
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"
         "\n"
-        "Revoking is final. OpenPGP has no way back: every copy that ever fetches this\n"
+        "Revoking is final. PGP has no way back: every copy that ever fetches this\n"
         "certificate, anywhere, will see it revoked, and no later signature will count.\n"),
             PGPID_NAME, PGPID_NAME, PGPID_NAME, PGPID_KEYSERVERS);
 }

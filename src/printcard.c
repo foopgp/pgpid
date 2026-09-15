@@ -43,7 +43,7 @@ static void usage(FILE *out)
         "  -P, --print PRINTER|FILE.svg  Printer name to send to, or output SVG file if it ends with '.svg'\n"
         "  -t, --template FILE.svg       Use this template to produce business card\n"
         "                                (one is shipped: " PGPID_CARD_TEMPLATE ")\n"
-        "  -N, --name NAME               Override the displayed name (default: guessed from OpenPGP certificate and email)\n"
+        "  -N, --name NAME               Override the displayed name (default: guessed from PGP certificate and email)\n"
         "  -g, --no-color                Output in grayscale instead of color\n"
         "  -h, --help                    Print this help and exit\n"
         "  -V, --version                 Print the version and exit\n"),
@@ -358,7 +358,7 @@ int pgpid_action_cert_tobizcard(int argc, char **argv)
         { "${FPR_LINE1}", line1 },
         { "${FPR_LINE2}", line2 },
         { "${EMAIL}",     safe_email },
-        { "${SUBTITLE}",  "Friends of OpenPGP" },
+        { "${SUBTITLE}",  "Friends of PGP" },
     };
     for (size_t i = 0; i < sizeof fill / sizeof *fill; i++) {
         char *next = substitute(body, fill[i].key, fill[i].value);

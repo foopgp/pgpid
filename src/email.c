@@ -9,7 +9,7 @@
  * every mail client has read for thirty years, and that is why it is handled
  * here rather than with the others.
  *
- * A certificate never loses its last address. Not out of caution: an OpenPGP
+ * A certificate never loses its last address. Not out of caution: a PGP
  * certificate with no address is one no mail client will offer to anybody,
  * and the person who revoked their way there has no way back — the revoked
  * uids stay revoked forever.
@@ -29,11 +29,11 @@ static void usage(FILE *out)
         "%s"
         " cert_email [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
         "\n"
-        "Display and add or revoke emails inside OpenPGP certificate.\n"
+        "Display and add or revoke emails inside PGP certificate.\n"
         "Missing NAME|EMAIL|KEYID|U4|U5 => the certificate the connected security\n"
         "token belongs to.\n"
         "Output usable emails (non-revoked and non-expired), each followed by\n"
-        "'primary' or '-'. OpenPGP flags one user id for the whole certificate,\n"
+        "'primary' or '-'. PGP flags one user id for the whole certificate,\n"
         "not one per address, so --set-primary moves that flag rather than\n"
         "setting one -- onto the uid carrying EMAIL that the address rule picks.\n"
         "\n"
@@ -54,7 +54,7 @@ static void usage(FILE *out)
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"
         "\n"
-        "Revoking is irreversible: OpenPGP keeps the address on the certificate\n"
+        "Revoking is irreversible: PGP keeps the address on the certificate\n"
         "forever, marked revoked, and an identical one can never be added again.\n"),
             PGPID_NAME, PGPID_KEYSERVERS);
 }
@@ -299,7 +299,7 @@ static int certs_per_address(const char *user, struct addr_count *best, size_t *
 /**
  * Put the primary flag on the uid that carries this address.
  *
- * OpenPGP has one primary user id for the whole certificate, not one per
+ * PGP has one primary user id for the whole certificate, not one per
  * address, so this moves a flag rather than setting one. Among the uids that
  * carry the address and still stand, the one the address rule would pick
  * anyway — so that "the main address" and "the primary uid" go on naming the
@@ -477,7 +477,7 @@ int pgpid_action_cert_email(int argc, char **argv)
             }
             if (struck) {
                 pgpid_error(_("Notice: '%s' was revoked earlier and cannot be added "
-                            "again — OpenPGP keeps revoked User IDs on the "
+                            "again — PGP keeps revoked User IDs on the "
                             "certificate forever."), want);
                 continue;
             }

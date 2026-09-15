@@ -325,13 +325,13 @@ static void usage(FILE *out)
         "%s"
         " cert_tovcard [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
         "\n"
-        "Convert OpenPGP certificate to vCard (format 4.0).\n"
+        "Convert PGP certificate to vCard (format 4.0).\n"
         "Missing NAME|EMAIL|KEYID|U4|U5 => the certificate whose secret key is at\n"
         "hand.\n"
         "\n"
         "OPTIONS:\n"
         "  -o, --output FILE           Write into given FILE instead of standard output\n"
-        "      --raw                   Don't convert, but raw output all OpenPGP uids strings, separated by empty lines\n"
+        "      --raw                   Don't convert, but raw output all PGP uids strings, separated by empty lines\n"
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"),
             PGPID_NAME);

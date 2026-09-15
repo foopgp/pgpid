@@ -4,7 +4,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-only
 #
-# Scan QRcodes containing parts of OpenPGP secrets from IMAGES or webcam,
+# Scan QRcodes containing parts of PGP secrets from IMAGES or webcam,
 # and import this secrets into a factory reset OpenPGP secured device (eg yubikey).
 #
 
@@ -25,7 +25,7 @@ LOGLEVEL=6
 
 usage="Usage: $BASH_SOURCE [OPTIONS]... [--] [IMAGES]...
 
-$PGPI_NAME scan QRcodes containing parts of OpenPGP secrets from IMAGES or webcam,
+$PGPI_NAME scan QRcodes containing parts of PGP secrets from IMAGES or webcam,
 and import this secrets into a factory reset OpenPGP secured device (eg yubikey)."
 
 soptions="

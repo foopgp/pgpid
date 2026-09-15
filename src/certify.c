@@ -64,7 +64,7 @@ static void usage(FILE *out)
         "\n"
         "OPTIONS:\n"
         "  -u, --use-privkey NAME|KEYID Select private key to use. Default: Guess it from connected token\n"
-        "  -E, --all-emails             Also certify every OpenPGP uid containing an email. For compatibility with some legacy software.\n"
+        "  -E, --all-emails             Also certify every PGP uid containing an email. For compatibility with some legacy software.\n"
         "  -R, --revoke                 Revoke your previous certifications on someone else's certificate\n"
         "  -o, --credibility VALUE      What credibility do you assign to the target to correctly certify others {undefined,marginal,full,never}\n"
         "      --ownertrust VALUE       The same, under the name gpg gives it - Default: marginal\n"

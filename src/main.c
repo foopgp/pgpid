@@ -116,7 +116,7 @@ static void usage(FILE *out)
         "%s"
         " [OPTIONS]... ACTION [ARGS]...\n"
         "\n"
-        "Read and act on OpenPGP certificates through the pgpid model: entity\n"
+        "Read and act on PGP certificates through the pgpid model: entity\n"
         "identifiers, validity, credibility.\n"
         "\n"
         "ACTIONS:\n"),
