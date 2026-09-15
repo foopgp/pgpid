@@ -48,6 +48,24 @@ void pgpid_emit_completion(const char *const *actions, size_t n)
         "done\n"
         "unset _a\n", PGPID_NAME);
 
+    /* What an option *takes*, harvested the same way rather than written out
+     * here. A hand-kept list drifts: this one still named --import-file,
+     * which no action has ever had, and knew none of --passfrom, --template,
+     * --pubkey or --replace-to, which are the ones somebody most wants a path
+     * for. The help shows the kind after the option — FILE, DIRECTORY, IMAGE,
+     * PRINTER, V4LDEVICE — and that is the whole rule. */
+    printf(
+        "_pgpid_paths=$(for _a in $_pgpid_actions ; do %s --batch \"$_a\" --help 2>/dev/null ; done \\\n"
+        "    | sed --silent --regexp-extended -e 's/.*[ ,](--[a-z0-9-]+) \\[?(FILE|DIRECTORY|IMAGE)\\]?.*/\\1/p' \\\n"
+        "    | sort --unique | tr '\\n' '|')\n"
+        "_pgpid_printers=$(for _a in $_pgpid_actions ; do %s --batch \"$_a\" --help 2>/dev/null ; done \\\n"
+        "    | sed --silent --regexp-extended -e 's/.*[ ,](--[a-z0-9-]+) \\[?PRINTER.*/\\1/p' \\\n"
+        "    | sort --unique | tr '\\n' '|')\n"
+        "_pgpid_devices=$(for _a in $_pgpid_actions ; do %s --batch \"$_a\" --help 2>/dev/null ; done \\\n"
+        "    | sed --silent --regexp-extended -e 's/.*[ ,](--[a-z0-9-]+) \\[?V4LDEVICE.*/\\1/p' \\\n"
+        "    | sort --unique | tr '\\n' '|')\n"
+        "unset _a\n", PGPID_NAME, PGPID_NAME, PGPID_NAME);
+
     printf(
         "_pgpid_completion()\n"
         "{\n"
@@ -57,9 +75,26 @@ void pgpid_emit_completion(const char *const *actions, size_t n)
         "    prev=${COMP_WORDS[COMP_CWORD-1]}\n"
         "\n"
         "    # An option that takes a value: complete the value, not another\n"
-        "    # option. A path is the only kind worth guessing at.\n"
+        "    # option. Which options those are, and what kind of value each\n"
+        "    # wants, was harvested above from the helps themselves.\n"
+        "    case \"|$_pgpid_paths|$_pgpid_printers|$_pgpid_devices\" in\n"
+        "        *\"|$prev|\"*)\n"
+        "            case \"|$_pgpid_printers\" in\n"
+        "                *\"|$prev|\"*)\n"
+        "                    COMPREPLY=( $(compgen -W \"$(lpstat -a 2>/dev/null | cut -d\" \" -f1)\" -- \"$cur\") )\n"
+        "                    return 0 ;;\n"
+        "            esac\n"
+        "            case \"|$_pgpid_devices\" in\n"
+        "                *\"|$prev|\"*)\n"
+        "                    COMPREPLY=( $(compgen -W \"$(ls /dev/video* 2>/dev/null)\" -- \"$cur\") )\n"
+        "                    return 0 ;;\n"
+        "            esac\n"
+        "            compopt -o plusdirs 2>/dev/null\n"
+        "            COMPREPLY=( $(compgen -f -- \"$cur\") )\n"
+        "            return 0 ;;\n"
+        "    esac\n"
         "    case $prev in\n"
-        "        --homedir|--workdir|--export-file|--import-file|--codefrom|--newcodefrom|--admincodefrom)\n"
+        "        --homedir)\n"
         "            compopt -o plusdirs 2>/dev/null\n"
         "            COMPREPLY=( $(compgen -A directory -- \"$cur\") )\n"
         "            return 0 ;;\n"

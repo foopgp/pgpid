@@ -101,7 +101,13 @@ namedesc() {
 
 # Every action, in the order the program lists them.
 actions() {
-	LC_ALL="$carrier" LANGUAGE=en "$staging/bin/pgpid" --help | sed --silent '/^ACTIONS:/,/^$/ { /^  [a-z]/ s/^  \([a-z_0-9]*\).*/\1/p }'
+	# To OPTIONS: and not to the first blank line. The actions were listed in
+	# one block when this was written and are grouped now — Certificates,
+	# Secret keys, Security keys, Generators — with a blank line before each
+	# heading. Stopping at the first of those found no action at all, and the
+	# ACTIONS section of every page came out empty. The two-space indent is
+	# what still tells an action from the heading above it.
+	LC_ALL="$carrier" LANGUAGE=en "$staging/bin/pgpid" --help | sed --silent '/^ACTIONS:/,/^OPTIONS:/ { /^  [a-z]/ s/^  \([a-z_0-9]*\).*/\1/p }'
 }
 
 for lang in $linguas ; do
