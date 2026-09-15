@@ -148,6 +148,19 @@ int pgpid_action_token_code(int argc, char **argv)
             return PGPID_USAGE;
         }
     }
+    /* A new code given and no --replace cannot mean what it says: the code
+     * would be read, carried around, and thrown away while the card kept the
+     * one it had. secret_totoken did exactly that for a while — it verified
+     * the factory code, announced a random one, and left the card open.
+     * Refused rather than ignored, because the caller that makes this mistake
+     * is told nothing by a success. */
+    if (fresh_given && !replace && !unblock) {
+        pgpid_error(_("Error: A new code was given but not --replace, so nothing "
+                    "would change."));
+        pgpid_error(_("Notice: Add --replace to change it, or drop the new code to "
+                    "only check the current one."));
+        return PGPID_USAGE;
+    }
     if ((replace || unblock) && !fresh_given) {
         snprintf(prompt, sizeof prompt,
                  _("New %s code (%zu digits): "), kind, length);

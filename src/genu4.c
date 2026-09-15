@@ -53,12 +53,19 @@ static void usage(FILE *out)
         "  -c, --birth-country COUNTRY_CODE 3 letters country code of birth place: GBR, NGA, FRA, …\n"
         "      --from-passport-mrz          Read the civil status off a passport zone given as arguments\n"
         "  -u, --uncheck                    With a zone: report a failing check digit rather than refusing\n"
+        "      --verify                     Show the civil status and let it be corrected before computing\n"
         "  -h, --help                       Print this help and exit\n"
         "  -V, --version                    Print the version and exit\n"
         "\n"
-        "Typed in, everything is required: asking for what is missing belongs to\n"
-        "whoever has somebody to ask. From a passport, nothing is — and only\n"
-        "--birth-date is worth adding, for anyone the zone's two digits cannot place.\n"
+        "Typed in, whatever is missing is asked for, unless --batch. From a\n"
+        "passport, nothing is required — and only --birth-date is worth adding, for\n"
+        "anyone the zone's two digits cannot place.\n"
+        "\n"
+        "--verify shows the four values and lets them be corrected before anything is\n"
+        "computed, which is what a zone read by OCR usually needs. It also stops a\n"
+        "failing check digit from refusing outright, the way --uncheck does: the\n"
+        "point is to correct the reading rather than to be sent away from it. It\n"
+        "does nothing under --batch, where there is nobody to show it to.\n"
         "\n"
         "There are ~20%% chances that a *u4* generated from a passport is incorrect:\n"
         "a surname truncated to fit, a name changed since birth, another\n"
@@ -226,10 +233,111 @@ static bool u4_print(const char *field, const char *date, const char *coord)
  * surname truncated to fit gets corrected by naming it, and the other three
  * still come from the document.
  */
+
+/** '<' back to a space, for a value a person is meant to read and correct. */
+static void readable(const char *in, char *out, size_t max)
+{
+    size_t o = 0;
+    for (const char *p = in; *p && o < max - 1; p++)
+        out[o++] = (*p == '<') ? ' ' : *p;
+    while (o && out[o - 1] == ' ')
+        o--;
+    out[o] = '\0';
+}
+
+/** Ask, keeping WHAT is already there when the answer is empty. */
+static bool ask_with_default(const char *label, char *value, size_t max)
+{
+    char prompt[512], answer[300];
+    snprintf(prompt, sizeof prompt, "%s [%s]: ", label, value);
+    if (!pgpid_ask(prompt, answer, sizeof answer))
+        return false;
+    if (*answer)
+        snprintf(value, max, "%s", answer);
+    return true;
+}
+
+/**
+ * Show the civil status, and let it be corrected until it is right.
+ *
+ * What `--verify` was for in the shell, and the reason it existed: a zone read
+ * by OCR is wrong about one character often enough, a name has changed since
+ * birth often enough, and an identifier minted from a wrong civil status is a
+ * different person's identifier -- discovered, if ever, long afterwards.
+ *
+ * The default is "no": nothing is accepted by pressing enter. Four values are
+ * quick to reread and this is the only moment they can be reread at all.
+ */
+static bool verify_civil_status(char *surname, size_t sn, char *given, size_t gn,
+                                char *date, size_t dn, char *country, size_t cn)
+{
+    for (;;) {
+        pgpid_error(_("Notice: Surname at birth:     %s"), surname);
+        pgpid_error(_("Notice: Given names:         %s"), given);
+        pgpid_error(_("Notice: Date of birth:       %s"), date);
+        pgpid_error(_("Notice: Country of birth:    %s"), country);
+        char answer[8];
+        if (!pgpid_ask(_("Is that correct? [y/N]: "), answer, sizeof answer))
+            return false;
+        /* 'y' as well as 'yes', and the default is no. A read-back is not a
+         * destructive act -- the strict "type yes" belongs where something is
+         * about to be lost -- but nothing here is accepted by pressing enter
+         * either: four values are quick to reread, and this is the only
+         * moment they can be reread at all. */
+        if (!strcasecmp(answer, "y") || !strcasecmp(answer, "yes"))
+            return true;
+        if (!ask_with_default(_("Birth surname (family name)"), surname, sn)
+            || !ask_with_default(_("Birth names (all given names)"), given, gn)
+            || !ask_with_default(_("Birth date (YYYY-MM-DD)"), date, dn)
+            || !ask_with_default(_("Birth country (3 letter code)"), country, cn))
+            return false;
+    }
+}
+
+/**
+ * The one computation, wherever the four values came from.
+ *
+ * Typed in or read off a passport, what is hashed is the same: the names
+ * through the reference transliteration, the date, and the country's
+ * coordinates. Which is why --verify can sit in front of it once rather than
+ * in each way in.
+ */
+static int u4_from_fields(char *surname, size_t sn, char *given, size_t gn,
+                          char *date, size_t dn, char *country, size_t cn,
+                          bool verify)
+{
+    if (verify && !pgpid_batch && !verify_civil_status(surname, sn, given, gn,
+                                                       date, dn, country, cn))
+        return PGPID_USAGE;
+
+    char birth[16];
+    if (!read_birth_date(date, birth, sizeof birth)) {
+        pgpid_error(_("Error: '%s' is not a date. Give it as YYYY-MM-DD."), date);
+        return PGPID_USAGE;
+    }
+    const char *coord = pgpid_country_coordinates(country);
+    if (!coord) {
+        pgpid_error(_("Error: '%s' is not a three-letter country code we know."), country);
+        return PGPID_USAGE;
+    }
+
+    char s[300], g[300], field[640];
+    if (pgpid_transliterate(surname, s, sizeof s) < 0
+        || pgpid_transliterate(given, g, sizeof g) < 0) {
+        pgpid_error(_("Error: The name is not valid UTF-8."));
+        return PGPID_USAGE;
+    }
+    warn_if_transliterated(surname, s);
+    warn_if_transliterated(given, g);
+    compose_names(s, g, field, sizeof field);
+
+    return u4_print(field, birth, coord) ? PGPID_OK : PGPID_USAGE;
+}
+
 static int from_passport_mrz(int argc, char **argv, int first,
                              const char *surname, const char *given,
                              const char *date_given, const char *country,
-                             bool uncheck)
+                             bool uncheck, bool verify)
 {
     /* The two lines arrive as several arguments as often as one. */
     char raw[512] = "";
@@ -266,51 +374,53 @@ static int from_passport_mrz(int argc, char **argv, int first,
             return PGPID_FAIL;
     }
 
-    /* As wide as the typed way's, since either half may now come from there. */
+    /* The zone's two halves, read back as a person would write them: the
+     * separators go, because what leaves here may be shown, corrected, and
+     * put through the transliteration again -- and because a half never holds
+     * a run of them, only the boundary between the two does, and that is
+     * rebuilt on the way out. */
     char part_surname[300], part_given[300];
     split_zone_names(mrz.names, part_surname, sizeof part_surname,
                      part_given, sizeof part_given);
-    if (surname && pgpid_transliterate(surname, part_surname, sizeof part_surname) < 0) {
-        pgpid_error(_("Error: The name is not valid UTF-8."));
-        return PGPID_USAGE;
-    }
-    if (surname)
-        warn_if_transliterated(surname, part_surname);
-    if (given && pgpid_transliterate(given, part_given, sizeof part_given) < 0) {
-        pgpid_error(_("Error: The name is not valid UTF-8."));
-        return PGPID_USAGE;
-    }
-    if (given)
-        warn_if_transliterated(given, part_given);
-    char field[640];
-    compose_names(part_surname, part_given, field, sizeof field);
 
-    char date[16];
+    char f_surname[300], f_given[300], f_date[16], f_country[8];
+    if (surname)
+        snprintf(f_surname, sizeof f_surname, "%s", surname);
+    else
+        readable(part_surname, f_surname, sizeof f_surname);
+    if (given)
+        snprintf(f_given, sizeof f_given, "%s", given);
+    else
+        readable(part_given, f_given, sizeof f_given);
+
     if (date_given) {
-        if (!read_birth_date(date_given, date, sizeof date)) {
+        if (!read_birth_date(date_given, f_date, sizeof f_date)) {
             pgpid_error(_("Error: '%s' is not a date. Give it as YYYY-MM-DD."), date_given);
             return PGPID_USAGE;
         }
     } else {
-        pgpid_mrz_expand_year(mrz.birth, date, sizeof date);
+        pgpid_mrz_expand_year(mrz.birth, f_date, sizeof f_date);
     }
+    snprintf(f_country, sizeof f_country, "%s", country ? country : mrz.country);
 
     /* Whose mistake it is decides how it is reported: what somebody typed is
-     * a usage error, what a document carries is a failure to read it. */
-    const char *coord = pgpid_country_coordinates(country ? country : mrz.country);
-    if (!coord) {
-        pgpid_error(_("Error: '%s' is not a three-letter country code we know."),
-                    country ? country : mrz.country);
+     * a usage error, what a document carries is a failure to read it. Asked
+     * before the computation so that the country read off the zone can be
+     * corrected rather than merely refused. */
+    if (!verify && !pgpid_country_coordinates(f_country)) {
+        pgpid_error(_("Error: '%s' is not a three-letter country code we know."), f_country);
         return country ? PGPID_USAGE : PGPID_FAIL;
     }
 
-    return u4_print(field, date, coord) ? PGPID_OK : PGPID_FAIL;
+    return u4_from_fields(f_surname, sizeof f_surname, f_given, sizeof f_given,
+                          f_date, sizeof f_date, f_country, sizeof f_country,
+                          verify);
 }
 
 int pgpid_action_gen_u4(int argc, char **argv)
 {
     const char *surname = NULL, *given = NULL, *date = NULL, *country = NULL;
-    bool from_mrz = false, uncheck = false;
+    bool from_mrz = false, uncheck = false, verify = false;
     int first = 0;
 
     for (int i = 1; i < argc; i++) {
@@ -322,6 +432,7 @@ int pgpid_action_gen_u4(int argc, char **argv)
         else if (!strcmp(a, "-c") || !strcmp(a, "--birth-country")) want = &country;
         else if (!strcmp(a, "--from-passport-mrz")) from_mrz = true;
         else if (!strcmp(a, "-u") || !strcmp(a, "--uncheck")) uncheck = true;
+        else if (!strcmp(a, "--verify")) verify = true;
         else if (!strcmp(a, "-h") || !strcmp(a, "--help")) { usage(stdout); return PGPID_OK; }
         else if (!strcmp(a, "-V") || !strcmp(a, "--version")) {
             printf("%s %s\n", argv[0], PGPID_VERSION);
@@ -353,7 +464,7 @@ int pgpid_action_gen_u4(int argc, char **argv)
             return PGPID_USAGE;
         }
         return from_passport_mrz(argc, argv, first, surname, given, date,
-                                 country, uncheck);
+                                 country, uncheck || verify, verify);
     }
 
     if (uncheck) {
@@ -388,28 +499,12 @@ int pgpid_action_gen_u4(int argc, char **argv)
         *fields[f].slot = asked[f];
     }
 
-    char birth[16];
-    if (!read_birth_date(date, birth, sizeof birth)) {
-        pgpid_error(_("Error: '%s' is not a date. Give it as YYYY-MM-DD."), date);
-        return PGPID_USAGE;
-    }
-    const char *coord = pgpid_country_coordinates(country);
-    if (!coord) {
-        pgpid_error(_("Error: '%s' is not a three-letter country code we know."), country);
-        return PGPID_USAGE;
-    }
-
-    /* Separators first, then transliteration, then the match — the shell's
-     * order, and it is the order that makes a hyphen a boundary. */
-    char s[300], g[300], field[640];
-    if (pgpid_transliterate(surname, s, sizeof s) < 0
-        || pgpid_transliterate(given, g, sizeof g) < 0) {
-        pgpid_error(_("Error: The name is not valid UTF-8."));
-        return PGPID_USAGE;
-    }
-    warn_if_transliterated(surname, s);
-    warn_if_transliterated(given, g);
-    compose_names(s, g, field, sizeof field);
-
-    return u4_print(field, birth, coord) ? PGPID_OK : PGPID_USAGE;
+    char f_surname[300], f_given[300], f_date[16], f_country[8];
+    snprintf(f_surname, sizeof f_surname, "%s", surname);
+    snprintf(f_given, sizeof f_given, "%s", given);
+    snprintf(f_date, sizeof f_date, "%s", date);
+    snprintf(f_country, sizeof f_country, "%s", country);
+    return u4_from_fields(f_surname, sizeof f_surname, f_given, sizeof f_given,
+                          f_date, sizeof f_date, f_country, sizeof f_country,
+                          verify);
 }
