@@ -39,7 +39,7 @@ device (eg yubikey).
 
 **-k**, **\--no-send**
 
-:   don\'t send the public key (certificate) to any keyserver
+:   don't send the public key (certificate) to any keyserver
 
 **-v**, **\--verbose**
 

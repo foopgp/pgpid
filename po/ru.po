@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid 0.0.7-35-g8512aa6\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-09-15 12:10+0200\n"
+"POT-Creation-Date: 2026-09-15 15:56+0200\n"
 "PO-Revision-Date: 2026-08-22 22:58+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -158,8 +158,8 @@ msgstr "Error: «%s» ожидает изображение."
 msgid "Error: '%s' wants a list of servers, empty for none."
 msgstr "Error: «%s» ожидает список серверов, пустой — ни одного."
 
-#: ../src/avatar.c:508 ../src/main.c:159 ../src/printsecret.c:300
-#: ../src/scan.c:382
+#: ../src/avatar.c:508 ../src/main.c:159 ../src/printsecret.c:488
+#: ../src/scan.c:402
 #, c-format
 msgid "Error: '%s' wants a directory."
 msgstr "Error: «%s» ожидает каталог."
@@ -167,10 +167,10 @@ msgstr "Error: «%s» ожидает каталог."
 #: ../src/avatar.c:523 ../src/certify.c:530 ../src/certrevoke.c:109
 #: ../src/changepass.c:119 ../src/changetokencode.c:127
 #: ../src/changetokenmeta.c:206 ../src/del.c:78 ../src/email.c:424
-#: ../src/genkey.c:206 ../src/genu4.c:449 ../src/genuid.c:162 ../src/get.c:318
-#: ../src/list.c:377 ../src/main.c:194 ../src/printcard.c:144
-#: ../src/printsecret.c:330 ../src/property.c:493 ../src/push.c:81
-#: ../src/scan.c:418 ../src/secretdel.c:78 ../src/secretlist.c:59
+#: ../src/genkey.c:207 ../src/genu4.c:523 ../src/genuid.c:162 ../src/get.c:318
+#: ../src/list.c:377 ../src/main.c:194 ../src/printcard.c:222
+#: ../src/printsecret.c:518 ../src/property.c:493 ../src/push.c:81
+#: ../src/scan.c:438 ../src/secretdel.c:78 ../src/secretlist.c:59
 #: ../src/sigs.c:145 ../src/systemadduser.c:416 ../src/systemadmins.c:93
 #: ../src/systemconfhome.c:115 ../src/systemdeluser.c:171
 #: ../src/systemusers.c:114 ../src/token.c:129 ../src/tokencheck.c:258
@@ -441,7 +441,7 @@ msgstr "Error: Ни один сертификат здесь не несёт э�
 msgid "Error: '%s' wants a key."
 msgstr "Error: «%s» ожидает ключ."
 
-#: ../src/certify.c:506 ../src/genu4.c:458 ../src/property.c:464
+#: ../src/certify.c:506 ../src/genu4.c:532 ../src/property.c:464
 #: ../src/systemadduser.c:424 ../src/trustdb.c:628
 #, c-format
 msgid "Error: '%s' wants a value."
@@ -677,7 +677,7 @@ msgstr ""
 "\n"
 
 #: ../src/changepass.c:49 ../src/changetokencode.c:57
-#: ../src/changetokenmeta.c:57 ../src/genkey.c:163 ../src/printsecret.c:86
+#: ../src/changetokenmeta.c:57 ../src/genkey.c:164 ../src/printsecret.c:86
 #: ../src/property.c:378 ../src/totoken.c:81
 #, c-format
 msgid "Error: Cannot read %s."
@@ -708,7 +708,7 @@ msgstr "Error: Нужны обе парольные фразы — нынешн�
 msgid "--newpassphrase or --newpassfrom. Empty strings mean none."
 msgstr "--newpassphrase или --newpassfrom. Пустая строка означает никакой."
 
-#: ../src/changepass.c:151 ../src/printsecret.c:426 ../src/secretdel.c:117
+#: ../src/changepass.c:151 ../src/printsecret.c:614 ../src/secretdel.c:117
 #: ../src/totoken.c:262
 #, c-format
 msgid "Error: No secret for '%s' here."
@@ -817,7 +817,7 @@ msgid "Error: '%s' wants a code."
 msgstr "Error: «%s» ожидает код."
 
 #: ../src/changetokencode.c:95 ../src/changetokencode.c:105
-#: ../src/changetokenmeta.c:191 ../src/genkey.c:158 ../src/printsecret.c:282
+#: ../src/changetokenmeta.c:191 ../src/genkey.c:159 ../src/printsecret.c:470
 #: ../src/totoken.c:188 ../src/totoken.c:203 ../src/tovcard.c:349
 #, c-format
 msgid "Error: '%s' wants a file."
@@ -999,33 +999,33 @@ msgstr "Error: %s — непригодный адрес сертификата �
 msgid "Error: Cannot make a temporary keyring."
 msgstr "Error: Не удаётся создать временную связку ключей."
 
-#: ../src/changetokenmeta.c:318 ../src/changetokenmeta.c:333
+#: ../src/changetokenmeta.c:322 ../src/changetokenmeta.c:331
 #, c-format
 msgid "Error: Can't fetch a usable certificate from %s."
 msgstr "Error: Не удаётся получить пригодный сертификат с %s."
 
-#: ../src/changetokenmeta.c:348
+#: ../src/changetokenmeta.c:346
 #, c-format
 msgid "Error: Certificate at %s doesn't hold the token's subkeys: %s."
 msgstr "Error: Сертификат по %s не несёт подключей карты: %s."
 
-#: ../src/changetokenmeta.c:362
+#: ../src/changetokenmeta.c:360
 msgid "Admin code (8 digits): "
 msgstr "Код Admin (8 цифр): "
 
-#: ../src/changetokenmeta.c:364
+#: ../src/changetokenmeta.c:362
 msgid "Notice: Give --admincode, or --admincodefrom to keep it off the process list."
 msgstr "Notice: Укажите --admincode или --admincodefrom, чтобы он не попал в список процессов."
 
-#: ../src/changetokenmeta.c:370
+#: ../src/changetokenmeta.c:368
 msgid "Warning: Admin code shorter than 8 digits."
 msgstr "Warning: Код Admin короче 8 цифр."
 
-#: ../src/changetokenmeta.c:384
+#: ../src/changetokenmeta.c:382
 msgid "Error: gpg --card-edit failed — wrong Admin code?"
 msgstr "Error: gpg --card-edit не удался — неверный код Admin?"
 
-#: ../src/changetokenmeta.c:387
+#: ../src/changetokenmeta.c:385
 #, c-format
 msgid "Notice: Wrote new value '%s' into the security token."
 msgstr "Notice: Новое значение «%s» записано в ключ безопасности."
@@ -1255,12 +1255,12 @@ msgstr "Error: Недопустимый адрес «%s»."
 msgid "Error: Too many addresses at once."
 msgstr "Error: Слишком много адресов сразу."
 
-#: ../src/email.c:376 ../src/genkey.c:132 ../src/printcard.c:128
+#: ../src/email.c:376 ../src/genkey.c:133 ../src/printcard.c:206
 #, c-format
 msgid "Error: '%s' wants a name."
 msgstr "Error: «%s» ожидает имя."
 
-#: ../src/email.c:383 ../src/genkey.c:145
+#: ../src/email.c:383 ../src/genkey.c:146
 #, c-format
 msgid "Error: '%s' wants a note."
 msgstr "Error: «%s» ожидает заметку."
@@ -1290,8 +1290,8 @@ msgstr "Notice: «%s» был отозван ранее и не может бы�
 msgid "Notice: Adding '%s' into certificate %s…"
 msgstr "Notice: Добавление «%s» в сертификат %s…"
 
-#: ../src/email.c:487 ../src/genkey.c:324 ../src/genkey.c:329
-#: ../src/genkey.c:338 ../src/property.c:628
+#: ../src/email.c:487 ../src/genkey.c:347 ../src/genkey.c:352
+#: ../src/genkey.c:361 ../src/property.c:628
 #, c-format
 msgid "Error: gpg would not add '%s'."
 msgstr "Error: gpg отказался добавить «%s»."
@@ -1342,6 +1342,7 @@ msgid ""
 "Usage: %s gen_key [OPTIONS]... EMAIL\n"
 "\n"
 "Generate a PGP key pair (public and secret) according to PGP ID standards.\n"
+"Missing input will be asked interactively, unless --batch.\n"
 "Output 3 lines for each fingerprints:\n"
 "* main key (Sign Certify)\n"
 "* decryption key (Encrypt)\n"
@@ -1349,7 +1350,7 @@ msgid ""
 "\n"
 "OPTIONS:\n"
 "  -N, --name PSEUDONYM             Common name or pseudonym. Default: first part of email\n"
-"  -c, --eid U4|U5                  Entity ID. Worldwide and decentralised entity identifier. Required here\n"
+"  -c, --eid U4|U5                  Entity ID. Worldwide and decentralised entity identifier. Minted here if missing\n"
 "  -C, --extra-comment NOTE         Supplemental information or comment associated with the entity\n"
 "  -p, --passphrase PASSPHRASE      Passphrase to (symetric) encrypt secret part of PGP key. CAN'T BE EMPTY (at this stage)\n"
 "  -P, --passfrom FILE              Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin …)\n"
@@ -1384,76 +1385,96 @@ msgstr ""
 "Оба способа передать пароль имеют свой изъян, и второй — меньший: аргумент\n"
 "виден каждому процессу машины, пока тот работает.\n"
 
-#: ../src/genkey.c:138
+#: ../src/genkey.c:139
 #, c-format
 msgid "Error: '%s' wants an identifier."
 msgstr "Error: «%s» ожидает идентификатор."
 
-#: ../src/genkey.c:151 ../src/printsecret.c:274 ../src/totoken.c:185
+#: ../src/genkey.c:152 ../src/printsecret.c:462 ../src/totoken.c:185
 #, c-format
 msgid "Error: '%s' wants a passphrase."
 msgstr "Error: «%s» ожидает парольную фразу."
 
-#: ../src/genkey.c:174
+#: ../src/genkey.c:175
 #, c-format
 msgid "Error: '%s' wants a number of years."
 msgstr "Error: «%s» ожидает число лет."
 
-#: ../src/genkey.c:180
+#: ../src/genkey.c:181
 #, c-format
 msgid "Error: Given parameter '%s' is not a valid number."
 msgstr "Error: Указанный параметр «%s» — не число."
 
-#: ../src/genkey.c:186 ../src/totoken.c:195
+#: ../src/genkey.c:187 ../src/totoken.c:195
 #, c-format
 msgid "Error: '%s' wants a keyserver."
 msgstr "Error: «%s» ожидает сервер ключей."
 
-#: ../src/genkey.c:190
+#: ../src/genkey.c:191
 msgid "Error: keyserver MUST be hkp(s)://…"
 msgstr "Error: сервер ключей ДОЛЖЕН быть hkp(s)://…"
 
-#: ../src/genkey.c:221
+#: ../src/genkey.c:220
+#, fuzzy
+#| msgid "Error: Which certificate?"
+msgid "Email address for this certificate: "
+msgstr "Error: Какой сертификат?"
+
+#: ../src/genkey.c:227
+#, fuzzy, c-format
+#| msgid "Error: '%s' wants an address."
+msgid "Error: '%s' does not look like an email address."
+msgstr "Error: «%s» ожидает адрес."
+
+#: ../src/genkey.c:238
 msgid "Error: Which entity is this key for? Give --eid."
 msgstr "Error: Для какой сущности этот ключ? Дайте --eid."
 
-#: ../src/genkey.c:222
+#: ../src/genkey.c:239
 msgid "Deriving one needs a civil status, which is somebody's to give:"
 msgstr "Вычисление требует гражданского состояния, а его сообщает человек:"
 
-#: ../src/genkey.c:223
+#: ../src/genkey.c:240
 #, c-format
 msgid "  %s gen_u4 --surname … --given-names … --birth-date … --birth-country …"
 msgstr "  %s gen_u4 --surname … --given-names … --birth-date … --birth-country …"
 
-#: ../src/genkey.c:228
+#: ../src/genkey.c:246
+#, fuzzy, c-format
+#| msgid "Notice: Minting the identity uid %s…"
+msgid "Notice: Entity identifier: %s"
+msgstr "Notice: Чеканка uid личности %s…"
+
+#: ../src/genkey.c:248
 #, c-format
 msgid "Error: No eid in given '%s'."
 msgstr "Error: В «%s» нет eid."
 
-#: ../src/genkey.c:232
-msgid "Error: A passphrase is needed, and asking for one is not this program's job. Give --passphrase, or --passfrom to keep it off"
-msgstr "Error: Нужна парольная фраза, и спрашивать её — не дело этой программы. Дайте --passphrase либо --passfrom, чтобы она не попала"
+#: ../src/genkey.c:253
+msgid "Passphrase"
+msgstr ""
 
-#: ../src/genkey.c:234
-msgid "the process list."
-msgstr "в список процессов."
+#: ../src/genkey.c:256
+#, fuzzy
+#| msgid "Notice: Give --passphrase, or --passfrom to keep it off the process list."
+msgid "Error: A passphrase is needed. Give --passphrase, or --passfrom to keep it off the process list."
+msgstr "Notice: Укажите --passphrase или --passfrom, чтобы она не попала в список процессов."
 
-#: ../src/genkey.c:271
+#: ../src/genkey.c:294
 msgid "Error: gpg would not generate the key."
 msgstr "Error: gpg отказался создать ключ."
 
-#: ../src/genkey.c:299
+#: ../src/genkey.c:322
 #, c-format
 msgid "Error: Freshly generated key not found by its eid UID (%s)."
 msgstr "Error: Только что созданный ключ не найден по его uid личности (%s)."
 
-#: ../src/genkey.c:344
+#: ../src/genkey.c:367
 #, c-format
 msgid "Warning: Can't set the primary uid to %s."
 msgstr "Warning: Не удаётся назначить главным uid %s."
 
-#: ../src/genkey.c:348
+#: ../src/genkey.c:371
 msgid "Error: gpg would not add the authentication key."
 msgstr "Error: gpg отказался добавить ключ подтверждения."
 
@@ -1563,107 +1584,107 @@ msgstr ""
 msgid "Warning: '%s' has been transliterated to '%s'. It may be WRONG!"
 msgstr ""
 
-#: ../src/genu4.c:208
+#: ../src/genu4.c:209
 #, c-format
 msgid "Error: No surname and given names could be read from '%s'."
 msgstr "Error: Из «%s» не удалось прочитать фамилию и имена."
 
-#: ../src/genu4.c:209
+#: ../src/genu4.c:210
 msgid "Notice: Both need at least one letter once reduced to A-Z."
 msgstr "Notice: Обоим нужна хотя бы одна буква после сведения к A-Z."
 
-#: ../src/genu4.c:280
+#: ../src/genu4.c:284
 #, c-format
 msgid "Notice: Surname at birth:     %s"
 msgstr ""
 
-#: ../src/genu4.c:281
+#: ../src/genu4.c:285
 #, c-format
 msgid "Notice: Given names at birth: %s"
 msgstr ""
 
-#: ../src/genu4.c:282
+#: ../src/genu4.c:286
 #, c-format
 msgid "Notice: Date of birth:       %s"
 msgstr ""
 
-#: ../src/genu4.c:283
+#: ../src/genu4.c:287
 #, c-format
 msgid "Notice: Country of birth:    %s"
 msgstr ""
 
-#: ../src/genu4.c:285
+#: ../src/genu4.c:289
 msgid "Is that correct? [y/N]: "
 msgstr ""
 
-#: ../src/genu4.c:294 ../src/genu4.c:494
+#: ../src/genu4.c:298 ../src/genu4.c:365
 #, fuzzy
 #| msgid "Birth surname (family name): "
 msgid "Birth surname (family name)"
 msgstr "Фамилия при рождении (фамилия): "
 
-#: ../src/genu4.c:295 ../src/genu4.c:495
+#: ../src/genu4.c:299 ../src/genu4.c:366
 #, fuzzy
 #| msgid "Birth names (all given names): "
 msgid "Birth names (all given names)"
 msgstr "Имена при рождении (все имена): "
 
-#: ../src/genu4.c:296 ../src/genu4.c:496
+#: ../src/genu4.c:300 ../src/genu4.c:367
 #, fuzzy
 #| msgid "Birth date (YYYY-MM-DD): "
 msgid "Birth date (YYYY-MM-DD)"
 msgstr "Дата рождения (ГГГГ-ММ-ДД): "
 
-#: ../src/genu4.c:297 ../src/genu4.c:497
+#: ../src/genu4.c:301 ../src/genu4.c:368
 #, fuzzy
 #| msgid "Birth country (3 letter code): "
 msgid "Birth country (3 letter code)"
 msgstr "Страна рождения (3-буквенный код): "
 
-#: ../src/genu4.c:320 ../src/genu4.c:403
+#: ../src/genu4.c:324 ../src/genu4.c:476
 #, c-format
 msgid "Error: '%s' is not a date. Give it as YYYY-MM-DD."
 msgstr "Error: «%s» — не дата. Задайте её как ГГГГ-ММ-ДД."
 
-#: ../src/genu4.c:325 ../src/genu4.c:416
+#: ../src/genu4.c:329 ../src/genu4.c:489
 #, c-format
 msgid "Error: '%s' is not a three-letter country code we know."
 msgstr "Error: «%s» — не известный нам трёхбуквенный код страны."
 
-#: ../src/genu4.c:332
+#: ../src/genu4.c:336
 msgid "Error: The name is not valid UTF-8."
 msgstr "Error: Имя — не годный UTF-8."
 
-#: ../src/genu4.c:360
+#: ../src/genu4.c:376
+msgid "Error: Surname, given names, date and country are all needed."
+msgstr "Error: Нужны фамилия, имена, дата и страна."
+
+#: ../src/genu4.c:433
 msgid "Error: Only a passport zone is read, and this does not begin with 'P'."
 msgstr "Error: Читается только зона паспорта, а эта не начинается с «P»."
 
-#: ../src/genu4.c:364
+#: ../src/genu4.c:437
 #, c-format
 msgid "%s: The zone is %zu characters, not 88."
 msgstr "%s: В зоне %zu знаков, а не 88."
 
-#: ../src/genu4.c:377
+#: ../src/genu4.c:450
 #, c-format
 msgid "%s: The check digit for %s does not agree."
 msgstr "%s: Контрольная цифра для %s не сходится."
 
-#: ../src/genu4.c:467
+#: ../src/genu4.c:541
 msgid "Error: Where is the machine readable zone?"
 msgstr "Error: Где машиночитаемая зона?"
 
-#: ../src/genu4.c:476
+#: ../src/genu4.c:550
 msgid "Error: '--uncheck' is about a passport's check digits; it needs --from-passport-mrz."
 msgstr "Error: «--uncheck» касается контрольных цифр паспорта; ему нужен --from-passport-mrz."
 
-#: ../src/genu4.c:481
+#: ../src/genu4.c:555
 #, c-format
 msgid "Error: A civil status is given by options; '%s' is not one."
 msgstr "Error: Гражданское состояние задают опциями; «%s» не опция."
-
-#: ../src/genu4.c:505
-msgid "Error: Surname, given names, date and country are all needed."
-msgstr "Error: Нужны фамилия, имена, дата и страна."
 
 #: ../src/genuid.c:30
 #, c-format
@@ -1826,6 +1847,22 @@ msgstr "Notice: Ожидается число от 1 до %zu."
 #, c-format
 msgid "Notice: %zu hexadecimal characters are wanted, %zu were read."
 msgstr "Notice: Ожидается %zu шестнадцатеричных символов, прочитано %zu."
+
+#: ../src/interactive.c:263 ../src/interactive.c:273
+#, c-format
+msgid "%s: "
+msgstr ""
+
+#: ../src/interactive.c:267
+#, c-format
+msgid "Retype %s: "
+msgstr ""
+
+#: ../src/interactive.c:272
+#, fuzzy
+#| msgid "Error: The two do not match."
+msgid "Notice: The two do not match. Please retype."
+msgstr "Error: Они не совпадают."
 
 #: ../src/list.c:274 ../src/list.c:403 ../src/property.c:184
 #: ../src/secretdel.c:100 ../src/secretlist.c:68 ../src/tokendel.c:112
@@ -2126,7 +2163,7 @@ msgstr "Notice: Один из raw, info, md."
 msgid "Error: Unknown action '%s'."
 msgstr "Error: Неизвестное действие «%s»."
 
-#: ../src/printcard.c:31
+#: ../src/printcard.c:32
 #, fuzzy, c-format
 #| msgid ""
 #| "Usage: %s print_card [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
@@ -2177,111 +2214,129 @@ msgstr ""
 "  -V, --version               Вывести версию и выйти\n"
 "\n"
 
-#: ../src/printcard.c:116
+#: ../src/printcard.c:194
 #, c-format
 msgid "Error: '%s' wants a printer or an SVG file."
 msgstr "Error: «%s» ожидает принтер или файл SVG."
 
-#: ../src/printcard.c:122
+#: ../src/printcard.c:200
 #, c-format
 msgid "Error: '%s' wants a template."
 msgstr "Error: «%s» ожидает шаблон."
 
-#: ../src/printcard.c:164
+#: ../src/printcard.c:242
 msgid "Error: No card answered, so there is no certificate to print."
 msgstr "Error: Ни одна карта не ответила, поэтому печатать нечего."
 
-#: ../src/printcard.c:165
+#: ../src/printcard.c:243
 msgid "Name one instead."
 msgstr "Назовите один вместо этого."
 
-#: ../src/printcard.c:213
+#: ../src/printcard.c:291
 #, c-format
 msgid "Error: No usable certificate for %s."
 msgstr "Error: Нет пригодного сертификата для %s."
 
-#: ../src/printcard.c:218
+#: ../src/printcard.c:296
 #, c-format
 msgid "Error: Email %s matches several certificates that still stand by it (%zu)."
 msgstr "Error: Адрес %s подходит к нескольким сертификатам, что его ещё несут (%zu)."
 
-#: ../src/printcard.c:226
+#: ../src/printcard.c:304
 #, c-format
 msgid "Error: No certificate matches '%s'."
 msgstr "Error: Ни один сертификат не подходит к «%s»."
 
-#: ../src/printcard.c:231
+#: ../src/printcard.c:309
 #, c-format
 msgid "Error: '%s' matches %zu certificates. Name one."
 msgstr "Error: «%s» подходит к %zu сертификатам. Назовите один."
 
-#: ../src/printcard.c:250
+#: ../src/printcard.c:328
 #, c-format
 msgid "Error: No usable (non-revoked) email in certificate %s."
 msgstr "Error: В сертификате %s нет пригодного (неотозванного) адреса."
 
-#: ../src/printcard.c:253
+#: ../src/printcard.c:331
 #, c-format
 msgid "Notice: Picking %s, the address this certificate is written to."
 msgstr ""
 
-#: ../src/printcard.c:305 ../src/printsecret.c:397 ../src/scan.c:465
+#: ../src/printcard.c:383 ../src/printsecret.c:585 ../src/scan.c:485
 msgid "Error: Cannot make a working directory."
 msgstr "Error: Не удаётся создать рабочий каталог."
 
-#: ../src/printcard.c:317
+#: ../src/printcard.c:395
 msgid "Error: qrencode would not draw the code."
 msgstr "Error: qrencode отказался нарисовать код."
 
-#: ../src/printcard.c:322
+#: ../src/printcard.c:400
 msgid "Error: Cannot read the code back."
 msgstr "Error: Не удаётся прочитать код обратно."
 
-#: ../src/printcard.c:336
+#: ../src/printcard.c:414
 #, c-format
 msgid "Error: Card template '%s' is not readable."
 msgstr "Error: Шаблон карточки «%s» не читается."
 
-#: ../src/printcard.c:393
+#: ../src/printcard.c:471
 msgid "Error: Cannot write the card."
 msgstr "Error: Не удаётся записать карточку."
 
-#: ../src/printcard.c:407
+#: ../src/printcard.c:485
 #, c-format
 msgid "Error: Cannot write %s."
 msgstr "Error: Не удаётся записать %s."
 
-#: ../src/printcard.c:415
+#: ../src/printcard.c:493
 #, c-format
 msgid "Notice: Wrote SVG to %s."
 msgstr "Notice: SVG записан в %s."
 
-#: ../src/printcard.c:420
+#: ../src/printcard.c:498
 msgid "Error: Where should this go? Name a printer, or a file ending"
 msgstr "Error: Куда это отправить? Назовите принтер либо файл, оканчивающийся"
 
-#: ../src/printcard.c:421
+#: ../src/printcard.c:499
 msgid "in '.svg' to keep it."
 msgstr "на «.svg», чтобы его сохранить."
 
-#: ../src/printcard.c:432
-msgid "Error: rsvg-convert would not render the card."
+#: ../src/printcard.c:528 ../src/printcard.c:535
+#, fuzzy
+#| msgid "Error: gpg would not revoke %s."
+msgid "Error: The card could not be read back."
+msgstr "Error: gpg отказался отозвать %s."
+
+#: ../src/printcard.c:542
+#, fuzzy, c-format
+#| msgid "Error: %s carries no uid worth printing."
+msgid "Error: %s does not open with an <svg> tag."
+msgstr "Error: %s не несёт ни одного uid, который стоило бы печатать."
+
+#: ../src/printcard.c:555
+#, fuzzy
+#| msgid "Error: The card answered %zu hex digits, not four."
+msgid "Error: The card is too big to lay out."
+msgstr "Error: Карта ответила %zu шестнадцатеричными цифрами, а не четырьмя."
+
+#: ../src/printcard.c:573
+#, fuzzy
+#| msgid "Error: gpg would not add %s."
+msgid "Error: The page could not be written."
+msgstr "Error: gpg отказался добавить %s."
+
+#: ../src/printcard.c:579
+#, fuzzy
+#| msgid "Error: rsvg-convert would not render the card."
+msgid "Error: rsvg-convert would not render the page."
 msgstr "Error: rsvg-convert отказался собрать карточку."
 
-#: ../src/printcard.c:450
-msgid "Error: pdfunite would not repeat the card."
-msgstr "Error: pdfunite отказался повторить карточку."
-
-#: ../src/printcard.c:457
-msgid "Error: pdfjam would not lay the page out."
-msgstr "Error: pdfjam отказался разложить страницу."
-
-#: ../src/printcard.c:461
+#: ../src/printcard.c:583
 #, c-format
 msgid "Notice: Printing %s %s on %s…"
 msgstr "Notice: Печать %s %s на %s…"
 
-#: ../src/printcard.c:465
+#: ../src/printcard.c:587
 msgid "Error: lpr would not print the page."
 msgstr "Error: lpr отказался напечатать страницу."
 
@@ -2370,172 +2425,166 @@ msgstr ""
 "берёт в руки тот, кто её найдёт.\n"
 "\n"
 
-#: ../src/printsecret.c:240
+#: ../src/printsecret.c:428
 msgid "none - produce the sheets and send nothing"
 msgstr "нет — создать листы и ничего не отправлять"
 
-#: ../src/printsecret.c:256
+#: ../src/printsecret.c:444
 msgid "Which printer? Its number: "
 msgstr "Какой принтер? Его номер: "
 
-#: ../src/printsecret.c:290
+#: ../src/printsecret.c:478
 #, c-format
 msgid "Error: '%s' wants a printer, empty for none."
 msgstr "Error: «%s» ожидает принтер, пусто — ни одного."
 
-#: ../src/printsecret.c:305 ../src/scan.c:387
+#: ../src/printsecret.c:493 ../src/scan.c:407
 #, c-format
 msgid "Error: Nonexistent or unattainable directory (%s)."
 msgstr "Error: Несуществующий или недоступный каталог (%s)."
 
-#: ../src/printsecret.c:311 ../src/printsecret.c:317
+#: ../src/printsecret.c:499 ../src/printsecret.c:505
 #, c-format
 msgid "Error: '%s' wants a number."
 msgstr "Error: «%s» ожидает число."
 
-#: ../src/printsecret.c:342 ../src/totoken.c:235
+#: ../src/printsecret.c:530 ../src/totoken.c:235
 msgid "Which secret key? Its number: "
 msgstr "Какой секретный ключ? Его номер: "
 
-#: ../src/printsecret.c:344
+#: ../src/printsecret.c:532
 msgid "Error: Which secret key should be printed?"
 msgstr "Error: Какой секретный ключ следует напечатать?"
 
-#: ../src/printsecret.c:353
+#: ../src/printsecret.c:541
 msgid "Passphrase of the secret key (empty if none): "
 msgstr "Парольная фраза секретного ключа (пусто, если её нет): "
 
-#: ../src/printsecret.c:355
+#: ../src/printsecret.c:543
 msgid "Error: The passphrase is needed to export the secret parts."
 msgstr "Error: Для вывоза секретных частей нужна парольная фраза."
 
-#: ../src/printsecret.c:356
+#: ../src/printsecret.c:544
 msgid "Give --passphrase, or --passfrom to keep it off the process list."
 msgstr "Дайте --passphrase либо --passfrom, чтобы она не попала в список процессов."
 
-#: ../src/printsecret.c:363
+#: ../src/printsecret.c:551
 msgid "Error: Where should this be printed? Name a printer, or pass"
 msgstr "Error: Где это печатать? Назовите принтер либо передайте"
 
-#: ../src/printsecret.c:364
+#: ../src/printsecret.c:552
 msgid "--printer '' to produce the sheets and send nothing."
 msgstr "--printer '', чтобы изготовить листы и ничего не отправлять."
 
-#: ../src/printsecret.c:370
+#: ../src/printsecret.c:558
 #, c-format
 msgid "Error: Splits number (%d) can't be lower than 3."
 msgstr "Error: Число фрагментов (%d) не может быть меньше 3."
 
-#: ../src/printsecret.c:377
+#: ../src/printsecret.c:565
 #, c-format
 msgid "Error: Splits number (%d) can't be higher than %d: the QR header spells it as one digit."
 msgstr "Error: Число фрагментов (%d) не может превышать %d: заголовок QR пишет его одной цифрой."
 
-#: ../src/printsecret.c:382
+#: ../src/printsecret.c:570
 #, c-format
 msgid "Warning: Threshold can't be greater than the number of splits, reducing threshold to %d."
 msgstr "Warning: Порог не может превышать число фрагментов; порог снижен до %d."
 
-#: ../src/printsecret.c:402 ../src/scan.c:470
+#: ../src/printsecret.c:590 ../src/scan.c:490
 msgid "Error: Working directory is unclean (it holds SECRET*)."
 msgstr "Error: Рабочий каталог нечист (в нём есть SECRET*)."
 
-#: ../src/printsecret.c:403
+#: ../src/printsecret.c:591
 #, fuzzy, c-format
 #| msgid "Suggestion: bl-security shred_path --remove '%s'"
 msgid "Suggestion: shred --remove '%s'/* && rmdir '%s'"
 msgstr "Suggestion: bl-security shred_path --remove '%s'"
 
-#: ../src/printsecret.c:440
+#: ../src/printsecret.c:628
 msgid "Error: gpg would not export the secret key — right passphrase?"
 msgstr "Error: gpg отказался вывезти секретный ключ — верная парольная фраза?"
 
-#: ../src/printsecret.c:453
+#: ../src/printsecret.c:641
 #, c-format
 msgid "Error: %s carries no uid worth printing."
 msgstr "Error: %s не несёт ни одного uid, который стоило бы печатать."
 
-#: ../src/printsecret.c:457
+#: ../src/printsecret.c:645
 msgid "Error: Cannot trim the export down to its three uids."
 msgstr "Error: Не удаётся урезать вывоз до трёх uid."
 
-#: ../src/printsecret.c:460
+#: ../src/printsecret.c:648
 #, c-format
 msgid "Notice: Printing %zu uid(s) of %zu — the rest comes back from a keyring."
 msgstr "Notice: Напечатано %zu uid из %zu — остальное вернётся из связки ключей."
 
-#: ../src/printsecret.c:471
-msgid "Error: basenc would not encode the export."
-msgstr "Error: basenc отказался закодировать вывоз."
+#: ../src/printsecret.c:661
+#, fuzzy, c-format
+#| msgid "Error: gpg would not add %s."
+msgid "Error: The export could not be cut in %d."
+msgstr "Error: gpg отказался добавить %s."
 
-#: ../src/printsecret.c:478
-#, c-format
-msgid "Error: split would not cut the export in %d."
-msgstr "Error: split отказался разрезать вывоз на %d."
-
-#: ../src/printsecret.c:488
+#: ../src/printsecret.c:671
 msgid "Error: gfsplit would not share the secret out."
 msgstr "Error: gfsplit отказался разделить секрет."
 
-#: ../src/printsecret.c:503
-#, c-format
-msgid "Error: basenc would not encode %s."
-msgstr "Error: basenc отказался закодировать %s."
+#: ../src/printsecret.c:685
+#, fuzzy, c-format
+#| msgid "Error: gpg would not revoke %s."
+msgid "Error: %s could not be encoded."
+msgstr "Error: gpg отказался отозвать %s."
 
-#: ../src/printsecret.c:523
+#: ../src/printsecret.c:705
 #, c-format
 msgid "Notice: Printing the secret split into %d fragments on %s…"
 msgstr "Notice: Печать секрета в %d фрагментах на %s…"
 
-#: ../src/printsecret.c:526
+#: ../src/printsecret.c:708
 #, c-format
 msgid "Notice: Producing %d fragments in %s, sending nothing."
 msgstr "Notice: Изготовление %d фрагментов в %s, без отправки."
 
-#: ../src/printsecret.c:544
+#: ../src/printsecret.c:726
 msgid "Error: No fragment was produced."
 msgstr "Error: Не изготовлено ни одного фрагмента."
 
-#: ../src/printsecret.c:550 ../src/trustdb.c:620
+#: ../src/printsecret.c:732 ../src/trustdb.c:620
 msgid "Error: Out of memory."
 msgstr "Error: Не хватает памяти."
 
-#: ../src/printsecret.c:561
+#: ../src/printsecret.c:743
 #, c-format
 msgid "Error: %zu fragments in %s, and a QR header can only number %d."
 msgstr "Error: %zu фрагментов в %s, а заголовок QR умеет пронумеровать только %d."
 
-#: ../src/printsecret.c:591
+#: ../src/printsecret.c:773
 #, c-format
 msgid "Error: Cannot read the fragment %s."
 msgstr "Error: Не удаётся прочитать фрагмент %s."
 
-#: ../src/printsecret.c:605
+#: ../src/printsecret.c:787
 #, c-format
 msgid "Error: qrencode would not draw fragment %zu."
 msgstr "Error: qrencode отказался нарисовать фрагмент %zu."
 
-#: ../src/printsecret.c:632
-#, c-format
-msgid "Error: pandoc would not lay fragment %zu out."
-msgstr "Error: pandoc отказался разложить фрагмент %zu."
+#: ../src/printsecret.c:796
+#, fuzzy, c-format
+#| msgid "Error: pdfjam would not lay the page out."
+msgid "Error: Fragment %zu could not be laid out."
+msgstr "Error: pdfjam отказался разложить страницу."
 
-#: ../src/printsecret.c:638
-#, c-format
-msgid "Error: pdfcrop would not trim fragment %zu."
-msgstr "Error: pdfcrop отказался обрезать фрагмент %zu."
-
-#: ../src/printsecret.c:647
+#: ../src/printsecret.c:804
 #, c-format
 msgid "Error: lpr would not print fragment %zu."
 msgstr "Error: lpr отказался напечатать фрагмент %zu."
 
-#: ../src/printsecret.c:666
+#: ../src/printsecret.c:823
 #, c-format
 msgid "Notice: The working copies are removed. Shred %s if anything is left."
 msgstr "Notice: Рабочие копии удалены. Уничтожьте %s, если что-то осталось."
 
-#: ../src/printsecret.c:672
+#: ../src/printsecret.c:829
 #, fuzzy, c-format
 #| msgid "Notice: The fragments are in %s. Shred it once they are on paper: bl-security shred_path --remove '%s'"
 msgid "Notice: The fragments are in %s. Shred them once they are on paper: find '%s' -type f -exec shred --remove {} +"
@@ -2987,99 +3036,102 @@ msgstr ""
 msgid "Notice: Nothing read from '%s' — try again."
 msgstr ""
 
-#: ../src/scan.c:399
+#: ../src/scan.c:419
 #, fuzzy, c-format
 #| msgid "Error: '%s' wants a file."
 msgid "Error: '%s' wants a size, as WIDTHxHEIGHT."
 msgstr "Error: «%s» ожидает файл."
 
-#: ../src/scan.c:404
+#: ../src/scan.c:424
 #, fuzzy, c-format
 #| msgid "Error: '%s' is not a date. Give it as YYYY-MM-DD."
 msgid "Error: '%s' is not a size. Give it as WIDTHxHEIGHT."
 msgstr "Error: «%s» — не дата. Задайте её как ГГГГ-ММ-ДД."
 
-#: ../src/scan.c:424
+#: ../src/scan.c:444
 #, c-format
 msgid "Error: Too many images given. Maximum: %d."
 msgstr "Error: Слишком много изображений. Не более: %d."
 
-#: ../src/scan.c:453
+#: ../src/scan.c:473
 #, fuzzy
 #| msgid "Error: Which images? There is no camera to fall back on here."
 msgid "Error: Which images? Name some, or --camera to read them off one."
 msgstr "Error: Какие изображения? Камеры, на которую можно было бы опереться, здесь нет."
 
-#: ../src/scan.c:471
+#: ../src/scan.c:491
 #, fuzzy, c-format
 #| msgid "Suggestion: bl-security shred_path --remove '%s'"
 msgid "Suggestion: find '%s' -type f -exec shred --remove {} +"
 msgstr "Suggestion: bl-security shred_path --remove '%s'"
 
-#: ../src/scan.c:488
+#: ../src/scan.c:513
 #, c-format
 msgid "Error: Can't convert pdf %s."
 msgstr "Error: Не удаётся преобразовать pdf %s."
 
-#: ../src/scan.c:503 ../src/scan.c:512
+#: ../src/scan.c:528 ../src/scan.c:537
 #, c-format
 msgid "Error: No QR code with expected data in '%s'."
 msgstr "Error: В «%s» нет QR-кода с ожидаемыми данными."
 
-#: ../src/scan.c:515
+#: ../src/scan.c:540
 #, c-format
 msgid "Info: QR code(s) with expected data read from '%s'."
 msgstr "Info: QR-код(ы) с ожидаемыми данными прочитан(ы) из «%s»."
 
-#: ../src/scan.c:525
+#: ../src/scan.c:550
 #, c-format
 msgid "Crit: Unsupported qrcode version (%d)."
 msgstr "Crit: Неподдерживаемая версия QR-кода (%d)."
 
-#: ../src/scan.c:526
+#: ../src/scan.c:551
 msgid "Only versions 4 and 5 are read here. Versions 1 to 3 were experimental, never released, and needed an extra passphrase that also protected the key."
 msgstr "Здесь читаются только версии 4 и 5. Версии с 1 по 3 были экспериментальными, не выпускались и требовали дополнительной парольной фразы, которая защищала и сам ключ."
 
-#: ../src/scan.c:529
+#: ../src/scan.c:554
 msgid "'bl-pgpkey scan' still reads them, should such a sheet turn up."
 msgstr "«bl-pgpkey scan» их всё ещё читает, если такой лист вдруг найдётся."
 
-#: ../src/scan.c:544
+#: ../src/scan.c:569
 #, c-format
 msgid "Error: %zu fragment(s) of the %d needed; missing: %s."
 msgstr "Error: %zu фрагмент(ов) из %d нужных; не хватает: %s."
 
-#: ../src/scan.c:566
-msgid "Error: basenc would not decode the fragments."
-msgstr "Error: basenc отказался раскодировать фрагменты."
+#: ../src/scan.c:590
+#, fuzzy
+#| msgid "Error: basenc would not encode %s."
+msgid "Error: The fragments would not decode."
+msgstr "Error: basenc отказался закодировать %s."
 
-#: ../src/scan.c:579
-#, c-format
-msgid "Error: basenc would not decode fragment %zu."
-msgstr "Error: basenc отказался раскодировать фрагмент %zu."
+#: ../src/scan.c:602
+#, fuzzy, c-format
+#| msgid "Error: basenc would not encode %s."
+msgid "Error: Fragment %zu would not decode."
+msgstr "Error: basenc отказался закодировать %s."
 
-#: ../src/scan.c:597
+#: ../src/scan.c:620
 msgid "Error: gfcombine would not put the fragments back together."
 msgstr "Error: gfcombine отказался собрать фрагменты обратно."
 
-#: ../src/scan.c:609
+#: ../src/scan.c:632
 msgid "Error: gpg would not import what came back."
 msgstr "Error: gpg отказался принять то, что вернулось."
 
-#: ../src/scan.c:610
+#: ../src/scan.c:633
 msgid "Fragments from two different printings, most likely."
 msgstr "Скорее всего, фрагменты от двух разных распечаток."
 
-#: ../src/scan.c:633
+#: ../src/scan.c:656
 #, c-format
 msgid "Notice: Secret key put back together: %.40s."
 msgstr ""
 
-#: ../src/scan.c:642
+#: ../src/scan.c:665
 msgid "Notice: Secret key put back together, and imported."
 msgstr ""
 
-#: ../src/scan.c:654
+#: ../src/scan.c:677
 #, c-format
 msgid "Notice: %s still holds the pieces. Shred it: find '%s' -type f -exec shred --remove {} +"
 msgstr ""
@@ -3814,26 +3866,26 @@ msgstr "Error: Ни один ключ безопасности не ответи
 msgid "Notice: Fetching the certificate from %s…"
 msgstr "Notice: Получение сертификата с %s…"
 
-#: ../src/tokencheck.c:377
+#: ../src/tokencheck.c:363
 #, c-format
 msgid "Notice: The key names %u addresses; keeping the first."
 msgstr "Notice: Ключ называет %u адресов; оставлен первый."
 
-#: ../src/tokencheck.c:379
+#: ../src/tokencheck.c:365
 #, c-format
 msgid "Error: The key names %u identifiers, which cannot both be its."
 msgstr "Error: Ключ называет %u идентификаторов, которые не могут быть все его."
 
-#: ../src/tokencheck.c:400
+#: ../src/tokencheck.c:386
 msgid "Warning: No certification key known. Share or fetch the certificate."
 msgstr "Warning: Заверяющий ключ неизвестен. Поделитесь сертификатом или получите его."
 
-#: ../src/tokencheck.c:425
+#: ../src/tokencheck.c:411
 #, c-format
 msgid "Notice: Not a PGP ID key yet, missing: '%s'."
 msgstr "Notice: Пока не ключ PGP ID, не хватает: «%s»."
 
-#: ../src/tokencheck.c:432
+#: ../src/tokencheck.c:418
 #, c-format
 msgid "Info: A PGP ID key, certified by %s, carrying %s."
 msgstr "Info: Ключ PGP ID, заверенный %s, несущий %s."
@@ -4527,6 +4579,37 @@ msgstr "Warning: gpg отказался добавить %s."
 #: ../src/uidedit.c:214
 msgid "Warning: The reshaped certificate could not be published."
 msgstr ""
+
+#~ msgid "Error: A passphrase is needed, and asking for one is not this program's job. Give --passphrase, or --passfrom to keep it off"
+#~ msgstr "Error: Нужна парольная фраза, и спрашивать её — не дело этой программы. Дайте --passphrase либо --passfrom, чтобы она не попала"
+
+#~ msgid "the process list."
+#~ msgstr "в список процессов."
+
+#~ msgid "Error: pdfunite would not repeat the card."
+#~ msgstr "Error: pdfunite отказался повторить карточку."
+
+#~ msgid "Error: basenc would not encode the export."
+#~ msgstr "Error: basenc отказался закодировать вывоз."
+
+#, c-format
+#~ msgid "Error: split would not cut the export in %d."
+#~ msgstr "Error: split отказался разрезать вывоз на %d."
+
+#, c-format
+#~ msgid "Error: pandoc would not lay fragment %zu out."
+#~ msgstr "Error: pandoc отказался разложить фрагмент %zu."
+
+#, c-format
+#~ msgid "Error: pdfcrop would not trim fragment %zu."
+#~ msgstr "Error: pdfcrop отказался обрезать фрагмент %zu."
+
+#~ msgid "Error: basenc would not decode the fragments."
+#~ msgstr "Error: basenc отказался раскодировать фрагменты."
+
+#, c-format
+#~ msgid "Error: basenc would not decode fragment %zu."
+#~ msgstr "Error: basenc отказался раскодировать фрагмент %zu."
 
 #~ msgid "gpgme_data_new"
 #~ msgstr "gpgme_data_new"

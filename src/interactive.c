@@ -247,3 +247,29 @@ bool pgpid_ask_hex(const char *prompt, size_t want, char *out, size_t max)
     }
     return false;
 }
+
+/**
+ * Ask for a secret that does not exist yet, and have it typed twice.
+ *
+ * What `bl_new_password` did, minus the suggested passphrase: that one comes
+ * out of a word list, and the C carries none. A mistyped passphrase on a key
+ * being born is not a wrong password to try again — it is a key nobody can
+ * ever open, so the second typing is not optional and there is no way past it
+ * but agreement or Ctrl-C.
+ */
+bool pgpid_ask_new_secret(const char *what, char *out, size_t max)
+{
+    char prompt[256], again[512];
+    snprintf(prompt, sizeof prompt, _("%s: "), what);
+    for (;;) {
+        if (!pgpid_ask_secret(prompt, out, max))
+            return false;
+        snprintf(prompt, sizeof prompt, _("Retype %s: "), what);
+        if (!pgpid_ask_secret(prompt, again, sizeof again))
+            return false;
+        if (!strcmp(out, again))
+            return true;
+        pgpid_error(_("Notice: The two do not match. Please retype."));
+        snprintf(prompt, sizeof prompt, _("%s: "), what);
+    }
+}
