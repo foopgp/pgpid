@@ -400,7 +400,7 @@ int pgpid_action_secret_print(int argc, char **argv)
     }
     if (workdir_is_unclean(workdir)) {
         pgpid_error(_("Error: Working directory is unclean (it holds SECRET*)."));
-        pgpid_error(_("Suggestion: bl-security shred_path --remove '%s'"), workdir);
+        pgpid_error(_("Suggestion: shred --remove '%s'/* && rmdir '%s'"), workdir, workdir);
         return PGPID_USAGE;
     }
 
@@ -666,8 +666,11 @@ int pgpid_action_secret_print(int argc, char **argv)
         pgpid_error(_("Notice: The working copies are removed. Shred %s if anything "
                     "is left."), workdir);
     } else {
-        pgpid_error(_("Notice: The fragments are in %s. Shred it once they are on "
-                    "paper: bl-security shred_path --remove '%s'"), workdir, workdir);
+        /* shred, not bl-security: the suggestion has to name something the
+         * person running this actually has, and pgpid does not pull the shell
+         * libraries in. coreutils is always there. */
+        pgpid_error(_("Notice: The fragments are in %s. Shred them once they are on "
+                    "paper: find '%s' -type f -exec shred --remove {} +"), workdir, workdir);
     }
     free(names);
     return PGPID_OK;

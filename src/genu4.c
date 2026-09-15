@@ -249,7 +249,12 @@ static void readable(const char *in, char *out, size_t max)
 static bool ask_with_default(const char *label, char *value, size_t max)
 {
     char prompt[512], answer[300];
-    snprintf(prompt, sizeof prompt, "%s [%s]: ", label, value);
+    /* No empty brackets: "[]" is not a default, it is a blank where a reader
+     * expects one. */
+    if (*value)
+        snprintf(prompt, sizeof prompt, "%s [%s]: ", label, value);
+    else
+        snprintf(prompt, sizeof prompt, "%s: ", label);
     if (!pgpid_ask(prompt, answer, sizeof answer))
         return false;
     if (*answer)
@@ -273,7 +278,7 @@ static bool verify_civil_status(char *surname, size_t sn, char *given, size_t gn
 {
     for (;;) {
         pgpid_error(_("Notice: Surname at birth:     %s"), surname);
-        pgpid_error(_("Notice: Given names:         %s"), given);
+        pgpid_error(_("Notice: Given names at birth: %s"), given);
         pgpid_error(_("Notice: Date of birth:       %s"), date);
         pgpid_error(_("Notice: Country of birth:    %s"), country);
         char answer[8];
@@ -482,16 +487,20 @@ int pgpid_action_gen_u4(int argc, char **argv)
      * somebody typing their civil status has no reason to be sent back to the
      * usage for the one field they left out. --batch refuses instead. */
     char asked[4][128];
-    const struct { const char **slot; const char *question; } fields[] = {
-        { &surname, N_("Birth surname (family name): ") },
-        { &given,   N_("Birth names (all given names): ") },
-        { &date,    N_("Birth date (YYYY-MM-DD): ") },
-        { &country, N_("Birth country (3 letter code): ") },
+    /* The country comes with the one the shell offered: on this side of the
+     * association it is right nine times out of ten, and a default is only
+     * ever one word to overtype. The other three have no sensible one. */
+    const struct { const char **slot; const char *question; const char *fallback; } fields[] = {
+        { &surname, N_("Birth surname (family name)"),   "" },
+        { &given,   N_("Birth names (all given names)"), "" },
+        { &date,    N_("Birth date (YYYY-MM-DD)"),       "" },
+        { &country, N_("Birth country (3 letter code)"), "FRA" },
     };
     for (size_t f = 0; f < 4; f++) {
         if (*fields[f].slot)
             continue;
-        if (!pgpid_ask(_(fields[f].question), asked[f], sizeof asked[f])
+        snprintf(asked[f], sizeof asked[f], "%s", fields[f].fallback);
+        if (!ask_with_default(_(fields[f].question), asked[f], sizeof asked[f])
             || !*asked[f]) {
             pgpid_error(_("Error: Surname, given names, date and country are all needed."));
             return PGPID_USAGE;
