@@ -57,6 +57,15 @@ pgpid (0.1.0-1) unstable; urgency=medium
     `bl-interactive input --password` showed; backspace takes one back and
     Ctrl-U the lot. A terminal put into no-echo is given back even when the
     question is interrupted.
+  * Three programs fewer to spawn, and so three packages fewer to want:
+    basenc and split gave way to the base64url codec this binary already
+    carried — the secret no longer passes through a file of its own on the way
+    out — and curl to 'gpg --fetch-keys', which fetches and imports in one go.
+  * The dependencies say what an action actually spawns. scdaemon was missing
+    and is half the tool: gnupg does not pull it. What only changes how well
+    something works is a Recommends — sudo, imagemagick, the bash libraries
+    the two shell programs use. What only the passport path wants stays a
+    Suggests. curl is gone from both, nothing calls it.
   * PGP, not OpenPGP: what pgpid reads and writes are PGP certificates, being
     compatible with OpenPGP and LibrePGP both. The card's own specification
     keeps its name.
