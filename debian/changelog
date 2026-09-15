@@ -57,6 +57,12 @@ pgpid (0.1.0-1) unstable; urgency=medium
     `bl-interactive input --password` showed; backspace takes one back and
     Ctrl-U the lot. A terminal put into no-echo is given back even when the
     question is interrupted.
+  * PGP, not OpenPGP: what pgpid reads and writes are PGP certificates, being
+    compatible with OpenPGP and LibrePGP both. The card's own specification
+    keeps its name.
+  * French is complete again — 595 of 595. The catalogues had drifted away from
+    the sources, so gettext found nothing and every translated page came out in
+    English. The other eight languages fall back to English where they drifted.
   * The manual pages list the actions again — the generator stopped at the
     first blank line and the actions had been grouped behind one. The
     completion harvests what each option takes, so a path completes to files,
