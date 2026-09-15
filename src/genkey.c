@@ -29,7 +29,7 @@ static void usage(FILE *out)
         "%s"
         " gen_key [OPTIONS]... EMAIL\n"
         "\n"
-        "Generate an OpenPGP key pair (public and secret) according to PGP ID standards.\n"
+        "Generate a PGP key pair (public and secret) according to PGP ID standards.\n"
         "Output 3 lines for each fingerprints:\n"
         "* main key (Sign Certify)\n"
         "* decryption key (Encrypt)\n"
@@ -39,10 +39,10 @@ static void usage(FILE *out)
         "  -N, --name PSEUDONYM             Common name or pseudonym. Default: first part of email\n"
         "  -c, --eid U4|U5                  Entity ID. Worldwide and decentralised entity identifier. Required here\n"
         "  -C, --extra-comment NOTE         Supplemental information or comment associated with the entity\n"
-        "  -p, --passphrase PASSPHRASE      Passphrase to (symetric) encrypt secret part of OpenPGP key. CAN'T BE EMPTY (at this stage)\n"
+        "  -p, --passphrase PASSPHRASE      Passphrase to (symetric) encrypt secret part of PGP key. CAN'T BE EMPTY (at this stage)\n"
         "  -P, --passfrom FILE              Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin …)\n"
         "  -e, --expiration YEARS           Number of years before certificate expiration. Default: 11\n"
-        "  -k, --keyserver KEYSERVER        Prefered OpenPGP certificate server. Default: "
+        "  -k, --keyserver KEYSERVER        Prefered PGP certificate server. Default: "
         "%s"
         "\n"
         "  -h, --help                       Print this help and exit\n"
@@ -251,7 +251,7 @@ int pgpid_action_gen_key(int argc, char **argv)
     /* One self-certified identity uid, and nothing else yet. */
     char params[2048];
     snprintf(params, sizeof params,
-             "%%echo Generating OpenPGP key for %s\n"
+             "%%echo Generating PGP key for %s\n"
              "Key-Type: eddsa\n"
              "Key-Curve: Ed25519\n"
              "Key-Usage: cert sign\n"

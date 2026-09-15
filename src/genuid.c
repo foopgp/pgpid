@@ -5,7 +5,7 @@
  *
  * SPDX-License-Identifier: GPL-3.0-only
  *
- * Not an OpenPGP uid — a Unix one. Opening an account for somebody from
+ * Not a PGP uid — a Unix one. Opening an account for somebody from
  * their certificate means giving them a number, and taking it from their
  * identifier means two machines that never met agree on it. That is what
  * makes an account restorable elsewhere from the certificate alone.

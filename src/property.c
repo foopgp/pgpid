@@ -412,7 +412,7 @@ static void usage(FILE *out)
         "%s"
         " cert_property PROPERTY [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
         "\n"
-        "Display and add or revoke vCard-property uids inside OpenPGP certificate.\n"
+        "Display and add or revoke vCard-property uids inside PGP certificate.\n"
         "PROPERTY is one of: { name, note, address, phone, url, lang, geo, ksprefrd,\n"
         "expire }.\n"
         "Email addresses are not vCard-property uids (they keep the 'Name <addr>' shape\n"
@@ -443,7 +443,7 @@ static void usage(FILE *out)
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"
         "\n"
-        "Revoking is irreversible: OpenPGP keeps the uid on the certificate\n"
+        "Revoking is irreversible: PGP keeps the uid on the certificate\n"
         "forever, marked revoked, and an identical one can never be added again.\n"),
             PGPID_NAME, PGPID_NAME, PGPID_KEYSERVERS);
 }
@@ -618,7 +618,7 @@ int pgpid_action_cert_property(int argc, char **argv)
         }
         if (struck) {
             pgpid_error(_("Notice: '%s' was revoked earlier and cannot be added again "
-                        "— OpenPGP keeps revoked User IDs on the certificate "
+                        "— PGP keeps revoked User IDs on the certificate "
                         "forever."), want);
             continue;
         }

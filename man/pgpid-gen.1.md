@@ -16,7 +16,7 @@ footer: pgpid 0.1.0
 
 # NAME
 
-pgpid-gen - Generate OpenPGP certificates and secrets on multiple QR codes (physical secret sharing scheme)
+pgpid-gen - Generate PGP certificates and secrets on multiple QR codes (physical secret sharing scheme)
 
 # SYNOPSIS
 
@@ -24,7 +24,7 @@ pgpid-gen - Generate OpenPGP certificates and secrets on multiple QR codes (phys
 
 # DESCRIPTION
 
-Generate OpenPGP certificates and secrets on multiple QR codes (physical
+Generate PGP certificates and secrets on multiple QR codes (physical
 secret sharing scheme) It may take the main page of an international
 passport as input (ICAO 9303 compliant). If pgpid-gen succeed, it will :
 

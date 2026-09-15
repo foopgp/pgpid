@@ -5,7 +5,7 @@
  *
  * SPDX-License-Identifier: GPL-3.0-only
  *
- * gpgme does not implement OpenPGP: it drives the gpg binary, and adds its
+ * gpgme does not implement PGP: it drives the gpg binary, and adds its
  * own probing on the way -- one `pgpid list` through it runs gpg three
  * times, gpgconf three times and gpgsm once, where asking gpg directly runs
  * one process. So this is not a fallback for want of a library; it is the

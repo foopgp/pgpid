@@ -16,7 +16,7 @@ footer: pgpid 0.1.0
 
 # NAME
 
-pgpid-qrscan - pgpid-qrscan scan QRcodes containing parts of OpenPGP secrets from IMAGES or webcam, and import this secrets into a factory reset OpenPGP secured device (eg yubikey).
+pgpid-qrscan - pgpid-qrscan scan QRcodes containing parts of PGP secrets from IMAGES or webcam, and import this secrets into a factory reset OpenPGP secured device (eg yubikey).
 
 # SYNOPSIS
 
@@ -24,9 +24,9 @@ pgpid-qrscan - pgpid-qrscan scan QRcodes containing parts of OpenPGP secrets fro
 
 # DESCRIPTION
 
-pgpid-qrscan scan QRcodes containing parts of OpenPGP secrets from
-IMAGES or webcam, and import this secrets into a factory reset OpenPGP
-secured device (eg yubikey).
+pgpid-qrscan scan QRcodes containing parts of PGP secrets from IMAGES or
+webcam, and import this secrets into a factory reset OpenPGP secured
+device (eg yubikey).
 
 # OPTIONS
 

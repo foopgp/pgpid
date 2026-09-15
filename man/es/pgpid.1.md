@@ -16,7 +16,7 @@ footer: pgpid 0.1.0
 
 # NAME
 
-pgpid - Read and act on OpenPGP certificates through the pgpid model: entity identifiers, validity, credibility.
+pgpid - Read and act on PGP certificates through the pgpid model: entity identifiers, validity, credibility.
 
 # SYNOPSIS
 
@@ -24,7 +24,7 @@ pgpid - Read and act on OpenPGP certificates through the pgpid model: entity ide
 
 # DESCRIPTION
 
-Read and act on OpenPGP certificates through the pgpid model: entity
+Read and act on PGP certificates through the pgpid model: entity
 identifiers, validity, credibility.
 
 ACTIONS:
@@ -261,7 +261,7 @@ There is no 'cert_check': `list` answers what it answered, for less.
 ```
 Usage: pgpid cert_property PROPERTY [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]
 
-Display and add or revoke vCard-property uids inside OpenPGP certificate.
+Display and add or revoke vCard-property uids inside PGP certificate.
 PROPERTY is one of: { name, note, address, phone, url, lang, geo, ksprefrd,
 expire }.
 Email addresses are not vCard-property uids (they keep the 'Name <addr>' shape
@@ -288,7 +288,7 @@ OPTIONS:
   -h, --help                  Print this help and exit
   -V, --version               Print the version and exit
 
-Revoking is irreversible: OpenPGP keeps the uid on the certificate
+Revoking is irreversible: PGP keeps the uid on the certificate
 forever, marked revoked, and an identical one can never be added again.
 ```
 
@@ -297,11 +297,11 @@ forever, marked revoked, and an identical one can never be added again.
 ```
 Usage: pgpid cert_email [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]
 
-Display and add or revoke emails inside OpenPGP certificate.
+Display and add or revoke emails inside PGP certificate.
 Missing NAME|EMAIL|KEYID|U4|U5 => the certificate the connected security
 token belongs to.
 Output usable emails (non-revoked and non-expired), each followed by
-'primary' or '-'. OpenPGP flags one user id for the whole certificate,
+'primary' or '-'. PGP flags one user id for the whole certificate,
 not one per address, so --set-primary moves that flag rather than
 setting one -- onto the uid carrying EMAIL that the address rule picks.
 
@@ -320,7 +320,7 @@ OPTIONS:
   -h, --help                  Print this help and exit
   -V, --version               Print the version and exit
 
-Revoking is irreversible: OpenPGP keeps the address on the certificate
+Revoking is irreversible: PGP keeps the address on the certificate
 forever, marked revoked, and an identical one can never be added again.
 ```
 
@@ -329,7 +329,7 @@ forever, marked revoked, and an identical one can never be added again.
 ```
 Usage: pgpid cert_avatar [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]
 
-Extract or add image inside OpenPGP certificate.
+Extract or add image inside PGP certificate.
 Missing NAME|EMAIL|KEYID|U4|U5 => the first secret certificate.
 Writing takes a fingerprint and nothing else: revoking cannot be
 undone, so a search must never become a target.
@@ -338,8 +338,8 @@ Output the path of the image that stands today, newest first when several do.
 
 OPTIONS:
   -E, --extract-all           Output every image, revoked and expired ones included, newest first
-  -A, --replace-to IMAGE      Resize and add new IMAGE inside OpenPGP certificate (revoking any previous image)
-  -R, --revoke                Just revoke all existing images inside OpenPGP certificate
+  -A, --replace-to IMAGE      Resize and add new IMAGE inside PGP certificate (revoking any previous image)
+  -R, --revoke                Just revoke all existing images inside PGP certificate
   -W, --workdir DIRECTORY     Working directory. Will contain previous and new resized images
   -K, --keyservers KEYSERVERS If non-empty, send updated certificate to this keyservers - Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Print this help and exit
@@ -373,13 +373,13 @@ OPTIONS:
 ```
 Usage: pgpid cert_tovcard [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]
 
-Convert OpenPGP certificate to vCard (format 4.0).
+Convert PGP certificate to vCard (format 4.0).
 Missing NAME|EMAIL|KEYID|U4|U5 => the certificate whose secret key is at
 hand.
 
 OPTIONS:
   -o, --output FILE           Write into given FILE instead of standard output
-      --raw                   Don't convert, but raw output all OpenPGP uids strings, separated by empty lines
+      --raw                   Don't convert, but raw output all PGP uids strings, separated by empty lines
   -h, --help                  Print this help and exit
   -V, --version               Print the version and exit
 ```
@@ -400,7 +400,7 @@ OPTIONS:
   -P, --print PRINTER|FILE.svg  Printer name to send to, or output SVG file if it ends with '.svg'
   -t, --template FILE.svg       Use this template to produce business card
                                 (one is shipped: /usr/share/pgpid/svg/card.svg)
-  -N, --name NAME               Override the displayed name (default: guessed from OpenPGP certificate and email)
+  -N, --name NAME               Override the displayed name (default: guessed from PGP certificate and email)
   -g, --no-color                Output in grayscale instead of color
   -h, --help                    Print this help and exit
   -V, --version                 Print the version and exit
@@ -443,7 +443,7 @@ OPTIONS:
   -h, --help                  Print this help and exit
   -V, --version               Print the version and exit
 
-Revoking is final. OpenPGP has no way back: every copy that ever fetches this
+Revoking is final. PGP has no way back: every copy that ever fetches this
 certificate, anywhere, will see it revoked, and no later signature will count.
 ```
 
@@ -481,12 +481,12 @@ OPTIONS:
 ```
 Usage: pgpid secret_passphrase [OPTIONS]... KEY_ID|FPR|EMAIL|NAME
 
-Change GnuPG passphrase protecting secret parts of an OpenPGP key.
+Change GnuPG passphrase protecting secret parts of a PGP key.
 
 OPTIONS:
-  -p, --passphrase PASSPHRASE    Current passphrase protecting secret parts of OpenPGP key (empty "" for none)
+  -p, --passphrase PASSPHRASE    Current passphrase protecting secret parts of PGP key (empty "" for none)
   -P, --passfrom FILE            Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)
-  -n, --newpassphrase PASSPHRASE New passphrase to protect secret parts of OpenPGP key (empty "" for none)
+  -n, --newpassphrase PASSPHRASE New passphrase to protect secret parts of PGP key (empty "" for none)
   -N, --newpassfrom FILE         Get new passphrase from the first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)
   -r, --replace                  Change the passphrase, instead of only checking it
   -h, --help                     Print this help and exit
@@ -501,13 +501,13 @@ this machine's process list. The file forms exist for that reason.
 ```
 Usage: pgpid secret_print [OPTIONS]... KEY_ID|FPR
 
-Export and print OpenPGP secrets on multiple QRcode using Shamir's secret
+Export and print PGP secrets on multiple QRcode using Shamir's secret
 sharing, split so that no single sheet carries the key.
 
 Missing input will be asked interactively, unless --batch.
 
 OPTIONS:
-  -p, --passphrase PASSPHRASE    Passphrase to access secret parts of OpenPGP key
+  -p, --passphrase PASSPHRASE    Passphrase to access secret parts of PGP key
   -P, --passfrom FILE            Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)
   -t, --printer PRINTER          Name of printer to use. Empty to produce the sheets and send nothing
   -w, --with-passphrase          Also print passphrase beside QR codes (INCREASE UX, DECREASE SECURITY)
@@ -532,8 +532,8 @@ face, and paper is handled by whoever finds it.
 ```
 Usage: pgpid secret_scan [OPTIONS]... IMAGES...
 
-Reconstitute OpenPGP secrets from QRcodes scanned from IMAGES.
-Output OpenPGP certification key fingerprint.
+Reconstitute PGP secrets from QRcodes scanned from IMAGES.
+Output PGP certification key fingerprint.
 Images may be PNG, JPEG, or PDF.
 
 QR code versions 4 and 5, which is what print_secret writes. Versions 1
@@ -560,23 +560,23 @@ nothing.
 ```
 Usage: pgpid secret_totoken [OPTIONS]... KEY_ID|FPR
 
-Move OpenPGP secrets to security token (OpenPGP smartcard).
+Move PGP secrets to security token (OpenPGP smartcard).
 Security token (OpenPGP smartcard) must be connected.
-Output ASCII armored OpenPGP certificate, PIN code and admin code.
+Output ASCII armored PGP certificate, PIN code and admin code.
 
 This wipes the card and takes the secret parts off this machine. Both are
 final. Print the key first if it is not printed: pgpid secret_print.
 
 OPTIONS:
-  -p, --passphrase PASSPHRASE  Passphrase to access secret parts of OpenPGP key
+  -p, --passphrase PASSPHRASE  Passphrase to access secret parts of PGP key
   -P, --passfrom FILE          Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)
-  -U, --certurl URL            URL to retrieve your OpenPGP certificate
+  -U, --certurl URL            URL to retrieve your PGP certificate
                                Default: https://keys.foopgp.org/pks/lookup?op=get&search=0x<FPR>
   -L, --lang LANG              Security token (OpenPGP smartcard) prefered language (default: the locale's)
-  -k, --keyserver KEYSERVER    Send OpenPGP certificate to this public keys server
+  -k, --keyserver KEYSERVER    Send PGP certificate to this public keys server
                                Empty to send it nowhere. Does not change --certurl
                                Default: hkps://keys.foopgp.org
-  -K, --pubkey FILE            Also write armored OpenPGP certificate to given FILE
+  -K, --pubkey FILE            Also write armored PGP certificate to given FILE
       --force                  Don't ask before resetting unempty security token (OpenPGP smartcard)
   -h, --help                   Print this help and exit
   -V, --version                Print the version and exit
@@ -742,28 +742,28 @@ OPTIONS:
 ## pgpid gen_key
 
 ```
-Usage: pgpid gen_key [OPTIONS]... DIRECCIÓN
+Usage: pgpid gen_key [OPTIONS]... EMAIL
 
-Generar un par de claves OpenPGP (pública y secreta) según las normas PGP ID.
-Muestra 3 líneas, una por huella:
-* clave principal (Firma Certificación)
-* clave de descifrado (Cifrado)
-* clave de autenticación (Auth)
+Generate a PGP key pair (public and secret) according to PGP ID standards.
+Output 3 lines for each fingerprints:
+* main key (Sign Certify)
+* decryption key (Encrypt)
+* authentication key (Auth)
 
 OPTIONS:
-  -N, --name PSEUDONYM        Nombre común o seudónimo
-  -c, --eid U4|U5             Identificador de entidad. Exigido: calcular uno
-  -C, --extra-comment NOTE    Una nota sobre la entidad
-  -p, --passphrase PASSPHRASE La frase de paso. Visible para todo lo que pueda
-  -P, --passfrom FILE         Leerla en la primera línea de FICHERO
-  -e, --expiration YEARS      Años antes de caducar - Por omisión: 11
-  -k, --keyserver KEYSERVER   El servidor que este certificado nombra suyo - Por omisión: hkps://keys.foopgp.org
-  -h, --help                  Mostrar esta ayuda y salir
-  -V, --version               Mostrar la versión y salir
+  -N, --name PSEUDONYM             Common name or pseudonym. Default: first part of email
+  -c, --eid U4|U5                  Entity ID. Worldwide and decentralised entity identifier. Required here
+  -C, --extra-comment NOTE         Supplemental information or comment associated with the entity
+  -p, --passphrase PASSPHRASE      Passphrase to (symetric) encrypt secret part of PGP key. CAN'T BE EMPTY (at this stage)
+  -P, --passfrom FILE              Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin …)
+  -e, --expiration YEARS           Number of years before certificate expiration. Default: 11
+  -k, --keyserver KEYSERVER        Prefered PGP certificate server. Default: hkps://keys.foopgp.org
+  -h, --help                       Print this help and exit
+  -V, --version                    Print the version and exit
 
-Ambas formas de dar la frase de contraseña tienen su inconveniente, y la
-segunda menos: un argumento es visible para todo proceso de la máquina
-mientras este dure.
+Both ways of giving the passphrase have their drawback, and the second has
+fewer: an argument is visible to every process on the machine for as long
+as this one runs.
 ```
 
 ## pgpid gen_u4
@@ -949,45 +949,44 @@ OPTIONS:
 ```
 Usage: pgpid certify [OPTIONS]... [TARGET_KEYFPR] [TARGET_U4|TARGET_U5]
 
-Certificar a otra persona. Ambos operandos son opcionales y pueden venir en
-cualquier orden — se reconocen por su forma, no por su lugar. Lo que falta
-se pregunta, salvo que --batch diga que no hay nadie a quien preguntar.
+Certify somebody else. Both operands are optional and may come in either
+order — they are recognised by their shape, not by their place. What is
+missing is asked for, unless --batch says there is nobody to ask.
 
-TARGET_KEYFPR son los cuarenta caracteres enteros, leídos en la tarjeta de
-la otra persona — nunca un patrón de búsqueda, porque una certificación no
-se retira. Sin él, se busca aquí y en los servidores de claves a quien
-lleve TARGET_U4, y se piden ocho caracteres de la huella, tomados en un
-lugar sorteado: bastante para probar que la tarjeta está en su mano.
+TARGET_KEYFPR is the whole forty characters, read off the other person's
+card — never a search pattern, because a certification cannot be taken
+back. Without it, whoever carries TARGET_U4 is looked up here and on the
+keyservers, and eight characters of the fingerprint are asked for, taken
+at a place drawn at random: enough to prove the card is in your hand.
 
-TARGET_U4 puede escribirse u4VALOR, el desaconsejado u4=VALOR, o desnudo.
-Dado junto a una huella, exige que el certificado lo lleve, y rechaza si
-no.
+TARGET_U4 may be written u4VALUE, the deprecated u4=VALUE, or bare.
+Given together with a fingerprint, it asks that the certificate carry it,
+and refuses otherwise.
 
-Certificar significa: sé que este otro certificado pertenece a esta persona real.
-Esto implica verificar el estado civil y la huella de la clave pública del OBJETIVO.
-Esto permite extender y reforzar su red de confianza y las de sus allegados.
-Es un compromiso: cuanto más certifique, más aumentará su reputación,
-pero si lo hace mal, arruinará su credibilidad.
+Certification means : I know this other certificate belongs to this real person.
+This implies verifying the civil status and the public key fingerprint of the TARGET.
+This allows you to expand and strengthen your web of trust and those of your close ones.
+This is a commitment: the more you certify, the more you increase your reputation,
+but if you do it wrong, you will ruin your credibility.
 
 OPTIONS:
-  -u, --use-privkey NAME|KEYID Certificar con esta clave
-  -E, --all-emails            Certificar también todo uid con dirección,
-  -R, --revoke                Revocar sus certificaciones anteriores
-  -o, --credibility VALUE     Hasta dónde certifican a otros, a su vez
-      --ownertrust VALUE      Lo mismo, con el nombre que gpg le da
-  -l, --local                 Certificar sin exportar — útil para probar
-  -K, --keyservers KEYSERVERS Enviar el resultado a estos, separados por - Por omisión: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -h, --help                  Mostrar esta ayuda y salir
-  -V, --version               Mostrar la versión y salir
+  -u, --use-privkey NAME|KEYID Select private key to use. Default: Guess it from connected token
+  -E, --all-emails             Also certify every PGP uid containing an email. For compatibility with some legacy software.
+  -R, --revoke                 Revoke your previous certifications on someone else's certificate
+  -o, --credibility VALUE      What credibility do you assign to the target to correctly certify others {undefined,marginal,full,never}
+      --ownertrust VALUE       The same, under the name gpg gives it - Default: marginal
+  -l, --local                  « Non-exportable » certification. Pretty useless, except for testing
+  -K, --keyservers KEYSERVERS  If non-empty, receive and send updated certificate from and to this keyservers - Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -h, --help                   Print this help and exit
+  -V, --version                Print the version and exit
 
-Valor de retorno:
--   0 Ningún error
--   2 Error de argumento o de uso
-- 140 Nada con que certificar — diga qué clave con --use-privkey
-- 141 Ningún certificado lleva esa huella
-- 142 ¡Autocertificarse no tiene nada de nuevo! ;-)
-- 143 Ese certificado no lleva ese identificador
-
+Return value:
+-   0 No error
+-   2 Input/Usage error
+- 140 Nothing to certify with — say which key with --use-privkey
+- 141 No certificate carries that fingerprint
+- 142 Self-certification is not innovative! ;-)
+- 143 That certificate does not carry that identifier
 ```
 
 ## pgpid trustdb

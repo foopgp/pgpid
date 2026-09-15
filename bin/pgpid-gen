@@ -4,7 +4,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-only
 #
-# Generate OpenPGP certificates and keys to be imported for multiple applications (mail, chat, vote, etc.)
+# Generate PGP certificates and keys to be imported for multiple applications (mail, chat, vote, etc.)
 # 3 important keys (SC, E and A) are only printed, to be imported into OpenPGP Security hardware (nitrokeys, yubikeys, etc.)
 #
 # It may and should read identification data from ID documents (eg: International Passeports)
@@ -79,7 +79,7 @@ PGPI_U5ID=""
 
 usage="Usage: $BASH_SOURCE [OPTIONS]... [--] [PASSPORT_IMAGE]
 
-Generate OpenPGP certificates and secrets on multiple QR codes (physical secret sharing scheme)
+Generate PGP certificates and secrets on multiple QR codes (physical secret sharing scheme)
 It may take the main page of an international passport as input (ICAO 9303 compliant).
 If $PGPI_NAME succeed, it will :
   * create a subdirectory containing the public certificate and the pubkey to be use for ssh.
@@ -273,7 +273,7 @@ fi
 
 "$PGPID_BIN" --homedir "$outdir/gnupg" cert_tobizcard --print "${printer}" --name "${PGPID[pseudonym]}" "${FPRS[0]}" > >(bl_log debug) 2> >(bl_log notice)
 
-bl_log info "Export OpenPGP first certificate and public ssh key..."
+bl_log info "Export PGP first certificate and public ssh key..."
 gpg --homedir "$outdir/gnupg" --armor --export 2> >(bl_log crit) > "$outdir/PGPcert.gpg.asc"
 gpg --homedir "$outdir/gnupg" --export-ssh-key ${FPRS[0]} 2> >(bl_log crit) > "$outdir/ssh_${PGPID[comment]#*=}.pub"
 
