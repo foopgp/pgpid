@@ -37,7 +37,16 @@ pgpid (0.1.0-1) unstable; urgency=medium
     code. --cameras answers the list on its own, for a caller with nobody to
     ask.
   * gen_u4 says when the reference transliteration did not take a name as it
-    was typed — MÜLLER as MULLER — which the shell said and this did not.
+    was typed — MÜLLER as MULLER — which the shell said and this did not, and
+    --verify shows the whole civil status for correction before computing.
+  * secret_totoken sets the codes it announces. It called token_code without
+    --replace, which only verifies, so a freshly written card kept its factory
+    PIN and Admin code while a random pair was printed. token_code now refuses
+    a new code given without --replace.
+  * secret_totoken asks before wiping a card that carries something, instead
+    of refusing outright, and asks nothing of a blank one.
+  * secret_scan says when it has every fragment, and what it put back
+    together.
   * Carries the business-card template cert_tobizcard renders, in
     /usr/share/pgpid/svg/card.svg. bash-libs keeps its copy, which bl-pgpid
     still reads; the two paths are disjoint.
