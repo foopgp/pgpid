@@ -78,13 +78,17 @@ pgpid (0.1.0-1) unstable; urgency=medium
     was given none of them, as `bl-pgpid gen_key` did and said it did. The
     identifier is minted through gen_u4's own questions and its --verify
     read-back; the passphrase is typed twice. --batch keeps every refusal.
-  * secret_print says which side is full when a secret does not fit a sheet.
-    A 4096-bit RSA secret is 3324 characters encoded and the largest QR
-    symbol there is holds 2953, so the message names the two numbers and
-    suggests the --split N --threshold N that cuts it instead -- where
-    "qrencode would not draw fragment 1" named the wrong party. Keys from
-    `gpg --quick-generate-key` print and scan back: ed25519, rsa2048,
-    rsa3072 as they are, rsa4096 once cut.
+  * secret_print puts a limit on what one sheet carries: 1024 bytes of
+    secret. Not the QR code's ceiling -- that is 2953 characters, a symbol
+    nobody can scan -- but how close the paper has to be held: measured
+    against zbar through a webcam's blur, the ed25519 fragment we print
+    today needs the code to fill 55% of a 640x480 frame, 1024 bytes needs
+    72%, a whole rsa2048 secret 77%. A share of a shared secret is the size
+    of the secret, so a key above the limit goes on paper only cut, and the
+    refusal says so and names the two ways out in the caller's own values --
+    "--threshold 5, or --split 3" -- where "qrencode would not draw fragment
+    1" named the wrong party. Keys from `gpg --quick-generate-key` print and
+    scan back either way: ed25519 shared, rsa2048 and above cut.
   * cert_tobizcard prints sharp again. The sheet placed the card as an
     <image> of an SVG, which librsvg draws once at its natural size and
     scales up: the fingerprint lines came out as mush. The card is inlined
