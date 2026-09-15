@@ -20,6 +20,14 @@ set -u
 export LC_ALL=C.UTF-8
 unset LANGUAGE
 
+# glibc fills every fresh allocation with this byte and every freed one with
+# its complement, which turns "uninitialised heap" from a coin toss into a
+# certainty. A field nobody wrote then holds pointers made of 0x2a rather
+# than whatever the last caller left, so reading one faults here instead of
+# on somebody's machine -- which is how a crash in cert_sigs survived months
+# of green runs: on our own certificates the slot happened to be zero.
+export MALLOC_PERTURB_=42
+
 PGPI_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 BIN=${1:-./build/pgpid}
 [[ -x "$BIN" ]] || { printf 'run.sh: Error: no binary at %s\n' "$BIN" >&2 ; exit 2 ; }
@@ -240,6 +248,35 @@ is "--no-self-sig puts it back out" "$("$BIN" cert_sigs --no-self-sig "$FPR" | w
 # The witness signed nobody, so with its own signature left out there is nothing.
 "$BIN" cert_sigs --no-self-sig "$WFPR" >/dev/null 2>&1
 is "and says 141 when that leaves nothing" "$?" "141"
+
+# A certifier this keyring does not hold. Every test above signs with a key
+# that is right here, which is why a crash lived in this listing for months:
+# the fields filled only for a certifier we hold -- the identifier, the name,
+# the full fingerprint -- were left as realloc had them for one we do not, and
+# printing them walked off the end of the world. It took a certificate signed
+# by a hundred and ten strangers to show it. Here is one signed by one.
+STRANGER=$(mktemp -d) ; chmod 700 "$STRANGER"
+gpg --homedir "$STRANGER" --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-generate-key "stranger <stranger@example.invalid>" ed25519 cert never 2>/dev/null
+SFPR=$(gpg --homedir "$STRANGER" --with-colons --list-keys stranger@example.invalid 2>/dev/null \
+       | awk --field-separator=: '$1=="fpr"{print $10; exit}')
+# The stranger is given the certificate, signs it, and hands it back. Its own
+# key never enters this keyring, which is the whole point.
+gpg --export "$FPR" 2>/dev/null | gpg --homedir "$STRANGER" --batch --quiet --import 2>/dev/null
+gpg --homedir "$STRANGER" --batch --yes --quiet --passphrase '' --pinentry-mode loopback \
+    --default-key "$SFPR" --quick-sign-key "$FPR" >/dev/null 2>&1
+gpg --homedir "$STRANGER" --export "$FPR" 2>/dev/null | gpg --batch --quiet --import 2>/dev/null
+rm -rf "$STRANGER"
+
+out=$("$BIN" cert_sigs "$FPR" 2>/dev/null) ; rc=$?
+is "a certifier we do not hold does not crash the listing" "$rc" "0"
+is "and is counted with the others"  "$(wc --lines <<<"$out")" "3"
+# Sixteen characters where the certificate is missing, forty where we have it:
+# what the signature carries is exactly what a keyserver takes to fetch it.
+is "named by what its signature carries" \
+   "$(awk '{print $1}' <<<"$out" | grep --count --extended-regexp '^[0-9A-F]{16}$')" "1"
+is "and nothing is invented about them" \
+   "$(awk '$1 ~ /^[0-9A-F]{16}$/ && $2 == "-" && $3 == "-"' <<<"$out" | wc --lines)" "1"
 
 # The search that goes to a keyserver. No network in the suite, so what is
 # checked is the term it would send: an identifier is searched by its body,

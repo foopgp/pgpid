@@ -81,6 +81,14 @@ static void remember(struct row **rows, size_t *n, size_t *cap,
         *rows = bigger;
         *cap = grown;
     }
+    /* Cleared first, and not only the three fields filled here. The rest --
+     * eid, name, fpr -- are written later, and *only for a certifier this
+     * keyring holds*. On a certificate signed by people we have never met
+     * they stayed as realloc left them, and the print loop read
+     * `rows[i].eid ? ... : "-"` on a pointer nobody had written: a
+     * segmentation fault on somebody else's web of trust, and never on our
+     * own, where every certifier is somebody we already have. */
+    memset(&(*rows)[*n], 0, sizeof (*rows)[*n]);
     snprintf((*rows)[*n].keyid, sizeof (*rows)[*n].keyid, "%s", keyid);
     (*rows)[*n].timestamp = ts;
     (*rows)[*n].email = email && *email ? strdup(email) : NULL;
