@@ -1,0 +1,284 @@
+#!/bin/bash
+#
+# SPDX-FileCopyrightText: 2021-2025 Friends Of OpenPGP organization <info@foopgp.org>
+#
+# SPDX-License-Identifier: GPL-3.0-only
+#
+# Generate PGP certificates and keys to be imported for multiple applications (mail, chat, vote, etc.)
+# 3 important keys (SC, E and A) are only printed, to be imported into OpenPGP Security hardware (nitrokeys, yubikeys, etc.)
+#
+# It may and should read identification data from ID documents (eg: International Passeports)
+
+if [[ "$BASH_SOURCE" != "$0" ]] ; then
+	# If we are sourced, just load completion.
+	[[ "$1" == --bash-completion ]] || printf "%s: Loading completion...\n" "$BASH_SOURCE" >&2
+
+	_pgpid_gen_options=$("${BASH_SOURCE[0]}" --help | sed -n 's,^  ... \(--[a-z_-]\+[^ ]*\).*,\1,p' | sed 's_<_{_ ; s_|_,_g ; s_>_}_ ')
+	_pgpid_gen_completion()
+	{
+		local cur
+
+		COMPREPLY=()
+		cur=${COMP_WORDS[COMP_CWORD]}
+
+		case ${COMP_WORDS[COMP_CWORD-1]} in
+			-o|--output-path)
+				compopt -o plusdirs
+				COMPREPLY=( $(compgen -A directory -- $cur) )
+				return 0 ;;
+			-s|--split|-t|--threshold)
+				COMPREPLY=( $(IFS=" " compgen -W "3 4 5 6 7 8 9" -- $cur ) )
+				return 0 ;;
+			# some options will exit without executing any actions, so don't complete anything
+			-h|--help|-V|--version)
+				return 0 ;;
+		esac
+
+		if [[ "$cur" == -* ]]; then
+			COMPREPLY=( $(IFS=$'\n' compgen -W "$_pgpid_gen_options" -- $cur ) )
+		else
+			compopt -o plusdirs
+			COMPREPLY=( $(compgen -A file -X '!*.@(gif|GIF|jp?(e)g|JP?(E)G|miff|tif?(f)|pn[gm]|PN[GM]|p[bgp]m|bmp|BMP|xpm|ico|xwd|tga|pcx)' -- $cur ) )
+		fi
+		return 0
+	}
+	complete -F _pgpid_gen_completion "$(basename "$BASH_SOURCE")" "$BASH_SOURCE"
+	return 0
+fi
+
+PGPI_NAME="$(basename $(readlink -f "$BASH_SOURCE") )"
+PGPI_DIR="$(dirname $(readlink -f "$BASH_SOURCE") )"
+
+# The next two lines are rewritten by 'make install' — see the Makefile. Until
+# then they describe the checkout they are read from: the version git reports
+# for it, and the binary this very tree builds. Nothing is written down twice.
+PGPI_VERSION="0.1.0"
+PGPID_BIN="/usr/bin/pgpid"
+
+### Constants ###
+
+FACE_MARGIN_WIDTH="25/100"
+FACE_MARGIN_HEIGHT="50/100"
+TESSDATADIR="$(dirname "$BASH_SOURCE")/../share/pgpid/data/"
+
+### Default option values ###
+
+PGPI_SPLITN=5
+PGPI_THRESN=3
+
+# run as a program
+set -e
+# set global constants real constant (read only)
+declare -r FACE_MARGIN_WIDTH FACE_MARGIN_HEIGHT TESSDATADIR
+_exit="exit"
+LOGEXITPRIO=crit
+LOGLEVEL=5
+
+PGPI_OUTPATH="$PWD"
+PGPI_U5ID=""
+
+usage="Usage: $BASH_SOURCE [OPTIONS]... [--] [PASSPORT_IMAGE]
+
+Generate PGP certificates and secrets on multiple QR codes (physical secret sharing scheme)
+It may take the main page of an international passport as input (ICAO 9303 compliant).
+If $PGPI_NAME succeed, it will :
+  * create a subdirectory containing the public certificate and the pubkey to be use for ssh.
+  * print the secret keys on multiple QRcodes. To be put on a OpenPGP card (eg. yubikey) using pgpid-qrscan.
+"
+
+soptions="
+  -o, --output-path PATH   location for generated subdirs and files (default: current dir \$PWD )
+  -s, --split NUM          number of shares to be generated (default: $PGPI_SPLITN)
+  -t, --threshold NUM      number of shares necessary to reconstruct the secret (default: $PGPI_THRESN)
+  -5, --u5 U5ID            use a pre-computed u5 identifier instead of deriving u4 from passport
+  -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (default: $LOGLEVEL)
+  -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (default: $LOGLEVEL)
+  -C, --extra-comment STR  (Free to use part of) comment beside new EMAIL (default: "").
+  -h, --help               show this help and exit
+  -V, --version            show version and exit"
+
+### Handling options ###
+
+helpmsg="$usage
+
+Options: $soptions
+"
+
+for ((i=0;$#;)) ; do
+case "$1" in
+	-o|--output*) shift ; PGPI_OUTPATH="$1" ; ( cd "$PGPI_OUTPATH" && touch . ) ;; # cd and touch to verify outpath exist and is writable
+	-s|--split) shift ; PGPI_SPLITN="$1" ;;
+	-t|--thres*) shift ; PGPI_THRESN="$1" ;;
+	-5|--u5) shift ; PGPI_U5ID="$1" ;;
+	-l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; $_exit 2 ; } ;;
+	-L|--log-e*) shift ; LOGEXITPRIO="$1"
+		grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$LOGEXITPRIO\" is none of: ${!loglevels[@]}" >&2 ; $_exit 2 ; } ;;
+	-v|--verb*) ((LOGLEVEL++)) ;;
+	-q|--quiet) ((LOGLEVEL--)) ;;
+	-f|-C|--free-comment|--extra-comment) shift ; PGPI_EXTRACOMMENT="$1" ;;
+	-h|--h*) echo "$helpmsg" ; $_exit ;;
+	-V|--vers*) echo "$PGPI_NAME $PGPI_VERSION" ; $_exit ;;
+	--) shift ; break ;;
+	-*) echo -e "Error: Unrecognized option $1\n$helpmsg" >&2 ; $_exit 2 ;;
+	*) break ;;
+esac
+shift
+done
+
+### functions ###
+
+source "$(dirname "$BASH_SOURCE")"/bl-log --no-act --log-level "$LOGLEVEL" --log-exit "$LOGEXITPRIO"
+source "$(dirname "$BASH_SOURCE")"/bl-interactive --
+source "$(dirname "$BASH_SOURCE")"/bl-security --
+source "$(dirname "$BASH_SOURCE")"/bl-json --
+
+# Do nothing else if sourced
+[[ "$BASH_SOURCE" == "$0" ]] || return 0
+
+[[ -x "$PGPID_BIN" ]] || bl_log crit "$PGPID_BIN: not built. Run 'make' at the root of the checkout."
+
+
+### Init ###
+
+_pgpi_onexit() {
+	[[ -d "$outdir/gnupg" ]] && bl_shred_path -v -f -r "$outdir/gnupg" 2> >(bl_log warning) | bl_log debug
+	[[ -d "$outdir/temp" ]] && bl_shred_path -v -f -r "$outdir/temp" 2> >(bl_log warning) | bl_log debug
+}
+
+#TMPDIR=$(mktemp -d -t "$PGPI_NAME".XXXXXX) || log crit "crit: Can not create a safe temporary directory."
+
+trap _pgpi_onexit EXIT
+
+### Run ###
+
+imgfile="$1"
+if [[ "$2" ]] ; then
+	shift
+	bl_log warning "ignoring extra args $@"
+fi
+
+declare -A PGPID=()
+
+if [[ "$imgfile" ]] ; then
+	facep=$(facedetect --best -- "$imgfile" 2> >(bl_log notice) || true )
+	if [[ "$facep" ]] ; then
+		read px py sx sy etc <<<"$facep"
+		mx=$((sx*$FACE_MARGIN_WIDTH))
+		my=$((sy*$FACE_MARGIN_HEIGHT))
+		bl_log info "$imgfile face -> position: +$px+$py  size: ${sx}x$sy  marges: +${mx}+$my"
+
+		declare -A DOCUMENT=()
+		# OCR only on zone below the image, converted to PNG because tesseract work better whith this format.
+		if ! mrz=($(gm convert -crop +0+$((py+sy)) "$imgfile" png:- 2> >(bl_log notice) | tesseract --tessdata-dir "$TESSDATADIR" -l mrz - - 2> >(bl_log notice) | sed 's/[^0-9A-Z<]*//g' | grep -m1 -A2 "<<")) ; then
+			bl_log warning "$imgfile: No machine-readable zone detected"
+		else
+			bl_log info "mrz: ${mrz[@]}"
+		fi
+
+		DOCUMENT[filename]=$imgfile
+		DOCUMENT[face_scan_64url]=$(gm convert -crop $((sx+mx))x$((sy+my))+$((px-(mx/2)))+$((py-(my/2))) "$imgfile" jpeg:- 2> >(bl_log warning) | basenc --base64url )
+
+#		if ((${#DOCUMENT[face_scan_64url]} < 2048 )) ; then
+#			bl_log error "face image: too small (${#DOCUMENT[face_scan_64url]} < 2048)"
+#		elif ((${#DOCUMENT[face_scan_64url]} > (1<<16) )) ; then
+#			bl_log error "face image: too big (${#DOCUMENT[face_scan_64url]} > $((1<<16)))"
+#		fi
+
+#		# Resize image
+#		(exec 2> >(bl_log error) ; basenc --base64url --decode <<<"${DOCUMENT[face_scan_64url]}" | gm convert -geometry x180 - "$outdir/temp/face.jpg" )
+
+		PGPID[document0]="$(declare -p DOCUMENT)"
+	else
+		bl_log warning "$imgfile: No face detected => this is not a passport"
+	fi
+fi
+
+# A passport is one way in and typing is the other: the zone goes in when
+# there is one, and gen_u4 asks for what it has not got. Its stderr is left
+# alone on purpose — the questions travel there, and a logger swallows a
+# prompt that carries no newline, leaving the terminal waiting for an answer
+# to a question nobody has seen.
+mrzarg=()
+if [[ "${mrz[*]}" ]] ; then
+	mrzarg=(--from-passport-mrz "${mrz[@]}")
+fi
+
+#PGPID[birth_date]=$(bl_input --iso-8601 "Birth date (YYYY-mm-dd)") # also used as a default passphrase
+if [[ -n "$PGPI_U5ID" ]] ; then
+	u5id=${PGPI_U5ID#u5} ; u5id=${u5id#[=:]}
+	# gen_uid hashes anything opening with u5; only the uid form makes it apply
+	# the pattern. That check is pgpid's to hold, not a regex copied back here.
+	"$PGPID_BIN" gen_uid "UID:urn:eid:u5$u5id" > /dev/null 2>&1 \
+		|| bl_log crit "Invalid u5 identifier: '$PGPI_U5ID'"
+	PGPID[comment]="u5=$u5id"
+	bl_log info "${PGPID[comment]}"
+elif PGPID[udid4]=$("$PGPID_BIN" gen_u4 --verify "${mrzarg[@]}") ; then
+	PGPID[comment]="u4=${PGPID[udid4]}"
+	bl_log info "${PGPID[comment]}"
+else
+	bl_log crit "can't generate (foo)PGP IDentifier (from data you have validated)"
+fi
+
+printers=($(LANG= lpstat -p 2> >(bl_log crit) | sed -n 's,^printer \([^ ]*\).*,\1,p')) || bl_log crit "No printer detected"
+printer="$(bl_radiolist --output-value --default-value "$(lpstat -d | sed 's,.* ,,')" --num-per-line 1 --text "Where to print the ${PGPI_SPLITN} secret fragments ?" "${printers[@]}")"
+lpstat -p "${printer}" 2> >(bl_log crit) | bl_log info
+
+outdir="${PGPI_OUTPATH%/}/PUB_${PGPID[comment]//=*/}${PGPID[comment]#*=}"
+mkdir -p "$outdir"/{gnupg,temp}
+
+while true ; do
+	PGPID[email]=$(bl_input --email --default "${PGPID[email]}" "Public email adress")
+	PGPID[pseudonym]=$(bl_input --default "${PGPID[pseudonym]}" "Public name (or pseudonym)")
+	! bl_yesno --text \
+"
+Public name (or pseudonym): ${PGPID[pseudonym]}
+Public email adress:        ${PGPID[email]}
+" \
+		"Is that correct" || break
+done
+
+PGPID[wkd_uri]=$($(gpgconf --list-dirs libexecdir)/gpg-wks-client --print-wkd-url "${PGPID[email]}" 2> >(bl_log warning) )
+PGPID[wks_support]=$(timeout --verbose 5s $(gpgconf --list-dirs libexecdir)/gpg-wks-client --supported --with-colons "${PGPID[email]}" 2> >(bl_log notice) || true )
+
+if ! [[ "${PGPID[wks_support]}" =~ :1: ]] ; then
+	#TODO: Improve parsing wks_support and distinct WKD and WKS (and later WKS versions)
+	bl_log warning "Your email provider support neither WKD or WKS protocol :-("
+fi
+
+PASSPHRASE=("$(date --date "@$SRANDOM" +"%+4Y%m%d")")
+
+#if ((PGPI_QRVERSION==2)) ; then
+#	PASSPHRASE+=($(bl_gen_passphrase --dict en --num "$PGPI_SPLITN" --delimiter " ")) # PGPI_QRVERSION == 2 added a complex passphrase, but is now deprecated.
+#fi
+
+PGPID[passphrase]="${PASSPHRASE[@]}"
+
+PGPID[hkp_server]="keys.foopgp.org"
+#PGPID[hkp_server]="keys.openpgp.org"
+
+#TODO: check gpg version, because compatibility may change (tested with gpg (GnuPG) 2.2.27 libgcrypt 1.8.8)
+# Start using "$outdir/gnupg" which need to be rwx only for user... then we may also remove rwx for all $outdir.
+chmod -R go-rwx "$outdir"
+
+# generate keys
+# ${PGPID[comment]} keeps the u4=/u5= spelling for the log and the JSON, but a
+# uid being minted now gets the standard glued one: pgpid refuses the other.
+FPRS=($("$PGPID_BIN" --homedir "$outdir/gnupg" gen_key --passphrase "${PGPID[passphrase]}" --name "${PGPID[pseudonym]}" --comment "${PGPID[comment]/=/}" --extra-comment "$PGPI_EXTRACOMMENT" "${PGPID[email]}"))
+PGPID[frps]="$(declare -p FPRS)"
+
+# print QR codes
+if ! "$PGPID_BIN" --homedir "$outdir/gnupg" secret_print --printer "${printer}" --split "${PGPI_SPLITN}" --threshold "$PGPI_THRESN" --passphrase "${PGPID[passphrase]}" --with-passphrase --workdir "$outdir/temp/" "${FPRS[0]}" > >(bl_log debug) 2> >(bl_log notice) ; then
+	bl_log crit "Printing QR codes FAIL ($?)"
+fi
+
+"$PGPID_BIN" --homedir "$outdir/gnupg" cert_tobizcard --print "${printer}" --name "${PGPID[pseudonym]}" "${FPRS[0]}" > >(bl_log debug) 2> >(bl_log notice)
+
+bl_log info "Export PGP first certificate and public ssh key..."
+gpg --homedir "$outdir/gnupg" --armor --export 2> >(bl_log crit) > "$outdir/PGPcert.gpg.asc"
+gpg --homedir "$outdir/gnupg" --export-ssh-key ${FPRS[0]} 2> >(bl_log crit) > "$outdir/ssh_${PGPID[comment]#*=}.pub"
+
+bl_log info "Generate JSON file, for eventual futur use..."
+bl_json_from_var --nested PGPID > "$outdir/pgpid.json" 2> >(bl_log crit)
+bl_log info "All Done :-)"
+
+exit 0

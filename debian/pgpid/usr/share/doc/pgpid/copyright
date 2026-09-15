@@ -1,0 +1,105 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: pgpid
+Upstream-Contact: Friends Of OpenPGP organization <info@foopgp.org>
+Source: https://codeberg.org/foopgp/pgpid
+
+Files: *
+Copyright: 2021-2026 Friends Of OpenPGP organization <info@foopgp.org>
+           2021-2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+           2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
+License: GPL-3
+
+Files: doc/9303_*.pdf
+Copyright: International Civil Aviation Organization (ICAO)
+License: reference-material
+
+Files: doc/ISO14443_Overview-v5.pdf
+       doc/Říha2009_Chapter_AnOverviewOfElectronicPassport.pdf
+       doc/bh_us_08_van_Beek_ePassports_Reloaded_Slides.pdf
+       doc/key_overwriting_attack.pdf
+Copyright: the respective authors and publishers
+License: reference-material
+
+Files: imgsamples/*.jpg
+       imgsamples/*.JPG
+       imgsamples/*.png
+       imgsamples/scan_nok/*
+Copyright: Council of the European Union (PRADO)
+           and the respective issuing authorities
+License: reference-material
+
+Files: imgsamples/scan_nok/friends.jpg
+Copyright: Warner Bros. Entertainment Inc.
+Comment: A still from the television series, kept as a negative test case: an
+ image the scanner must decline rather than read an MRZ out of.
+License: reference-material
+
+Files: data/mrz.traineddata
+       data/tesseract.parameters.ref
+       oldies/data/mrz_best.traineddata
+Copyright: unknown
+Comment: Tesseract OCR training data and a dump of tesseract's own parameter
+ list.  Provenance unsettled: they arrived in 2021 from a tessdata/ directory,
+ with no record of whether they were trained here or taken from elsewhere.
+ .
+ This matters more than for the other reference material, because
+ debian/install ships data/ to /usr/share/pgpid/ — these two files are in
+ the binary package.  Their licence needs establishing.
+License: reference-material
+
+Files: oldies/data/country_centroids_az8.csv
+       oldies/data/geolist_centroid.txt
+Copyright: Natural Earth <https://www.naturalearthdata.com/>
+License: reference-material
+
+Files: oldies/notes/pgpid-cert
+Copyright: the participants in the conversation
+License: reference-material
+
+Files: svg/card.svg
+Copyright: 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+           2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
+License: CC-BY-SA-4.0
+
+License: GPL-3
+ This program is free software: you can redistribute it and/or modify it
+ under the terms of the GNU General Public License version 3 only, as
+ published by the Free Software Foundation.
+ .
+ This program is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License along
+ with this program.  If not, see <https://www.gnu.org/licenses/>.
+ .
+ On Debian systems, the complete text of the GNU General Public License
+ version 3 can be found in "/usr/share/common-licenses/GPL-3".
+
+License: CC-BY-SA-4.0
+ The business-card template: artwork before it is code, and licensed as
+ artwork.  Creative Commons Attribution-ShareAlike 4.0 International.
+ .
+ You may share and adapt it, for any purpose including commercially, so
+ long as you give credit and distribute your contributions under the same
+ licence.
+ .
+ Debian carries no copy of this licence under /usr/share/common-licenses;
+ its full text is at
+ <https://creativecommons.org/licenses/by-sa/4.0/legalcode>.
+
+License: reference-material
+ Reference material, not ours to license.
+ .
+ These files were not written by us: published specifications, specimen
+ images, trained OCR data and program output, kept alongside the code so
+ that the code can be read, checked and tested against the documents it
+ implements.  We claim no copyright over them and grant no rights in
+ them.  They are not covered by the GPL-3 grant above; each travels under
+ its own terms, and for several of them those terms are restrictive.
+ .
+ Reuse of any of them should be arranged with whoever published it.
+ .
+ With one exception, noted above, these files are part of the source only
+ and are not installed by the binary package.

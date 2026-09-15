@@ -136,6 +136,70 @@ static size_t choose_three(const struct pgpid_uid *uids, size_t n,
     return nkeep;
 }
 
+
+/** Whole file in, base64url out, no line breaks. Answers false on any trouble. */
+static bool encode_file(const char *from, const char *to)
+{
+    FILE *in = fopen(from, "rb");
+    if (!in)
+        return false;
+    static unsigned char raw[1 << 20];
+    size_t len = fread(raw, 1, sizeof raw, in);
+    bool whole = feof(in) && !ferror(in);
+    fclose(in);
+    if (!len || !whole)
+        return false;
+
+    static char b64[(sizeof raw / 3 + 1) * 4 + 4];
+    pgpid_base64url(raw, len, b64);
+    FILE *out = fopen(to, "wb");
+    if (!out)
+        return false;
+    size_t wrote = fwrite(b64, 1, strlen(b64), out);
+    return fclose(out) == 0 && wrote == strlen(b64);
+}
+
+/**
+ * The export, encoded and cut into SPLITS pieces of equal size.
+ *
+ * `split -n` cuts by bytes and leaves the remainder on the last piece, which
+ * is what this does: the pieces are reassembled back to back, so where the
+ * cuts fall does not matter as long as the order does. The names are the ones
+ * split -d would have given, since the rest of this file looks for them.
+ */
+static bool encode_and_cut(const char *priv, const char *workdir, int splits)
+{
+    FILE *in = fopen(priv, "rb");
+    if (!in)
+        return false;
+    static unsigned char raw[1 << 20];
+    size_t len = fread(raw, 1, sizeof raw, in);
+    bool whole = feof(in) && !ferror(in);
+    fclose(in);
+    if (!len || !whole || splits < 1)
+        return false;
+
+    static char b64[(sizeof raw / 3 + 1) * 4 + 4];
+    pgpid_base64url(raw, len, b64);
+    size_t total = strlen(b64), each = total / (size_t)splits;
+    if (!each)
+        return false;
+
+    for (int i = 0; i < splits; i++) {
+        char path[700];
+        snprintf(path, sizeof path, "%.600s/SECRET-%02d", workdir, i);
+        FILE *out = fopen(path, "wb");
+        if (!out)
+            return false;
+        size_t from = (size_t)i * each;
+        size_t n = (i == splits - 1) ? total - from : each;
+        size_t wrote = fwrite(b64 + from, 1, n, out);
+        if (fclose(out) || wrote != n)
+            return false;
+    }
+    return true;
+}
+
 /**
  * Rewrite an exported key, keeping only the uids named.
  *
@@ -463,19 +527,14 @@ int pgpid_action_secret_print(int argc, char **argv)
 
     char pattern[600];
     if (qrversion == 4) {
-        char b64[600], prefix[600];
-        snprintf(b64, sizeof b64, "%s/s.gpg.b64url", workdir);
-        snprintf(prefix, sizeof prefix, "%s/SECRET-", workdir);
-        const char *enc[] = { "basenc", "--base64url", "--wrap", "0", priv, NULL };
-        if (pgpid_run_program(enc, NULL, b64)) {
-            pgpid_error(_("Error: basenc would not encode the export."));
-            return PGPID_FAIL;
-        }
-        char n[16];
-        snprintf(n, sizeof n, "%d", splits);
-        const char *sp[] = { "split", b64, "-d", "-n", n, prefix, NULL };
-        if (pgpid_run_program(sp, NULL, NULL)) {
-            pgpid_error(_("Error: split would not cut the export in %d."), splits);
+        /* Encoded and cut here rather than by `basenc | split`. Two spawns
+         * fewer, two packages fewer to depend on -- and the secret stops
+         * passing through a file of its own on the way: it went to
+         * s.gpg.b64url, which then had to be shredded like everything else.
+         * The codec is already in this program; it was being asked of
+         * coreutils out of habit. */
+        if (!encode_and_cut(priv, workdir, splits)) {
+            pgpid_error(_("Error: The export could not be cut in %d."), splits);
             return PGPID_FAIL;
         }
     } else {
@@ -498,9 +557,8 @@ int pgpid_action_secret_print(int argc, char **argv)
             char from[800], to[800];
             snprintf(from, sizeof from, "%.500s/%.250s", workdir, e->d_name);
             snprintf(to, sizeof to, "%.500s/SECRET-%.240s", workdir, e->d_name + 7);
-            const char *enc[] = { "basenc", "--base64url", "--wrap", "0", from, NULL };
-            if (pgpid_run_program(enc, NULL, to)) {
-                pgpid_error(_("Error: basenc would not encode %s."), e->d_name);
+            if (!encode_file(from, to)) {
+                pgpid_error(_("Error: %s could not be encoded."), e->d_name);
                 closedir(d);
                 return PGPID_FAIL;
             }

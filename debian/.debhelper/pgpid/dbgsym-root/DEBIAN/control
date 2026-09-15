@@ -1,0 +1,12 @@
+Package: pgpid-dbgsym
+Source: pgpid
+Version: 0.1.0-1
+Auto-Built-Package: debug-symbols
+Architecture: amd64
+Maintainer: Sébastien Picardeau <piseb@mailo.com>
+Installed-Size: 417
+Depends: pgpid (= 0.1.0-1)
+Section: debug
+Priority: optional
+Description: debug symbols for pgpid
+Build-Ids: 08f44fc5afef529b0c6205be7ed442e17ada50e5

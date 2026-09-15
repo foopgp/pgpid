@@ -1,0 +1,121 @@
+#!/bin/bash
+#
+# SPDX-FileCopyrightText: 2021-2025 Friends Of OpenPGP organization <info@foopgp.org>
+#
+# SPDX-License-Identifier: GPL-3.0-only
+#
+# Scan QRcodes containing parts of PGP secrets from IMAGES or webcam,
+# and import this secrets into a factory reset OpenPGP secured device (eg yubikey).
+#
+
+PGPI_NAME="$(basename $(readlink -f "$BASH_SOURCE") )"
+PGPI_DIR="$(dirname $(readlink -f "$BASH_SOURCE") )"
+
+# The next two lines are rewritten by 'make install' — see the Makefile. Until
+# then they describe the checkout they are read from: the version git reports
+# for it, and the binary this very tree builds. Nothing is written down twice.
+PGPI_VERSION="0.1.0"
+PGPID_BIN="/usr/bin/pgpid"
+
+### Default option values ###
+
+set -e
+LOGEXITPRIO=crit
+LOGLEVEL=6
+
+usage="Usage: $BASH_SOURCE [OPTIONS]... [--] [IMAGES]...
+
+$PGPI_NAME scan QRcodes containing parts of PGP secrets from IMAGES or webcam,
+and import this secrets into a factory reset OpenPGP secured device (eg yubikey)."
+
+soptions="
+  -c, --camera [V4LDEVICE] read the fragments off a camera (default when no IMAGES given)
+  -s, --camera-size WxH    ask the camera for that frame instead of 640x480
+  -k, --no-send            don't send the public key (certificate) to any keyserver
+  -v, --verbose            increase log verbosity: ...<notice[5]<info[6]<debug[7]  (current: $LOGLEVEL)
+  -q, --quiet              decrease log verbosity: ...<err[3]<warning[4]<notice[5]<...  (current: $LOGLEVEL)
+  -h, --help               show this help and exit
+  -V, --version            show version and exit"
+
+
+### Handling options ###
+
+helpmsg="$usage
+
+Options: $soptions
+"
+
+nosend=()
+camera=()
+camsize=()
+
+for ((i=0;$#;)) ; do
+case "$1" in
+    -c|--camera) if [[ "$2" && "$2" != -* ]] ; then shift ; camera=(--camera "$1") ; else camera=(--camera) ; fi ;;
+    -s|--camera-size|--camerasize) shift ; camsize=(--camera-size "$1") ;;
+    -k|--no-send) nosend=(--keyserver '') ;;
+	-l|--log-l*) shift ; LOGLEVEL="$1" ; [[ "$LOGLEVEL" == [0-9] ]] || { echo -e "Error: log-level out of range [0-7]" >&2 ; exit 2 ; } ;;
+	-L|--log-e*) shift ; LOGEXITPRIO="$1"
+		grep -q "\<$LOGEXITPRIO\>" <<<${!loglevels[@]} || { echo -e "Error: log-exit \"$LOGEXITPRIO\" is none of: ${!loglevels[@]}" >&2 ; exit 2 ; } ;;
+	-v|--verb*) ((LOGLEVEL++)) ;;
+	-q|--quiet) ((LOGLEVEL--)) ;;
+	-h|--h*) echo "$helpmsg" ; exit ;;
+	-V|--vers*) echo "$PGPI_NAME $PGPI_VERSION" ; exit ;;
+	--) shift ; break ;;
+	-*) echo -e "Error: Unrecognized option $1\n$helpmsg" >&2 ; exit 2 ;;
+	*) break ;;
+esac
+shift
+done
+
+### functions ###
+
+. "$(dirname "$BASH_SOURCE")"/bl-log --no-act --log-level "$LOGLEVEL" --log-exit "$LOGEXITPRIO"
+. "$(dirname "$BASH_SOURCE")"/bl-interactive --
+. "$(dirname "$BASH_SOURCE")"/bl-security --
+
+[[ -x "$PGPID_BIN" ]] || bl_log crit "$PGPID_BIN: not built. Run 'make' at the root of the checkout."
+
+### Init ###
+
+_pgpid_qrscan_onexit() {
+	[[ -d "$TMPDIR" ]] && bl_shred_path -v -f -r "$TMPDIR" 2> >(bl_log warning) | bl_log debug
+}
+
+TMPDIR=$(mktemp -d -t "$PGPI_NAME".XXXXXX) || log crit "crit: Can not create a safe temporary directory."
+
+trap _pgpid_qrscan_onexit EXIT
+
+mkdir -p "$TMPDIR/gnupg"
+chmod -R go-rwx "$TMPDIR"
+
+### Run ###
+
+# Force restart gpg-agent
+gpgconf --kill gpg-agent
+
+# The help has promised a webcam since the shell days: with no sheet named,
+# that is what it meant. Naming images and asking for the camera together is
+# allowed — the images are read first, the camera makes up what they lacked.
+(( $# )) || [[ "${camera[*]}" ]] || camera=(--camera)
+# stderr straight to the terminal, as the shell library's had it. It carries
+# the question of which camera to read — and a prompt has no newline at its
+# end, so a logger holds it back and the terminal waits, in silence, for an
+# answer to a question nobody has seen. It carries the count of fragments as
+# they arrive, too, which is the only sign the scan is going anywhere.
+FPR=$("$PGPID_BIN" --homedir "$TMPDIR/gnupg" secret_scan --workdir "$TMPDIR" "${camera[@]}" "${camsize[@]}" "$@")
+
+while ! gpg --homedir "$TMPDIR/gnupg" --card-status > >(bl_log debug) 2> >(bl_log notice) ; do
+	sleep 1
+	bl_msgstop "Please plug an OpenPGP card or dongle..."
+done
+
+# The token's DO 5E « Login data » gets the certificate's own identifier,
+# written by pgpid totoken itself — it no longer has to be read off the uid
+# here and passed back in.
+if [[ -f "$TMPDIR/passphrase" ]] ; then
+	"$PGPID_BIN" --homedir "$TMPDIR/gnupg" secret_totoken "${nosend[@]}" --passfrom "$TMPDIR/passphrase" "$FPR"
+else
+	"$PGPID_BIN" --homedir "$TMPDIR/gnupg" secret_totoken "${nosend[@]}" "$FPR"
+fi
+

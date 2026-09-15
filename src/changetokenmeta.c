@@ -310,18 +310,16 @@ int pgpid_action_token_meta(int argc, char **argv)
             pgpid_error(_("Error: Cannot make a temporary keyring."));
             return PGPID_FAIL;
         }
-        char fetched[600];
-        snprintf(fetched, sizeof fetched, "%s/cert.gpg", ring);
-        const char *curl[] = { "curl", "--fail", "--silent", "--show-error",
-                               "--location", value, NULL };
-        if (pgpid_run_program(curl, NULL, fetched)) {
-            pgpid_error(_("Error: Can't fetch a usable certificate from %s."), value);
-            return PGPID_FAIL;
-        }
+        /* Fetched straight into the scratch keyring by gpg itself: one
+         * program instead of two, and no certificate lying in a file between
+         * them. The keyring is temporary precisely so that a URL serving the
+         * wrong thing cannot leave it in the caller's own. */
         const char *saved = pgpid_homedir;
         pgpid_homedir = ring;
-        const char *import[] = { "--batch", "--quiet", "--import", fetched, NULL };
-        int imported = pgpid_run_engine(import);
+        const char *fetch_keys[] = { "--batch", "--quiet", "--fetch-keys", value, NULL };
+        int imported = pgpid_run_engine(fetch_keys);
+        if (imported)
+            pgpid_error(_("Error: Can't fetch a usable certificate from %s."), value);
         char listing[262144] = "";
         if (!imported) {
             const char *list[] = { "--with-colons", "--with-fingerprint",

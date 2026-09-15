@@ -1,0 +1,39 @@
+Package: pgpid
+Version: 0.1.0-1
+Architecture: amd64
+Maintainer: Sébastien Picardeau <piseb@mailo.com>
+Installed-Size: 2584
+Depends: gnupg, scdaemon, passwd, qrencode, zbar-tools, libgfshare-bin, librsvg2-bin, cups-client, cups-bsd, graphicsmagick, pandoc, texlive-extra-utils, libc6 (>= 2.38)
+Recommends: sudo, imagemagick, bashlibs-common, bashlibs-convert
+Suggests: facedetect, tesseract-ocr, gpg-wks-client
+Section: utils
+Priority: optional
+Homepage: https://foopgp.org
+Description: PGP certificates that say whose they are
+ The PGP ID model gives a PGP certificate a decentralised entity
+ identifier: who this key belongs to, said once and checked by people rather
+ than by an authority.
+ .
+ pgpid reads and changes certificates through that model — identifiers,
+ validity, ownertrust, addresses, vCard properties, avatars — vouches for
+ other people, drives an OpenPGP security key, and puts a secret key on paper
+ as QR codes so that any three of five fragments rebuild it.
+ .
+ What it depends on is what one of its actions spawns: gnupg for every one of
+ them and scdaemon for the card half, qrencode and zbar-tools for the paper in
+ both directions, libgfshare-bin for the sharing itself, pandoc and
+ texlive-extra-utils to lay a sheet out, librsvg2-bin for the business card,
+ the cups pair to ask which printers there are and to send to one,
+ graphicsmagick to fit a picture into a certificate, and passwd for the
+ local accounts.
+ .
+ Only three things are optional. Without sudo the system actions still run,
+ but only for root, and there is then no SUDO_USER whose keyring and trust
+ they can read — use their --from option to name one. Without imagemagick a
+ scan reads PNG and JPEG but not PDF. Without the bash libraries the compiled
+ tool is untouched; it is the two shell programs beside it that need them.
+ .
+ Those two are pgpid-gen, which generates a certificate from a passport, and
+ pgpid-qrscan, which moves secrets onto a smartcard. Reading a passport is
+ what facedetect and tesseract-ocr are for, and pgpid-gen asks gpg-wks-client
+ whether an address supports WKD.

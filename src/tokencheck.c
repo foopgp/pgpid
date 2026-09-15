@@ -288,30 +288,16 @@ int pgpid_action_token_check(int argc, char **argv)
     if (*url && fetch) {
         if (!quiet)
             pgpid_error(_("Notice: Fetching the certificate from %s…"), url);
-        char fetched[1 << 20];
-        const char *curl[] = { "curl", "--no-progress-meter", "--location", url, NULL };
-        int n = pgpid_capture(curl, fetched, sizeof fetched);
-        if (n > 0) {
-            /* Written where gpg can import it: a pipe would need a second
-             * process and this is already the slow path. */
-            char path[] = "/tmp/pgpid-fetch.XXXXXX";
-            int fd = mkstemp(path);
-            if (fd >= 0) {
-                if (write(fd, fetched, (size_t)n) == n) {
-                    close(fd);
-                    const char *import[] = { "--import", path, NULL };
-                    pgpid_run_engine(import);
-                    /* Read the card again: what it says may now resolve.
-                     * Through the engine -- this called pgpid_capture with
-                     * gpg's arguments but no gpg, so it execed "--card-status"
-                     * as a program, failed, and emptied what it meant to
-                     * refresh. */
-                    pgpid_capture_card_status(status, sizeof status);
-                } else {
-                    close(fd);
-                }
-                unlink(path);
-            }
+        /* gpg fetches and imports in one go, which is what this wanted: curl
+         * meant a package to depend on, a megabyte of stack, and the
+         * certificate written to a temporary file on the way in. */
+        const char *fetch_keys[] = { "--fetch-keys", url, NULL };
+        if (!pgpid_run_engine(fetch_keys)) {
+            /* Read the card again: what it says may now resolve. Through the
+             * engine -- this called pgpid_capture with gpg's arguments but no
+             * gpg, so it execed "--card-status" as a program, failed, and
+             * emptied what it meant to refresh. */
+            pgpid_capture_card_status(status, sizeof status);
         }
     }
 
