@@ -56,6 +56,11 @@ Files: oldies/notes/pgpid-cert
 Copyright: the participants in the conversation
 License: reference-material
 
+Files: svg/card.svg
+Copyright: 2026 Jean-Jacques Brucker (u4=sRyUhEbNU5OwyLEjfSwaXAe_42.17-002.76) <jjbrucker@foopgp.org>
+           2026 Mnêmê (u5001777236237.945e_43.30_005.38 claude-opus-5) <mneme@foopgp.org>
+License: CC-BY-SA-4.0
+
 License: GPL-3
  This program is free software: you can redistribute it and/or modify it
  under the terms of the GNU General Public License version 3 only, as
@@ -71,6 +76,18 @@ License: GPL-3
  .
  On Debian systems, the complete text of the GNU General Public License
  version 3 can be found in "/usr/share/common-licenses/GPL-3".
+
+License: CC-BY-SA-4.0
+ The business-card template: artwork before it is code, and licensed as
+ artwork.  Creative Commons Attribution-ShareAlike 4.0 International.
+ .
+ You may share and adapt it, for any purpose including commercially, so
+ long as you give credit and distribute your contributions under the same
+ licence.
+ .
+ Debian carries no copy of this licence under /usr/share/common-licenses;
+ its full text is at
+ <https://creativecommons.org/licenses/by-sa/4.0/legalcode>.
 
 License: reference-material
  Reference material, not ours to license.

@@ -38,6 +38,9 @@ pgpid (0.1.0-1) unstable; urgency=medium
     ask.
   * gen_u4 says when the reference transliteration did not take a name as it
     was typed — MÜLLER as MULLER — which the shell said and this did not.
+  * Carries the business-card template cert_tobizcard renders, in
+    /usr/share/pgpid/svg/card.svg. bash-libs keeps its copy, which bl-pgpid
+    still reads; the two paths are disjoint.
   * pgpid-gen and pgpid-qrscan call the actions by the names they have had
     since they were put into groups. Both died on their first real step.
 
