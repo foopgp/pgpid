@@ -53,6 +53,14 @@ pgpid (0.1.0-1) unstable; urgency=medium
     did. The country keeps the shell's FRA default.
   * Nothing suggests `bl-security` any more: the package does not pull the
     shell libraries in, so a person told to run it would find nothing.
+  * A star for each character typed at a code or passphrase prompt, as
+    `bl-interactive input --password` showed; backspace takes one back and
+    Ctrl-U the lot. A terminal put into no-echo is given back even when the
+    question is interrupted.
+  * The manual pages list the actions again — the generator stopped at the
+    first blank line and the actions had been grouped behind one. The
+    completion harvests what each option takes, so a path completes to files,
+    a printer to what CUPS knows, and a camera to /dev/video*.
   * Carries the business-card template cert_tobizcard renders, in
     /usr/share/pgpid/svg/card.svg. bash-libs keeps its copy, which bl-pgpid
     still reads; the two paths are disjoint.
