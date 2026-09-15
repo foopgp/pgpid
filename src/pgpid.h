@@ -75,6 +75,24 @@
  * reads it back that way, and a sheet nobody can read is discovered on paper. */
 #define PGPID_SPLIT_MAX 10
 
+/*
+ * How much of a secret one printed sheet carries, in bytes before encoding.
+ *
+ * Not the QR code's own ceiling. That is 2953 characters at level L — QR
+ * version 40, the largest symbol the format has — and a symbol that big is
+ * one nobody can scan. What decides is how close the paper has to be held.
+ * Measured against zbar through a webcam's blur, in a 640x480 frame:
+ *
+ *     594 bytes (an ed25519 fragment, what gen_key makes)  55% of the height
+ *    1024 bytes                                            72%
+ *    1341 bytes (an rsa2048 secret, whole)                 77%
+ *
+ * Past that it is a photography session rather than a backup. 1024 leaves a
+ * little room above what we print today and stops well short of the paper
+ * filling the viewfinder.
+ */
+#define PGPID_SHEET_MAX 1024
+
 #define PGPID_KEYSERVERS_HOST  "keys.foopgp.org"
 #define PGPID_KEYSERVERS_FIRST "hkps://" PGPID_KEYSERVERS_HOST
 #define PGPID_KEYSERVERS       PGPID_KEYSERVERS_FIRST " hkps://keys.openpgp.org"
