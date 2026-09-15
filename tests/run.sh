@@ -562,6 +562,14 @@ is "and shows them where they can be read" \
 is "a correction is taken, the rest kept" \
    "$(printf 'no\nDOE\n\n\n\ny\n' | "$BIN" gen_u4 --verify -s ROE -g John -d 1970-01-01 -c FRA 2>/dev/null)" \
    "$(u4 DOE John 1970-01-01 FRA)"
+# The shell offered FRA and nothing else; enter keeps it, which is one word
+# less to type on the side of the association that mints most of these.
+is "the country comes with the shell's default" \
+   "$(printf 'DOE\nJohn\n1970-01-01\n\n' | "$BIN" gen_u4 2>/dev/null)" \
+   "$(u4 DOE John 1970-01-01 FRA)"
+is "and the three others come with none" \
+   "$(printf 'DOE\nJohn\n1970-01-01\nFRA\n' | "$BIN" gen_u4 2>&1 >/dev/null \
+      | grep --count --fixed-strings -- '[]' || true)" "0"
 is "under --batch it does nothing rather than block" \
    "$("$BIN" --batch gen_u4 --verify -s DOE -g John -d 1970-01-01 -c FRA 2>/dev/null)" \
    "$(u4 DOE John 1970-01-01 FRA)"
@@ -574,7 +582,7 @@ is "reads a passport zone"        "$("$BIN" gen_u4 --from-passport-mrz --uncheck
 # The zone is shown as a person writes it, not as the format stores it.
 is "a passport zone is shown without its filler" \
    "$(printf 'y\n' | "$BIN" gen_u4 --verify --from-passport-mrz "$MRZ" 2>&1 >/dev/null \
-      | grep --count -- 'Given names:         ANNA MARIA')" "1"
+      | grep --count -- 'Given names at birth: ANNA MARIA')" "1"
 is "and yields what the zone yields" \
    "$(printf 'y\n' | "$BIN" gen_u4 --verify --from-passport-mrz "$MRZ" 2>/dev/null)" \
    "$("$BIN" gen_u4 --from-passport-mrz --uncheck "$MRZ" 2>/dev/null)"

@@ -467,7 +467,7 @@ int pgpid_action_secret_scan(int argc, char **argv)
     }
     if (workdir_is_unclean(workdir)) {
         pgpid_error(_("Error: Working directory is unclean (it holds SECRET*)."));
-        pgpid_error(_("Suggestion: bl-security shred_path --remove '%s'"), workdir);
+        pgpid_error(_("Suggestion: shred --remove '%s'/* && rmdir '%s'"), workdir, workdir);
         return PGPID_USAGE;
     }
 
