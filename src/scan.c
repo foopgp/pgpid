@@ -362,6 +362,26 @@ static int scan_camera(const char *device, const char *size, const char *workdir
     }
 }
 
+/**
+ * base64url in, bytes out, straight to a file.
+ *
+ * Was `basenc --decode --base64url`, which meant a spawn, a package to depend
+ * on, and a piece of somebody's secret key travelling down a pipe to another
+ * program. The decoder has been in this binary all along.
+ */
+static bool decode_to(const char *b64, const char *path)
+{
+    static unsigned char raw[1 << 20];
+    int n = pgpid_base64url_decode(b64, raw, sizeof raw);
+    if (n <= 0)
+        return false;
+    FILE *f = fopen(path, "wb");
+    if (!f)
+        return false;
+    size_t wrote = fwrite(raw, 1, (size_t)n, f);
+    return fclose(f) == 0 && wrote == (size_t)n;
+}
+
 int pgpid_action_secret_scan(int argc, char **argv)
 {
     const char *given_workdir = NULL;
@@ -561,9 +581,8 @@ int pgpid_action_secret_scan(int argc, char **argv)
                 break;
             at += (size_t)wrote;
         }
-        const char *dec[] = { "basenc", "--decode", "--base64url", NULL };
-        if (pgpid_run_program(dec, joined, secret)) {
-            pgpid_error(_("Error: basenc would not decode the fragments."));
+        if (!decode_to(joined, secret)) {
+            pgpid_error(_("Error: The fragments would not decode."));
             { rc = PGPID_FAIL; goto done; }
         }
     } else {
@@ -574,9 +593,8 @@ int pgpid_action_secret_scan(int argc, char **argv)
                 continue;
             char share[620];
             snprintf(share, sizeof share, "%.500s/SECRET.%.3s", workdir, parts[i]);
-            const char *dec[] = { "basenc", "--decode", "--base64url", NULL };
-            if (pgpid_run_program(dec, parts[i] + 3, share)) {
-                pgpid_error(_("Error: basenc would not decode fragment %zu."), i + 1);
+            if (!decode_to(parts[i] + 3, share)) {
+                pgpid_error(_("Error: Fragment %zu would not decode."), i + 1);
                 { rc = PGPID_FAIL; goto done; }
             }
         }
