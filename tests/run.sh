@@ -782,6 +782,26 @@ is "more fragments than a header can number is refused" "$?" "2"
     --workdir "$GNUPGHOME" "$FPR" >/dev/null 2>&1
 is "and fewer than three, as before"  "$?" "2"
 
+# A share of a shared secret is the size of the secret, so a big key does not
+# go on paper shared however many shares are made — only cut. An rsa2048
+# secret is 1341 bytes where a sheet takes 1024, which is the smallest key
+# that shows it. The message has to name the two ways out, since neither is
+# guessable from "it does not fit".
+gpg --batch --pinentry-mode loopback --passphrase '' \
+    --quick-generate-key 'Fat <fat@example.invalid>' rsa2048 cert never 2>/dev/null
+BIGFPR=$(gpg --with-colons --list-keys fat@example.invalid 2>/dev/null | awk --field-separator=: '$1=="fpr"{print $10; exit}')
+out=$("$BIN" secret_print --printer '' --passphrase '' \
+      --workdir "$GNUPGHOME" "$BIGFPR" 2>&1)
+is "a secret too dense for a sheet is refused"  "$(grep --count 'still be read back from' <<<"$out")" "1"
+is "and says more shares will not help"        "$(grep --count 'more shares make none of them smaller' <<<"$out")" "1"
+is "and names both ways to cut it"             "$(grep --count -- '--threshold 5, or --split 3' <<<"$out")" "1"
+is "and wrote no fragment on the way out"      "$(ls "$GNUPGHOME"/SECRET* 2>/dev/null | wc --lines)" "0"
+"$BIN" secret_print --printer '' --passphrase '' --threshold 5 \
+    --workdir "$GNUPGHOME" "$BIGFPR" >/dev/null 2>&1
+is "taking the advice prints it"               "$?" "0"
+is "five sheets, every one of them needed"     "$(ls "$GNUPGHOME"/SECRET-0?.pdf 2>/dev/null | wc --lines)" "5"
+find "$GNUPGHOME" -maxdepth 1 -name 'SECRET*' -delete
+
 # The file is a destination and a source like any other: what goes out through
 # --export-to comes back in through --import-from, into a keyring that never
 # touched a keyserver.

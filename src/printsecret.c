@@ -58,10 +58,13 @@ static void usage(FILE *out)
         "      and all secret protection relies on the passphrase.\n"
         "      In other terms: if (split_NUM == threshold_NUM), then no passphrase or\n"
         "      printing passphrase is VERY UNSECURE.\n"
+        "      A share is the size of the whole secret, so a secret above %d bytes\n"
+        "      only goes on paper cut, which is the equal case. It is refused with\n"
+        "      the numbers rather than printed too dense to scan.\n"
         "\n"
         "Photographs are left out of what is printed. A backup does not need your\n"
         "face, and paper is handled by whoever finds it.\n"),
-            PGPID_NAME, PGPID_SPLIT_MAX);
+            PGPID_NAME, PGPID_SPLIT_MAX, PGPID_SHEET_MAX);
 }
 
 /* Is there anything called SECRET* here already? Reusing a directory that
@@ -649,6 +652,44 @@ int pgpid_action_secret_print(int argc, char **argv)
                     "a keyring."), nkeep, n);
     }
 
+    /* What one sheet would have to carry, now that the export is final: the
+     * whole secret if it is shared out, the secret over the number of pieces
+     * if it is cut. Checked here, before a single fragment is written, so a
+     * refusal leaves nothing behind to shred. */
+    struct stat st;
+    if (stat(priv, &st) || st.st_size <= 0) {
+        pgpid_error(_("Error: The export could not be measured."));
+        return PGPID_FAIL;
+    }
+    size_t exported = (size_t)st.st_size;
+    size_t per_sheet = (qrversion == 5) ? exported
+                                        : (exported + (size_t)splits - 1) / (size_t)splits;
+    if (per_sheet > PGPID_SHEET_MAX) {
+        /* How few pieces would do, and what to say about it. */
+        int needed = (int)((exported + PGPID_SHEET_MAX - 1) / PGPID_SHEET_MAX);
+        if (needed < 3)
+            needed = 3;
+        pgpid_error(_("Error: One sheet would carry %zu bytes of the secret, and %d is "
+                    "what one can still be read back from."), per_sheet, PGPID_SHEET_MAX);
+        if (qrversion == 5)
+            pgpid_error(_("Notice: Every share of a shared secret is the size of the "
+                        "secret, so more shares make none of them smaller. Cutting does, "
+                        "and a cut is asked for by making --threshold equal to --split."));
+        if (needed > PGPID_SPLIT_MAX)
+            pgpid_error(_("Notice: Even %d pieces would not be enough, and %d is as many "
+                        "as a fragment's header can number."), needed, PGPID_SPLIT_MAX);
+        else if (needed <= threshold)
+            pgpid_error(_("Suggestion: --threshold %d, or --split %d. Every sheet is "
+                        "then needed."), splits, threshold);
+        else if (needed <= splits)
+            pgpid_error(_("Suggestion: --threshold %d. Every sheet is then needed."),
+                        splits);
+        else
+            pgpid_error(_("Suggestion: --split %d --threshold %d. Every sheet is then "
+                        "needed."), needed, needed);
+        return PGPID_FAIL;
+    }
+
     char pattern[600];
     if (qrversion == 4) {
         /* Encoded and cut here rather than by `basenc | split`. Two spawns
@@ -780,34 +821,6 @@ int pgpid_action_secret_print(int argc, char **argv)
         at += fread(payload + at, 1, sizeof payload - at - 1, in);
         payload[at] = '\0';
         fclose(in);
-
-        /* The end of the format, not a setting: version 40 is the largest QR
-         * symbol there is, and in byte mode it holds 2953 characters at level
-         * L and 2331 at level M. base64url is byte mode — it has lowercase,
-         * which alphanumeric mode does not.
-         *
-         * A 4096-bit RSA secret is 3324 characters once encoded, so it does
-         * not go on a sheet whole however many shares are made: a share of a
-         * shared secret is the size of the secret. Cutting it does fit, at
-         * the price the help already names. Said here because qrencode's own
-         * refusal says only that it refused. */
-        size_t room = qrversion == 5 ? 2953 : 2331;
-        if (at > room) {
-            int pieces = (int)((at + room - 1) / room);
-            if (pieces < 3)
-                pieces = 3;
-            pgpid_error(_("Error: Fragment %zu holds %zu characters; a QR code takes %zu."),
-                        i + 1, at, room);
-            if (qrversion == 5)
-                pgpid_error(_("Notice: Each share is the size of the whole secret, so "
-                            "sharing it out more will not make one smaller."));
-            if (pieces <= 10)
-                pgpid_error(_("Suggestion: --split %d --threshold %d cuts it instead, "
-                            "a piece to a sheet — and then every sheet is needed."),
-                            pieces, pieces);
-            free(names);
-            return PGPID_FAIL;
-        }
 
         const char *qr[] = { "qrencode", "--level", qrversion == 5 ? "L" : "M",
                              "--dpi=50", "--output", png, NULL };
