@@ -24,14 +24,11 @@ Depends: gnupg,
   cups-client,
   cups-bsd,
   graphicsmagick,
-  pandoc,
-  texlive-extra-utils,
+  bashlibs-common,
+  bashlibs-convert,
   ${shlibs:Depends},
   ${misc:Depends}
-Recommends: sudo,
-  imagemagick,
-  bashlibs-common,
-  bashlibs-convert
+Recommends: sudo
 Suggests: facedetect,
   tesseract-ocr,
   gpg-wks-client
@@ -42,24 +39,23 @@ Description: PGP certificates that say whose they are
  .
  pgpid reads and changes certificates through that model — identifiers,
  validity, ownertrust, addresses, vCard properties, avatars — vouches for
- other people, drives an OpenPGP security key, and puts a secret key on paper
+ other people, drives a PGP security key, and puts a secret key on paper
  as QR codes so that any three of five fragments rebuild it.
  .
  What it depends on is what one of its actions spawns: gnupg for every one of
  them and scdaemon for the card half, qrencode and zbar-tools for the paper in
- both directions, libgfshare-bin for the sharing itself, pandoc and
- texlive-extra-utils to lay a sheet out, librsvg2-bin for the business card,
- the cups pair to ask which printers there are and to send to one,
- graphicsmagick to fit a picture into a certificate, and passwd for the
- local accounts.
+ both directions, libgfshare-bin for the sharing itself, librsvg2-bin to draw
+ both sheets — the fragments and the business card — the cups pair to ask
+ which printers there are and to send to one, graphicsmagick to fit a picture
+ into a certificate and to read a scanned PDF, and passwd for the local
+ accounts. The bash libraries are for the two shell programs beside the
+ compiled tool: they source them at their first line and do not start without.
  .
- Only three things are optional. Without sudo the system actions still run,
- but only for root, and there is then no SUDO_USER whose keyring and trust
- they can read — use their --from option to name one. Without imagemagick a
- scan reads PNG and JPEG but not PDF. Without the bash libraries the compiled
- tool is untouched; it is the two shell programs beside it that need them.
+ Only sudo is optional. Without it the system actions still run, but only for
+ root, and there is then no SUDO_USER whose keyring and trust they can read —
+ use their --from option to name one.
  .
- Those two are pgpid-gen, which generates a certificate from a passport, and
- pgpid-qrscan, which moves secrets onto a smartcard. Reading a passport is
- what facedetect and tesseract-ocr are for, and pgpid-gen asks gpg-wks-client
- whether an address supports WKD.
+ The two shell programs are pgpid-gen, which generates a certificate from a
+ passport, and pgpid-qrscan, which moves secrets onto a smartcard. Reading a
+ passport is what facedetect and tesseract-ocr are for, and pgpid-gen asks
+ gpg-wks-client whether an address supports WKD.

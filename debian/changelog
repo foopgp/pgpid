@@ -61,11 +61,26 @@ pgpid (0.1.0-1) unstable; urgency=medium
     basenc and split gave way to the base64url codec this binary already
     carried — the secret no longer passes through a file of its own on the way
     out — and curl to 'gpg --fetch-keys', which fetches and imports in one go.
+  * One renderer for both sheets. The fragment sheet went through pandoc and
+    pdfcrop, the sticker sheet through pdfunite and pdfjam: a TeX distribution
+    and poppler, some 275 MB, to put six lines and a picture on a page and to
+    repeat one drawing across another. rsvg-convert was already here for the
+    business card and it writes PDF, so both pages are SVG now and one
+    program draws them. The sticker page defines the card once and places it
+    with <use>, the card carrying its own QR as a data: URI.
   * The dependencies say what an action actually spawns. scdaemon was missing
-    and is half the tool: gnupg does not pull it. What only changes how well
-    something works is a Recommends — sudo, imagemagick, the bash libraries
-    the two shell programs use. What only the passport path wants stays a
-    Suggests. curl is gone from both, nothing calls it.
+    and is half the tool: gnupg does not pull it. pandoc and
+    texlive-extra-utils are gone — 275 MB that nothing calls at run time any
+    more; pandoc stays a Build-Depends, which is where it always belonged,
+    since it turns the manual pages from markdown into roff. imagemagick is
+    gone too: a scanned PDF is read by the graphicsmagick already here, which
+    given one output name writes the first page and stops, where `convert`
+    wrote scan-0-0.png and scan-0-1.png and neither was the name we opened.
+    The bash libraries move up to Depends: pgpid-gen and pgpid-qrscan source
+    four of them at their first line and do not start without, and both are
+    in this package. sudo stays a Recommends, being the only thing whose
+    absence merely narrows what an action can do. curl is gone from both,
+    nothing calls it.
   * PGP, not OpenPGP: what pgpid reads and writes are PGP certificates, being
     compatible with OpenPGP and LibrePGP both. The card's own specification
     keeps its name.
