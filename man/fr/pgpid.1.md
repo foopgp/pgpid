@@ -20,12 +20,12 @@ pgpid - Lire et agir sur des certificats PGP selon le modèle pgpid : identifian
 
 # SYNOPSIS
 
-**pgpid** \[*OPTIONS*\]\... *ACTION *\[*ARGS*\]\...
+**pgpid** \[*OPTIONS*\]\... *ACTION* \[*ARGS*\]\...
 
 # DESCRIPTION
 
 Lire et agir sur des certificats PGP selon le modèle pgpid :
-identifiants d\'entité, validité, crédibilité.
+identifiants d'entité, validité, crédibilité.
 
 ACTIONS:
 
@@ -37,27 +37,27 @@ cert_list
 
 cert_get
 
-:   Chercher un certificat, en le rafraîchissant d\'abord
+:   Chercher un certificat, en le rafraîchissant d'abord
 
 cert_property
 
-:   Afficher, ajouter ou révoquer une propriété vCard qu\'il porte
+:   Afficher, ajouter ou révoquer une propriété vCard qu'il porte
 
 cert_email
 
-:   Afficher, ajouter ou révoquer les adresses qu\'il porte
+:   Afficher, ajouter ou révoquer les adresses qu'il porte
 
 cert_avatar
 
-:   Extraire l\'image qu\'il porte
+:   Extraire l'image qu'il porte
 
 cert_sigs
 
-:   Lister qui l\'a certifié
+:   Lister qui l'a certifié
 
 cert_tovcard
 
-:   L\'écrire sous forme de document vCard
+:   L'écrire sous forme de document vCard
 
 cert_tobizcard
 
@@ -121,11 +121,11 @@ token_code
 
 token_del
 
-:   En oublier une : retirer ses talons, ou **\--reset** pour l\'effacer
+:   En oublier une : retirer ses talons, ou **\--reset** pour l'effacer
 
 token_meta
 
-:   Afficher, ou **\--replace**, ce qu\'elle dit de son porteur
+:   Afficher, ou **\--replace**, ce qu'elle dit de son porteur
 
     Générateurs:
 
@@ -135,7 +135,7 @@ gen_key
 
 gen_u4
 
-:   Afficher l\'identifiant que donne un état civil ou un passeport
+:   Afficher l'identifiant que donne un état civil ou un passeport
 
 gen_uid
 
@@ -167,7 +167,7 @@ system_admins
 
 certify
 
-:   Se porter garant de quelqu\'un d\'autre
+:   Se porter garant de quelqu'un d'autre
 
 trustdb
 
@@ -177,7 +177,7 @@ trustdb
 
 **-H**, **\--homedir** REP
 
-:   Répertoire GnuPG et pgpid - Variable d\'environnement : GNUPGHOME
+:   Répertoire GnuPG et pgpid - Variable d'environnement : GNUPGHOME
 
 **\--output-format**=*FORMAT*
 
@@ -755,6 +755,7 @@ OPTIONS:
 Usage: pgpid gen_key [OPTIONS]... COURRIEL
 
 Générer une paire de clés PGP (publique et secrète) selon les standards PGP ID.
+Les entrées manquantes sont demandées, sauf avec --batch.
 Affiche 3 lignes, une empreinte par ligne :
 * clé principale (Signature, Certification)
 * clé de déchiffrement (Chiffrement)
@@ -762,7 +763,7 @@ Affiche 3 lignes, une empreinte par ligne :
 
 OPTIONS:
   -N, --name PSEUDONYME            Nom courant ou pseudonyme. Par défaut : la première partie de l'adresse
-  -c, --eid U4|U5                  Identifiant d'entité, mondial et décentralisé. Requis ici
+  -c, --eid U4|U5                  Identifiant d'entité, mondial et décentralisé. Forgé ici s'il manque
   -C, --extra-comment NOTE         Information ou commentaire supplémentaire associé à l'entité
   -p, --passphrase PHRASE          Phrase chiffrant (symétriquement) le secret. PAS VIDE (à ce stade)
   -P, --passfrom FICHIER           Lire la phrase en tête de FICHIER (fifo, tmpfs, /dev/stdin …)

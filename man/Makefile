@@ -31,7 +31,9 @@ DEST_TARGETS_DIRS := $(sort $(dir $(DEST_TARGETS)))
 SHELL             := /bin/sh
 INSTALL           := install
 INSTALL_DATA      := $(INSTALL) --mode 644
-TO_MAN            := pandoc --standalone --to=man
+# md2man.sh, not pandoc: same roff out, three hundred kilobytes of C in the
+# build dependencies instead of a hundred and ninety megabytes of Haskell.
+TO_MAN            := ./md2man.sh
 GIT_DATE          := LANG=C git log --max-count 1
 GIT_DATE          += --format='%ad' --date='format:%d %B %Y' --
 
@@ -61,8 +63,8 @@ uninstall:
 
 .PHONY: all build check clean install uninstall
 
-%:: %.md Makefile
-	$(TO_MAN) --metadata date:"$$($(GIT_DATE) $<)" < $< > $@
+%:: %.md Makefile md2man.sh
+	$(TO_MAN) $< "$$($(GIT_DATE) $<)" > $@
 
 %.gz: %
 	gzip < $< > $@

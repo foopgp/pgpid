@@ -20,7 +20,7 @@ pgpid - Read and act on PGP certificates through the pgpid model: entity identif
 
 # SYNOPSIS
 
-**pgpid** \[*OPTIONS*\]\... *ACTION *\[*ARGS*\]\...
+**pgpid** \[*OPTIONS*\]\... *ACTION* \[*ARGS*\]\...
 
 # DESCRIPTION
 
@@ -181,7 +181,7 @@ trustdb
 
 **\--output-format**=*FORMAT*
 
-:   Specify output format between {raw, info, md} - Default: \'raw\'
+:   Specify output format between {raw, info, md} - Default: 'raw'
 
 **-B**, **\--batch**
 
@@ -744,6 +744,7 @@ OPTIONS:
 Usage: pgpid gen_key [OPTIONS]... EMAIL
 
 Generate a PGP key pair (public and secret) according to PGP ID standards.
+Missing input will be asked interactively, unless --batch.
 Output 3 lines for each fingerprints:
 * main key (Sign Certify)
 * decryption key (Encrypt)
@@ -751,7 +752,7 @@ Output 3 lines for each fingerprints:
 
 OPTIONS:
   -N, --name PSEUDONYM             Common name or pseudonym. Default: first part of email
-  -c, --eid U4|U5                  Entity ID. Worldwide and decentralised entity identifier. Required here
+  -c, --eid U4|U5                  Entity ID. Worldwide and decentralised entity identifier. Minted here if missing
   -C, --extra-comment NOTE         Supplemental information or comment associated with the entity
   -p, --passphrase PASSPHRASE      Passphrase to (symetric) encrypt secret part of PGP key. CAN'T BE EMPTY (at this stage)
   -P, --passfrom FILE              Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin …)

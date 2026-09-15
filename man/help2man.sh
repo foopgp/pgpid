@@ -209,6 +209,20 @@ for lang in $linguas ; do
 		# mojibake it makes of Ɉ and €.
 		sed --in-place "s,$staging/bin/,,g ; s,(É.),(Ɉ), ; s,(â\\\\\\\\¬),(€)," "$draft"
 
+		# Two more, which only show once something other than pandoc reads the
+		# file back. Both are pandoc writing markdown only it will re-read:
+		#
+		#   \'  — an apostrophe needs no escape in markdown, and a reader that
+		#         does not know this one prints the backslash.
+		#   *X *— emphasis whose closing star follows a space is not emphasis
+		#         at all by the commonmark rule, so the stars print as stars.
+		#         The space belongs after the run, which is where it reads.
+		#
+		# The second pattern is deliberately narrow — one bare word between the
+		# stars. Anything looser eats the space in "**-o**, **--output-path**",
+		# where the comma and the space are between two *closing* stars.
+		sed --in-place "s,\\\\',',g ; s,\\*\\([A-Za-z_][A-Za-z0-9_-]*\\) \\*,*\\1* ,g" "$draft"
+
 		if [[ "$assumeyes" ]] ; then
 			mv -f "$draft" "$outdir/$tool.1.md"
 			echo "$0: wrote $outdir/$tool.1.md" >&2
