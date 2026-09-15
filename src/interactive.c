@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
@@ -55,6 +56,25 @@ bool pgpid_ask(const char *prompt, char *out, size_t max)
  * turned off around the question and put back afterwards, whatever happens —
  * including when the answer never comes.
  */
+
+/* The terminal, as it was before a secret was asked for.
+ *
+ * Echo goes off for the question; a Ctrl-C in the middle of it used to leave
+ * it off, and the shell underneath inherited a terminal that showed nothing
+ * of what was typed into it. The signal handler puts it back and then lets
+ * the signal do what it came to do. */
+static struct termios asked_saved;
+static volatile sig_atomic_t asked_restore;
+
+static void give_the_terminal_back(int sig)
+{
+    if (asked_restore)
+        tcsetattr(STDIN_FILENO, TCSAFLUSH, &asked_saved);
+    asked_restore = 0;
+    signal(sig, SIG_DFL);
+    raise(sig);
+}
+
 bool pgpid_ask_secret(const char *prompt, char *out, size_t max)
 {
     if (pgpid_batch) {
@@ -62,25 +82,95 @@ bool pgpid_ask_secret(const char *prompt, char *out, size_t max)
         pgpid_error(_("Notice: --batch was given, so nothing is asked."));
         return false;
     }
+
+    /* Not a terminal: something is driving this, and a star per character
+     * would be noise in its log. Read the line and be done. */
+    if (!isatty(STDIN_FILENO)) {
+        fprintf(stderr, "%s", prompt);
+        fflush(stderr);
+        if (!fgets(out, (int)max, stdin)) {
+            pgpid_error(_("Error: Nothing to read: the question stays unanswered."));
+            return false;
+        }
+        out[strcspn(out, "\r\n")] = '\0';
+        return true;
+    }
+
     struct termios saved, quiet;
-    bool restore = isatty(STDIN_FILENO) && !tcgetattr(STDIN_FILENO, &saved);
+    bool restore = !tcgetattr(STDIN_FILENO, &saved);
+    void (*was_int)(int) = SIG_DFL, (*was_term)(int) = SIG_DFL, (*was_hup)(int) = SIG_DFL;
     if (restore) {
+        asked_saved = saved;
+        asked_restore = 1;
+        was_int = signal(SIGINT, give_the_terminal_back);
+        was_term = signal(SIGTERM, give_the_terminal_back);
+        was_hup = signal(SIGHUP, give_the_terminal_back);
         quiet = saved;
-        quiet.c_lflag &= (tcflag_t)~ECHO;
+        /* Echo off, and line editing off: the characters have to arrive one
+         * by one for a star to be printed in their place. ISIG stays on, so
+         * Ctrl-C still ends this the way it ends everything else. */
+        quiet.c_lflag &= (tcflag_t)~(ECHO | ICANON);
+        quiet.c_cc[VMIN] = 1;
+        quiet.c_cc[VTIME] = 0;
         tcsetattr(STDIN_FILENO, TCSAFLUSH, &quiet);
     }
+
     fprintf(stderr, "%s", prompt);
     fflush(stderr);
-    bool got = fgets(out, (int)max, stdin) != NULL;
+
+    /* A star for each character typed, backspace to take one back, Ctrl-U to
+     * take back the lot — what `bl-interactive input --password` did, and what
+     * anybody typing a PIN with no echo at all is entitled to: some sign that
+     * the keyboard is being read. The stars count characters and not bytes:
+     * a continuation byte of a UTF-8 sequence prints none of its own. */
+    size_t n = 0, stars = 0;
+    for (;;) {
+        int c = fgetc(stdin);
+        if (c == EOF || c == '\n' || c == '\r')
+            break;
+        if (c == 0x7f || c == 0x08) {            /* backspace */
+            while (n && ((unsigned char)out[n - 1] & 0xC0) == 0x80)
+                n--;                              /* back over a UTF-8 tail */
+            if (n) {
+                n--;
+                stars--;
+                fputs("\b \b", stderr);
+                fflush(stderr);
+            }
+            continue;
+        }
+        if (c == 0x15) {                          /* Ctrl-U */
+            while (stars--)
+                fputs("\b \b", stderr);
+            fflush(stderr);
+            n = 0;
+            stars = 0;
+            continue;
+        }
+        if (n + 1 >= max)
+            continue;                             /* full: the bell is worse */
+        out[n++] = (char)c;
+        if (((unsigned char)c & 0xC0) != 0x80) {
+            stars++;
+            fputc('*', stderr);
+            fflush(stderr);
+        }
+    }
+    out[n] = '\0';
+
     if (restore) {
         tcsetattr(STDIN_FILENO, TCSAFLUSH, &saved);
-        fputc('\n', stderr);            /* the newline the echo would have shown */
+        asked_restore = 0;
+        signal(SIGINT, was_int);
+        signal(SIGTERM, was_term);
+        signal(SIGHUP, was_hup);
     }
-    if (!got) {
+    fputc('\n', stderr);                          /* the newline the echo would have shown */
+
+    if (!n && feof(stdin)) {
         pgpid_error(_("Error: Nothing to read: the question stays unanswered."));
         return false;
     }
-    out[strcspn(out, "\r\n")] = '\0';
     return true;
 }
 

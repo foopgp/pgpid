@@ -985,6 +985,24 @@ out=$(PATH="$BINDIR:$PATH" bash -c '
     eval "$('"$BIN"' --bash-completion)"
     COMP_WORDS=(pgpid --) ; COMP_CWORD=1 ; _pgpid_completion ; printf "%s" "${COMPREPLY[*]}"')
 is "global options with no action" "$out" "--homedir --output-format= --batch --help --version"
+# What an option takes is harvested from the helps too. A hand-kept list had
+# drifted: it named --import-file, which no action has, and knew none of
+# --passfrom, --template or --replace-to.
+kinds=$(PATH="$BINDIR:$PATH" bash -c '
+    eval "$('"$BIN"' --bash-completion)"
+    printf "%s\n%s\n%s\n" "$_pgpid_paths" "$_pgpid_printers" "$_pgpid_devices"')
+is "the file options are found"   \
+   "$(sed --silent 1p <<<"$kinds" | grep --count -- '--passfrom.*--template')" "1"
+is "and no option that does not exist" \
+   "$(grep --count -- '--import-file' <<<"$kinds")" "0"
+is "a printer is not a path"      "$(sed --silent 2p <<<"$kinds")" "--print|--printer|"
+is "nor is a camera"              "$(sed --silent 3p <<<"$kinds")" "--camera|"
+# And it answers with the right kind of thing.
+out=$(PATH="$BINDIR:$PATH" bash -c '
+    eval "$('"$BIN"' --bash-completion)"
+    COMP_WORDS=(pgpid secret_scan --camera "") ; COMP_CWORD=3
+    _pgpid_completion ; printf "%s" "${COMPREPLY[0]}"')
+is "a camera completes to a device" "$(grep --count "^/dev/video" <<<"$out")" "1"
 
 printf '\nprint_secret asks for what is missing\n'
 # The shell says "Missing input will be asked interactively"; this now does
