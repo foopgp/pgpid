@@ -44,10 +44,11 @@ static void usage(FILE *out)
         "Output PGP certification key fingerprint.\n"
         "Images may be PNG, JPEG, or PDF.\n"
         "\n"
-        "QR code versions 4 and 5, which is what print_secret writes. Versions 1\n"
-        "to 3 were experimental and never released; 'bl-pgpkey scan' still reads\n"
-        "them. A key that arrives protected stays protected: taking the\n"
-        "passphrase off is the business of whoever moves it onto a card.\n"
+        "QR code versions 4, 5 and 6, which is what secret_print writes (6 with\n"
+        "--encoding base45). Versions 1 to 3 were experimental and never\n"
+        "released; 'bl-pgpkey scan' still reads them. A key that arrives\n"
+        "protected stays protected: taking the passphrase off is the business of\n"
+        "whoever moves it onto a card.\n"
         "\n"
         "OPTIONS:\n"
 
@@ -95,15 +96,18 @@ static bool is_pdf(const char *path)
  * Take every fragment out of what zbar printed.
  *
  * zbarimg and zbarcam both prefix each payload with "QR-Code:" and separate
- * them with newlines — which a payload never contains, being base64url behind
- * a seven-character head. Answers how many fragments were taken **that were
- * not already held** — a fragment shown twice is not progress — or 3 for a
- * sheet that cannot be read as one set. A repeat is still weighed against the
- * version and the division: a piece of another printing must be refused
- * whether or not its number is one we lack.
+ * them with newlines — which a payload never contains, being base64url or
+ * base45 behind a head of a few characters. Answers how many fragments were
+ * taken **that were not already held** — a fragment shown twice is not
+ * progress — or 3 for a sheet that cannot be read as one set. A repeat is
+ * still weighed against the version and the division: a piece of another
+ * printing must be refused whether or not its number is one we lack.
+ *
+ * CUT says, once a version 6 fragment has been read, whether the set is cut
+ * ('*' where a share number would be) or shared: -1 until then.
  */
 static int take_payloads(char *raw, char parts[][262144], bool *have,
-                         int *version, int *needed_less_one)
+                         int *version, int *needed_less_one, int *cut)
 {
     int taken = 0;
     for (char *line = raw, *save; (line = strtok_r(line, "\n", &save)); line = NULL) {
@@ -113,6 +117,12 @@ static int take_payloads(char *raw, char parts[][262144], bool *have,
         at += 8;
         if (at[0] != '~' || at[1] < '1' || at[1] > '9')
             continue;
+        /* Past this point it says it is one of ours, so a head that does not
+         * hold up is a damaged sheet, not a stranger's code. */
+        if (at[2] < '0' || at[2] > '9' || at[3] < '0' || at[3] > '9') {
+            pgpid_error(_("Crit: A QR code starts like a fragment, but its head is damaged."));
+            return 3;
+        }
         int v = at[1] - '0';
         int max = at[2] - '0';
         int index = at[3] - '0';
@@ -129,6 +139,16 @@ static int take_payloads(char *raw, char parts[][262144], bool *have,
             pgpid_error(_("Crit: QR codes don't share the same division (%d != %d)."),
                         *needed_less_one, max);
             return 3;
+        }
+        if (v == 6) {
+            int c = at[4] == '*';
+            if (*cut < 0)
+                *cut = c;
+            if (c != *cut) {
+                pgpid_error(_("Crit: Some QR codes are pieces of a cut secret, others "
+                            "shares of a shared one."));
+                return 3;
+            }
         }
         if (index < 0 || index >= MAX_PARTS) {
             pgpid_error(_("Crit: Fragment number %d is out of range."), index);
@@ -262,7 +282,7 @@ static const char *choose_camera(char *buf, size_t max)
  */
 static int scan_camera(const char *device, const char *size, const char *workdir,
                        char parts[][262144], bool *have,
-                       int *version, int *needed_less_one)
+                       int *version, int *needed_less_one, int *cut)
 {
     /* In memory, never on disk. The images path writes what zbar printed to a
      * file and unlinks it after reading; between those two a Ctrl-C leaves a
@@ -332,7 +352,7 @@ static int scan_camera(const char *device, const char *size, const char *workdir
                            && strstr(raw, "QR-Code:");
 
         int taken = read_something
-                  ? take_payloads(raw, parts, have, version, needed_less_one) : 0;
+                  ? take_payloads(raw, parts, have, version, needed_less_one, cut) : 0;
         if (taken == 3)
             return 3;
         if (taken > 0) {
@@ -362,24 +382,34 @@ static int scan_camera(const char *device, const char *size, const char *workdir
     }
 }
 
+static bool write_to(const char *path, const unsigned char *buf, size_t n)
+{
+    FILE *f = fopen(path, "wb");
+    if (!f)
+        return false;
+    size_t wrote = fwrite(buf, 1, n, f);
+    return fclose(f) == 0 && wrote == n;
+}
+
+/* Text in, octets out: base45 for version 6, base64url before it. */
+static int decode(const char *text, bool base45, unsigned char *out, size_t max)
+{
+    return base45 ? pgpid_base45_decode(text, out, max)
+                  : pgpid_base64url_decode(text, out, max);
+}
+
 /**
- * base64url in, bytes out, straight to a file.
+ * Text in, bytes out, straight to a file.
  *
  * Was `basenc --decode --base64url`, which meant a spawn, a package to depend
  * on, and a piece of somebody's secret key travelling down a pipe to another
  * program. The decoder has been in this binary all along.
  */
-static bool decode_to(const char *b64, const char *path)
+static bool decode_to(const char *text, bool base45, const char *path)
 {
     static unsigned char raw[1 << 20];
-    int n = pgpid_base64url_decode(b64, raw, sizeof raw);
-    if (n <= 0)
-        return false;
-    FILE *f = fopen(path, "wb");
-    if (!f)
-        return false;
-    size_t wrote = fwrite(raw, 1, (size_t)n, f);
-    return fclose(f) == 0 && wrote == (size_t)n;
+    int n = decode(text, base45, raw, sizeof raw);
+    return n > 0 && write_to(path, raw, (size_t)n);
 }
 
 int pgpid_action_secret_scan(int argc, char **argv)
@@ -494,7 +524,7 @@ int pgpid_action_secret_scan(int argc, char **argv)
 
     char parts[MAX_PARTS][262144];
     bool have[MAX_PARTS] = { false };
-    int version = -1, needed_less_one = -1;
+    int version = -1, needed_less_one = -1, cut = -1;
 
     for (size_t i = 0; i < nimages; i++) {
         char image[600];
@@ -529,7 +559,7 @@ int pgpid_action_secret_scan(int argc, char **argv)
             { rc = PGPID_FAIL; goto done; }
         }
 
-        int taken = take_payloads(raw, parts, have, &version, &needed_less_one);
+        int taken = take_payloads(raw, parts, have, &version, &needed_less_one, &cut);
         if (taken == 3)
             return 3;
         bool any = taken > 0;
@@ -541,14 +571,15 @@ int pgpid_action_secret_scan(int argc, char **argv)
     }
 
     if (camera) {
-        rc = scan_camera(camera, given_size, workdir, parts, have, &version, &needed_less_one);
+        rc = scan_camera(camera, given_size, workdir, parts, have, &version,
+                         &needed_less_one, &cut);
         if (rc)
             goto done;
     }
 
-    if (version != 4 && version != 5) {
+    if (version < 4 || version > 6) {
         pgpid_error(_("Crit: Unsupported qrcode version (%d)."), version);
-        pgpid_error(_("Only versions 4 and 5 are read here. Versions 1 to 3 were "
+        pgpid_error(_("Only versions 4 to 6 are read here. Versions 1 to 3 were "
                     "experimental, never released, and needed an extra passphrase "
                     "that also protected the key."));
         pgpid_error(_("'bl-pgpkey scan' still reads them, should such a sheet turn up."));
@@ -586,7 +617,25 @@ int pgpid_action_secret_scan(int argc, char **argv)
                 break;
             at += (size_t)wrote;
         }
-        if (!decode_to(joined, secret)) {
+        if (!decode_to(joined, false, secret)) {
+            pgpid_error(_("Error: The fragments would not decode."));
+            { rc = PGPID_FAIL; goto done; }
+        }
+    } else if (version == 6 && cut == 1) {
+        /* Pieces of octets, each written on its own after its '*': decoded
+         * one by one, then back to back, in the order of their numbers. */
+        static unsigned char joined[1 << 20];
+        size_t at = 0;
+        for (size_t i = 0; i < (size_t)needed; i++) {
+            int n = have[i] ? decode(parts[i] + 1, true, joined + at, sizeof joined - at)
+                            : -1;
+            if (n <= 0) {
+                pgpid_error(_("Error: The fragments would not decode."));
+                { rc = PGPID_FAIL; goto done; }
+            }
+            at += (size_t)n;
+        }
+        if (!write_to(secret, joined, at)) {
             pgpid_error(_("Error: The fragments would not decode."));
             { rc = PGPID_FAIL; goto done; }
         }
@@ -596,9 +645,16 @@ int pgpid_action_secret_scan(int argc, char **argv)
         for (size_t i = 0; i < MAX_PARTS; i++) {
             if (!have[i])
                 continue;
+            /* Three digits, 001 to 255: gfcombine reads the number off the
+             * file name, and anything else is a damaged sheet. */
+            const char *p = parts[i];
+            int number = (p[0] >= '0' && p[0] <= '9' && p[1] >= '0' && p[1] <= '9'
+                          && p[2] >= '0' && p[2] <= '9')
+                       ? (p[0] - '0') * 100 + (p[1] - '0') * 10 + (p[2] - '0') : 0;
             char share[620];
             snprintf(share, sizeof share, "%.500s/SECRET.%.3s", workdir, parts[i]);
-            if (!decode_to(parts[i] + 3, share)) {
+            if (number < 1 || number > 255
+                || !decode_to(parts[i] + 3, version == 6, share)) {
                 pgpid_error(_("Error: Fragment %zu would not decode."), i + 1);
                 { rc = PGPID_FAIL; goto done; }
             }

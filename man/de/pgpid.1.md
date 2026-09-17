@@ -514,6 +514,7 @@ OPTIONS:
   -W, --workdir DIRECTORY        Use given working directory instead of a temporary directory (don't forget to shred its content)
   -S, --split NUM                Number of shares to be generated, 3 to 10 - Default: 5
   -T, --threshold NUM            Number of shares necessary to reconstruct the secret - Default: 3
+      --encoding ENCODING        base64url (QR versions 4 and 5) or base45 (version 6) - Default: base64url
   -h, --help                     Print this help and exit
   -V, --version                  Print the version and exit
 
@@ -523,8 +524,10 @@ Note: Split number should be greater than threshold number.
       In other terms: if (split_NUM == threshold_NUM), then no passphrase or
       printing passphrase is VERY UNSECURE.
       A share is the size of the whole secret, so a secret above 720 bytes
-      only goes on paper cut, which is the equal case. It is refused with
-      the numbers rather than printed too dense to scan.
+      (966 in base45) only goes on paper cut, which is the equal case. It is
+      refused with the numbers rather than printed too dense to scan.
+      base45 makes smaller codes for the same secret, but readers that only
+      know versions 4 and 5 refuse them.
 
 Photographs are left out of what is printed. A backup does not need your
 face, and paper is handled by whoever finds it.
@@ -539,10 +542,11 @@ Reconstitute PGP secrets from QRcodes scanned from IMAGES.
 Output PGP certification key fingerprint.
 Images may be PNG, JPEG, or PDF.
 
-QR code versions 4 and 5, which is what print_secret writes. Versions 1
-to 3 were experimental and never released; 'bl-pgpkey scan' still reads
-them. A key that arrives protected stays protected: taking the
-passphrase off is the business of whoever moves it onto a card.
+QR code versions 4, 5 and 6, which is what secret_print writes (6 with
+--encoding base45). Versions 1 to 3 were experimental and never
+released; 'bl-pgpkey scan' still reads them. A key that arrives
+protected stays protected: taking the passphrase off is the business of
+whoever moves it onto a card.
 
 OPTIONS:
   -c, --camera [V4LDEVICE]      Read the fragments off a camera (/dev/v4l/by-id/...)

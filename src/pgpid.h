@@ -98,6 +98,15 @@
  */
 #define PGPID_SHEET_MAX 720
 
+/*
+ * The same limit for a sheet written in base45 (QR version 6): what decides
+ * is the symbol, not the byte count, and base45 puts more of a secret in the
+ * same symbol. 966 bytes is the largest share whose version 6 code is no
+ * bigger than a version 5 code of PGPID_SHEET_MAX bytes — version 22 at
+ * level L, measured with qrencode.
+ */
+#define PGPID_SHEET_MAX_BASE45 966
+
 #define PGPID_KEYSERVERS_HOST  "keys.foopgp.org"
 #define PGPID_KEYSERVERS_FIRST "hkps://" PGPID_KEYSERVERS_HOST
 #define PGPID_KEYSERVERS       PGPID_KEYSERVERS_FIRST " hkps://keys.openpgp.org"
@@ -288,6 +297,12 @@ void pgpid_md5(const void *data, size_t len, unsigned char out[16]);
 void pgpid_base64url(const unsigned char *in, size_t len, char *out);
 void pgpid_base64(const unsigned char *in, size_t len, char *out);
 int pgpid_base64url_decode(const char *in, unsigned char *out, size_t max);
+
+/* base45 (RFC 9285), what version 6 of the secret sheets is written in. OUT
+ * takes 3 characters for every 2 octets, plus a NUL; decoding answers the
+ * number of octets, or -1 on anything an encoder could not have written. */
+void pgpid_base45(const unsigned char *in, size_t len, char *out);
+int pgpid_base45_decode(const char *in, unsigned char *out, size_t max);
 
 /* A name, reduced to the letters an identifier is derived from: separators
  * become '<', everything else goes through the reference transliteration —

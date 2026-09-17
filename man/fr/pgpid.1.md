@@ -523,6 +523,7 @@ OPTIONS:
   -W, --workdir RÉPERTOIRE       Répertoire de travail au lieu d'un temporaire (à détruire ensuite)
   -S, --split NOMBRE             Nombre de parts à produire, de 3 à 10 - Par défaut : 5
   -T, --threshold NOMBRE         Nombre de parts nécessaires pour reconstituer le secret - Par défaut : 3
+      --encoding CODAGE          base64url (QR codes de versions 4 et 5) ou base45 (version 6) - Par défaut : base64url
   -h, --help                     Afficher cette aide et quitter
   -V, --version                  Afficher la version et quitter
 
@@ -531,9 +532,12 @@ Note : le nombre de parts devrait dépasser le seuil.
        et toute la protection du secret repose sur la phrase secrète.
        Autrement dit : si (parts == seuil), alors pas de phrase secrète — ou
        une phrase imprimée — est TRÈS PEU SÛR.
-       Une part fait la taille du secret entier : au-delà de 720 octets un
-       secret ne va sur papier que découpé, c'est-à-dire à valeurs égales.
-       C'est refusé avec les chiffres plutôt qu'imprimé trop dense.
+       Une part fait la taille du secret entier : au-delà de 720 octets
+       (966 en base45) un secret ne va sur papier que découpé, c'est-à-dire
+       à valeurs égales. C'est refusé avec les chiffres plutôt qu'imprimé
+       trop dense.
+       base45 donne des codes plus petits pour le même secret, mais les
+       lecteurs qui ne connaissent que les versions 4 et 5 les refusent.
 
 Les photographies sont laissées hors de ce qui est imprimé. Une sauvegarde n'a
 pas besoin de votre visage, et le papier est manipulé par qui le trouve.
@@ -548,10 +552,11 @@ Reconstituer des secrets PGP depuis des QR codes lus dans IMAGES.
 Affiche l'empreinte de la clé de certification PGP.
 Les images peuvent être PNG, JPEG ou PDF.
 
-QR codes de versions 4 et 5, ce qu'écrit print_secret. Les versions 1 à 3
-étaient expérimentales et n'ont jamais été publiées ; « bl-pgpkey scan » les
-lit encore. Une clé qui arrive protégée reste protégée : ôter la phrase
-secrète regarde celui qui la déplace sur une carte.
+QR codes de versions 4, 5 et 6, ce qu'écrit secret_print (6 avec
+--encoding base45). Les versions 1 à 3 étaient expérimentales et n'ont
+jamais été publiées ; « bl-pgpkey scan » les lit encore. Une clé qui arrive
+protégée reste protégée : ôter la phrase secrète regarde celui qui la
+déplace sur une carte.
 
 OPTIONS:
   -c, --camera [PÉRIPHV4L]      Lire les fragments sur une caméra (/dev/v4l/by-id/…)

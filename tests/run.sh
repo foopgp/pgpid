@@ -839,6 +839,56 @@ is "taking the advice prints it"               "$?" "0"
 is "five sheets, every one of them needed"     "$(ls "$GNUPGHOME"/SECRET-0?.pdf 2>/dev/null | wc --lines)" "5"
 find "$GNUPGHOME" -maxdepth 1 -name 'SECRET*' -delete
 
+printf '\nsecret_print, then secret_scan: the key comes back\n'
+# The two halves had only ever been checked against each other by hand. Each
+# division and each encoding, printed and read back into a keyring that never
+# held the key: the fingerprint that comes out is the one that went in. A
+# shared set is read from three of its five sheets, since that is the point.
+is "an encoding that does not exist is refused" \
+   "$("$BIN" secret_print --printer '' --passphrase '' --encoding base64 "$FPR" >/dev/null 2>&1 ; echo $?)" "2"
+if command -v qrencode >/dev/null 2>&1 && command -v zbarimg >/dev/null 2>&1 \
+   && command -v gfsplit >/dev/null 2>&1 ; then
+    for way in "base64url 3 5" "base64url 5 4" "base45 3 6" "base45 5 6"; do
+        read -r encoding threshold version <<<"$way"
+        sheets=$(mktemp -d) ; rebuilt=$(mktemp -d) ; into=$(mktemp -d)
+        chmod 700 "$sheets" "$rebuilt" "$into"
+        "$BIN" --batch secret_print --printer '' --passphrase '' --encoding "$encoding" \
+            --threshold "$threshold" --workdir "$sheets" "$FPR" >/dev/null 2>&1
+        pngs=("$sheets"/SECRET-*.png)
+        head=$(zbarimg --quiet --raw "${pngs[0]}" | head --bytes 5)
+        is "$encoding, $threshold of 5: version $version" "${head:1:1}" "$version"
+        if [[ $encoding == base45 && $threshold == 5 ]] ; then
+            is "  a cut set says so where a share number would be" "${head:4:1}" "*"
+        fi
+        [[ $threshold == 5 ]] || pngs=("${pngs[0]}" "${pngs[2]}" "${pngs[4]}")
+        is "  and reads back to the same key" \
+           "$("$BIN" --homedir "$into" --batch secret_scan --workdir "$rebuilt" "${pngs[@]}" 2>/dev/null)" "$FPR"
+        gpgconf --homedir "$into" --kill all >/dev/null 2>&1
+        rm -rf "$sheets" "$rebuilt" "$into"
+    done
+
+    # What only a damaged or mixed pile shows. A head that starts like ours
+    # and then is not; a version 6 pile with a cut piece among shares; and a
+    # base45 text no encoder writes (":::" is worth 91124, past 65535).
+    frags=$(mktemp -d) ; chmod 700 "$frags"
+    qrencode -o "$frags/damaged.png" -- '~6x0*V6A'
+    qrencode -o "$frags/piece.png" -- '~620*V6A'
+    qrencode -o "$frags/share.png" -- '~621007899NVPZ0U'
+    qrencode -o "$frags/bad0.png" -- '~620*:::'
+    qrencode -o "$frags/bad1.png" -- '~621*$5A'
+    qrencode -o "$frags/bad2.png" -- '~622* B9'
+    mkdir "$frags/w1" "$frags/w2" "$frags/w3"
+    is "a damaged head is refused" \
+       "$("$BIN" --batch secret_scan --workdir "$frags/w1" "$frags/damaged.png" 2>&1 | grep --count 'head is damaged')" "1"
+    is "a cut piece among shares is refused" \
+       "$("$BIN" --batch secret_scan --workdir "$frags/w2" "$frags/piece.png" "$frags/share.png" 2>&1 | grep --count 'pieces of a cut secret')" "1"
+    is "base45 that no encoder writes does not decode" \
+       "$("$BIN" --batch secret_scan --workdir "$frags/w3" "$frags"/bad?.png 2>&1 | grep --count 'would not decode')" "1"
+    rm -rf "$frags"
+else
+    printf '  skip  qrencode, zbarimg or gfsplit missing\n'
+fi
+
 # The file is a destination and a source like any other: what goes out through
 # --export-to comes back in through --import-from, into a keyring that never
 # touched a keyserver.
@@ -1005,7 +1055,7 @@ is "no --passphrase to give"      "$?" "2"
 "$BIN" --batch secret_scan --passfrom /dev/null /dev/null >/dev/null 2>&1
 is "no --passfrom either"         "$?" "2"
 is "the help says which versions" \
-   "$("$BIN" secret_scan --help | grep --count 'versions 4 and 5')" "1"
+   "$("$BIN" secret_scan --help | grep --count 'versions 4, 5 and 6')" "1"
 is "and where the old ones are read" \
    "$("$BIN" secret_scan --help | grep --count -- 'bl-pgpkey')" "1"
 

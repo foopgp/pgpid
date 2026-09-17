@@ -50,6 +50,7 @@ static void usage(FILE *out)
         "  -W, --workdir DIRECTORY        Use given working directory instead of a temporary directory (don't forget to shred its content)\n"
         "  -S, --split NUM                Number of shares to be generated, 3 to %d - Default: 5\n"
         "  -T, --threshold NUM            Number of shares necessary to reconstruct the secret - Default: 3\n"
+        "      --encoding ENCODING        base64url (QR versions 4 and 5) or base45 (version 6) - Default: base64url\n"
         "  -h, --help                     Print this help and exit\n"
         "  -V, --version                  Print the version and exit\n"
         "\n"
@@ -59,12 +60,14 @@ static void usage(FILE *out)
         "      In other terms: if (split_NUM == threshold_NUM), then no passphrase or\n"
         "      printing passphrase is VERY UNSECURE.\n"
         "      A share is the size of the whole secret, so a secret above %d bytes\n"
-        "      only goes on paper cut, which is the equal case. It is refused with\n"
-        "      the numbers rather than printed too dense to scan.\n"
+        "      (%d in base45) only goes on paper cut, which is the equal case. It is\n"
+        "      refused with the numbers rather than printed too dense to scan.\n"
+        "      base45 makes smaller codes for the same secret, but readers that only\n"
+        "      know versions 4 and 5 refuse them.\n"
         "\n"
         "Photographs are left out of what is printed. A backup does not need your\n"
         "face, and paper is handled by whoever finds it.\n"),
-            PGPID_NAME, PGPID_SPLIT_MAX, PGPID_SHEET_MAX);
+            PGPID_NAME, PGPID_SPLIT_MAX, PGPID_SHEET_MAX, PGPID_SHEET_MAX_BASE45);
 }
 
 /* Is there anything called SECRET* here already? Reusing a directory that
@@ -140,26 +143,43 @@ static size_t choose_three(const struct pgpid_uid *uids, size_t n,
 }
 
 
-/** Whole file in, base64url out, no line breaks. Answers false on any trouble. */
-static bool encode_file(const char *from, const char *to)
+/* Room for a whole export as text: base45 is the longer of the two encodings,
+ * three characters for every two octets. */
+#define RAW_MAX (1 << 20)
+static char text[(RAW_MAX / 2 + 1) * 3 + 4];
+
+static void encode(const unsigned char *raw, size_t len, bool base45, char *out)
+{
+    if (base45)
+        pgpid_base45(raw, len, out);
+    else
+        pgpid_base64url(raw, len, out);
+}
+
+static bool write_text(const char *path, const char *s, size_t n)
+{
+    FILE *out = fopen(path, "wb");
+    if (!out)
+        return false;
+    size_t wrote = fwrite(s, 1, n, out);
+    return fclose(out) == 0 && wrote == n;
+}
+
+/** Whole file in, text out, no line breaks. Answers false on any trouble. */
+static bool encode_file(const char *from, const char *to, bool base45)
 {
     FILE *in = fopen(from, "rb");
     if (!in)
         return false;
-    static unsigned char raw[1 << 20];
+    static unsigned char raw[RAW_MAX];
     size_t len = fread(raw, 1, sizeof raw, in);
     bool whole = feof(in) && !ferror(in);
     fclose(in);
     if (!len || !whole)
         return false;
 
-    static char b64[(sizeof raw / 3 + 1) * 4 + 4];
-    pgpid_base64url(raw, len, b64);
-    FILE *out = fopen(to, "wb");
-    if (!out)
-        return false;
-    size_t wrote = fwrite(b64, 1, strlen(b64), out);
-    return fclose(out) == 0 && wrote == strlen(b64);
+    encode(raw, len, base45, text);
+    return write_text(to, text, strlen(text));
 }
 
 /**
@@ -169,36 +189,46 @@ static bool encode_file(const char *from, const char *to)
  * is what this does: the pieces are reassembled back to back, so where the
  * cuts fall does not matter as long as the order does. The names are the ones
  * split -d would have given, since the rest of this file looks for them.
+ *
+ * base64url is cut as text, the way version 4 always was. base45 cannot be:
+ * its characters go by threes, and a cut between two of them leaves a piece
+ * that decodes to nothing. So version 6 cuts the octets, and encodes each
+ * piece on its own.
  */
-static bool encode_and_cut(const char *priv, const char *workdir, int splits)
+static bool encode_and_cut(const char *priv, const char *workdir, int splits,
+                           bool base45)
 {
     FILE *in = fopen(priv, "rb");
     if (!in)
         return false;
-    static unsigned char raw[1 << 20];
+    static unsigned char raw[RAW_MAX];
     size_t len = fread(raw, 1, sizeof raw, in);
     bool whole = feof(in) && !ferror(in);
     fclose(in);
     if (!len || !whole || splits < 1)
         return false;
 
-    static char b64[(sizeof raw / 3 + 1) * 4 + 4];
-    pgpid_base64url(raw, len, b64);
-    size_t total = strlen(b64), each = total / (size_t)splits;
+    size_t total = len;
+    if (!base45) {
+        encode(raw, len, false, text);
+        total = strlen(text);
+    }
+    size_t each = total / (size_t)splits;
     if (!each)
         return false;
 
     for (int i = 0; i < splits; i++) {
         char path[700];
         snprintf(path, sizeof path, "%.600s/SECRET-%02d", workdir, i);
-        FILE *out = fopen(path, "wb");
-        if (!out)
-            return false;
         size_t from = (size_t)i * each;
         size_t n = (i == splits - 1) ? total - from : each;
-        size_t wrote = fwrite(b64 + from, 1, n, out);
-        if (fclose(out) || wrote != n)
+        if (base45) {
+            encode(raw + from, n, true, text);
+            if (!write_text(path, text, strlen(text)))
+                return false;
+        } else if (!write_text(path, text + from, n)) {
             return false;
+        }
     }
     return true;
 }
@@ -456,6 +486,7 @@ int pgpid_action_secret_print(int argc, char **argv)
     char passphrase[512] = "";
     const char *printer = NULL, *given_workdir = NULL, *keyid = NULL;
     bool with_passphrase = false, passphrase_given = false, printer_given = false;
+    bool base45 = false;
     int splits = 5, threshold = 3;
 
     for (int i = 1; i < argc; i++) {
@@ -509,6 +540,21 @@ int pgpid_action_secret_print(int argc, char **argv)
                 return PGPID_USAGE;
             }
             threshold = atoi(argv[i]);
+        } else if (!strcmp(a, "--encoding")) {
+            /* Named after what changes, the text inside the code: the version
+             * printed on the sheet follows from it and from the division. */
+            if (++i >= argc) {
+                pgpid_error(_("Error: '%s' wants an encoding: base64url or base45."), a);
+                return PGPID_USAGE;
+            }
+            if (!strcmp(argv[i], "base45")) {
+                base45 = true;
+            } else if (!strcmp(argv[i], "base64url")) {
+                base45 = false;
+            } else {
+                pgpid_error(_("Error: '%s' is not an encoding: base64url or base45."), argv[i]);
+                return PGPID_USAGE;
+            }
         } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             usage(stdout);
             return PGPID_OK;
@@ -575,8 +621,11 @@ int pgpid_action_secret_print(int argc, char **argv)
         threshold = splits;
     }
     /* Same count as threshold: no sharing left to do, the pieces are simply
-     * consecutive and each one leaks its part. */
-    int qrversion = (splits == threshold) ? 4 : 5;
+     * consecutive and each one leaks its part. Version 6 is either, in
+     * base45, and says which with its header. */
+    bool cut = splits == threshold;
+    int qrversion = base45 ? 6 : cut ? 4 : 5;
+    size_t sheet_max = base45 ? PGPID_SHEET_MAX_BASE45 : PGPID_SHEET_MAX;
 
     char workdir[512];
     bool temporary = !given_workdir;
@@ -662,16 +711,16 @@ int pgpid_action_secret_print(int argc, char **argv)
         return PGPID_FAIL;
     }
     size_t exported = (size_t)st.st_size;
-    size_t per_sheet = (qrversion == 5) ? exported
-                                        : (exported + (size_t)splits - 1) / (size_t)splits;
-    if (per_sheet > PGPID_SHEET_MAX) {
+    size_t per_sheet = !cut ? exported
+                            : (exported + (size_t)splits - 1) / (size_t)splits;
+    if (per_sheet > sheet_max) {
         /* How few pieces would do, and what to say about it. */
-        int needed = (int)((exported + PGPID_SHEET_MAX - 1) / PGPID_SHEET_MAX);
+        int needed = (int)((exported + sheet_max - 1) / sheet_max);
         if (needed < 3)
             needed = 3;
         pgpid_error(_("Error: One sheet would carry %zu bytes of the secret, and %d is "
-                    "what one can still be read back from."), per_sheet, PGPID_SHEET_MAX);
-        if (qrversion == 5)
+                    "what one can still be read back from."), per_sheet, (int)sheet_max);
+        if (!cut)
             pgpid_error(_("Notice: Every share of a shared secret is the size of the "
                         "secret, so more shares make none of them smaller. Cutting does, "
                         "and a cut is asked for by making --threshold equal to --split."));
@@ -691,14 +740,14 @@ int pgpid_action_secret_print(int argc, char **argv)
     }
 
     char pattern[600];
-    if (qrversion == 4) {
+    if (cut) {
         /* Encoded and cut here rather than by `basenc | split`. Two spawns
          * fewer, two packages fewer to depend on -- and the secret stops
          * passing through a file of its own on the way: it went to
          * s.gpg.b64url, which then had to be shredded like everything else.
          * The codec is already in this program; it was being asked of
          * coreutils out of habit. */
-        if (!encode_and_cut(priv, workdir, splits)) {
+        if (!encode_and_cut(priv, workdir, splits, base45)) {
             pgpid_error(_("Error: The export could not be cut in %d."), splits);
             return PGPID_FAIL;
         }
@@ -712,7 +761,7 @@ int pgpid_action_secret_print(int argc, char **argv)
             pgpid_error(_("Error: gfsplit would not share the secret out."));
             return PGPID_FAIL;
         }
-        /* gfsplit writes SECRET.001…; each becomes SECRET-001, base64url'd. */
+        /* gfsplit writes SECRET.001…; each becomes SECRET-001, as text. */
         DIR *d = opendir(workdir);
         if (!d)
             return PGPID_FAIL;
@@ -722,7 +771,7 @@ int pgpid_action_secret_print(int argc, char **argv)
             char from[800], to[800];
             snprintf(from, sizeof from, "%.500s/%.250s", workdir, e->d_name);
             snprintf(to, sizeof to, "%.500s/SECRET-%.240s", workdir, e->d_name + 7);
-            if (!encode_file(from, to)) {
+            if (!encode_file(from, to, base45)) {
                 pgpid_error(_("Error: %s could not be encoded."), e->d_name);
                 closedir(d);
                 return PGPID_FAIL;
@@ -801,11 +850,14 @@ int pgpid_action_secret_print(int argc, char **argv)
         snprintf(pdf, sizeof pdf, "%.599s.pdf", frag);
 
         /* The header is what `scan` reads first: a '~', the version, how many
-         * fragments are needed less one, and which fragment this is. Version 5
-         * adds the three digits gfsplit needs to put them back together. */
-        if (qrversion == 5)
+         * fragments are needed less one, and which fragment this is. A shared
+         * secret adds the three digits gfsplit needs to put them back
+         * together; version 6 marks a cut one with a '*' in their place. */
+        if (!cut)
             snprintf(header, sizeof header, "~%d%d%zu%s", qrversion, threshold - 1, i,
                      names[i] + 7);
+        else if (base45)
+            snprintf(header, sizeof header, "~%d%d%zu*", qrversion, threshold - 1, i);
         else
             snprintf(header, sizeof header, "~%d%d%zu", qrversion, threshold - 1, i);
 
@@ -822,7 +874,10 @@ int pgpid_action_secret_print(int argc, char **argv)
         payload[at] = '\0';
         fclose(in);
 
-        const char *qr[] = { "qrencode", "--level", qrversion == 5 ? "L" : "M",
+        /* No mode forced: qrencode puts the '~' of a version 6 payload in a
+         * byte segment of its own and the base45 after it in alphanumeric
+         * mode, which is where the smaller symbol comes from. */
+        const char *qr[] = { "qrencode", "--level", cut ? "M" : "L",
                              "--dpi=50", "--output", png, NULL };
         if (pgpid_run_program(qr, payload, NULL)) {
             pgpid_error(_("Error: qrencode would not draw fragment %zu."), i + 1);
