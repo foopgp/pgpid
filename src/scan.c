@@ -104,7 +104,7 @@ static bool is_pdf(const char *path)
  * printing must be refused whether or not its number is one we lack.
  *
  * CUT says, once a version 6 fragment has been read, whether the set is cut
- * ('*' where a share number would be) or shared: -1 until then.
+ * ("**" where a share number would be) or shared: -1 until then.
  */
 static int take_payloads(char *raw, char parts[][262144], bool *have,
                          int *version, int *needed_less_one, int *cut)
@@ -141,7 +141,7 @@ static int take_payloads(char *raw, char parts[][262144], bool *have,
             return 3;
         }
         if (v == 6) {
-            int c = at[4] == '*';
+            int c = at[4] == '*' && at[5] == '*';
             if (*cut < 0)
                 *cut = c;
             if (c != *cut) {
@@ -380,6 +380,35 @@ static int scan_camera(const char *device, const char *size, const char *workdir
         else
             pgpid_error(_("Notice: Nothing read from '%s' — try again."), device);
     }
+}
+
+/**
+ * The number of the share a fragment's text starts with, 1 to 255, or 0 for
+ * a damaged one: three decimal digits in version 5, as gfsplit names its
+ * files, two upper-case hexadecimal digits in version 6. WIDTH is set to how
+ * many characters it took.
+ */
+static int share_number(const char *p, int version, size_t *width)
+{
+    int number = 0;
+    if (version == 6) {
+        *width = 2;
+        for (size_t k = 0; k < 2; k++) {
+            char c = p[k];
+            int d = (c >= '0' && c <= '9') ? c - '0' : (c >= 'A' && c <= 'F') ? c - 'A' + 10 : -1;
+            if (d < 0)
+                return 0;
+            number = number * 16 + d;
+        }
+    } else {
+        *width = 3;
+        for (size_t k = 0; k < 3; k++) {
+            if (p[k] < '0' || p[k] > '9')
+                return 0;
+            number = number * 10 + (p[k] - '0');
+        }
+    }
+    return number <= 255 ? number : 0;
 }
 
 static bool write_to(const char *path, const unsigned char *buf, size_t n)
@@ -622,12 +651,12 @@ int pgpid_action_secret_scan(int argc, char **argv)
             { rc = PGPID_FAIL; goto done; }
         }
     } else if (version == 6 && cut == 1) {
-        /* Pieces of octets, each written on its own after its '*': decoded
+        /* Pieces of octets, each written on its own after its "**": decoded
          * one by one, then back to back, in the order of their numbers. */
         static unsigned char joined[1 << 20];
         size_t at = 0;
         for (size_t i = 0; i < (size_t)needed; i++) {
-            int n = have[i] ? decode(parts[i] + 1, true, joined + at, sizeof joined - at)
+            int n = have[i] ? decode(parts[i] + 2, true, joined + at, sizeof joined - at)
                             : -1;
             if (n <= 0) {
                 pgpid_error(_("Error: The fragments would not decode."));
@@ -640,25 +669,9 @@ int pgpid_action_secret_scan(int argc, char **argv)
             { rc = PGPID_FAIL; goto done; }
         }
     } else {
-        /* Shares: the first three characters of each are the number gfsplit
-         * needs to know which share it is holding. */
-        for (size_t i = 0; i < MAX_PARTS; i++) {
-            if (!have[i])
-                continue;
-            /* Three digits, 001 to 255: gfcombine reads the number off the
-             * file name, and anything else is a damaged sheet. */
-            const char *p = parts[i];
-            int number = (p[0] >= '0' && p[0] <= '9' && p[1] >= '0' && p[1] <= '9'
-                          && p[2] >= '0' && p[2] <= '9')
-                       ? (p[0] - '0') * 100 + (p[1] - '0') * 10 + (p[2] - '0') : 0;
-            char share[620];
-            snprintf(share, sizeof share, "%.500s/SECRET.%.3s", workdir, parts[i]);
-            if (number < 1 || number > 255
-                || !decode_to(parts[i] + 3, version == 6, share)) {
-                pgpid_error(_("Error: Fragment %zu would not decode."), i + 1);
-                { rc = PGPID_FAIL; goto done; }
-            }
-        }
+        /* Shares: each starts with the number gfsplit needs to know which
+         * share it is holding, and gfcombine reads it off the file name, in
+         * three decimal digits whatever the sheet wrote it in. */
         const char *comb[MAX_PARTS + 2];
         size_t at = 0;
         comb[at++] = "gfcombine";
@@ -666,8 +679,13 @@ int pgpid_action_secret_scan(int argc, char **argv)
         for (size_t i = 0; i < MAX_PARTS; i++) {
             if (!have[i])
                 continue;
-            snprintf(names[at - 1], sizeof names[0], "%.500s/SECRET.%.3s",
-                     workdir, parts[i]);
+            size_t width = 0;
+            int number = share_number(parts[i], version, &width);
+            snprintf(names[at - 1], sizeof names[0], "%.500s/SECRET.%03d", workdir, number);
+            if (number < 1 || !decode_to(parts[i] + width, version == 6, names[at - 1])) {
+                pgpid_error(_("Error: Fragment %zu would not decode."), i + 1);
+                { rc = PGPID_FAIL; goto done; }
+            }
             comb[at] = names[at - 1];
             at++;
         }

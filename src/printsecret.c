@@ -844,7 +844,7 @@ int pgpid_action_secret_print(int argc, char **argv)
         }
 
     for (size_t i = 0; i < nfrag; i++) {
-        char frag[600], png[620], pdf[620], header[16];
+        char frag[600], png[620], pdf[620], header[64];
         snprintf(frag, sizeof frag, "%.500s/%.63s", workdir, names[i]);
         snprintf(png, sizeof png, "%.599s.png", frag);
         snprintf(pdf, sizeof pdf, "%.599s.pdf", frag);
@@ -852,12 +852,17 @@ int pgpid_action_secret_print(int argc, char **argv)
         /* The header is what `scan` reads first: a '~', the version, how many
          * fragments are needed less one, and which fragment this is. A shared
          * secret adds the three digits gfsplit needs to put them back
-         * together; version 6 marks a cut one with a '*' in their place. */
-        if (!cut)
+         * together: three decimal digits as its file names have them, or in
+         * version 6 two upper-case hexadecimal ones -- a share number never
+         * passes 255 -- and "**" in their place for a piece of a cut one. */
+        if (!cut && base45)
+            snprintf(header, sizeof header, "~%d%d%zu%02X", qrversion, threshold - 1, i,
+                     (unsigned)atoi(names[i] + 7));
+        else if (!cut)
             snprintf(header, sizeof header, "~%d%d%zu%s", qrversion, threshold - 1, i,
                      names[i] + 7);
         else if (base45)
-            snprintf(header, sizeof header, "~%d%d%zu*", qrversion, threshold - 1, i);
+            snprintf(header, sizeof header, "~%d%d%zu**", qrversion, threshold - 1, i);
         else
             snprintf(header, sizeof header, "~%d%d%zu", qrversion, threshold - 1, i);
 

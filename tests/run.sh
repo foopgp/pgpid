@@ -874,10 +874,13 @@ if command -v qrencode >/dev/null 2>&1 && command -v zbarimg >/dev/null 2>&1 \
         "$BIN" --batch secret_print --printer '' --passphrase '' --encoding "$encoding" \
             --threshold "$threshold" --workdir "$sheets" "$FPR" >/dev/null 2>&1
         pngs=("$sheets"/SECRET-*.png)
-        head=$(zbarimg --quiet --raw "${pngs[0]}" | head --bytes 5)
+        head=$(zbarimg --quiet --raw "${pngs[0]}" | head --bytes 6)
         is "$encoding, $threshold of 5: version $version" "${head:1:1}" "$version"
         if [[ $encoding == base45 && $threshold == 5 ]] ; then
-            is "  a cut set says so where a share number would be" "${head:4:1}" "*"
+            is "  a cut set says so where a share number would be" "${head:4:2}" "**"
+        elif [[ $encoding == base45 ]] ; then
+            is "  a share number in two hexadecimal digits" \
+               "$(grep --count --extended-regexp '^[0-9A-F]{2}$' <<<"${head:4:2}")" "1"
         fi
         [[ $threshold == 5 ]] || pngs=("${pngs[0]}" "${pngs[2]}" "${pngs[4]}")
         is "  and reads back to the same key" \
@@ -890,19 +893,27 @@ if command -v qrencode >/dev/null 2>&1 && command -v zbarimg >/dev/null 2>&1 \
     # and then is not; a version 6 pile with a cut piece among shares; and a
     # base45 text no encoder writes (":::" is worth 91124, past 65535).
     frags=$(mktemp -d) ; chmod 700 "$frags"
-    qrencode -o "$frags/damaged.png" -- '~6x0*V6A'
-    qrencode -o "$frags/piece.png" -- '~620*V6A'
-    qrencode -o "$frags/share.png" -- '~621007899NVPZ0U'
-    qrencode -o "$frags/bad0.png" -- '~620*:::'
-    qrencode -o "$frags/bad1.png" -- '~621*$5A'
-    qrencode -o "$frags/bad2.png" -- '~622* B9'
-    mkdir "$frags/w1" "$frags/w2" "$frags/w3"
+    qrencode -o "$frags/damaged.png" -- '~6x0**V6A'
+    qrencode -o "$frags/piece.png" -- '~620**V6A'
+    qrencode -o "$frags/share.png" -- '~62107899NVPZ0U'
+    qrencode -o "$frags/bad0.png" -- '~620**:::'
+    qrencode -o "$frags/bad1.png" -- '~621**$5A'
+    qrencode -o "$frags/bad2.png" -- '~622** B9'
+    qrencode -o "$frags/low0.png" -- '~620a7899NVPZ0U'
+    qrencode -o "$frags/low1.png" -- '~621023LKB7H1:ZL'
+    qrencode -o "$frags/low2.png" -- '~622655L0AYC+R4'
+    mkdir "$frags/w1" "$frags/w2" "$frags/w3" "$frags/w4"
     is "a damaged head is refused" \
        "$("$BIN" --batch secret_scan --workdir "$frags/w1" "$frags/damaged.png" 2>&1 | grep --count 'head is damaged')" "1"
     is "a cut piece among shares is refused" \
        "$("$BIN" --batch secret_scan --workdir "$frags/w2" "$frags/piece.png" "$frags/share.png" 2>&1 | grep --count 'pieces of a cut secret')" "1"
     is "base45 that no encoder writes does not decode" \
        "$("$BIN" --batch secret_scan --workdir "$frags/w3" "$frags"/bad?.png 2>&1 | grep --count 'would not decode')" "1"
+    # A share number is two upper-case hexadecimal digits: one in lower
+    # case, or one written in version 5's three decimal digits, is a damaged
+    # sheet.
+    is "a share number in lower case does not decode" \
+       "$("$BIN" --batch secret_scan --workdir "$frags/w4" "$frags"/low?.png 2>&1 | grep --count 'would not decode')" "1"
     rm -rf "$frags"
 else
     printf '  skip  qrencode, zbarimg or gfsplit missing\n'
