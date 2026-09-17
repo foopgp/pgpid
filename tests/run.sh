@@ -899,6 +899,23 @@ if command -v qrencode >/dev/null 2>&1 && command -v zbarimg >/dev/null 2>&1 \
         rm -rf "$sheets" "$rebuilt" "$into"
     done
 
+    # Sixteen sheets, twelve needed: the head's hexadecimal digits, and a
+    # threshold above five, which gfsplit refused for as long as pgpid gave
+    # it -n before -m.
+    sheets=$(mktemp -d) ; rebuilt=$(mktemp -d) ; into=$(mktemp -d)
+    chmod 700 "$sheets" "$rebuilt" "$into"
+    "$BIN" --batch secret_print --printer '' --passphrase '' --split 16 --threshold 12 \
+        --workdir "$sheets" "$FPR" >/dev/null 2>&1
+    is "twelve of sixteen is printed"     "$?" "0"
+    pages=("$sheets"/SECRET-page-*.pdf)
+    is "  on eight pages"                  "${#pages[@]}" "8"
+    is "  the last numbered F, twelve needed" \
+       "$(zbarimg --quiet --raw -Sdisable -Sqrcode.enable "${pages[7]}" | cut --characters=1-4 | sort | tail -1)" "~6BF"
+    is "  and any six pages bring the key back" \
+       "$("$BIN" --homedir "$into" --batch secret_scan --workdir "$rebuilt" "${pages[@]:2:6}" 2>/dev/null)" "$FPR"
+    gpgconf --homedir "$into" --kill all >/dev/null 2>&1
+    rm -rf "$sheets" "$rebuilt" "$into"
+
     # What only a damaged or mixed pile shows. A head that starts like ours
     # and then is not; a version 6 pile with a cut piece among shares; and a
     # base45 text no encoder writes (":::" is worth 91124, past 65535).

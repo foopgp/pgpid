@@ -892,7 +892,11 @@ int pgpid_action_secret_print(int argc, char **argv)
         snprintf(base, sizeof base, "%s/SECRET", workdir);
         snprintf(t, sizeof t, "%d", threshold);
         snprintf(m, sizeof m, "%d", splits);
-        const char *gf[] = { "gfsplit", "-n", t, "-m", m, priv, base, NULL };
+        /* -m before -n: gfsplit checks the threshold against the number of
+         * shares as it stands when it reads -n, and that is 5 until -m has
+         * been read. The other way round, every threshold above five was
+         * refused. */
+        const char *gf[] = { "gfsplit", "-m", m, "-n", t, priv, base, NULL };
         if (pgpid_run_program(gf, NULL, NULL)) {
             pgpid_error(_("Error: gfsplit would not share the secret out."));
             return PGPID_FAIL;
