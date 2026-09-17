@@ -520,6 +520,19 @@ is "--errexit-g=1 refuses two"     "$("$BIN" cert_get --no-fetch --errexit-g=1 '
 # Nowhere is named, so no test key reaches a real keyserver.
 is "an empty keyserver list asks nobody" \
    "$("$BIN" cert_get --keyservers '' "$FPR" >/dev/null 2>&1 ; echo $?)" "0"
+# A fingerprint goes out with its 0x, as HKP wants it: a keyserver reads the
+# bare one as a name, and ours answered "Key not found" to every one. Asked of
+# a local port where nothing listens, so nothing leaves the machine, and gpg
+# says what it asked for.
+asked() { "$BIN" cert_get --keyservers hkp://127.0.0.1:9 "$1" 2>&1 >/dev/null ; }
+is "a fingerprint is asked for with its 0x" \
+   "$(asked "$FPR" | grep --count --fixed-strings "search=0x$FPR'")" "1"
+is "and so is a key id" \
+   "$(asked "${FPR: -16}" | grep --count --fixed-strings "search=0x${FPR: -16}'")" "1"
+is "one that has it already keeps it once" \
+   "$(asked "0x$FPR" | grep --count --fixed-strings "search=0x$FPR'")" "1"
+is "an address is left as it is" \
+   "$(asked ada@example.invalid | grep --count --fixed-strings "search=ada%40example.invalid'")" "1"
 
 printf '\ngen_u4\n'
 # Fictional civil statuses only: a test file is a public thing, and a real

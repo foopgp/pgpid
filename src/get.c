@@ -18,6 +18,7 @@
  */
 #include "pgpid.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -152,13 +153,27 @@ void pgpid_refresh(const char *term, const char *keyservers)
      * happens because somebody asked for it, so a second request costs
      * nothing anybody notices. */
     char *body = eid_body(term);
-    const char *wanted[2] = { body ? body : term, NULL };
+    /* A key id or a fingerprint as it is read off a screen, with no "0x": a
+     * keyserver takes that for a name. keys.foopgp.org answered "Key not
+     * found" to every fingerprint sent this way, and only keys.openpgp.org,
+     * which serves a certificate stripped of what it has not verified,
+     * answered at all. HKP wants the prefix; bl-pgpid always gave it. */
+    char *hex = NULL;
+    if (!body && (strlen(term) == 16 || pgpid_is_fingerprint(term))) {
+        bool all_hex = true;
+        for (const char *p = term; *p; p++)
+            all_hex = all_hex && isxdigit((unsigned char)*p);
+        if (all_hex && asprintf(&hex, "0x%s", term) < 0)
+            hex = NULL;
+    }
+    const char *wanted[2] = { body ? body : hex ? hex : term, NULL };
     if (body && strcmp(body, term) != 0)
         wanted[1] = term;
 
     char *copy = strdup(keyservers);
     if (!copy) {
         free(body);
+        free(hex);
         return;
     }
     for (char *save = NULL, *ks = strtok_r(copy, " \t,", &save); ks;
@@ -190,6 +205,7 @@ void pgpid_refresh(const char *term, const char *keyservers)
     }
     free(copy);
     free(body);
+    free(hex);
 }
 
 /* Fetch the certificates that signed these, then the ones that signed those,
