@@ -373,8 +373,11 @@ int pgpid_action_gen_key(int argc, char **argv)
     }
     #undef QUICK
 
-    /* All three fingerprints, the main key first. */
-    const char *all[] = { "--list-secret-keys", "--with-colons", email, NULL };
+    /* All three fingerprints, the main key first — of this key, found by its
+     * own fingerprint. Listed by the address, as it was, the answer also held
+     * every other secret key that address finds, older ones first: pgpid-gen
+     * takes the first line, and would have printed somebody else's sheets. */
+    const char *all[] = { "--list-secret-keys", "--with-colons", fpr, NULL };
     if (pgpid_capture_engine(all, listing, sizeof listing) > 0)
         for (char *line = listing, *save; (line = strtok_r(line, "\n", &save)); line = NULL) {
             if (strncmp(line, "fpr:", 4))

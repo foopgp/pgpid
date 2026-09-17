@@ -839,6 +839,25 @@ is "taking the advice prints it"               "$?" "0"
 is "five sheets, every one of them needed"     "$(ls "$GNUPGHOME"/SECRET-0?.pdf 2>/dev/null | wc --lines)" "5"
 find "$GNUPGHOME" -maxdepth 1 -name 'SECRET*' -delete
 
+printf '\ngen_key answers the key it made, and only that one\n'
+# It used to list the secret keys its address finds, so an older key under
+# the same address came out first -- and pgpid-gen, which takes the first
+# line, would have printed that one's sheets. Its own keyring: the key made
+# here has no business in the one the other checks count.
+NEWHOME=$(mktemp -d) ; chmod 700 "$NEWHOME"
+gpg --homedir "$NEWHOME" --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-generate-key 'Older <same@example.invalid>' ed25519 cert never 2>/dev/null
+OLDFPR=$(gpg --homedir "$NEWHOME" --with-colons --list-keys 2>/dev/null | awk --field-separator=: '$1=="fpr"{print $10; exit}')
+out=$("$BIN" --homedir "$NEWHOME" --batch gen_key --passphrase 'made up' --eid "$EID" \
+      --name 'Newer' same@example.invalid 2>/dev/null)
+is "three fingerprints, whatever else the address finds" "$(wc --lines <<<"$out")" "3"
+is "none of them the older key's"  "$(grep --count "$OLDFPR" <<<"$out")" "0"
+is "the first is the key that carries the identity" \
+   "$(gpg --homedir "$NEWHOME" --with-colons --list-keys "=UID:urn:eid:$EID" 2>/dev/null | awk --field-separator=: '$1=="fpr"{print $10; exit}')" \
+   "$(head -1 <<<"$out")"
+gpgconf --homedir "$NEWHOME" --kill all >/dev/null 2>&1
+rm -rf "$NEWHOME"
+
 printf '\nsecret_print, then secret_scan: the key comes back\n'
 # The two halves had only ever been checked against each other by hand. Each
 # division and each encoding, printed and read back into a keyring that never
