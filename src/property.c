@@ -263,7 +263,7 @@ static int do_ksprefrd(const char *fpr, const char *add, bool revoking,
             pgpid_error(_("Error: 'ksprefrd' must start with hkp:// or hkps:// (%s)."), add);
             return PGPID_USAGE;
         }
-        char primary[512];
+        char primary[PGPID_UID_MAX];
         unsigned index = pgpid_primary_uid(fpr, primary, sizeof primary)
                          ? pgpid_uid_index(fpr, primary) : 0;
         if (!index) {
@@ -451,7 +451,7 @@ static void usage(FILE *out)
 int pgpid_action_cert_property(int argc, char **argv)
 {
     const char *name = NULL, *pattern = NULL, *keyservers = NULL;
-    char toadd[16][1024], torev[16][1024];
+    char toadd[16][PGPID_UID_MAX], torev[16][PGPID_UID_MAX];
     size_t nadd = 0, nrev = 0;
     bool revoke_all = false, assume_yes = false, show_unusable = false;
 
@@ -468,7 +468,11 @@ int pgpid_action_cert_property(int argc, char **argv)
                 pgpid_error(_("Error: Too many values at once."));
                 return PGPID_USAGE;
             }
-            snprintf(adding ? toadd[nadd++] : torev[nrev++], 1024, "%s", argv[i]);
+            if (strlen(argv[i]) >= PGPID_UID_MAX) {
+                pgpid_error(_("Error: A user id holds %d bytes at most."), PGPID_UID_MAX - 1);
+                return PGPID_USAGE;
+            }
+            snprintf(adding ? toadd[nadd++] : torev[nrev++], PGPID_UID_MAX, "%s", argv[i]);
         } else if (!strcmp(a, "--revoke-all") || !strcmp(a, "--revokeall")) {
             revoke_all = true;
         } else if (!strcmp(a, "-y") || !strcmp(a, "--yes")) {
@@ -561,14 +565,25 @@ int pgpid_action_cert_property(int argc, char **argv)
     /* Free text is stored escaped, so what is asked for has to be escaped too
      * — otherwise a note with a comma in it would never match itself. */
     if (free_text) {
-        char buf[1024];
-        for (size_t i = 0; i < nadd; i++) {
-            escape(toadd[i], structural, buf, sizeof buf);
-            snprintf(toadd[i], sizeof toadd[0], "%s", buf);
+        /* Twice the room: every character may come out as two. */
+        char buf[2 * PGPID_UID_MAX];
+        for (size_t i = 0; i < nadd + nrev; i++) {
+            char *value = i < nadd ? toadd[i] : torev[i - nadd];
+            escape(value, structural, buf, sizeof buf);
+            size_t len = strlen(buf);
+            if (len >= PGPID_UID_MAX) {
+                pgpid_error(_("Error: A user id holds %d bytes at most."), PGPID_UID_MAX - 1);
+                return PGPID_USAGE;
+            }
+            memcpy(value, buf, len + 1);
         }
-        for (size_t i = 0; i < nrev; i++) {
-            escape(torev[i], structural, buf, sizeof buf);
-            snprintf(torev[i], sizeof torev[0], "%s", buf);
+    }
+    /* Said here, and not by gpg afterwards: a value cut to fit would be added
+     * as something nobody asked for. */
+    for (size_t i = 0; i < nadd; i++) {
+        if (strlen(vcard) + 1 + strlen(toadd[i]) >= PGPID_UID_MAX) {
+            pgpid_error(_("Error: A user id holds %d bytes at most."), PGPID_UID_MAX - 1);
+            return PGPID_USAGE;
         }
     }
     for (size_t i = 0; i < nadd; i++) {
@@ -593,16 +608,17 @@ int pgpid_action_cert_property(int argc, char **argv)
     }
 
     /* Add first, revoke after: the property is never left with no value at
-     * all, not even for the moment between the two calls. */
+     * all, not even for the moment between the two calls. Pointers into
+     * uids[], which nothing lists again before they are used. */
     size_t nbefore = 0;
-    char before[256][512];
+    const char *before[256];
     for (size_t i = 0; i < nuids && nadd; i++)
         if (pgpid_uid_stands(uids[i].validity) && value_of(uids[i].text, vcard))
-            snprintf(before[nbefore++], sizeof before[0], "%.511s", uids[i].text);
+            before[nbefore++] = uids[i].text;
 
     for (size_t a = 0; a < nadd; a++) {
-        char want[1100];
-        snprintf(want, sizeof want, "%s:%.1023s", vcard, toadd[a]);
+        char want[PGPID_UID_MAX];
+        snprintf(want, sizeof want, "%s:%s", vcard, toadd[a]);
         bool here = false, struck = false;
         for (size_t i = 0; i < nuids; i++) {
             if (strcmp(uids[i].text, want))
@@ -640,7 +656,7 @@ int pgpid_action_cert_property(int argc, char **argv)
     for (size_t r = 0; r < nrev; r++) {
         nuids = pgpid_list_uids(fpr, true, uids, 256);
         size_t current = 0, matched = 0;
-        char victims[256][512];
+        const char *victims[256];   /* into uids[], used before the next listing */
         for (size_t i = 0; i < nuids; i++) {
             if (!pgpid_uid_stands(uids[i].validity))
                 continue;
@@ -649,7 +665,7 @@ int pgpid_action_cert_property(int argc, char **argv)
                 continue;
             current++;
             if (!strcmp(v, torev[r]) && matched < 256)
-                snprintf(victims[matched++], sizeof victims[0], "%.511s", uids[i].text);
+                victims[matched++] = uids[i].text;
         }
         if (!matched) {
             pgpid_error(_("Error: No revokable '%s:%s' inside certificate %s."),

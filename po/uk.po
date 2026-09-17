@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid 0.0.7-35-g8512aa6\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-09-17 15:56+0200\n"
+"POT-Creation-Date: 2026-09-17 20:08+0200\n"
 "PO-Revision-Date: 2026-08-22 22:58+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -153,17 +153,30 @@ msgstr ""
 msgid "Error: '%s' wants an image."
 msgstr "Error: «%s» очікує зображення."
 
-#: ../src/avatar.c:501 ../src/get.c:296 ../src/push.c:67
+#: ../src/avatar.c:501 ../src/get.c:312 ../src/push.c:67
 #, c-format
 msgid "Error: '%s' wants a list of servers, empty for none."
 msgstr "Error: «%s» очікує перелік серверів, порожній — жодного."
 
-#: ../src/avatar.c:508 ../src/main.c:159 ../src/printsecret.c:651 ../src/scan.c:475
+#: ../src/avatar.c:508 ../src/main.c:159 ../src/printsecret.c:651
+#: ../src/scan.c:475
 #, c-format
 msgid "Error: '%s' wants a directory."
 msgstr "Error: «%s» очікує каталог."
 
-#: ../src/avatar.c:523 ../src/certify.c:530 ../src/certrevoke.c:109 ../src/changepass.c:119 ../src/changetokencode.c:127 ../src/changetokenmeta.c:206 ../src/del.c:78 ../src/email.c:424 ../src/genkey.c:207 ../src/genu4.c:523 ../src/genuid.c:162 ../src/get.c:318 ../src/list.c:377 ../src/main.c:194 ../src/printcard.c:222 ../src/printsecret.c:681 ../src/property.c:493 ../src/push.c:81 ../src/scan.c:511 ../src/secretdel.c:78 ../src/secretlist.c:59 ../src/sigs.c:153 ../src/systemadduser.c:416 ../src/systemadmins.c:93 ../src/systemconfhome.c:115 ../src/systemdeluser.c:171 ../src/systemusers.c:114 ../src/token.c:129 ../src/tokencheck.c:258 ../src/tokendel.c:70 ../src/tokenlist.c:80 ../src/totoken.c:220 ../src/tovcard.c:366 ../src/trustdb.c:653 ../src/trustdb.c:793 ../src/trustdb.c:1040
+#: ../src/avatar.c:523 ../src/certify.c:530 ../src/certrevoke.c:109
+#: ../src/changepass.c:119 ../src/changetokencode.c:127
+#: ../src/changetokenmeta.c:206 ../src/del.c:78 ../src/email.c:424
+#: ../src/genkey.c:207 ../src/genu4.c:523 ../src/genuid.c:162 ../src/get.c:334
+#: ../src/list.c:377 ../src/main.c:194 ../src/printcard.c:222
+#: ../src/printsecret.c:681 ../src/property.c:497 ../src/push.c:81
+#: ../src/scan.c:511 ../src/secretdel.c:78 ../src/secretlist.c:59
+#: ../src/sigs.c:153 ../src/systemadduser.c:416 ../src/systemadmins.c:93
+#: ../src/systemconfhome.c:115 ../src/systemdeluser.c:171
+#: ../src/systemusers.c:114 ../src/token.c:129 ../src/tokencheck.c:258
+#: ../src/tokendel.c:70 ../src/tokenlist.c:80 ../src/totoken.c:220
+#: ../src/tovcard.c:366 ../src/trustdb.c:653 ../src/trustdb.c:793
+#: ../src/trustdb.c:1040
 #, c-format
 msgid "Error: Unrecognized option '%s'."
 msgstr "Error: Невідомий параметр «%s»."
@@ -240,7 +253,8 @@ msgstr "Error: Перевірка чи підтвердження не вдал�
 msgid "Error: Wrong expected length (%s) - correct lenght: %d ."
 msgstr "Error: Хибна очікувана довжина (%s) — правильна довжина: %d ."
 
-#: ../src/card.c:161 ../src/interactive.c:37 ../src/interactive.c:81 ../src/interactive.c:197
+#: ../src/card.c:161 ../src/interactive.c:37 ../src/interactive.c:81
+#: ../src/interactive.c:197
 #, c-format
 msgid "Error: %s"
 msgstr "Error: %s"
@@ -427,7 +441,8 @@ msgstr "Error: Жоден сертифікат тут не має цих сим�
 msgid "Error: '%s' wants a key."
 msgstr "Error: «%s» очікує ключ."
 
-#: ../src/certify.c:506 ../src/genu4.c:532 ../src/property.c:464 ../src/systemadduser.c:424 ../src/trustdb.c:628
+#: ../src/certify.c:506 ../src/genu4.c:532 ../src/property.c:464
+#: ../src/systemadduser.c:424 ../src/trustdb.c:628
 #, c-format
 msgid "Error: '%s' wants a value."
 msgstr "Error: «%s» очікує значення."
@@ -437,7 +452,8 @@ msgstr "Error: «%s» очікує значення."
 msgid "Error: Unknown credibility value '%s'."
 msgstr "Error: Невідоме значення кредиту довіри «%s»."
 
-#: ../src/certify.c:517 ../src/email.c:409 ../src/property.c:480 ../src/trustdb.c:1025
+#: ../src/certify.c:517 ../src/email.c:409 ../src/property.c:484
+#: ../src/trustdb.c:1025
 #, c-format
 msgid "Error: '%s' wants a list, empty for none."
 msgstr "Error: «%s» очікує перелік, порожній — жодного."
@@ -573,7 +589,8 @@ msgstr ""
 msgid "Type yes to go on: "
 msgstr ""
 
-#: ../src/certrevoke.c:151 ../src/secretdel.c:143 ../src/tokendel.c:138 ../src/totoken.c:371
+#: ../src/certrevoke.c:151 ../src/secretdel.c:143 ../src/tokendel.c:138
+#: ../src/totoken.c:371
 #, fuzzy
 #| msgid "Notice: No image to take back."
 msgid "Notice: Nothing done."
@@ -659,7 +676,9 @@ msgstr ""
 "перелік процесів цієї машини. Файлові види існують саме тому.\n"
 "\n"
 
-#: ../src/changepass.c:49 ../src/changetokencode.c:57 ../src/changetokenmeta.c:57 ../src/genkey.c:164 ../src/printsecret.c:94 ../src/property.c:378 ../src/totoken.c:81
+#: ../src/changepass.c:49 ../src/changetokencode.c:57
+#: ../src/changetokenmeta.c:57 ../src/genkey.c:164 ../src/printsecret.c:94
+#: ../src/property.c:378 ../src/totoken.c:81
 #, c-format
 msgid "Error: Cannot read %s."
 msgstr "Error: Не вдається прочитати %s."
@@ -689,7 +708,8 @@ msgstr "Error: Потрібні обидві парольні фрази — т�
 msgid "--newpassphrase or --newpassfrom. Empty strings mean none."
 msgstr "--newpassphrase чи --newpassfrom. Порожній рядок означає жодної."
 
-#: ../src/changepass.c:151 ../src/printsecret.c:785 ../src/secretdel.c:117 ../src/totoken.c:262
+#: ../src/changepass.c:151 ../src/printsecret.c:785 ../src/secretdel.c:117
+#: ../src/totoken.c:262
 #, c-format
 msgid "Error: No secret for '%s' here."
 msgstr "Error: Тут немає таємниці для «%s»."
@@ -790,12 +810,15 @@ msgstr ""
 "- 192 (0xC0) якщо код заблоковано.\n"
 "- інше ненульове значення за інших помилок.\n"
 
-#: ../src/changetokencode.c:91 ../src/changetokencode.c:100 ../src/changetokenmeta.c:186
+#: ../src/changetokencode.c:91 ../src/changetokencode.c:100
+#: ../src/changetokenmeta.c:186
 #, c-format
 msgid "Error: '%s' wants a code."
 msgstr "Error: «%s» очікує код."
 
-#: ../src/changetokencode.c:95 ../src/changetokencode.c:105 ../src/changetokenmeta.c:191 ../src/genkey.c:159 ../src/printsecret.c:633 ../src/totoken.c:188 ../src/totoken.c:203 ../src/tovcard.c:349
+#: ../src/changetokencode.c:95 ../src/changetokencode.c:105
+#: ../src/changetokenmeta.c:191 ../src/genkey.c:159 ../src/printsecret.c:633
+#: ../src/totoken.c:188 ../src/totoken.c:203 ../src/tovcard.c:349
 #, c-format
 msgid "Error: '%s' wants a file."
 msgstr "Error: «%s» очікує файл."
@@ -930,7 +953,8 @@ msgstr ""
 "  -V, --version               Вивести версію й вийти\n"
 "\n"
 
-#: ../src/changetokenmeta.c:126 ../src/changetokenmeta.c:257 ../src/totoken.c:336
+#: ../src/changetokenmeta.c:126 ../src/changetokenmeta.c:257
+#: ../src/totoken.c:336
 msgid "Error: No security token detected."
 msgstr "Error: Ключ безпеки не виявлено."
 
@@ -1245,28 +1269,29 @@ msgstr "Error: «%s» очікує нотатку."
 msgid "Notice: --extra-comment is ignored: a note is carried by its own NOTE: uid."
 msgstr "Notice: --extra-comment пропускається: нотатку несе її власний uid NOTE:."
 
-#: ../src/email.c:446 ../src/property.c:590
+#: ../src/email.c:446 ../src/property.c:605
 #, c-format
 msgid "Error: No editable certificate %s here."
 msgstr "Error: Тут немає редагованого сертифіката %s."
 
-#: ../src/email.c:475 ../src/property.c:616
+#: ../src/email.c:475 ../src/property.c:632
 #, c-format
 msgid "Notice: Certificate %s already carries '%s'."
 msgstr "Notice: Сертифікат %s уже несе «%s»."
 
-#: ../src/email.c:479 ../src/property.c:620
+#: ../src/email.c:479 ../src/property.c:636
 #, fuzzy, c-format
 #| msgid "Notice: '%s' was revoked earlier and cannot be added again — OpenPGP keeps revoked User IDs on the certificate forever."
 msgid "Notice: '%s' was revoked earlier and cannot be added again — PGP keeps revoked User IDs on the certificate forever."
 msgstr "Notice: «%s» було відкликано раніше й не може бути додано знову — OpenPGP назавжди зберігає на сертифікаті відкликані User ID."
 
-#: ../src/email.c:484 ../src/property.c:625
+#: ../src/email.c:484 ../src/property.c:641
 #, c-format
 msgid "Notice: Adding '%s' into certificate %s…"
 msgstr "Notice: Додавання «%s» до сертифіката %s…"
 
-#: ../src/email.c:487 ../src/genkey.c:347 ../src/genkey.c:352 ../src/genkey.c:361 ../src/property.c:628
+#: ../src/email.c:487 ../src/genkey.c:358 ../src/genkey.c:363
+#: ../src/genkey.c:373 ../src/property.c:644
 #, c-format
 msgid "Error: gpg would not add '%s'."
 msgstr "Error: gpg відмовився додати «%s»."
@@ -1280,7 +1305,7 @@ msgstr "Error: У сертифікаті %s немає відкликувано�
 msgid "Error: At least one email must be retained."
 msgstr "Error: Принаймні одна адреса має залишитися."
 
-#: ../src/email.c:547 ../src/property.c:683
+#: ../src/email.c:547 ../src/property.c:699
 msgid "Warning: Nothing to revoke."
 msgstr "Warning: Відкликати нічого."
 
@@ -1389,67 +1414,73 @@ msgstr "Error: «%s» очікує сервер ключів."
 msgid "Error: keyserver MUST be hkp(s)://…"
 msgstr "Error: сервер ключів МУСИТЬ бути hkp(s)://…"
 
-#: ../src/genkey.c:220
+#: ../src/genkey.c:221 ../src/property.c:472 ../src/property.c:575
+#: ../src/property.c:585
+#, c-format
+msgid "Error: A user id holds %d bytes at most."
+msgstr ""
+
+#: ../src/genkey.c:231
 #, fuzzy
 #| msgid "Error: Which certificate?"
 msgid "Email address for this certificate: "
 msgstr "Error: Який сертифікат?"
 
-#: ../src/genkey.c:227
+#: ../src/genkey.c:238
 #, fuzzy, c-format
 #| msgid "Error: '%s' wants an address."
 msgid "Error: '%s' does not look like an email address."
 msgstr "Error: «%s» очікує адресу."
 
-#: ../src/genkey.c:238
+#: ../src/genkey.c:249
 msgid "Error: Which entity is this key for? Give --eid."
 msgstr "Error: Для якої сутності цей ключ? Дайте --eid."
 
-#: ../src/genkey.c:239
+#: ../src/genkey.c:250
 msgid "Deriving one needs a civil status, which is somebody's to give:"
 msgstr "Обчислення потребує громадянського стану, а його повідомляє людина:"
 
-#: ../src/genkey.c:240
+#: ../src/genkey.c:251
 #, c-format
 msgid "  %s gen_u4 --surname … --given-names … --birth-date … --birth-country …"
 msgstr "  %s gen_u4 --surname … --given-names … --birth-date … --birth-country …"
 
-#: ../src/genkey.c:246
+#: ../src/genkey.c:257
 #, fuzzy, c-format
 #| msgid "Notice: Minting the identity uid %s…"
 msgid "Notice: Entity identifier: %s"
 msgstr "Notice: Карбування uid особи %s…"
 
-#: ../src/genkey.c:248
+#: ../src/genkey.c:259
 #, c-format
 msgid "Error: No eid in given '%s'."
 msgstr "Error: У «%s» немає eid."
 
-#: ../src/genkey.c:253
+#: ../src/genkey.c:264
 msgid "Passphrase"
 msgstr ""
 
-#: ../src/genkey.c:256
+#: ../src/genkey.c:267
 #, fuzzy
 #| msgid "Notice: Give --passphrase, or --passfrom to keep it off the process list."
 msgid "Error: A passphrase is needed. Give --passphrase, or --passfrom to keep it off the process list."
 msgstr "Notice: Вкажіть --passphrase або --passfrom, щоб вона не потрапила до списку процесів."
 
-#: ../src/genkey.c:294
+#: ../src/genkey.c:305
 msgid "Error: gpg would not generate the key."
 msgstr "Error: gpg відмовився створити ключ."
 
-#: ../src/genkey.c:322
+#: ../src/genkey.c:333
 #, c-format
 msgid "Error: Freshly generated key not found by its eid UID (%s)."
 msgstr "Error: Щойно створений ключ не знайдено за його uid особи (%s)."
 
-#: ../src/genkey.c:367
+#: ../src/genkey.c:379
 #, c-format
 msgid "Warning: Can't set the primary uid to %s."
 msgstr "Warning: Не вдається призначити головним uid %s."
 
-#: ../src/genkey.c:371
+#: ../src/genkey.c:383
 msgid "Error: gpg would not add the authentication key."
 msgstr "Error: gpg відмовився додати ключ підтвердження."
 
@@ -1706,7 +1737,7 @@ msgstr "Error: У «%.50s» немає ідентифікатора сутнос
 msgid "Notice: '--free-input' takes any string instead."
 msgstr "Notice: «--free-input» приймає натомість будь-який рядок."
 
-#: ../src/get.c:27
+#: ../src/get.c:28
 #, fuzzy, c-format
 #| msgid ""
 #| "Usage: %s get [OPTIONS]... NAME|U4|U5|EMAIL...\n"
@@ -1767,38 +1798,38 @@ msgstr ""
 "«cert_check» немає: `list` відповідає те саме, що й він, дешевше.\n"
 "\n"
 
-#: ../src/get.c:277
+#: ../src/get.c:293
 #, fuzzy
 #| msgid "Error: '%s' wants a number."
 msgid "Error: --recurse takes a number in 0..6."
 msgstr "Error: «%s» очікує число."
 
-#: ../src/get.c:282
+#: ../src/get.c:298
 #, fuzzy
 #| msgid "Error: '%s' wants a file."
 msgid "Error: --import-from wants a file."
 msgstr "Error: «%s» очікує файл."
 
-#: ../src/get.c:305
+#: ../src/get.c:321
 #, c-format
 msgid "Error: '%s' wants a number of one or more."
 msgstr "Error: «%s» очікує число не менше за одиницю."
 
-#: ../src/get.c:328
+#: ../src/get.c:344
 msgid "Error: What are you looking for? '*' for everything."
 msgstr "Error: Що ви шукаєте? «*» — усе."
 
-#: ../src/get.c:343
+#: ../src/get.c:359
 #, fuzzy, c-format
 #| msgid "Error: No surname and given names could be read from '%s'."
 msgid "Error: Nothing could be imported from '%s'."
 msgstr "Error: З «%s» не вдалося прочитати прізвище та імена."
 
-#: ../src/get.c:378 ../src/tovcard.c:384
+#: ../src/get.c:394 ../src/tovcard.c:384
 msgid "Error: No certificate for what was asked."
 msgstr "Error: Немає сертифіката за запитом."
 
-#: ../src/get.c:386
+#: ../src/get.c:402
 #, c-format
 msgid "Error: %zu certificates matched, more than the %ld asked for."
 msgstr "Error: Підійшло %zu сертифікатів, більше за запитані %ld."
@@ -1837,7 +1868,9 @@ msgstr ""
 msgid "Notice: The two do not match. Please retype."
 msgstr "Error: Вони не збігаються."
 
-#: ../src/list.c:274 ../src/list.c:403 ../src/property.c:184 ../src/secretdel.c:100 ../src/secretlist.c:68 ../src/tokendel.c:112 ../src/trustdb.c:601
+#: ../src/list.c:274 ../src/list.c:403 ../src/property.c:184
+#: ../src/secretdel.c:100 ../src/secretlist.c:68 ../src/tokendel.c:112
+#: ../src/trustdb.c:601
 #, fuzzy
 #| msgid "Error: Cannot make a temporary keyring."
 msgid "Error: Cannot read the keyring."
@@ -2543,66 +2576,66 @@ msgstr ""
 msgid "Error: The export could not be cut in %d."
 msgstr "Error: gpg відмовився додати %s."
 
-#: ../src/printsecret.c:897
+#: ../src/printsecret.c:901
 msgid "Error: gfsplit would not share the secret out."
 msgstr "Error: gfsplit відмовився поділити таємницю."
 
-#: ../src/printsecret.c:911
+#: ../src/printsecret.c:915
 #, fuzzy, c-format
 #| msgid "Error: gpg would not revoke %s."
 msgid "Error: %s could not be encoded."
 msgstr "Error: gpg відмовився відкликати %s."
 
-#: ../src/printsecret.c:929
+#: ../src/printsecret.c:933
 #, c-format
 msgid "Notice: Printing the secret split into %d fragments on %s…"
 msgstr "Notice: Друк таємниці в %d фрагментах на %s…"
 
-#: ../src/printsecret.c:932
+#: ../src/printsecret.c:936
 #, c-format
 msgid "Notice: Producing %d fragments in %s, sending nothing."
 msgstr "Notice: Виготовлення %d фрагментів у %s, без надсилання."
 
-#: ../src/printsecret.c:950
+#: ../src/printsecret.c:954
 msgid "Error: No fragment was produced."
 msgstr "Error: Не виготовлено жодного фрагмента."
 
-#: ../src/printsecret.c:956 ../src/trustdb.c:620
+#: ../src/printsecret.c:960 ../src/trustdb.c:620
 msgid "Error: Out of memory."
 msgstr "Error: Бракує пам'яті."
 
-#: ../src/printsecret.c:967
+#: ../src/printsecret.c:971
 #, c-format
 msgid "Error: %zu fragments in %s, and a QR header can only number %d."
 msgstr "Error: %zu фрагментів у %s, а заголовок QR уміє пронумерувати лише %d."
 
-#: ../src/printsecret.c:1003
+#: ../src/printsecret.c:1007
 #, c-format
 msgid "Error: Cannot read the fragment %s."
 msgstr "Error: Не вдається прочитати фрагмент %s."
 
-#: ../src/printsecret.c:1017
+#: ../src/printsecret.c:1021
 #, c-format
 msgid "Error: qrencode would not draw fragment %zu."
 msgstr "Error: qrencode відмовився намалювати фрагмент %zu."
 
-#: ../src/printsecret.c:1039
+#: ../src/printsecret.c:1043
 #, fuzzy, c-format
 #| msgid "Error: pdfjam would not lay the page out."
 msgid "Error: Fragment %zu could not be laid out."
 msgstr "Error: pdfjam відмовився розкласти сторінку."
 
-#: ../src/printsecret.c:1046
+#: ../src/printsecret.c:1050
 #, c-format
 msgid "Error: lpr would not print fragment %zu."
 msgstr "Error: lpr відмовився надрукувати фрагмент %zu."
 
-#: ../src/printsecret.c:1065
+#: ../src/printsecret.c:1069
 #, c-format
 msgid "Notice: The working copies are removed. Shred %s if anything is left."
 msgstr "Notice: Робочі копії вилучено. Знищте %s, якщо щось лишилося."
 
-#: ../src/printsecret.c:1071
+#: ../src/printsecret.c:1075
 #, fuzzy, c-format
 #| msgid "Notice: The fragments are in %s. Shred it once they are on paper: bl-security shred_path --remove '%s'"
 msgid "Notice: The fragments are in %s. Shred them once they are on paper: find '%s' -type f -exec shred --remove {} +"
@@ -2647,7 +2680,7 @@ msgstr "Error: Не вдається призначити бажаний сер�
 msgid "Error: Cannot export %s."
 msgstr "Error: Не вдається вивезти %s."
 
-#: ../src/property.c:306 ../src/property.c:733
+#: ../src/property.c:306 ../src/property.c:749
 #, fuzzy, c-format
 #| msgid "Notice: Written into '%s'."
 msgid "Notice: %s carries no %s."
@@ -2790,47 +2823,47 @@ msgstr ""
 msgid "Error: Too many values at once."
 msgstr "Error: Забагато значень за раз."
 
-#: ../src/property.c:501
+#: ../src/property.c:505
 #, c-format
 msgid "Warning: Ignoring extra argument '%s'."
 msgstr "Warning: Зайвий довід «%s» пропущено."
 
-#: ../src/property.c:506
+#: ../src/property.c:510
 msgid "Error: A property name is required."
 msgstr "Error: Потрібне ім'я властивості."
 
-#: ../src/property.c:527
+#: ../src/property.c:531
 #, c-format
 msgid "Error: Unknown property '%s'."
 msgstr "Error: Невідома властивість «%s»."
 
-#: ../src/property.c:528
+#: ../src/property.c:532
 #, fuzzy, c-format
 #| msgid "Notice: One of name, note, phone, address, url, lang, geo, %s."
 msgid "Notice: One of name, note, phone, address, url, lang, geo, %s, %s."
 msgstr "Notice: Одна з name, note, phone, address, url, lang, geo, %s."
 
-#: ../src/property.c:535
+#: ../src/property.c:539
 #, c-format
 msgid "Error: Only one --add at a time for '%s' — the new value replaces the one before, and two would race."
 msgstr "Error: По одному --add за раз для «%s» — нове значення заступає попереднє, а два змагалися б за місце."
 
-#: ../src/property.c:547 ../src/property.c:555
+#: ../src/property.c:551 ../src/property.c:559
 #, c-format
 msgid "Error: Only one --add at a time for '%s'."
 msgstr "Error: По одному --add за раз для «%s»."
 
-#: ../src/property.c:576
+#: ../src/property.c:591
 #, c-format
 msgid "Error: Invalid %s value '%s'."
 msgstr "Error: Неприпустиме значення %s «%s»."
 
-#: ../src/property.c:655
+#: ../src/property.c:671
 #, c-format
 msgid "Error: No revokable '%s:%s' inside certificate %s."
 msgstr "Error: У сертифікаті %s немає відкликуваного «%s:%s»."
 
-#: ../src/property.c:660
+#: ../src/property.c:676
 #, c-format
 msgid "Error: At least one %s must be retained."
 msgstr "Error: Принаймні одне %s має залишитися."
@@ -3417,7 +3450,8 @@ msgstr ""
 msgid "Error: No account named '%s' on this system."
 msgstr "Error: Не вдається прочитати «%s» як зображення."
 
-#: ../src/systemadduser.c:461 ../src/systemconfhome.c:133 ../src/systemdeluser.c:193
+#: ../src/systemadduser.c:461 ../src/systemconfhome.c:133
+#: ../src/systemdeluser.c:193
 #, fuzzy, c-format
 #| msgid "Error: No secret for '%s' here."
 msgid "Error: No account for '%s' on this system."

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-09-17 15:56+0200\n"
+"POT-Creation-Date: 2026-09-17 20:08+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -96,7 +96,7 @@ msgstr ""
 msgid "Error: '%s' wants an image."
 msgstr ""
 
-#: ../src/avatar.c:501 ../src/get.c:296 ../src/push.c:67
+#: ../src/avatar.c:501 ../src/get.c:312 ../src/push.c:67
 #, c-format
 msgid "Error: '%s' wants a list of servers, empty for none."
 msgstr ""
@@ -110,9 +110,9 @@ msgstr ""
 #: ../src/avatar.c:523 ../src/certify.c:530 ../src/certrevoke.c:109
 #: ../src/changepass.c:119 ../src/changetokencode.c:127
 #: ../src/changetokenmeta.c:206 ../src/del.c:78 ../src/email.c:424
-#: ../src/genkey.c:207 ../src/genu4.c:523 ../src/genuid.c:162 ../src/get.c:318
+#: ../src/genkey.c:207 ../src/genu4.c:523 ../src/genuid.c:162 ../src/get.c:334
 #: ../src/list.c:377 ../src/main.c:194 ../src/printcard.c:222
-#: ../src/printsecret.c:681 ../src/property.c:493 ../src/push.c:81
+#: ../src/printsecret.c:681 ../src/property.c:497 ../src/push.c:81
 #: ../src/scan.c:511 ../src/secretdel.c:78 ../src/secretlist.c:59
 #: ../src/sigs.c:153 ../src/systemadduser.c:416 ../src/systemadmins.c:93
 #: ../src/systemconfhome.c:115 ../src/systemdeluser.c:171
@@ -313,7 +313,7 @@ msgstr ""
 msgid "Error: Unknown credibility value '%s'."
 msgstr ""
 
-#: ../src/certify.c:517 ../src/email.c:409 ../src/property.c:480
+#: ../src/certify.c:517 ../src/email.c:409 ../src/property.c:484
 #: ../src/trustdb.c:1025
 #, c-format
 msgid "Error: '%s' wants a list, empty for none."
@@ -924,28 +924,28 @@ msgstr ""
 msgid "Notice: --extra-comment is ignored: a note is carried by its own NOTE: uid."
 msgstr ""
 
-#: ../src/email.c:446 ../src/property.c:590
+#: ../src/email.c:446 ../src/property.c:605
 #, c-format
 msgid "Error: No editable certificate %s here."
 msgstr ""
 
-#: ../src/email.c:475 ../src/property.c:616
+#: ../src/email.c:475 ../src/property.c:632
 #, c-format
 msgid "Notice: Certificate %s already carries '%s'."
 msgstr ""
 
-#: ../src/email.c:479 ../src/property.c:620
+#: ../src/email.c:479 ../src/property.c:636
 #, c-format
 msgid "Notice: '%s' was revoked earlier and cannot be added again — PGP keeps revoked User IDs on the certificate forever."
 msgstr ""
 
-#: ../src/email.c:484 ../src/property.c:625
+#: ../src/email.c:484 ../src/property.c:641
 #, c-format
 msgid "Notice: Adding '%s' into certificate %s…"
 msgstr ""
 
-#: ../src/email.c:487 ../src/genkey.c:347 ../src/genkey.c:352
-#: ../src/genkey.c:361 ../src/property.c:628
+#: ../src/email.c:487 ../src/genkey.c:358 ../src/genkey.c:363
+#: ../src/genkey.c:373 ../src/property.c:644
 #, c-format
 msgid "Error: gpg would not add '%s'."
 msgstr ""
@@ -959,7 +959,7 @@ msgstr ""
 msgid "Error: At least one email must be retained."
 msgstr ""
 
-#: ../src/email.c:547 ../src/property.c:683
+#: ../src/email.c:547 ../src/property.c:699
 msgid "Warning: Nothing to revoke."
 msgstr ""
 
@@ -1024,61 +1024,67 @@ msgstr ""
 msgid "Error: keyserver MUST be hkp(s)://…"
 msgstr ""
 
-#: ../src/genkey.c:220
+#: ../src/genkey.c:221 ../src/property.c:472 ../src/property.c:575
+#: ../src/property.c:585
+#, c-format
+msgid "Error: A user id holds %d bytes at most."
+msgstr ""
+
+#: ../src/genkey.c:231
 msgid "Email address for this certificate: "
 msgstr ""
 
-#: ../src/genkey.c:227
+#: ../src/genkey.c:238
 #, c-format
 msgid "Error: '%s' does not look like an email address."
 msgstr ""
 
-#: ../src/genkey.c:238
+#: ../src/genkey.c:249
 msgid "Error: Which entity is this key for? Give --eid."
 msgstr ""
 
-#: ../src/genkey.c:239
+#: ../src/genkey.c:250
 msgid "Deriving one needs a civil status, which is somebody's to give:"
 msgstr ""
 
-#: ../src/genkey.c:240
+#: ../src/genkey.c:251
 #, c-format
 msgid "  %s gen_u4 --surname … --given-names … --birth-date … --birth-country …"
 msgstr ""
 
-#: ../src/genkey.c:246
+#: ../src/genkey.c:257
 #, c-format
 msgid "Notice: Entity identifier: %s"
 msgstr ""
 
-#: ../src/genkey.c:248
+#: ../src/genkey.c:259
 #, c-format
 msgid "Error: No eid in given '%s'."
 msgstr ""
 
-#: ../src/genkey.c:253
+#: ../src/genkey.c:264
 msgid "Passphrase"
 msgstr ""
 
-#: ../src/genkey.c:256
+#: ../src/genkey.c:267
 msgid "Error: A passphrase is needed. Give --passphrase, or --passfrom to keep it off the process list."
 msgstr ""
 
-#: ../src/genkey.c:294
+#: ../src/genkey.c:305
 msgid "Error: gpg would not generate the key."
 msgstr ""
 
-#: ../src/genkey.c:322
+#: ../src/genkey.c:333
 #, c-format
 msgid "Error: Freshly generated key not found by its eid UID (%s)."
 msgstr ""
 
-#: ../src/genkey.c:367
+#: ../src/genkey.c:379
 #, c-format
 msgid "Warning: Can't set the primary uid to %s."
 msgstr ""
 
-#: ../src/genkey.c:371
+#: ../src/genkey.c:383
 msgid "Error: gpg would not add the authentication key."
 msgstr ""
 
@@ -1254,7 +1260,7 @@ msgstr ""
 msgid "Notice: '--free-input' takes any string instead."
 msgstr ""
 
-#: ../src/get.c:27
+#: ../src/get.c:28
 #, c-format
 msgid ""
 "Usage: %s cert_get [OPTIONS]... NAME|U4|U5|EMAIL...\n"
@@ -1279,33 +1285,33 @@ msgid ""
 "There is no 'cert_check': `list` answers what it answered, for less.\n"
 msgstr ""
 
-#: ../src/get.c:277
+#: ../src/get.c:293
 msgid "Error: --recurse takes a number in 0..6."
 msgstr ""
 
-#: ../src/get.c:282
+#: ../src/get.c:298
 msgid "Error: --import-from wants a file."
 msgstr ""
 
-#: ../src/get.c:305
+#: ../src/get.c:321
 #, c-format
 msgid "Error: '%s' wants a number of one or more."
 msgstr ""
 
-#: ../src/get.c:328
+#: ../src/get.c:344
 msgid "Error: What are you looking for? '*' for everything."
 msgstr ""
 
-#: ../src/get.c:343
+#: ../src/get.c:359
 #, c-format
 msgid "Error: Nothing could be imported from '%s'."
 msgstr ""
 
-#: ../src/get.c:378 ../src/tovcard.c:384
+#: ../src/get.c:394 ../src/tovcard.c:384
 msgid "Error: No certificate for what was asked."
 msgstr ""
 
-#: ../src/get.c:386
+#: ../src/get.c:402
 #, c-format
 msgid "Error: %zu certificates matched, more than the %ld asked for."
 msgstr ""
@@ -1889,64 +1895,64 @@ msgstr ""
 msgid "Error: The export could not be cut in %d."
 msgstr ""
 
-#: ../src/printsecret.c:897
+#: ../src/printsecret.c:901
 msgid "Error: gfsplit would not share the secret out."
 msgstr ""
 
-#: ../src/printsecret.c:911
+#: ../src/printsecret.c:915
 #, c-format
 msgid "Error: %s could not be encoded."
 msgstr ""
 
-#: ../src/printsecret.c:929
+#: ../src/printsecret.c:933
 #, c-format
 msgid "Notice: Printing the secret split into %d fragments on %s…"
 msgstr ""
 
-#: ../src/printsecret.c:932
+#: ../src/printsecret.c:936
 #, c-format
 msgid "Notice: Producing %d fragments in %s, sending nothing."
 msgstr ""
 
-#: ../src/printsecret.c:950
+#: ../src/printsecret.c:954
 msgid "Error: No fragment was produced."
 msgstr ""
 
-#: ../src/printsecret.c:956 ../src/trustdb.c:620
+#: ../src/printsecret.c:960 ../src/trustdb.c:620
 msgid "Error: Out of memory."
 msgstr ""
 
-#: ../src/printsecret.c:967
+#: ../src/printsecret.c:971
 #, c-format
 msgid "Error: %zu fragments in %s, and a QR header can only number %d."
 msgstr ""
 
-#: ../src/printsecret.c:1003
+#: ../src/printsecret.c:1007
 #, c-format
 msgid "Error: Cannot read the fragment %s."
 msgstr ""
 
-#: ../src/printsecret.c:1017
+#: ../src/printsecret.c:1021
 #, c-format
 msgid "Error: qrencode would not draw fragment %zu."
 msgstr ""
 
-#: ../src/printsecret.c:1039
+#: ../src/printsecret.c:1043
 #, c-format
 msgid "Error: Fragment %zu could not be laid out."
 msgstr ""
 
-#: ../src/printsecret.c:1046
+#: ../src/printsecret.c:1050
 #, c-format
 msgid "Error: lpr would not print fragment %zu."
 msgstr ""
 
-#: ../src/printsecret.c:1065
+#: ../src/printsecret.c:1069
 #, c-format
 msgid "Notice: The working copies are removed. Shred %s if anything is left."
 msgstr ""
 
-#: ../src/printsecret.c:1071
+#: ../src/printsecret.c:1075
 #, c-format
 msgid "Notice: The fragments are in %s. Shred them once they are on paper: find '%s' -type f -exec shred --remove {} +"
 msgstr ""
@@ -1988,7 +1994,7 @@ msgstr ""
 msgid "Error: Cannot export %s."
 msgstr ""
 
-#: ../src/property.c:306 ../src/property.c:733
+#: ../src/property.c:306 ../src/property.c:749
 #, c-format
 msgid "Notice: %s carries no %s."
 msgstr ""
@@ -2070,46 +2076,46 @@ msgstr ""
 msgid "Error: Too many values at once."
 msgstr ""
 
-#: ../src/property.c:501
+#: ../src/property.c:505
 #, c-format
 msgid "Warning: Ignoring extra argument '%s'."
 msgstr ""
 
-#: ../src/property.c:506
+#: ../src/property.c:510
 msgid "Error: A property name is required."
 msgstr ""
 
-#: ../src/property.c:527
+#: ../src/property.c:531
 #, c-format
 msgid "Error: Unknown property '%s'."
 msgstr ""
 
-#: ../src/property.c:528
+#: ../src/property.c:532
 #, c-format
 msgid "Notice: One of name, note, phone, address, url, lang, geo, %s, %s."
 msgstr ""
 
-#: ../src/property.c:535
+#: ../src/property.c:539
 #, c-format
 msgid "Error: Only one --add at a time for '%s' — the new value replaces the one before, and two would race."
 msgstr ""
 
-#: ../src/property.c:547 ../src/property.c:555
+#: ../src/property.c:551 ../src/property.c:559
 #, c-format
 msgid "Error: Only one --add at a time for '%s'."
 msgstr ""
 
-#: ../src/property.c:576
+#: ../src/property.c:591
 #, c-format
 msgid "Error: Invalid %s value '%s'."
 msgstr ""
 
-#: ../src/property.c:655
+#: ../src/property.c:671
 #, c-format
 msgid "Error: No revokable '%s:%s' inside certificate %s."
 msgstr ""
 
-#: ../src/property.c:660
+#: ../src/property.c:676
 #, c-format
 msgid "Error: At least one %s must be retained."
 msgstr ""

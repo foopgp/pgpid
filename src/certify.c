@@ -28,7 +28,7 @@
 #include <sys/random.h>
 
 #define MAX_UIDS 128
-#define UID_MAX  512
+#define UID_MAX PGPID_UID_MAX
 
 /* What the shell answers, kept because foodjis switches on these. */
 #define CERT_NO_PRIVKEY   140

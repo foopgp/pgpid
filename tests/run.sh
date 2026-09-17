@@ -225,6 +225,18 @@ is "setting a keyserver leaves the primary where it was" \
    "$("$BIN" cert_email "$ADA" | awk '$2=="primary"{print $1}')" "second@example.org"
 is "and the keyserver is set" "$("$BIN" cert_property ksprefrd "$ADA")" "hkps://keys.foopgp.org"
 
+# A note longer than 512 bytes, which pgpid used to cut short: shown whole,
+# and replaced whole -- the one before found again, and revoked.
+long=$(printf 'Line %03d of a long note, with a comma.\n' $(seq 1 14))
+"$BIN" cert_property note --replace-to "$long" --yes --keyservers '' "$ADA" >/dev/null 2>&1
+is "a note past 512 bytes is shown whole" "$("$BIN" cert_property note "$ADA")" "$long"
+long2=${long/Line 001/First line}
+"$BIN" cert_property note --replace-to "$long2" --yes --keyservers '' "$ADA" >/dev/null 2>&1
+is "and replaced whole, the one before revoked" "$("$BIN" cert_property note "$ADA")" "$long2"
+huge=$(head --bytes=2100 /dev/zero | tr '\0' x)
+is "a user id longer than gpg takes is refused first" \
+   "$("$BIN" cert_property note --replace-to "$huge" --yes --keyservers '' "$ADA" >/dev/null 2>&1 ; echo $?)" "2"
+
 printf '\nsigs\n'
 # A second certificate, which certifies the first: the smallest web of trust
 # that has an edge in it.

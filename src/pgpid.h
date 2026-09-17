@@ -156,15 +156,21 @@ void pgpid_try_help(const char *action);
 #define PGPID_KEYS_SECRET  (1u << 0)   /* --list-secret-keys */
 #define PGPID_KEYS_SIGS    (1u << 1)   /* --with-sig-list */
 
+/* How long a user id may be, terminating NUL included. gpg refuses one of
+ * 2047 bytes and takes one of 2000, so whatever it holds fits. It was 512:
+ * a note of 539 bytes was shown cut, and could no longer be found to be
+ * revoked or replaced. */
+#define PGPID_UID_MAX 2048
+
 struct pgpid_keysig {
     char keyid[17];
-    char text[512];      /* the signer's uid, as gpg reports it */
+    char text[PGPID_UID_MAX];  /* the signer's uid, as gpg reports it */
     char address[256];   /* the mail address inside it, or "" */
     long created;
 };
 
 struct pgpid_keyuid {
-    char text[512];      /* as its owner wrote it, escapes undone */
+    char text[PGPID_UID_MAX];  /* as its owner wrote it, escapes undone */
     char address[256];   /* the mail address it carries, or "" */
     char validity;       /* field 2 */
     bool revoked, expired, invalid;
@@ -420,7 +426,7 @@ bool pgpid_card_certification_key(char *out, size_t max);
 
 /* One uid of a certificate, as the colon listing describes it. */
 struct pgpid_uid {
-    char text[512];    /* as its owner wrote it, escapes undone */
+    char text[PGPID_UID_MAX];  /* as its owner wrote it, escapes undone */
     char validity;     /* field 2 — see pgpid_uid_stands */
     long created;      /* when its self-signature was made */
 };

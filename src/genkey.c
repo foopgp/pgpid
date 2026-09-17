@@ -212,6 +212,17 @@ int pgpid_action_gen_key(int argc, char **argv)
         }
     }
 
+    /* Before any key is made: a note too long for a user id would otherwise
+     * be found out once the key exists, and leave it without one. */
+    if (note && *note) {
+        char escaped[2 * PGPID_UID_MAX];
+        escape(note, escaped, sizeof escaped);
+        if (strlen("NOTE:") + strlen(escaped) >= PGPID_UID_MAX) {
+            pgpid_error(_("Error: A user id holds %d bytes at most."), PGPID_UID_MAX - 1);
+            return PGPID_USAGE;
+        }
+    }
+
     /* Three things are needed and none of them is guessable, so each missing
      * one is asked for. --batch turns every question below into the refusal
      * it used to be, which is what a caller driving this wants. */
@@ -353,9 +364,10 @@ int pgpid_action_gen_key(int argc, char **argv)
         return PGPID_FAIL;
     }
     if (note && *note) {
-        char noteuid[1100], escaped[1024];
+        char noteuid[PGPID_UID_MAX], escaped[2 * PGPID_UID_MAX];
         escape(note, escaped, sizeof escaped);
-        snprintf(noteuid, sizeof noteuid, "NOTE:%.1023s", escaped);
+        /* Its length was checked before the key was made. */
+        snprintf(noteuid, sizeof noteuid, "NOTE:%.*s", (int)(sizeof noteuid - 6), escaped);
         QUICK("--quick-add-uid", fpr, noteuid);
         if (pgpid_run_engine(quick)) {
             pgpid_error(_("Error: gpg would not add '%s'."), noteuid);

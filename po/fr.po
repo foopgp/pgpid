@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid 0.0.7-35-g8512aa6\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-09-17 15:56+0200\n"
+"POT-Creation-Date: 2026-09-17 20:08+0200\n"
 "PO-Revision-Date: 2026-08-22 22:58+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -134,17 +134,30 @@ msgstr ""
 msgid "Error: '%s' wants an image."
 msgstr "Error: « %s » attend une image."
 
-#: ../src/avatar.c:501 ../src/get.c:296 ../src/push.c:67
+#: ../src/avatar.c:501 ../src/get.c:312 ../src/push.c:67
 #, c-format
 msgid "Error: '%s' wants a list of servers, empty for none."
 msgstr "Error: « %s » attend une liste de serveurs, vide pour aucun."
 
-#: ../src/avatar.c:508 ../src/main.c:159 ../src/printsecret.c:651 ../src/scan.c:475
+#: ../src/avatar.c:508 ../src/main.c:159 ../src/printsecret.c:651
+#: ../src/scan.c:475
 #, c-format
 msgid "Error: '%s' wants a directory."
 msgstr "Error: « %s » attend un répertoire."
 
-#: ../src/avatar.c:523 ../src/certify.c:530 ../src/certrevoke.c:109 ../src/changepass.c:119 ../src/changetokencode.c:127 ../src/changetokenmeta.c:206 ../src/del.c:78 ../src/email.c:424 ../src/genkey.c:207 ../src/genu4.c:523 ../src/genuid.c:162 ../src/get.c:318 ../src/list.c:377 ../src/main.c:194 ../src/printcard.c:222 ../src/printsecret.c:681 ../src/property.c:493 ../src/push.c:81 ../src/scan.c:511 ../src/secretdel.c:78 ../src/secretlist.c:59 ../src/sigs.c:153 ../src/systemadduser.c:416 ../src/systemadmins.c:93 ../src/systemconfhome.c:115 ../src/systemdeluser.c:171 ../src/systemusers.c:114 ../src/token.c:129 ../src/tokencheck.c:258 ../src/tokendel.c:70 ../src/tokenlist.c:80 ../src/totoken.c:220 ../src/tovcard.c:366 ../src/trustdb.c:653 ../src/trustdb.c:793 ../src/trustdb.c:1040
+#: ../src/avatar.c:523 ../src/certify.c:530 ../src/certrevoke.c:109
+#: ../src/changepass.c:119 ../src/changetokencode.c:127
+#: ../src/changetokenmeta.c:206 ../src/del.c:78 ../src/email.c:424
+#: ../src/genkey.c:207 ../src/genu4.c:523 ../src/genuid.c:162 ../src/get.c:334
+#: ../src/list.c:377 ../src/main.c:194 ../src/printcard.c:222
+#: ../src/printsecret.c:681 ../src/property.c:497 ../src/push.c:81
+#: ../src/scan.c:511 ../src/secretdel.c:78 ../src/secretlist.c:59
+#: ../src/sigs.c:153 ../src/systemadduser.c:416 ../src/systemadmins.c:93
+#: ../src/systemconfhome.c:115 ../src/systemdeluser.c:171
+#: ../src/systemusers.c:114 ../src/token.c:129 ../src/tokencheck.c:258
+#: ../src/tokendel.c:70 ../src/tokenlist.c:80 ../src/totoken.c:220
+#: ../src/tovcard.c:366 ../src/trustdb.c:653 ../src/trustdb.c:793
+#: ../src/trustdb.c:1040
 #, c-format
 msgid "Error: Unrecognized option '%s'."
 msgstr "Error: Option inconnue « %s »."
@@ -221,7 +234,8 @@ msgstr "Error: Échec de la vérification ou de l'authentification (%s) — essa
 msgid "Error: Wrong expected length (%s) - correct lenght: %d ."
 msgstr "Error: Longueur attendue erronée (%s) — longueur correcte : %d ."
 
-#: ../src/card.c:161 ../src/interactive.c:37 ../src/interactive.c:81 ../src/interactive.c:197
+#: ../src/card.c:161 ../src/interactive.c:37 ../src/interactive.c:81
+#: ../src/interactive.c:197
 #, c-format
 msgid "Error: %s"
 msgstr "Error: %s"
@@ -369,7 +383,8 @@ msgstr "Error: Aucun certificat ici ne porte ces caractères à cet endroit."
 msgid "Error: '%s' wants a key."
 msgstr "Error: « %s » attend une clé."
 
-#: ../src/certify.c:506 ../src/genu4.c:532 ../src/property.c:464 ../src/systemadduser.c:424 ../src/trustdb.c:628
+#: ../src/certify.c:506 ../src/genu4.c:532 ../src/property.c:464
+#: ../src/systemadduser.c:424 ../src/trustdb.c:628
 #, c-format
 msgid "Error: '%s' wants a value."
 msgstr "Error: « %s » attend une valeur."
@@ -379,7 +394,8 @@ msgstr "Error: « %s » attend une valeur."
 msgid "Error: Unknown credibility value '%s'."
 msgstr "Error: Valeur de crédibilité inconnue « %s »."
 
-#: ../src/certify.c:517 ../src/email.c:409 ../src/property.c:480 ../src/trustdb.c:1025
+#: ../src/certify.c:517 ../src/email.c:409 ../src/property.c:484
+#: ../src/trustdb.c:1025
 #, c-format
 msgid "Error: '%s' wants a list, empty for none."
 msgstr "Error: « %s » attend une liste, vide pour aucun."
@@ -529,7 +545,8 @@ msgstr "Notice: Sur le point de révoquer %s, définitivement, et de le dire aux
 msgid "Type yes to go on: "
 msgstr "Tapez yes pour continuer : "
 
-#: ../src/certrevoke.c:151 ../src/secretdel.c:143 ../src/tokendel.c:138 ../src/totoken.c:371
+#: ../src/certrevoke.c:151 ../src/secretdel.c:143 ../src/tokendel.c:138
+#: ../src/totoken.c:371
 msgid "Notice: Nothing done."
 msgstr "Notice: Rien n'a été fait."
 
@@ -593,7 +610,9 @@ msgstr ""
 "Passer une phrase secrète en argument la montre à tout ce qui peut lire la\n"
 "liste des processus de cette machine. Les formes par fichier sont là pour ça.\n"
 
-#: ../src/changepass.c:49 ../src/changetokencode.c:57 ../src/changetokenmeta.c:57 ../src/genkey.c:164 ../src/printsecret.c:94 ../src/property.c:378 ../src/totoken.c:81
+#: ../src/changepass.c:49 ../src/changetokencode.c:57
+#: ../src/changetokenmeta.c:57 ../src/genkey.c:164 ../src/printsecret.c:94
+#: ../src/property.c:378 ../src/totoken.c:81
 #, c-format
 msgid "Error: Cannot read %s."
 msgstr "Error: Impossible de lire %s."
@@ -623,7 +642,8 @@ msgstr "Error: Les deux phrases de passe sont nécessaires — l'actuelle avec -
 msgid "--newpassphrase or --newpassfrom. Empty strings mean none."
 msgstr "--newpassphrase ou --newpassfrom. Une chaîne vide veut dire aucune."
 
-#: ../src/changepass.c:151 ../src/printsecret.c:785 ../src/secretdel.c:117 ../src/totoken.c:262
+#: ../src/changepass.c:151 ../src/printsecret.c:785 ../src/secretdel.c:117
+#: ../src/totoken.c:262
 #, c-format
 msgid "Error: No secret for '%s' here."
 msgstr "Error: Aucun secret pour « %s » ici."
@@ -699,12 +719,15 @@ msgstr ""
 "- 192 (0xC0) si le code est bloqué.\n"
 "- autre valeur non nulle sur les autres erreurs.\n"
 
-#: ../src/changetokencode.c:91 ../src/changetokencode.c:100 ../src/changetokenmeta.c:186
+#: ../src/changetokencode.c:91 ../src/changetokencode.c:100
+#: ../src/changetokenmeta.c:186
 #, c-format
 msgid "Error: '%s' wants a code."
 msgstr "Error: « %s » attend un code."
 
-#: ../src/changetokencode.c:95 ../src/changetokencode.c:105 ../src/changetokenmeta.c:191 ../src/genkey.c:159 ../src/printsecret.c:633 ../src/totoken.c:188 ../src/totoken.c:203 ../src/tovcard.c:349
+#: ../src/changetokencode.c:95 ../src/changetokencode.c:105
+#: ../src/changetokenmeta.c:191 ../src/genkey.c:159 ../src/printsecret.c:633
+#: ../src/totoken.c:188 ../src/totoken.c:203 ../src/tovcard.c:349
 #, c-format
 msgid "Error: '%s' wants a file."
 msgstr "Error: « %s » attend un fichier."
@@ -816,7 +839,8 @@ msgstr ""
 "  -h, --help                   Afficher cette aide et quitter\n"
 "  -V, --version                Afficher la version et quitter\n"
 
-#: ../src/changetokenmeta.c:126 ../src/changetokenmeta.c:257 ../src/totoken.c:336
+#: ../src/changetokenmeta.c:126 ../src/changetokenmeta.c:257
+#: ../src/totoken.c:336
 msgid "Error: No security token detected."
 msgstr "Error: Aucune clé de sécurité détectée."
 
@@ -1096,27 +1120,28 @@ msgstr "Error: « %s » attend une note."
 msgid "Notice: --extra-comment is ignored: a note is carried by its own NOTE: uid."
 msgstr "Notice: --extra-comment est ignoré : une note est portée par son propre uid NOTE:."
 
-#: ../src/email.c:446 ../src/property.c:590
+#: ../src/email.c:446 ../src/property.c:605
 #, c-format
 msgid "Error: No editable certificate %s here."
 msgstr "Error: Aucun certificat %s modifiable ici."
 
-#: ../src/email.c:475 ../src/property.c:616
+#: ../src/email.c:475 ../src/property.c:632
 #, c-format
 msgid "Notice: Certificate %s already carries '%s'."
 msgstr "Notice: Le certificat %s porte déjà « %s »."
 
-#: ../src/email.c:479 ../src/property.c:620
+#: ../src/email.c:479 ../src/property.c:636
 #, c-format
 msgid "Notice: '%s' was revoked earlier and cannot be added again — PGP keeps revoked User IDs on the certificate forever."
 msgstr "Notice: « %s » a été révoqué plus tôt et ne peut pas être rajouté — PGP garde les uid révoqués sur le certificat pour toujours."
 
-#: ../src/email.c:484 ../src/property.c:625
+#: ../src/email.c:484 ../src/property.c:641
 #, c-format
 msgid "Notice: Adding '%s' into certificate %s…"
 msgstr "Notice: Ajout de « %s » dans le certificat %s…"
 
-#: ../src/email.c:487 ../src/genkey.c:347 ../src/genkey.c:352 ../src/genkey.c:361 ../src/property.c:628
+#: ../src/email.c:487 ../src/genkey.c:358 ../src/genkey.c:363
+#: ../src/genkey.c:373 ../src/property.c:644
 #, c-format
 msgid "Error: gpg would not add '%s'."
 msgstr "Error: gpg a refusé d'ajouter « %s »."
@@ -1130,7 +1155,7 @@ msgstr "Error: Aucune adresse « %s » révocable dans le certificat %s."
 msgid "Error: At least one email must be retained."
 msgstr "Error: Au moins une adresse doit être conservée."
 
-#: ../src/email.c:547 ../src/property.c:683
+#: ../src/email.c:547 ../src/property.c:699
 msgid "Warning: Nothing to revoke."
 msgstr "Warning: Rien à révoquer."
 
@@ -1218,61 +1243,67 @@ msgstr "Error: « %s » attend un serveur de clés."
 msgid "Error: keyserver MUST be hkp(s)://…"
 msgstr "Error: le serveur de clés DOIT être en hkp(s)://…"
 
-#: ../src/genkey.c:220
+#: ../src/genkey.c:221 ../src/property.c:472 ../src/property.c:575
+#: ../src/property.c:585
+#, c-format
+msgid "Error: A user id holds %d bytes at most."
+msgstr "Error: Un uid ne contient pas plus de %d octets."
+
+#: ../src/genkey.c:231
 msgid "Email address for this certificate: "
 msgstr "Adresse de courriel pour ce certificat : "
 
-#: ../src/genkey.c:227
+#: ../src/genkey.c:238
 #, c-format
 msgid "Error: '%s' does not look like an email address."
 msgstr "Error: « %s » ne ressemble pas à une adresse de courriel."
 
-#: ../src/genkey.c:238
+#: ../src/genkey.c:249
 msgid "Error: Which entity is this key for? Give --eid."
 msgstr "Error: Cette clé est pour quelle entité ? Donnez --eid."
 
-#: ../src/genkey.c:239
+#: ../src/genkey.c:250
 msgid "Deriving one needs a civil status, which is somebody's to give:"
 msgstr "En calculer un demande un état civil, et c'est à quelqu'un de le donner :"
 
-#: ../src/genkey.c:240
+#: ../src/genkey.c:251
 #, c-format
 msgid "  %s gen_u4 --surname … --given-names … --birth-date … --birth-country …"
 msgstr "  %s gen_u4 --surname … --given-names … --birth-date … --birth-country …"
 
-#: ../src/genkey.c:246
+#: ../src/genkey.c:257
 #, c-format
 msgid "Notice: Entity identifier: %s"
 msgstr "Notice: Identifiant d'entité : %s"
 
-#: ../src/genkey.c:248
+#: ../src/genkey.c:259
 #, c-format
 msgid "Error: No eid in given '%s'."
 msgstr "Error: Aucun eid dans « %s »."
 
-#: ../src/genkey.c:253
+#: ../src/genkey.c:264
 msgid "Passphrase"
 msgstr "Phrase secrète"
 
-#: ../src/genkey.c:256
+#: ../src/genkey.c:267
 msgid "Error: A passphrase is needed. Give --passphrase, or --passfrom to keep it off the process list."
 msgstr "Error: Une phrase secrète est nécessaire. Donnez --passphrase, ou --passfrom pour la tenir hors de la liste des processus."
 
-#: ../src/genkey.c:294
+#: ../src/genkey.c:305
 msgid "Error: gpg would not generate the key."
 msgstr "Error: gpg a refusé d'engendrer la clé."
 
-#: ../src/genkey.c:322
+#: ../src/genkey.c:333
 #, c-format
 msgid "Error: Freshly generated key not found by its eid UID (%s)."
 msgstr "Error: La clé fraîchement engendrée est introuvable par son uid d'identité (%s)."
 
-#: ../src/genkey.c:367
+#: ../src/genkey.c:379
 #, c-format
 msgid "Warning: Can't set the primary uid to %s."
 msgstr "Warning: Impossible de placer l'uid principal sur %s."
 
-#: ../src/genkey.c:371
+#: ../src/genkey.c:383
 msgid "Error: gpg would not add the authentication key."
 msgstr "Error: gpg a refusé d'ajouter la clé d'authentification."
 
@@ -1501,7 +1532,7 @@ msgstr "Error: Aucun identifiant d'entité dans « %.50s »."
 msgid "Notice: '--free-input' takes any string instead."
 msgstr "Notice: « --free-input » accepte n'importe quelle chaîne à la place."
 
-#: ../src/get.c:27
+#: ../src/get.c:28
 #, c-format
 msgid ""
 "Usage: %s cert_get [OPTIONS]... NAME|U4|U5|EMAIL...\n"
@@ -1547,33 +1578,33 @@ msgstr ""
 "\n"
 "Il n'y a pas de « cert_check » : « list » répond ce qu'il répondait, pour moins cher.\n"
 
-#: ../src/get.c:277
+#: ../src/get.c:293
 msgid "Error: --recurse takes a number in 0..6."
 msgstr "Error: --recurse attend un nombre entre 0 et 6."
 
-#: ../src/get.c:282
+#: ../src/get.c:298
 msgid "Error: --import-from wants a file."
 msgstr "Error: --import-from attend un fichier."
 
-#: ../src/get.c:305
+#: ../src/get.c:321
 #, c-format
 msgid "Error: '%s' wants a number of one or more."
 msgstr "Error: « %s » attend un nombre supérieur ou égal à un."
 
-#: ../src/get.c:328
+#: ../src/get.c:344
 msgid "Error: What are you looking for? '*' for everything."
 msgstr "Error: Que cherchez-vous ? « * » pour tout."
 
-#: ../src/get.c:343
+#: ../src/get.c:359
 #, c-format
 msgid "Error: Nothing could be imported from '%s'."
 msgstr "Error: Rien n'a pu être importé depuis « %s »."
 
-#: ../src/get.c:378 ../src/tovcard.c:384
+#: ../src/get.c:394 ../src/tovcard.c:384
 msgid "Error: No certificate for what was asked."
 msgstr "Error: Aucun certificat pour ce qui a été demandé."
 
-#: ../src/get.c:386
+#: ../src/get.c:402
 #, c-format
 msgid "Error: %zu certificates matched, more than the %ld asked for."
 msgstr "Error: %zu certificats correspondent, plus que les %ld demandés."
@@ -1610,7 +1641,9 @@ msgstr "Retapez %s : "
 msgid "Notice: The two do not match. Please retype."
 msgstr "Notice: Les deux ne correspondent pas. Retapez."
 
-#: ../src/list.c:274 ../src/list.c:403 ../src/property.c:184 ../src/secretdel.c:100 ../src/secretlist.c:68 ../src/tokendel.c:112 ../src/trustdb.c:601
+#: ../src/list.c:274 ../src/list.c:403 ../src/property.c:184
+#: ../src/secretdel.c:100 ../src/secretlist.c:68 ../src/tokendel.c:112
+#: ../src/trustdb.c:601
 msgid "Error: Cannot read the keyring."
 msgstr "Error: Impossible de lire le trousseau."
 
@@ -2244,64 +2277,64 @@ msgstr "Suggestion: --split %d --threshold %d. Toutes les feuilles sont alors n�
 msgid "Error: The export could not be cut in %d."
 msgstr "Error: L'export n'a pas pu être coupé en %d."
 
-#: ../src/printsecret.c:897
+#: ../src/printsecret.c:901
 msgid "Error: gfsplit would not share the secret out."
 msgstr "Error: gfsplit a refusé de partager le secret."
 
-#: ../src/printsecret.c:911
+#: ../src/printsecret.c:915
 #, c-format
 msgid "Error: %s could not be encoded."
 msgstr "Error: %s n'a pas pu être encodé."
 
-#: ../src/printsecret.c:929
+#: ../src/printsecret.c:933
 #, c-format
 msgid "Notice: Printing the secret split into %d fragments on %s…"
 msgstr "Notice: Impression du secret en %d fragments sur %s…"
 
-#: ../src/printsecret.c:932
+#: ../src/printsecret.c:936
 #, c-format
 msgid "Notice: Producing %d fragments in %s, sending nothing."
 msgstr "Notice: Production de %d fragments dans %s, sans rien envoyer."
 
-#: ../src/printsecret.c:950
+#: ../src/printsecret.c:954
 msgid "Error: No fragment was produced."
 msgstr "Error: Aucun fragment n'a été produit."
 
-#: ../src/printsecret.c:956 ../src/trustdb.c:620
+#: ../src/printsecret.c:960 ../src/trustdb.c:620
 msgid "Error: Out of memory."
 msgstr "Error: Plus de mémoire."
 
-#: ../src/printsecret.c:967
+#: ../src/printsecret.c:971
 #, c-format
 msgid "Error: %zu fragments in %s, and a QR header can only number %d."
 msgstr "Error: %zu fragments dans %s, et un en-tête de QR ne sait en numéroter que %d."
 
-#: ../src/printsecret.c:1003
+#: ../src/printsecret.c:1007
 #, c-format
 msgid "Error: Cannot read the fragment %s."
 msgstr "Error: Impossible de lire le fragment %s."
 
-#: ../src/printsecret.c:1017
+#: ../src/printsecret.c:1021
 #, c-format
 msgid "Error: qrencode would not draw fragment %zu."
 msgstr "Error: qrencode a refusé de dessiner le fragment %zu."
 
-#: ../src/printsecret.c:1039
+#: ../src/printsecret.c:1043
 #, c-format
 msgid "Error: Fragment %zu could not be laid out."
 msgstr "Error: Le fragment %zu n'a pas pu être composé."
 
-#: ../src/printsecret.c:1046
+#: ../src/printsecret.c:1050
 #, c-format
 msgid "Error: lpr would not print fragment %zu."
 msgstr "Error: lpr a refusé d'imprimer le fragment %zu."
 
-#: ../src/printsecret.c:1065
+#: ../src/printsecret.c:1069
 #, c-format
 msgid "Notice: The working copies are removed. Shred %s if anything is left."
 msgstr "Notice: Les copies de travail sont supprimées. Broyez %s s'il en reste quelque chose."
 
-#: ../src/printsecret.c:1071
+#: ../src/printsecret.c:1075
 #, c-format
 msgid "Notice: The fragments are in %s. Shred them once they are on paper: find '%s' -type f -exec shred --remove {} +"
 msgstr "Notice: Les fragments sont dans %s. Détruisez-les une fois sur papier : find « %s » -type f -exec shred --remove {} +"
@@ -2343,7 +2376,7 @@ msgstr "Error: Impossible de poser le serveur de clés préféré — le bon PIN
 msgid "Error: Cannot export %s."
 msgstr "Error: Impossible d'exporter %s."
 
-#: ../src/property.c:306 ../src/property.c:733
+#: ../src/property.c:306 ../src/property.c:749
 #, c-format
 msgid "Notice: %s carries no %s."
 msgstr "Notice: %s ne porte pas de %s."
@@ -2459,46 +2492,46 @@ msgstr ""
 msgid "Error: Too many values at once."
 msgstr "Error: Trop de valeurs à la fois."
 
-#: ../src/property.c:501
+#: ../src/property.c:505
 #, c-format
 msgid "Warning: Ignoring extra argument '%s'."
 msgstr "Warning: Argument supplémentaire « %s » ignoré."
 
-#: ../src/property.c:506
+#: ../src/property.c:510
 msgid "Error: A property name is required."
 msgstr "Error: Un nom de propriété est exigé."
 
-#: ../src/property.c:527
+#: ../src/property.c:531
 #, c-format
 msgid "Error: Unknown property '%s'."
 msgstr "Error: Propriété inconnue « %s »."
 
-#: ../src/property.c:528
+#: ../src/property.c:532
 #, c-format
 msgid "Notice: One of name, note, phone, address, url, lang, geo, %s, %s."
 msgstr "Notice: L'un de name, note, phone, address, url, lang, geo, %s, %s."
 
-#: ../src/property.c:535
+#: ../src/property.c:539
 #, c-format
 msgid "Error: Only one --add at a time for '%s' — the new value replaces the one before, and two would race."
 msgstr "Error: Un seul --add à la fois pour « %s » — la nouvelle valeur remplace la précédente, et deux se disputeraient la place."
 
-#: ../src/property.c:547 ../src/property.c:555
+#: ../src/property.c:551 ../src/property.c:559
 #, c-format
 msgid "Error: Only one --add at a time for '%s'."
 msgstr "Error: Un seul --add à la fois pour « %s »."
 
-#: ../src/property.c:576
+#: ../src/property.c:591
 #, c-format
 msgid "Error: Invalid %s value '%s'."
 msgstr "Error: Valeur %s invalide « %s »."
 
-#: ../src/property.c:655
+#: ../src/property.c:671
 #, c-format
 msgid "Error: No revokable '%s:%s' inside certificate %s."
 msgstr "Error: Aucun « %s:%s » révocable dans le certificat %s."
 
-#: ../src/property.c:660
+#: ../src/property.c:676
 #, c-format
 msgid "Error: At least one %s must be retained."
 msgstr "Error: Au moins un %s doit être conservé."
@@ -3067,7 +3100,8 @@ msgstr "Error: Ouvrir un compte demande les droits d'administrateur (sudo)."
 msgid "Error: No account named '%s' on this system."
 msgstr "Error: Aucun compte nommé « %s » sur ce système."
 
-#: ../src/systemadduser.c:461 ../src/systemconfhome.c:133 ../src/systemdeluser.c:193
+#: ../src/systemadduser.c:461 ../src/systemconfhome.c:133
+#: ../src/systemdeluser.c:193
 #, c-format
 msgid "Error: No account for '%s' on this system."
 msgstr "Error: Aucun compte pour « %s » sur ce système."

@@ -248,7 +248,7 @@ static int certs_per_address(const char *user, struct addr_count *best, size_t *
             /* Only a uid that still stands collects a count; a revoked one
              * carries certifications that no longer say anything. */
             if (!strncmp(at, "uid:", 4) && at[4] != 'r' && at[4] != 'e') {
-                char text[512] = "";
+                char text[PGPID_UID_MAX] = "";
                 unsigned nf = 0;
                 char *start = at;
                 for (char *p = at; nf < 12; p++) {
@@ -575,7 +575,7 @@ int pgpid_action_cert_email(int argc, char **argv)
     /* Which uid the certificate flags, read from its packets: the colon
      * listing does not say, and gpg listing the primary first is an ordering
      * nobody promised. */
-    char primary[512] = "";
+    char primary[PGPID_UID_MAX] = "";
     pgpid_primary_uid(user, primary, sizeof primary);
 
     static struct addr_count counts[MAX_UIDS];
