@@ -292,9 +292,9 @@ OPTIONS:
   -h, --help                  Afficher cette aide et quitter
   -V, --version               Afficher la version et quitter
 
-Révoquer laisse l'uid sur le certificat pour toujours, marqué révoqué, et
-ceux qui l'ont le gardent jusqu'à leur prochain rafraîchissement. Le rajouter
-à l'identique le re-signe, avec les certifications reçues.
+Révoquer laisse l'uid sur le certificat, marqué révoqué, et ceux qui l'ont le
+gardent jusqu'à leur prochain rafraîchissement. Le rajouter à l'identique le
+re-signe, avec les certifications reçues.
 ```
 
 ## pgpid cert_email
@@ -326,9 +326,9 @@ OPTIONS:
   -h, --help                  Afficher cette aide et quitter
   -V, --version               Afficher la version et quitter
 
-Révoquer laisse l'adresse sur le certificat pour toujours, marquée révoquée,
-et ceux qui l'ont la gardent jusqu'à leur prochain rafraîchissement. La
-rajouter à l'identique la re-signe, avec les certifications reçues.
+Révoquer laisse l'adresse sur le certificat, marquée révoquée, et ceux qui
+l'ont la gardent jusqu'à leur prochain rafraîchissement. La rajouter à
+l'identique la re-signe, avec les certifications reçues.
 ```
 
 ## pgpid cert_avatar

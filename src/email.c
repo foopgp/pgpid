@@ -12,7 +12,7 @@
  * A certificate never loses its last address. Not out of caution: a PGP
  * certificate with no address is one no mail client will offer to anybody,
  * and the person who revoked their way there has no way back — the revoked
- * uids stay revoked forever.
+ * a revoked uid stays on the certificate until somebody signs it again.
  */
 #include "pgpid.h"
 
@@ -54,9 +54,9 @@ static void usage(FILE *out)
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"
         "\n"
-        "Revoking keeps the address on the certificate forever, marked revoked, and\n"
-        "those who hold it keep it until they refresh. Adding the identical address\n"
-        "again signs it anew, certifications others made over it included.\n"),
+        "Revoking keeps the address on the certificate, marked revoked, and whoever\n"
+        "holds it keeps it until they refresh. Adding the identical address again\n"
+        "signs it anew, certifications others made over it included.\n"),
             PGPID_NAME, PGPID_KEYSERVERS);
 }
 

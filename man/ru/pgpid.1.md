@@ -288,9 +288,9 @@ OPTIONS:
   -h, --help                  Print this help and exit
   -V, --version               Print the version and exit
 
-Revoking keeps the uid on the certificate forever, marked revoked, and
-those who hold it keep it until they refresh. Adding the identical value
-again signs it anew, certifications others made over it included.
+Revoking keeps the uid on the certificate, marked revoked, and whoever
+holds it keeps it until they refresh. Adding the identical value again
+signs it anew, certifications others made over it included.
 ```
 
 ## pgpid cert_email
@@ -321,9 +321,9 @@ OPTIONS:
   -h, --help                  Print this help and exit
   -V, --version               Print the version and exit
 
-Revoking keeps the address on the certificate forever, marked revoked, and
-those who hold it keep it until they refresh. Adding the identical address
-again signs it anew, certifications others made over it included.
+Revoking keeps the address on the certificate, marked revoked, and whoever
+holds it keeps it until they refresh. Adding the identical address again
+signs it anew, certifications others made over it included.
 ```
 
 ## pgpid cert_avatar

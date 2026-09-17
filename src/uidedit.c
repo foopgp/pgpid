@@ -7,9 +7,8 @@
  *
  * Three operations that `email` and `property` both need, written once.
  *
- * Revoking a uid leaves it on the certificate forever, marked revoked: the
- * packet never goes away, and whoever holds the certificate keeps the uid
- * until they refresh. It is not the end of it, though — a self-signature made
+ * Revoking a uid leaves it on the certificate, marked revoked: the packet
+ * stays, and whoever holds the certificate keeps the uid until they refresh. It is not the end of it, though — a self-signature made
  * after the revocation supersedes it (RFC 9580: a revocation revokes the
  * *earlier* certifications of the same issuer), and the certifications other
  * people made over that uid count again. [pgpid_readd_uid] is that road, and
@@ -70,8 +69,8 @@ const char *pgpid_uid_address(const char *uid, size_t *len)
 bool pgpid_revoke_uid(const char *user, const char *uid, bool assume_yes)
 {
     if (!assume_yes) {
-        pgpid_error(_("Error: Revoking a User ID leaves it on the certificate forever,"));
-        pgpid_error(_("marked revoked; those who hold it keep it until they refresh."));
+        pgpid_error(_("Error: Revoking a User ID leaves it on the certificate, marked"));
+        pgpid_error(_("revoked; whoever holds it keeps it until they refresh."));
         pgpid_error(_("Adding the identical value later signs it anew and it stands"));
         pgpid_error(_("again. Pass --yes if that is what you want:"));
         pgpid_error(_("  %s"), uid);

@@ -443,9 +443,9 @@ static void usage(FILE *out)
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"
         "\n"
-        "Revoking keeps the uid on the certificate forever, marked revoked, and\n"
-        "those who hold it keep it until they refresh. Adding the identical value\n"
-        "again signs it anew, certifications others made over it included.\n"),
+        "Revoking keeps the uid on the certificate, marked revoked, and whoever\n"
+        "holds it keeps it until they refresh. Adding the identical value again\n"
+        "signs it anew, certifications others made over it included.\n"),
             PGPID_NAME, PGPID_NAME, PGPID_KEYSERVERS);
 }
 
