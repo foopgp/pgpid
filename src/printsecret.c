@@ -17,12 +17,13 @@
  * The help says so, because somebody will ask for it without meaning that.
  *
  * This is a pipeline over other people's tools — gpg, gfsplit, qrencode,
- * pandoc — and calling them in order is the whole job. Nothing here is faster
+ * rsvg-convert — and calling them in order is the whole job. Nothing here is faster
  * or more portable in C than it was in the shell; what it gains is one place
  * where the fragment header is written, and the same reader on both sides.
  */
 #include "pgpid.h"
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -49,8 +50,7 @@ static void usage(FILE *out)
         "  -w, --with-passphrase          Also print passphrase beside QR codes (INCREASE UX, DECREASE SECURITY)\n"
         "  -W, --workdir DIRECTORY        Use given working directory instead of a temporary directory (don't forget to shred its content)\n"
         "  -S, --split NUM                Number of shares to be generated, 3 to %d - Default: 5\n"
-        "  -T, --threshold NUM            Number of shares necessary to reconstruct the secret - Default: 3\n"
-        "      --encoding ENCODING        base64url (QR versions 4 and 5) or base45 (version 6) - Default: base64url\n"
+        "  -T, --threshold NUM            Number of shares necessary to reconstruct the secret, 2 or more - Default: 3\n"
         "  -h, --help                     Print this help and exit\n"
         "  -V, --version                  Print the version and exit\n"
         "\n"
@@ -60,14 +60,16 @@ static void usage(FILE *out)
         "      In other terms: if (split_NUM == threshold_NUM), then no passphrase or\n"
         "      printing passphrase is VERY UNSECURE.\n"
         "      A share is the size of the whole secret, so a secret above %d bytes\n"
-        "      (%d in base45) only goes on paper cut, which is the equal case. It is\n"
-        "      refused with the numbers rather than printed too dense to scan.\n"
-        "      base45 makes smaller codes for the same secret, but readers that only\n"
-        "      know versions 4 and 5 refuse them.\n"
+        "      only goes on paper cut, which is the equal case. It is refused with\n"
+        "      the numbers rather than printed too dense to scan.\n"
+        "\n"
+        "The codes are QR version 6 (draft-foopgp-secret-sheets), two to an A4 page:\n"
+        "cut each page in two, and keep the halves in different places. Versions 4\n"
+        "and 5 are no longer written, and secret_scan still reads them.\n"
         "\n"
         "Photographs are left out of what is printed. A backup does not need your\n"
         "face, and paper is handled by whoever finds it.\n"),
-            PGPID_NAME, PGPID_SPLIT_MAX, PGPID_SHEET_MAX, PGPID_SHEET_MAX_BASE45);
+            PGPID_NAME, PGPID_SPLIT_MAX, PGPID_SHEET_MAX);
 }
 
 /* Is there anything called SECRET* here already? Reusing a directory that
@@ -143,18 +145,9 @@ static size_t choose_three(const struct pgpid_uid *uids, size_t n,
 }
 
 
-/* Room for a whole export as text: base45 is the longer of the two encodings,
- * three characters for every two octets. */
+/* Room for a whole export as base45: three characters for every two octets. */
 #define RAW_MAX (1 << 20)
 static char text[(RAW_MAX / 2 + 1) * 3 + 4];
-
-static void encode(const unsigned char *raw, size_t len, bool base45, char *out)
-{
-    if (base45)
-        pgpid_base45(raw, len, out);
-    else
-        pgpid_base64url(raw, len, out);
-}
 
 static bool write_text(const char *path, const char *s, size_t n)
 {
@@ -165,8 +158,8 @@ static bool write_text(const char *path, const char *s, size_t n)
     return fclose(out) == 0 && wrote == n;
 }
 
-/** Whole file in, text out, no line breaks. Answers false on any trouble. */
-static bool encode_file(const char *from, const char *to, bool base45)
+/** Whole file in, base45 out, no line breaks. Answers false on any trouble. */
+static bool encode_file(const char *from, const char *to)
 {
     FILE *in = fopen(from, "rb");
     if (!in)
@@ -178,25 +171,23 @@ static bool encode_file(const char *from, const char *to, bool base45)
     if (!len || !whole)
         return false;
 
-    encode(raw, len, base45, text);
+    pgpid_base45(raw, len, text);
     return write_text(to, text, strlen(text));
 }
 
 /**
- * The export, encoded and cut into SPLITS pieces of equal size.
+ * The export, cut into SPLITS pieces of equal size, each encoded on its own.
  *
  * `split -n` cuts by bytes and leaves the remainder on the last piece, which
  * is what this does: the pieces are reassembled back to back, so where the
  * cuts fall does not matter as long as the order does. The names are the ones
  * split -d would have given, since the rest of this file looks for them.
  *
- * base64url is cut as text, the way version 4 always was. base45 cannot be:
- * its characters go by threes, and a cut between two of them leaves a piece
- * that decodes to nothing. So version 6 cuts the octets, and encodes each
- * piece on its own.
+ * Version 4 cut the base64url text. base45 cannot be cut that way: its
+ * characters go by threes, and a cut between two of them leaves a piece that
+ * decodes to nothing. So the octets are cut, and each piece encoded.
  */
-static bool encode_and_cut(const char *priv, const char *workdir, int splits,
-                           bool base45)
+static bool encode_and_cut(const char *priv, const char *workdir, int splits)
 {
     FILE *in = fopen(priv, "rb");
     if (!in)
@@ -208,27 +199,17 @@ static bool encode_and_cut(const char *priv, const char *workdir, int splits,
     if (!len || !whole || splits < 1)
         return false;
 
-    size_t total = len;
-    if (!base45) {
-        encode(raw, len, false, text);
-        total = strlen(text);
-    }
-    size_t each = total / (size_t)splits;
+    size_t each = len / (size_t)splits;
     if (!each)
         return false;
-
     for (int i = 0; i < splits; i++) {
         char path[700];
         snprintf(path, sizeof path, "%.600s/SECRET-%02d", workdir, i);
         size_t from = (size_t)i * each;
-        size_t n = (i == splits - 1) ? total - from : each;
-        if (base45) {
-            encode(raw + from, n, true, text);
-            if (!write_text(path, text, strlen(text)))
-                return false;
-        } else if (!write_text(path, text + from, n)) {
+        size_t n = (i == splits - 1) ? len - from : each;
+        pgpid_base45(raw + from, n, text);
+        if (!write_text(path, text, strlen(text)))
             return false;
-        }
     }
     return true;
 }
@@ -252,102 +233,268 @@ static void xml_escape(const char *in, char *out, size_t max)
     out[o] = '\0';
 }
 
-/**
- * One fragment, laid out on an A4 page and rendered to PDF.
- *
- * Was markdown through pandoc and then pdfcrop: two programs, and between
- * them a TeX distribution — 275 MB of dependency for a page with six lines
- * and a picture on it. rsvg-convert was already here for the business card,
- * and it writes PDF. So the sheet is an SVG, the QR goes in as a data: URI
- * the way the card's already does, and one renderer does what three did.
- *
- * The layout follows the old one line for line, because somebody who has a
- * drawer of these should not have to look twice to see it is the same sheet.
- */
-static bool sheet_to_pdf(const char *png, const char *pdf, const char *host,
-                         const char *today, int qrversion, int threshold,
-                         size_t index, int splits, const char *uids,
-                         const char *fpr, const char *passphrase)
+/* What every half of every page shows besides its own code. */
+struct sheet {
+    const char *uids[3];        /* the identity, the address, the name */
+    size_t nuids;
+    int threshold, splits;
+    const char *fpr, *host, *today, *passphrase;
+};
+
+/* printf onto the end of a buffer, and false once it is full. */
+static bool append(char *buf, size_t max, size_t *at, const char *fmt, ...)
 {
-    FILE *f = fopen(png, "rb");
+    if (*at >= max)
+        return false;
+    va_list ap;
+    va_start(ap, fmt);
+    int n = vsnprintf(buf + *at, max - *at, fmt, ap);
+    va_end(ap);
+    if (n < 0 || (size_t)n >= max - *at)
+        return false;
+    *at += (size_t)n;
+    return true;
+}
+
+/**
+ * WHAT in lines of at most BUDGET bytes, never inside a UTF-8 character: cut
+ * at a space when there is one in the second half of the budget, else after a
+ * '-', '.' or '_', else anywhere. With EXACT, nothing is dropped and the cut
+ * is anywhere -- for a passphrase, where a space lost at the end of a line
+ * would be a passphrase lost. Answers how many lines were written.
+ */
+static size_t wrap(const char *what, size_t budget, bool exact, char lines[][128],
+                   size_t max)
+{
+    size_t n = 0;
+    while (*what && n < max) {
+        size_t len = strlen(what), take = len, skip = 0;
+        if (len > budget) {
+            take = budget;
+            for (size_t k = budget; !exact && k > budget / 2; k--)
+                if (what[k] == ' ') {
+                    take = k;
+                    skip = 1;
+                    break;
+                }
+            if (!skip && !exact)
+                for (size_t k = budget - 1; k > budget / 2; k--)
+                    if (strchr("-._", what[k])) {
+                        take = k + 1;
+                        break;
+                    }
+            /* Back to the start of a character: a continuation byte is
+             * 10xxxxxx. */
+            while (take > 1 && ((unsigned char)what[take] & 0xC0) == 0x80)
+                take--;
+        }
+        if (take > 127)
+            take = 127;
+        memcpy(lines[n], what, take);
+        lines[n++][take] = '\0';
+        what += take + skip;
+    }
+    return n;
+}
+
+/**
+ * The code in MATRIX (qrencode's ASCII, two characters a module, no margin)
+ * as one path of squares, SIZE tenths of a millimetre wide with its quiet
+ * zone, at X, Y.
+ *
+ * One path, so that squares side by side are one shape and no renderer draws
+ * a seam between them; and a viewBox counted in modules, so that no
+ * coordinate is ever a fraction -- see the note on the locale in
+ * append_half.
+ */
+static bool append_code(char *buf, size_t max, size_t *at, const char *matrix,
+                        int x, int y, int size)
+{
+    FILE *f = fopen(matrix, "r");
     if (!f)
         return false;
-    static unsigned char raw[262144];
-    size_t rawlen = fread(raw, 1, sizeof raw, f);
-    fclose(f);
-    if (!rawlen)
-        return false;
-    static char href[400000];
-    snprintf(href, sizeof href, "data:image/png;base64,");
-    pgpid_base64(raw, rawlen, href + strlen(href));
-
-    /* The uid block, one <text> line each: SVG has no flow text, and the
-     * lines are what the reader checks the sheet by. */
-    /* Integers, not %f: snprintf writes the *locale's* decimal separator, so
-     * under a French locale a coordinate came out "78,0" and librsvg read it
-     * as something else entirely — the QR landed at the top of the page, over
-     * the text. Nothing generated for a machine should pass through the
-     * locale, on the way out any more than on the way in. Millimetres are
-     * precise enough for a sheet of paper. */
-    static char lines[8192];
-    size_t at = 0;
-    int y = 78;
-    char copy[4096];
-    snprintf(copy, sizeof copy, "%s", uids);
-    for (char *line = copy, *save; (line = strtok_r(line, "\n", &save)); line = NULL) {
-        char safe[1024];
-        xml_escape(line, safe, sizeof safe);
-        at += (size_t)snprintf(lines + at, sizeof lines - at,
-                 "<text x='20' y='%d' font-family='monospace' font-size='3.2'>%s</text>\n",
-                 y, safe);
-        y += 5;
-        if (at > sizeof lines - 1200)
+    static char line[4096];
+    int row = 0, modules = -1;
+    bool ok = true;
+    long start = (long)*at;
+    ok = append(buf, max, at, "<path d='");
+    while (ok && fgets(line, sizeof line, f)) {
+        size_t len = strcspn(line, "\r\n");
+        if (!len)
+            continue;
+        if (modules < 0)
+            modules = (int)(len / 2);
+        if ((int)(len / 2) != modules) {
+            ok = false;
             break;
+        }
+        for (int m = 0; ok && m < modules;) {
+            if (line[2 * m] != '#') {
+                m++;
+                continue;
+            }
+            int from = m;
+            while (m < modules && line[2 * m] == '#')
+                m++;
+            ok = append(buf, max, at, "M%d %dh%dv1h-%dz", from, row, m - from, m - from);
+        }
+        row++;
     }
+    fclose(f);
+    if (!ok || modules <= 0 || row != modules)
+        return false;
+    /* The path went in first so its size was known; the frame goes round it. */
+    static char path[1 << 20];
+    size_t plen = *at - (size_t)start;
+    if (plen >= sizeof path)
+        return false;
+    memcpy(path, buf + start, plen);
+    *at = (size_t)start;
+    return append(buf, max, at,
+                  "<svg x='%d' y='%d' width='%d' height='%d' viewBox='-4 -4 %d %d'>"
+                  "%.*s' fill='black'/></svg>\n",
+                  x, y, size, size, modules + 8, modules + 8, (int)plen, path);
+}
 
-    char safehost[512], safepass[512], pass_line[700] = "";
-    xml_escape(host, safehost, sizeof safehost);
-    xml_escape(passphrase ? passphrase : "", safepass, sizeof safepass);
+/**
+ * One fragment on a half page, Y0 tenths of a millimetre down.
+ *
+ * The uids across the top, as many as the secret carries and no more: they
+ * are what tells a finder whose key this is. Below, the code on the right,
+ * as large as the half allows, and everything else in a column on its left,
+ * cut into lines the column can hold -- the title, what printed it, where and
+ * when, the fingerprint last, and the passphrase after it when asked for.
+ *
+ * Integers, not %f: snprintf writes the *locale's* decimal separator, so
+ * under a French locale a coordinate came out "78,0" and librsvg read it as
+ * something else entirely -- the QR landed at the top of the page, over the
+ * text. Nothing generated for a machine should pass through the locale, on
+ * the way out any more than on the way in. The page is counted in tenths of
+ * a millimetre, and the code in modules.
+ */
+static bool append_half(char *buf, size_t max, size_t *at, int y0,
+                        const struct sheet *s, size_t number, const char *matrix)
+{
+    const char *mono = "font-family='monospace' font-size='28'";
+    const char *italic = "font-family='serif' font-style='italic' font-size='30'";
+    const char *bold = "font-family='serif' font-weight='bold' font-size='50'";
+    char lines[48][128], safe[512];
+    int y = y0 + 90;
+    bool ok = true;
+
+    for (size_t u = 0; ok && u < s->nuids; u++) {
+        size_t n = wrap(s->uids[u], 104, false, lines, 4);
+        for (size_t k = 0; ok && k < n; k++, y += 38) {
+            xml_escape(lines[k], safe, sizeof safe);
+            ok = append(buf, max, at, "<text x='140' y='%d' %s xml:space='preserve'>%s</text>\n",
+                        y, mono, safe);
+        }
+    }
+    /* The code ends 13.8 cm down the half and 1 cm from the right edge --
+     * past that a printer's margin may bite -- and is 12 cm wide, less if
+     * long uids took more lines than three. */
+    int size = y0 + 1380 - (y - 38 + 14);
+    if (size > 1200)
+        size = 1200;
+    int top = y0 + 1380 - size, x = 2100 - 100 - size;
+    ok = ok && append_code(buf, max, at, matrix, x, top, size);
+
+    y += 112;
+    ok = ok && append(buf, max, at,
+                      "<text x='140' y='%d' %s>PGPID SECRET (/%d)</text>\n"
+                      "<text x='140' y='%d' %s>FRAGMENT %zu/%d</text>\n",
+                      y, bold, s->threshold, y + 60, bold, number, s->splits);
+    y += 170;
+
+    /* The column stops short of the code's quiet zone. */
+    const char *column[] = { PGPID_NAME " secret_print", PGPID_VERSION, "QR version: 6",
+                             s->host, s->today };
+    for (size_t c = 0; ok && c < sizeof column / sizeof *column; c++) {
+        size_t n = wrap(column[c], 30, false, lines, 4);
+        for (size_t k = 0; ok && k < n; k++, y += 46) {
+            xml_escape(lines[k], safe, sizeof safe);
+            ok = append(buf, max, at, "<text x='140' y='%d' %s xml:space='preserve'>%s</text>\n",
+                        y, italic, safe);
+        }
+    }
+    y += 54;
+    ok = ok && append(buf, max, at,
+                      "<text x='140' y='%d' %s xml:space='preserve'>0x %.4s %.4s %.4s %.4s %.4s</text>\n"
+                      "<text x='140' y='%d' %s xml:space='preserve'>   %.4s %.4s %.4s %.4s %.4s</text>\n",
+                      y, mono, s->fpr, s->fpr + 4, s->fpr + 8, s->fpr + 12, s->fpr + 16,
+                      y + 38, mono, s->fpr + 20, s->fpr + 24, s->fpr + 28, s->fpr + 32,
+                      s->fpr + 36);
+    y += 38;
     /* Only when it was asked for: --with-passphrase puts the one thing on the
      * sheet that makes a single sheet worth stealing. */
-    if (*safepass)
-        snprintf(pass_line, sizeof pass_line,
-                 "<text x='20' y='%d' font-family='serif' font-size='3.5'>"
-                 "Passphrase: %s</text>\n", y + 136, safepass);
+    if (ok && s->passphrase && *s->passphrase) {
+        y += 80;
+        ok = append(buf, max, at, "<text x='140' y='%d' %s>Passphrase:</text>\n", y, italic);
+        /* Its spaces drawn, as an open box: one at the end of a line would
+         * otherwise not be seen, and a passphrase is retyped from this. */
+        static char visible[1600];
+        size_t v = 0;
+        for (const char *c = s->passphrase; *c && v + 4 < sizeof visible; c++) {
+            if (*c == ' ') {
+                memcpy(visible + v, "\xe2\x90\xa3", 3);
+                v += 3;
+            } else {
+                visible[v++] = *c;
+            }
+        }
+        visible[v] = '\0';
+        size_t n = wrap(visible, 30, true, lines, 12);
+        for (size_t k = 0; ok && k < n; k++) {
+            y += 46;
+            xml_escape(lines[k], safe, sizeof safe);
+            ok = append(buf, max, at, "<text x='140' y='%d' %s xml:space='preserve'>%s</text>\n",
+                        y, mono, safe);
+        }
+    }
+    return ok;
+}
 
-    static char svg[420000];
-    snprintf(svg, sizeof svg,
-        "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'"
-        " width='210mm' height='297mm' viewBox='0 0 210 297'>\n"
-        "<rect width='210' height='297' fill='white'/>\n"
-        "<text x='20' y='48' font-family='serif' font-style='italic' font-size='3.5'>%s - %s</text>\n"
-        "<text x='20' y='54' font-family='serif' font-style='italic' font-size='3.5'>"
-        PGPID_NAME " secret_print " PGPID_VERSION " - QR version: %d</text>\n"
-        "<text x='20' y='66' font-family='serif' font-weight='bold' font-size='6'>"
-        "PGPID SECRET (/%d) - FRAGMENT %zu/%d</text>\n"
-        "%s"
-        "<text x='26' y='%d' font-family='monospace' font-size='3.2'>"
-        "0x %.4s %.4s %.4s %.4s %.4s %.4s %.4s %.4s %.4s %.4s</text>\n"
-        "<image x='45' y='%d' width='120' height='120' xlink:href='%s'/>\n"
-        "%s"
-        "</svg>\n",
-        safehost, today, qrversion, threshold, index, splits, lines,
-        y + 1,
-        fpr, fpr + 4, fpr + 8, fpr + 12, fpr + 16, fpr + 20, fpr + 24,
-        fpr + 28, fpr + 32, fpr + 36,
-        y + 8, href,
-        pass_line);
+/**
+ * One A4 page, holding COUNT fragments, one or two, rendered to PDF.
+ *
+ * Two to a page: a set of five takes three sheets of paper instead of five,
+ * and a line across the middle says where to cut, and that the halves are
+ * not to be kept together -- until the scissors, the page holds two shares.
+ *
+ * Was markdown through pandoc and then pdfcrop: two programs, and between
+ * them a TeX distribution -- 275 MB of dependency for a page with a few
+ * lines and a picture on it. rsvg-convert was already here for the business
+ * card, and it writes PDF.
+ */
+static bool page_to_pdf(const char *pdf, const struct sheet *s, size_t first,
+                        const char *const matrices[2], size_t count)
+{
+    static char svg[4 << 20];
+    size_t at = 0;
+    bool ok = append(svg, sizeof svg, &at,
+                     "<svg xmlns='http://www.w3.org/2000/svg' width='210mm' height='297mm'"
+                     " viewBox='0 0 2100 2970'>\n"
+                     "<rect width='2100' height='2970' fill='white'/>\n");
+    for (size_t h = 0; ok && h < count; h++)
+        ok = append_half(svg, sizeof svg, &at, (int)h * 1485, s, first + h + 1, matrices[h]);
+    if (ok && count == 2)
+        ok = append(svg, sizeof svg, &at,
+                    "<line x1='60' y1='1485' x2='2040' y2='1485' stroke='black'"
+                    " stroke-width='3' stroke-dasharray='20,15'/>\n"
+                    "<rect x='620' y='1463' width='860' height='44' fill='white'/>\n"
+                    "<text x='1050' y='1494' text-anchor='middle' font-family='serif'"
+                    " font-style='italic' font-size='26'>"
+                    "cut here, and keep each half in a different place</text>\n");
+    ok = ok && append(svg, sizeof svg, &at, "</svg>\n");
+    if (!ok)
+        return false;
 
     char svgpath[640];
     snprintf(svgpath, sizeof svgpath, "%.599s.svg", pdf);
-    FILE *out = fopen(svgpath, "wb");
-    if (!out)
-        return false;
-    size_t wrote = fwrite(svg, 1, strlen(svg), out);
-    /* From here on the file exists and holds the fragment's QR, so every way
-     * out of this function goes past the unlink. A half-written sheet is
-     * still half a secret. */
-    bool ok = fclose(out) == 0 && wrote == strlen(svg);
+    /* From here on the file exists and holds the fragments' codes, so every
+     * way out of this function goes past the shredding. A half-written sheet
+     * is still half a secret. */
+    ok = write_text(svgpath, svg, at);
     if (ok) {
         const char *render[] = { "rsvg-convert", "--format", "pdf",
                                  "--output", pdf, svgpath, NULL };
@@ -418,23 +565,6 @@ static bool keep_only(const char *path, const char *keep[3], size_t nkeep)
     return wrote == at;
 }
 
-/** The uids of a certificate, one per line, for the sheet to be recognisable. */
-static void uid_block(const char *fpr, char *out, size_t max)
-{
-    struct pgpid_uid uids[64];
-    size_t n = pgpid_list_uids(fpr, false, uids, 64);
-    size_t at = 0;
-    *out = '\0';
-    for (size_t i = 0; i < n && at + 2 < max; i++) {
-        if (!pgpid_uid_stands(uids[i].validity))
-            continue;
-        int wrote = snprintf(out + at, max - at, "%s\n\n", uids[i].text);
-        if (wrote < 0 || (size_t)wrote >= max - at)
-            break;
-        at += (size_t)wrote;
-    }
-}
-
 /* The destinations CUPS knows, plus the choice of printing nowhere.
  *
  * `lpstat -e` rather than the `lpstat -p` the shell parses: it prints the
@@ -486,7 +616,6 @@ int pgpid_action_secret_print(int argc, char **argv)
     char passphrase[512] = "";
     const char *printer = NULL, *given_workdir = NULL, *keyid = NULL;
     bool with_passphrase = false, passphrase_given = false, printer_given = false;
-    bool base45 = false;
     int splits = 5, threshold = 3;
 
     for (int i = 1; i < argc; i++) {
@@ -540,21 +669,6 @@ int pgpid_action_secret_print(int argc, char **argv)
                 return PGPID_USAGE;
             }
             threshold = atoi(argv[i]);
-        } else if (!strcmp(a, "--encoding")) {
-            /* Named after what changes, the text inside the code: the version
-             * printed on the sheet follows from it and from the division. */
-            if (++i >= argc) {
-                pgpid_error(_("Error: '%s' wants an encoding: base64url or base45."), a);
-                return PGPID_USAGE;
-            }
-            if (!strcmp(argv[i], "base45")) {
-                base45 = true;
-            } else if (!strcmp(argv[i], "base64url")) {
-                base45 = false;
-            } else {
-                pgpid_error(_("Error: '%s' is not an encoding: base64url or base45."), argv[i]);
-                return PGPID_USAGE;
-            }
         } else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             usage(stdout);
             return PGPID_OK;
@@ -608,11 +722,17 @@ int pgpid_action_secret_print(int argc, char **argv)
         return PGPID_USAGE;
     }
     /* Refused here rather than found out on paper: the QR header spells the
-     * fragment's number as a single digit, so `scan` cannot read back more
-     * than ten of them. */
+     * fragment's number as a single hexadecimal digit, so `scan` cannot read
+     * back more than sixteen of them. */
     if (splits > PGPID_SPLIT_MAX) {
         pgpid_error(_("Error: Splits number (%d) can't be higher than %d: the QR header "
-                    "spells it as one digit."), splits, PGPID_SPLIT_MAX);
+                    "spells it as one hexadecimal digit."), splits, PGPID_SPLIT_MAX);
+        return PGPID_USAGE;
+    }
+    /* A threshold of one is a polynomial of degree nought: every share is
+     * the secret itself, printed in full on every sheet. */
+    if (threshold < 2) {
+        pgpid_error(_("Error: Threshold number (%d) can't be lower than 2."), threshold);
         return PGPID_USAGE;
     }
     if (splits < threshold) {
@@ -621,11 +741,10 @@ int pgpid_action_secret_print(int argc, char **argv)
         threshold = splits;
     }
     /* Same count as threshold: no sharing left to do, the pieces are simply
-     * consecutive and each one leaks its part. Version 6 is either, in
-     * base45, and says which with its header. */
+     * consecutive and each one leaks its part. Version 6 is either, and says
+     * which with its header. */
     bool cut = splits == threshold;
-    int qrversion = base45 ? 6 : cut ? 4 : 5;
-    size_t sheet_max = base45 ? PGPID_SHEET_MAX_BASE45 : PGPID_SHEET_MAX;
+    size_t sheet_max = PGPID_SHEET_MAX;
 
     char workdir[512];
     bool temporary = !given_workdir;
@@ -683,7 +802,10 @@ int pgpid_action_secret_print(int argc, char **argv)
 
     /* Down to three uids: the identity, the name, one address. What is left
      * out is what a keyring can give back; what stays is what tells somebody
-     * whose key they are holding. */
+     * whose key they are holding -- in the code, and across the top of the
+     * sheet, identity first, then the address, then the name. */
+    struct sheet sheet = { .nuids = 0 };
+    static char printed[3][512];
     {
         struct pgpid_uid all[256];
         size_t n = pgpid_list_uids(fpr, true, all, 256);
@@ -699,6 +821,20 @@ int pgpid_action_secret_print(int argc, char **argv)
         }
         pgpid_error(_("Notice: Printing %zu uid(s) of %zu — the rest comes back from "
                     "a keyring."), nkeep, n);
+        const char *order[] = { "UID:urn:eid:", "", "FN:" };
+        for (size_t o = 0; o < 3; o++)
+            for (size_t k = 0; k < nkeep; k++) {
+                bool identity = !strncmp(keep[k], "UID:urn:eid:", 12);
+                bool name = !strncmp(keep[k], "FN:", 3);
+                bool wanted = *order[o] ? !strncmp(keep[k], order[o], strlen(order[o]))
+                                        : !identity && !name;
+                if (wanted) {
+                    snprintf(printed[sheet.nuids], sizeof printed[0], "%s", keep[k]);
+                    sheet.uids[sheet.nuids] = printed[sheet.nuids];
+                    sheet.nuids++;
+                    break;
+                }
+            }
     }
 
     /* What one sheet would have to carry, now that the export is final: the
@@ -747,7 +883,7 @@ int pgpid_action_secret_print(int argc, char **argv)
          * s.gpg.b64url, which then had to be shredded like everything else.
          * The codec is already in this program; it was being asked of
          * coreutils out of habit. */
-        if (!encode_and_cut(priv, workdir, splits, base45)) {
+        if (!encode_and_cut(priv, workdir, splits)) {
             pgpid_error(_("Error: The export could not be cut in %d."), splits);
             return PGPID_FAIL;
         }
@@ -761,7 +897,7 @@ int pgpid_action_secret_print(int argc, char **argv)
             pgpid_error(_("Error: gfsplit would not share the secret out."));
             return PGPID_FAIL;
         }
-        /* gfsplit writes SECRET.001…; each becomes SECRET-001, as text. */
+        /* gfsplit writes SECRET.001…; each becomes SECRET-001, in base45. */
         DIR *d = opendir(workdir);
         if (!d)
             return PGPID_FAIL;
@@ -771,7 +907,7 @@ int pgpid_action_secret_print(int argc, char **argv)
             char from[800], to[800];
             snprintf(from, sizeof from, "%.500s/%.250s", workdir, e->d_name);
             snprintf(to, sizeof to, "%.500s/SECRET-%.240s", workdir, e->d_name + 7);
-            if (!encode_file(from, to, base45)) {
+            if (!encode_file(from, to)) {
                 pgpid_error(_("Error: %s could not be encoded."), e->d_name);
                 closedir(d);
                 return PGPID_FAIL;
@@ -781,8 +917,6 @@ int pgpid_action_secret_print(int argc, char **argv)
     }
     (void)pattern;
 
-    char uids[4096];
-    uid_block(fpr, uids, sizeof uids);
     char host[128] = "";
     gethostname(host, sizeof host - 1);
     char today[16];
@@ -843,28 +977,26 @@ int pgpid_action_secret_print(int argc, char **argv)
             snprintf(names[k], sizeof names[0], "%.63s", t);
         }
 
+    /* Each fragment's code, drawn by qrencode as text: the page draws the
+     * squares itself. No mode forced: qrencode puts the '~' in a byte segment
+     * of its own and the base45 after it in alphanumeric mode, which is where
+     * the smaller symbol comes from. */
     for (size_t i = 0; i < nfrag; i++) {
-        char frag[600], png[620], pdf[620], header[64];
+        char frag[600], matrix[620], header[64];
         snprintf(frag, sizeof frag, "%.500s/%.63s", workdir, names[i]);
-        snprintf(png, sizeof png, "%.599s.png", frag);
-        snprintf(pdf, sizeof pdf, "%.599s.pdf", frag);
+        snprintf(matrix, sizeof matrix, "%.599s.qr", frag);
 
         /* The header is what `scan` reads first: a '~', the version, how many
-         * fragments are needed less one, and which fragment this is. A shared
-         * secret adds the three digits gfsplit needs to put them back
-         * together: three decimal digits as its file names have them, or in
-         * version 6 two upper-case hexadecimal ones -- a share number never
-         * passes 255 -- and "**" in their place for a piece of a cut one. */
-        if (!cut && base45)
-            snprintf(header, sizeof header, "~%d%d%zu%02X", qrversion, threshold - 1, i,
+         * fragments are needed less one, and which fragment this is, each in
+         * one upper-case hexadecimal digit. Then the number gfsplit needs to
+         * put a share back together -- its file names have it in decimal, the
+         * code in two hexadecimal digits, a share number never passing 255 --
+         * or "**" in its place for a piece of a cut secret. */
+        if (!cut)
+            snprintf(header, sizeof header, "~6%X%zX%02X", (unsigned)(threshold - 1), i,
                      (unsigned)atoi(names[i] + 7));
-        else if (!cut)
-            snprintf(header, sizeof header, "~%d%d%zu%s", qrversion, threshold - 1, i,
-                     names[i] + 7);
-        else if (base45)
-            snprintf(header, sizeof header, "~%d%d%zu**", qrversion, threshold - 1, i);
         else
-            snprintf(header, sizeof header, "~%d%d%zu", qrversion, threshold - 1, i);
+            snprintf(header, sizeof header, "~6%X%zX**", (unsigned)(threshold - 1), i);
 
         FILE *in = fopen(frag, "r");
         if (!in) {
@@ -879,32 +1011,41 @@ int pgpid_action_secret_print(int argc, char **argv)
         payload[at] = '\0';
         fclose(in);
 
-        /* No mode forced: qrencode puts the '~' of a version 6 payload in a
-         * byte segment of its own and the base45 after it in alphanumeric
-         * mode, which is where the smaller symbol comes from. */
-        const char *qr[] = { "qrencode", "--level", cut ? "M" : "L",
-                             "--dpi=50", "--output", png, NULL };
+        const char *qr[] = { "qrencode", "--level", cut ? "M" : "L", "--type", "ASCII",
+                             "--margin", "0", "--output", matrix, NULL };
         if (pgpid_run_program(qr, payload, NULL)) {
             pgpid_error(_("Error: qrencode would not draw fragment %zu."), i + 1);
             free(names);
             return PGPID_FAIL;
         }
+    }
 
-
-        if (!sheet_to_pdf(png, pdf, host, today, qrversion, threshold,
-                          i + 1, splits, uids, fpr,
-                          with_passphrase ? passphrase : NULL)) {
-            pgpid_error(_("Error: Fragment %zu could not be laid out."), i + 1);
+    sheet.threshold = threshold;
+    sheet.splits = (int)nfrag;
+    sheet.fpr = fpr;
+    sheet.host = host;
+    sheet.today = today;
+    sheet.passphrase = with_passphrase ? passphrase : NULL;
+    size_t npages = (nfrag + 1) / 2;
+    for (size_t pg = 0; pg < npages; pg++) {
+        char matrices[2][620], pdf[620];
+        const char *two[2] = { matrices[0], matrices[1] };
+        size_t count = (2 * pg + 1 < nfrag) ? 2 : 1;
+        for (size_t h = 0; h < count; h++)
+            snprintf(matrices[h], sizeof matrices[0], "%.500s/%.63s.qr", workdir,
+                     names[2 * pg + h]);
+        snprintf(pdf, sizeof pdf, "%.500s/SECRET-page-%zu.pdf", workdir, pg + 1);
+        if (!page_to_pdf(pdf, &sheet, 2 * pg, two, count)) {
+            pgpid_error(_("Error: Fragment %zu could not be laid out."), 2 * pg + 1);
             free(names);
             return PGPID_FAIL;
         }
-
         if (*printer) {
             const char *print[] = { "lpr", "-#", "1", "-P", printer, pdf, NULL };
             if (pgpid_run_program(print, NULL, NULL)) {
-                pgpid_error(_("Error: lpr would not print fragment %zu."), i + 1);
+                pgpid_error(_("Error: lpr would not print fragment %zu."), 2 * pg + 1);
                 free(names);
-            return PGPID_FAIL;
+                return PGPID_FAIL;
             }
         }
     }
@@ -912,12 +1053,12 @@ int pgpid_action_secret_print(int argc, char **argv)
     if (temporary && *printer) {
         /* Sent to a printer: nothing here is worth the risk of being left. */
         for (size_t i = 0; i < nfrag; i++) {
-            char frag[600], png[620], pdf[620];
+            char frag[600], matrix[620], pdf[620];
             snprintf(frag, sizeof frag, "%.500s/%.63s", workdir, names[i]);
-            snprintf(png, sizeof png, "%.599s.png", frag);
-            snprintf(pdf, sizeof pdf, "%.599s.pdf", frag);
-            unlink(frag);
-            unlink(png);
+            snprintf(matrix, sizeof matrix, "%.599s.qr", frag);
+            snprintf(pdf, sizeof pdf, "%.500s/SECRET-page-%zu.pdf", workdir, i / 2 + 1);
+            pgpid_shred_path(frag);
+            pgpid_shred_path(matrix);
             unlink(pdf);
         }
         unlink(priv);

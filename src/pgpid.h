@@ -69,11 +69,11 @@
  * is sent. */
 /* How far --split may go.
  *
- * Not a buffer size: the QR header is four characters — '~', the version, the
- * threshold less one, and the fragment's number — so the number and the
- * threshold each get exactly one digit. `print_secret` writes it and `scan`
- * reads it back that way, and a sheet nobody can read is discovered on paper. */
-#define PGPID_SPLIT_MAX 10
+ * Not a buffer size: the QR header gives the threshold less one and the
+ * fragment's number one character each -- a decimal digit up to version 5, a
+ * hexadecimal one in version 6, which is all secret_print writes. So sixteen
+ * fragments at most; secret_scan reads that many, and ten from older sheets. */
+#define PGPID_SPLIT_MAX 16
 
 /*
  * How much of a secret one printed sheet carries, in bytes before encoding.
@@ -94,21 +94,17 @@
  * It was 720, on the belief that a gen_key key is a 592-byte ed25519 secret.
  * It is not: with its three uids and two subkeys it is 1112 bytes, 1250 with
  * its passphrase kept, so 720 refused the keys this program makes. JJB,
- * 2026-09-17: 1280, which takes both shared -- a version 30 code (1708
- * characters), where a phone camera in 1080p has read version 28 ones. A
- * webcam at 640x480 needs --camera-size for those. Larger goes cut.
+ * 2026-09-17: 1280 in base64url, which takes both shared -- a version 30
+ * code, where a phone camera in 1080p has read version 28 ones.
+ *
+ * Sheets are written in base45 now (QR version 6), which puts more of a
+ * secret in the same symbol: 1672 bytes is the largest share whose version 6
+ * code is no bigger than that version 30, measured with qrencode and with
+ * ZXing. A gen_key key is a version 24 code there, 26 with its passphrase.
+ * Printed 120 mm wide, a module is 0.99 mm and 0.93 mm; at the limit, 0.83.
+ * Larger goes cut.
  */
-#define PGPID_SHEET_MAX 1280
-
-/*
- * The same limit for a sheet written in base45 (QR version 6): what decides
- * is the symbol, not the byte count, and base45 puts more of a secret in the
- * same symbol. 1672 bytes is the largest share whose version 6 code is no
- * bigger than a version 5 code of PGPID_SHEET_MAX bytes — version 30 at
- * level L, measured with qrencode and with ZXing. A gen_key key is a
- * version 24 code there, 26 with its passphrase.
- */
-#define PGPID_SHEET_MAX_BASE45 1672
+#define PGPID_SHEET_MAX 1672
 
 #define PGPID_KEYSERVERS_HOST  "keys.foopgp.org"
 #define PGPID_KEYSERVERS_FIRST "hkps://" PGPID_KEYSERVERS_HOST

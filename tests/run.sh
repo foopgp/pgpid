@@ -809,23 +809,29 @@ is "the second file is weighed after the first" "$(level "$WFPR")" "never"
 is "and says what it left alone"   "$(grep --count 'ruled never' <<<"$out")" "1"
 
 printf '\nprint_secret\n'
-# The QR header spells the fragment's number as a single digit — `scan` reads
-# it back that way — so more than ten fragments make sheets nobody can put
-# together. Refused here rather than found out on paper.
-"$BIN" secret_print --printer '' --split 11 --passphrase '' \
+# The QR header spells the fragment's number as a single hexadecimal digit —
+# `scan` reads it back that way — so more than sixteen fragments make sheets
+# nobody can put together. Refused here rather than found out on paper.
+"$BIN" secret_print --printer '' --split 17 --passphrase '' \
     --workdir "$GNUPGHOME" "$FPR" >/dev/null 2>&1
 is "more fragments than a header can number is refused" "$?" "2"
 "$BIN" secret_print --printer '' --split 2 --passphrase '' \
     --workdir "$GNUPGHOME" "$FPR" >/dev/null 2>&1
 is "and fewer than three, as before"  "$?" "2"
+# A threshold of one is every share being the secret itself.
+"$BIN" secret_print --printer '' --threshold 1 --passphrase '' \
+    --workdir "$GNUPGHOME" "$FPR" >/dev/null 2>&1
+is "a threshold of one is refused"    "$?" "2"
+is "and there is nothing left to choose the encoding with" \
+   "$("$BIN" secret_print --printer '' --passphrase '' --encoding base45 "$FPR" >/dev/null 2>&1 ; echo $?)" "2"
 
 # A share of a shared secret is the size of the secret, so a big key does not
-# go on paper shared however many shares are made — only cut. An rsa2048
-# secret is 1341 bytes where a sheet takes 1280, which is the smallest key
-# that shows it. The message has to name the two ways out, since neither is
-# guessable from "it does not fit".
+# go on paper shared however many shares are made — only cut. An rsa3072
+# secret is 1913 bytes where a sheet takes 1672, which is the smallest usual
+# key that shows it. The message has to name the two ways out, since neither
+# is guessable from "it does not fit".
 gpg --batch --pinentry-mode loopback --passphrase '' \
-    --quick-generate-key 'Fat <fat@example.invalid>' rsa2048 cert never 2>/dev/null
+    --quick-generate-key 'Fat <fat@example.invalid>' rsa3072 cert never 2>/dev/null
 BIGFPR=$(gpg --with-colons --list-keys fat@example.invalid 2>/dev/null | awk --field-separator=: '$1=="fpr"{print $10; exit}')
 out=$("$BIN" secret_print --printer '' --passphrase '' \
       --workdir "$GNUPGHOME" "$BIGFPR" 2>&1)
@@ -836,7 +842,8 @@ is "and wrote no fragment on the way out"      "$(ls "$GNUPGHOME"/SECRET* 2>/dev
 "$BIN" secret_print --printer '' --passphrase '' --threshold 5 \
     --workdir "$GNUPGHOME" "$BIGFPR" >/dev/null 2>&1
 is "taking the advice prints it"               "$?" "0"
-is "five sheets, every one of them needed"     "$(ls "$GNUPGHOME"/SECRET-0?.pdf 2>/dev/null | wc --lines)" "5"
+is "five fragments, every one of them needed, on three pages" \
+   "$(ls "$GNUPGHOME"/SECRET-page-*.pdf 2>/dev/null | wc --lines)" "3"
 find "$GNUPGHOME" -maxdepth 1 -name 'SECRET*' -delete
 
 printf '\ngen_key answers the key it made, and only that one\n'
@@ -859,32 +866,35 @@ gpgconf --homedir "$NEWHOME" --kill all >/dev/null 2>&1
 rm -rf "$NEWHOME"
 
 printf '\nsecret_print, then secret_scan: the key comes back\n'
-# The two halves had only ever been checked against each other by hand. Each
-# division and each encoding, printed and read back into a keyring that never
-# held the key: the fingerprint that comes out is the one that went in. A
-# shared set is read from three of its five sheets, since that is the point.
-is "an encoding that does not exist is refused" \
-   "$("$BIN" secret_print --printer '' --passphrase '' --encoding base64 "$FPR" >/dev/null 2>&1 ; echo $?)" "2"
+# The two halves had only ever been checked against each other by hand. Both
+# divisions, printed and read back into a keyring that never held the key:
+# the fingerprint that comes out is the one that went in. Two fragments go on
+# a page, so a shared set of five is read from pages 1 and 3 -- three of its
+# fragments, which is the point -- and a cut one needs all three pages.
 if command -v qrencode >/dev/null 2>&1 && command -v zbarimg >/dev/null 2>&1 \
    && command -v gfsplit >/dev/null 2>&1 ; then
-    for way in "base64url 3 5" "base64url 5 4" "base45 3 6" "base45 5 6"; do
-        read -r encoding threshold version <<<"$way"
+    for threshold in 3 5 ; do
         sheets=$(mktemp -d) ; rebuilt=$(mktemp -d) ; into=$(mktemp -d)
         chmod 700 "$sheets" "$rebuilt" "$into"
-        "$BIN" --batch secret_print --printer '' --passphrase '' --encoding "$encoding" \
+        "$BIN" --batch secret_print --printer '' --passphrase '' \
             --threshold "$threshold" --workdir "$sheets" "$FPR" >/dev/null 2>&1
-        pngs=("$sheets"/SECRET-*.png)
-        head=$(zbarimg --quiet --raw "${pngs[0]}" | head --bytes 6)
-        is "$encoding, $threshold of 5: version $version" "${head:1:1}" "$version"
-        if [[ $encoding == base45 && $threshold == 5 ]] ; then
-            is "  a cut set says so where a share number would be" "${head:4:2}" "**"
-        elif [[ $encoding == base45 ]] ; then
+        pages=("$sheets"/SECRET-page-*.pdf)
+        is "$threshold of 5: three pages" "${#pages[@]}" "3"
+        heads=$(zbarimg --quiet --raw -Sdisable -Sqrcode.enable "${pages[0]}" | cut --characters=1-6 | sort)
+        is "  two codes on the first, both version 6" \
+           "$(grep --count '^~6' <<<"$heads")" "2"
+        is "  numbered 0 and 1, the threshold less one before" \
+           "$(cut --characters=3-4 <<<"$heads" | tr '\n' ' ')" "$((threshold - 1))0 $((threshold - 1))1 "
+        if [[ $threshold == 5 ]] ; then
+            is "  a cut set says so where a share number would be" \
+               "$(cut --characters=5-6 <<<"$heads" | sort -u)" "**"
+        else
             is "  a share number in two hexadecimal digits" \
-               "$(grep --count --extended-regexp '^[0-9A-F]{2}$' <<<"${head:4:2}")" "1"
+               "$(cut --characters=5-6 <<<"$heads" | grep --count --extended-regexp '^[0-9A-F]{2}$')" "2"
+            pages=("${pages[0]}" "${pages[2]}")
         fi
-        [[ $threshold == 5 ]] || pngs=("${pngs[0]}" "${pngs[2]}" "${pngs[4]}")
         is "  and reads back to the same key" \
-           "$("$BIN" --homedir "$into" --batch secret_scan --workdir "$rebuilt" "${pngs[@]}" 2>/dev/null)" "$FPR"
+           "$("$BIN" --homedir "$into" --batch secret_scan --workdir "$rebuilt" "${pages[@]}" 2>/dev/null)" "$FPR"
         gpgconf --homedir "$into" --kill all >/dev/null 2>&1
         rm -rf "$sheets" "$rebuilt" "$into"
     done
@@ -902,7 +912,17 @@ if command -v qrencode >/dev/null 2>&1 && command -v zbarimg >/dev/null 2>&1 \
     qrencode -o "$frags/low0.png" -- '~620a7899NVPZ0U'
     qrencode -o "$frags/low1.png" -- '~621023LKB7H1:ZL'
     qrencode -o "$frags/low2.png" -- '~622655L0AYC+R4'
-    mkdir "$frags/w1" "$frags/w2" "$frags/w3" "$frags/w4"
+    qrencode -o "$frags/hex.png" -- '~6AB**V6A'
+    # The draft's own vectors in the versions nothing writes any more: they
+    # decode and combine, and then are not a key, which is as far as a secret
+    # of six bytes can go.
+    qrencode -o "$frags/v5a.png" -- '~520007SM7LS-1x'
+    qrencode -o "$frags/v5b.png" -- '~522101A7Zk8CSL'
+    qrencode -o "$frags/v5c.png" -- '~524200ywUFvbNn'
+    qrencode -o "$frags/v4a.png" -- '~420UE'
+    qrencode -o "$frags/v4b.png" -- '~421dQ'
+    qrencode -o "$frags/v4c.png" -- '~422IElE'
+    mkdir "$frags/w1" "$frags/w2" "$frags/w3" "$frags/w4" "$frags/w5" "$frags/w6" "$frags/w7"
     is "a damaged head is refused" \
        "$("$BIN" --batch secret_scan --workdir "$frags/w1" "$frags/damaged.png" 2>&1 | grep --count 'head is damaged')" "1"
     is "a cut piece among shares is refused" \
@@ -914,6 +934,12 @@ if command -v qrencode >/dev/null 2>&1 && command -v zbarimg >/dev/null 2>&1 \
     # sheet.
     is "a share number in lower case does not decode" \
        "$("$BIN" --batch secret_scan --workdir "$frags/w4" "$frags"/low?.png 2>&1 | grep --count 'would not decode')" "1"
+    is "the threshold and the number are hexadecimal in version 6" \
+       "$("$BIN" --batch secret_scan --workdir "$frags/w5" "$frags/hex.png" 2>&1 | grep --count '1 fragment(s) of the 11 needed')" "1"
+    is "version 5 is still read" \
+       "$("$BIN" --batch secret_scan --workdir "$frags/w6" "$frags"/v5?.png 2>&1 | grep --count 'would not import')" "1"
+    is "and version 4" \
+       "$("$BIN" --batch secret_scan --workdir "$frags/w7" "$frags"/v4?.png 2>&1 | grep --count 'would not import')" "1"
     rm -rf "$frags"
 else
     printf '  skip  qrencode, zbarimg or gfsplit missing\n'

@@ -34,6 +34,9 @@
 
 #define MAX_PARTS PGPID_SPLIT_MAX
 
+/* What one QR code can hold, and so one fragment: 2953 bytes at level L. */
+#define PART_MAX 4096
+
 static void usage(FILE *out)
 {
     fprintf(out, _("Usage: "
@@ -44,11 +47,11 @@ static void usage(FILE *out)
         "Output PGP certification key fingerprint.\n"
         "Images may be PNG, JPEG, or PDF.\n"
         "\n"
-        "QR code versions 4, 5 and 6, which is what secret_print writes (6 with\n"
-        "--encoding base45). Versions 1 to 3 were experimental and never\n"
-        "released; 'bl-pgpkey scan' still reads them. A key that arrives\n"
-        "protected stays protected: taking the passphrase off is the business of\n"
-        "whoever moves it onto a card.\n"
+        "QR code versions 4, 5 and 6: 6 is what secret_print writes, 4 and 5 what\n"
+        "it wrote before. Versions 1 to 3 were experimental and never released;\n"
+        "'bl-pgpkey scan' still reads them. A key that arrives protected stays\n"
+        "protected: taking the passphrase off is the business of whoever moves it\n"
+        "onto a card.\n"
         "\n"
         "OPTIONS:\n"
 
@@ -92,6 +95,18 @@ static bool is_pdf(const char *path)
     return n == 4 && !memcmp(head, "%PDF", 4);
 }
 
+/* The threshold less one, or the fragment's number, as the head spells it:
+ * a decimal digit up to version 5, an upper-case hexadecimal one in version
+ * 6. -1 for anything else. */
+static int head_digit(char c, int version)
+{
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    if (version >= 6 && c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+    return -1;
+}
+
 /**
  * Take every fragment out of what zbar printed.
  *
@@ -106,7 +121,7 @@ static bool is_pdf(const char *path)
  * CUT says, once a version 6 fragment has been read, whether the set is cut
  * ("**" where a share number would be) or shared: -1 until then.
  */
-static int take_payloads(char *raw, char parts[][262144], bool *have,
+static int take_payloads(char *raw, char parts[][PART_MAX], bool *have,
                          int *version, int *needed_less_one, int *cut)
 {
     int taken = 0;
@@ -119,13 +134,12 @@ static int take_payloads(char *raw, char parts[][262144], bool *have,
             continue;
         /* Past this point it says it is one of ours, so a head that does not
          * hold up is a damaged sheet, not a stranger's code. */
-        if (at[2] < '0' || at[2] > '9' || at[3] < '0' || at[3] > '9') {
+        int v = at[1] - '0';
+        int max = head_digit(at[2], v), index = head_digit(at[3], v);
+        if (max < 0 || index < 0) {
             pgpid_error(_("Crit: A QR code starts like a fragment, but its head is damaged."));
             return 3;
         }
-        int v = at[1] - '0';
-        int max = at[2] - '0';
-        int index = at[3] - '0';
         if (*version < 0)
             *version = v;
         if (*needed_less_one < 0)
@@ -281,7 +295,7 @@ static const char *choose_camera(char *buf, size_t max)
  * cap, and looping for ever in front of one helps nobody.
  */
 static int scan_camera(const char *device, const char *size, const char *workdir,
-                       char parts[][262144], bool *have,
+                       char parts[][PART_MAX], bool *have,
                        int *version, int *needed_less_one, int *cut)
 {
     /* In memory, never on disk. The images path writes what zbar printed to a
@@ -551,7 +565,7 @@ int pgpid_action_secret_scan(int argc, char **argv)
         { rc = PGPID_USAGE; goto done; }
     }
 
-    char parts[MAX_PARTS][262144];
+    static char parts[MAX_PARTS][PART_MAX];
     bool have[MAX_PARTS] = { false };
     int version = -1, needed_less_one = -1, cut = -1;
 
@@ -565,9 +579,12 @@ int pgpid_action_secret_scan(int argc, char **argv)
             /* GraphicsMagick rather than ImageMagick: it is already here for
              * the avatars, and given one output name it writes the first page
              * and stops — where `convert` would write scan-0-0.png and
-             * scan-0-1.png, neither of which is the name we then open. One
-             * sheet holds one fragment, so the first page is the fragment. */
-            const char *conv[] = { "gm", "convert", from, converted, NULL };
+             * scan-0-1.png, neither of which is the name we then open.
+             * secret_print writes one page to a file, and zbar reads both of
+             * its codes from the one picture. At 150 dots an inch rather than
+             * gm's 72, where a module a millimetre wide is under three
+             * pixels. */
+            const char *conv[] = { "gm", "convert", "-density", "150", from, converted, NULL };
             if (pgpid_run_program(conv, NULL, NULL)) {
                 pgpid_error(_("Error: Can't convert pdf %s."), images[i]);
                 { rc = PGPID_FAIL; goto done; }
@@ -636,7 +653,8 @@ int pgpid_action_secret_scan(int argc, char **argv)
 
     if (version == 4) {
         /* Consecutive pieces: back to back, in order, then decoded whole. */
-        char joined[2621440] = "";
+        static char joined[MAX_PARTS * PART_MAX + 1];
+        joined[0] = '\0';
         size_t at = 0;
         for (size_t i = 0; i < MAX_PARTS; i++) {
             if (!have[i])

@@ -512,9 +512,8 @@ OPTIONS:
   -t, --printer PRINTER          Name of printer to use. Empty to produce the sheets and send nothing
   -w, --with-passphrase          Also print passphrase beside QR codes (INCREASE UX, DECREASE SECURITY)
   -W, --workdir DIRECTORY        Use given working directory instead of a temporary directory (don't forget to shred its content)
-  -S, --split NUM                Number of shares to be generated, 3 to 10 - Default: 5
-  -T, --threshold NUM            Number of shares necessary to reconstruct the secret - Default: 3
-      --encoding ENCODING        base64url (QR versions 4 and 5) or base45 (version 6) - Default: base64url
+  -S, --split NUM                Number of shares to be generated, 3 to 16 - Default: 5
+  -T, --threshold NUM            Number of shares necessary to reconstruct the secret, 2 or more - Default: 3
   -h, --help                     Print this help and exit
   -V, --version                  Print the version and exit
 
@@ -523,11 +522,13 @@ Note: Split number should be greater than threshold number.
       and all secret protection relies on the passphrase.
       In other terms: if (split_NUM == threshold_NUM), then no passphrase or
       printing passphrase is VERY UNSECURE.
-      A share is the size of the whole secret, so a secret above 1280 bytes
-      (1672 in base45) only goes on paper cut, which is the equal case. It is
-      refused with the numbers rather than printed too dense to scan.
-      base45 makes smaller codes for the same secret, but readers that only
-      know versions 4 and 5 refuse them.
+      A share is the size of the whole secret, so a secret above 1672 bytes
+      only goes on paper cut, which is the equal case. It is refused with
+      the numbers rather than printed too dense to scan.
+
+The codes are QR version 6 (draft-foopgp-secret-sheets), two to an A4 page:
+cut each page in two, and keep the halves in different places. Versions 4
+and 5 are no longer written, and secret_scan still reads them.
 
 Photographs are left out of what is printed. A backup does not need your
 face, and paper is handled by whoever finds it.
@@ -542,11 +543,11 @@ Reconstitute PGP secrets from QRcodes scanned from IMAGES.
 Output PGP certification key fingerprint.
 Images may be PNG, JPEG, or PDF.
 
-QR code versions 4, 5 and 6, which is what secret_print writes (6 with
---encoding base45). Versions 1 to 3 were experimental and never
-released; 'bl-pgpkey scan' still reads them. A key that arrives
-protected stays protected: taking the passphrase off is the business of
-whoever moves it onto a card.
+QR code versions 4, 5 and 6: 6 is what secret_print writes, 4 and 5 what
+it wrote before. Versions 1 to 3 were experimental and never released;
+'bl-pgpkey scan' still reads them. A key that arrives protected stays
+protected: taking the passphrase off is the business of whoever moves it
+onto a card.
 
 OPTIONS:
   -c, --camera [V4LDEVICE]      Read the fragments off a camera (/dev/v4l/by-id/...)
