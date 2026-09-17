@@ -532,8 +532,8 @@ Note : le nombre de parts devrait dépasser le seuil.
        et toute la protection du secret repose sur la phrase secrète.
        Autrement dit : si (parts == seuil), alors pas de phrase secrète — ou
        une phrase imprimée — est TRÈS PEU SÛR.
-       Une part fait la taille du secret entier : au-delà de 720 octets
-       (966 en base45) un secret ne va sur papier que découpé, c'est-à-dire
+       Une part fait la taille du secret entier : au-delà de 1280 octets
+       (1672 en base45) un secret ne va sur papier que découpé, c'est-à-dire
        à valeurs égales. C'est refusé avec les chiffres plutôt qu'imprimé
        trop dense.
        base45 donne des codes plus petits pour le même secret, mais les

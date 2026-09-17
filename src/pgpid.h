@@ -89,23 +89,26 @@
  *    1024 B   1366 ch     v26     69%                  makes, and what we
  *    1341 B   1788 ch     v31     77%                  already read badly
  *
- * Past that it is a photography session rather than a backup. 720 is barely
- * above the sheets we print today — one QR version, four percent of the
- * frame — which is the point: the ones we have are already hard enough.
+ * Past that it is a photography session rather than a backup.
  *
- * An ed25519 secret is 592 bytes, so the keys gen_key makes still go on
- * paper shared. Everything larger goes cut.
+ * It was 720, on the belief that a gen_key key is a 592-byte ed25519 secret.
+ * It is not: with its three uids and two subkeys it is 1112 bytes, 1250 with
+ * its passphrase kept, so 720 refused the keys this program makes. JJB,
+ * 2026-09-17: 1280, which takes both shared -- a version 30 code (1708
+ * characters), where a phone camera in 1080p has read version 28 ones. A
+ * webcam at 640x480 needs --camera-size for those. Larger goes cut.
  */
-#define PGPID_SHEET_MAX 720
+#define PGPID_SHEET_MAX 1280
 
 /*
  * The same limit for a sheet written in base45 (QR version 6): what decides
  * is the symbol, not the byte count, and base45 puts more of a secret in the
- * same symbol. 966 bytes is the largest share whose version 6 code is no
- * bigger than a version 5 code of PGPID_SHEET_MAX bytes — version 22 at
- * level L, measured with qrencode.
+ * same symbol. 1672 bytes is the largest share whose version 6 code is no
+ * bigger than a version 5 code of PGPID_SHEET_MAX bytes — version 30 at
+ * level L, measured with qrencode and with ZXing. A gen_key key is a
+ * version 24 code there, 26 with its passphrase.
  */
-#define PGPID_SHEET_MAX_BASE45 966
+#define PGPID_SHEET_MAX_BASE45 1672
 
 #define PGPID_KEYSERVERS_HOST  "keys.foopgp.org"
 #define PGPID_KEYSERVERS_FIRST "hkps://" PGPID_KEYSERVERS_HOST

@@ -821,7 +821,7 @@ is "and fewer than three, as before"  "$?" "2"
 
 # A share of a shared secret is the size of the secret, so a big key does not
 # go on paper shared however many shares are made — only cut. An rsa2048
-# secret is 1341 bytes where a sheet takes 1024, which is the smallest key
+# secret is 1341 bytes where a sheet takes 1280, which is the smallest key
 # that shows it. The message has to name the two ways out, since neither is
 # guessable from "it does not fit".
 gpg --batch --pinentry-mode loopback --passphrase '' \
