@@ -44,7 +44,7 @@ static void usage(FILE *out)
         "  -N, --name NAME             The name in front of an added address\n"
         "                              Default: the certificate's own FN:, else the local part\n"
         "        --set-primary EMAIL     Make EMAIL the certificate's primary address\n"
-        "  -y, --yes                   Assume yes: skip the irreversible-revocation confirmation\n"
+        "  -y, --yes                   Assume yes: skip the revocation confirmation\n"
         "  -c, --certs-count           Also output the count of external valid certifications per email (tab-separated)\n"
         "      --show-unusable         Also display the uids that no longer stand: revoked, expired, or without a valid self-signature\n"
         "      --info                  Synonym of --output-format=info\n"
@@ -54,8 +54,9 @@ static void usage(FILE *out)
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"
         "\n"
-        "Revoking is irreversible: PGP keeps the address on the certificate\n"
-        "forever, marked revoked, and an identical one can never be added again.\n"),
+        "Revoking keeps the address on the certificate forever, marked revoked, and\n"
+        "those who hold it keep it until they refresh. Adding the identical address\n"
+        "again signs it anew, certifications others made over it included.\n"),
             PGPID_NAME, PGPID_KEYSERVERS);
 }
 
@@ -476,9 +477,9 @@ int pgpid_action_cert_email(int argc, char **argv)
                 continue;
             }
             if (struck) {
-                pgpid_error(_("Notice: '%s' was revoked earlier and cannot be added "
-                            "again — PGP keeps revoked User IDs on the "
-                            "certificate forever."), want);
+                if (!pgpid_readd_uid(user, want))
+                    return PGPID_FAIL;
+                changed = true;
                 continue;
             }
             pgpid_error(_("Notice: Adding '%s' into certificate %s…"), want, user);

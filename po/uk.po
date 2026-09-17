@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid 0.0.7-35-g8512aa6\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-09-17 20:08+0200\n"
+"POT-Creation-Date: 2026-09-17 21:05+0200\n"
 "PO-Revision-Date: 2026-08-22 22:58+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -166,10 +166,10 @@ msgstr "Error: «%s» очікує каталог."
 
 #: ../src/avatar.c:523 ../src/certify.c:530 ../src/certrevoke.c:109
 #: ../src/changepass.c:119 ../src/changetokencode.c:127
-#: ../src/changetokenmeta.c:206 ../src/del.c:78 ../src/email.c:424
+#: ../src/changetokenmeta.c:206 ../src/del.c:78 ../src/email.c:425
 #: ../src/genkey.c:207 ../src/genu4.c:523 ../src/genuid.c:162 ../src/get.c:334
 #: ../src/list.c:377 ../src/main.c:194 ../src/printcard.c:222
-#: ../src/printsecret.c:681 ../src/property.c:497 ../src/push.c:81
+#: ../src/printsecret.c:681 ../src/property.c:498 ../src/push.c:81
 #: ../src/scan.c:511 ../src/secretdel.c:78 ../src/secretlist.c:59
 #: ../src/sigs.c:153 ../src/systemadduser.c:416 ../src/systemadmins.c:93
 #: ../src/systemconfhome.c:115 ../src/systemdeluser.c:171
@@ -441,7 +441,7 @@ msgstr "Error: Жоден сертифікат тут не має цих сим�
 msgid "Error: '%s' wants a key."
 msgstr "Error: «%s» очікує ключ."
 
-#: ../src/certify.c:506 ../src/genu4.c:532 ../src/property.c:464
+#: ../src/certify.c:506 ../src/genu4.c:532 ../src/property.c:465
 #: ../src/systemadduser.c:424 ../src/trustdb.c:628
 #, c-format
 msgid "Error: '%s' wants a value."
@@ -452,7 +452,7 @@ msgstr "Error: «%s» очікує значення."
 msgid "Error: Unknown credibility value '%s'."
 msgstr "Error: Невідоме значення кредиту довіри «%s»."
 
-#: ../src/certify.c:517 ../src/email.c:409 ../src/property.c:484
+#: ../src/certify.c:517 ../src/email.c:410 ../src/property.c:485
 #: ../src/trustdb.c:1025
 #, c-format
 msgid "Error: '%s' wants a list, empty for none."
@@ -1164,7 +1164,7 @@ msgid ""
 "  -N, --name NAME             The name in front of an added address\n"
 "                              Default: the certificate's own FN:, else the local part\n"
 "        --set-primary EMAIL     Make EMAIL the certificate's primary address\n"
-"  -y, --yes                   Assume yes: skip the irreversible-revocation confirmation\n"
+"  -y, --yes                   Assume yes: skip the revocation confirmation\n"
 "  -c, --certs-count           Also output the count of external valid certifications per email (tab-separated)\n"
 "      --show-unusable         Also display the uids that no longer stand: revoked, expired, or without a valid self-signature\n"
 "      --info                  Synonym of --output-format=info\n"
@@ -1172,8 +1172,9 @@ msgid ""
 "  -h, --help                  Print this help and exit\n"
 "  -V, --version               Print the version and exit\n"
 "\n"
-"Revoking is irreversible: PGP keeps the address on the certificate\n"
-"forever, marked revoked, and an identical one can never be added again.\n"
+"Revoking keeps the address on the certificate forever, marked revoked, and\n"
+"those who hold it keep it until they refresh. Adding the identical address\n"
+"again signs it anew, certifications others made over it included.\n"
 msgstr ""
 "Usage: %s email [OPTIONS]... [ІМ'Я|АДРЕСА|KEYID|U4|U5]\n"
 "\n"
@@ -1200,116 +1201,110 @@ msgstr ""
 "позначеною як відкликана, і такої самої вже ніколи не додати.\n"
 "\n"
 
-#: ../src/email.c:147
+#: ../src/email.c:148
 msgid "Error: No card answered, so there is no certificate to work on."
 msgstr "Error: Жодна картка не відповіла, тож працювати немає з чим."
 
-#: ../src/email.c:148
+#: ../src/email.c:149
 msgid "Name one, or plug the card in."
 msgstr "Назвіть один або під'єднайте картку."
 
-#: ../src/email.c:167
+#: ../src/email.c:168
 #, c-format
 msgid "Error: No certificate here matches '%s'."
 msgstr "Error: Жоден сертифікат тут не відповідає «%s»."
 
-#: ../src/email.c:171
+#: ../src/email.c:172
 #, c-format
 msgid "Error: '%s' matches %u certificates. Name one."
 msgstr "Error: «%s» відповідає %u сертифікатам. Назвіть один."
 
-#: ../src/email.c:217
+#: ../src/email.c:218
 #, c-format
 msgid "Error: Cannot check the signatures of %s."
 msgstr "Error: Не вдається перевірити підписи %s."
 
-#: ../src/email.c:316
+#: ../src/email.c:317
 #, fuzzy, c-format
 #| msgid "Error: No usable certificate for %s."
 msgid "Error: No usable user id of this certificate carries %s."
 msgstr "Error: Немає придатного сертифіката для %s."
 
-#: ../src/email.c:325
+#: ../src/email.c:326
 #, fuzzy, c-format
 #| msgid "Error: Cannot write the certificate to %s."
 msgid "Error: Cannot find '%s' in the certificate's user ids."
 msgstr "Error: Не вдається записати сертифікат до %s."
 
-#: ../src/email.c:335
+#: ../src/email.c:336
 #, fuzzy, c-format
 #| msgid "Error: Cannot set the preferred keyserver — right PIN?"
 msgid "Error: Cannot make %s the primary address — right PIN?"
 msgstr "Error: Не вдається призначити бажаний сервер ключів — правильний PIN?"
 
-#: ../src/email.c:356 ../src/email.c:395
+#: ../src/email.c:357 ../src/email.c:396
 #, c-format
 msgid "Error: '%s' wants an address."
 msgstr "Error: «%s» очікує адресу."
 
-#: ../src/email.c:362 ../src/email.c:401
+#: ../src/email.c:363 ../src/email.c:402
 #, c-format
 msgid "Error: Invalid email '%s'."
 msgstr "Error: Неприпустима адреса «%s»."
 
-#: ../src/email.c:366
+#: ../src/email.c:367
 msgid "Error: Too many addresses at once."
 msgstr "Error: Забагато адрес за раз."
 
-#: ../src/email.c:376 ../src/genkey.c:133 ../src/printcard.c:206
+#: ../src/email.c:377 ../src/genkey.c:133 ../src/printcard.c:206
 #, c-format
 msgid "Error: '%s' wants a name."
 msgstr "Error: «%s» очікує ім'я."
 
-#: ../src/email.c:383 ../src/genkey.c:146
+#: ../src/email.c:384 ../src/genkey.c:146
 #, c-format
 msgid "Error: '%s' wants a note."
 msgstr "Error: «%s» очікує нотатку."
 
-#: ../src/email.c:386
+#: ../src/email.c:387
 msgid "Notice: --extra-comment is ignored: a note is carried by its own NOTE: uid."
 msgstr "Notice: --extra-comment пропускається: нотатку несе її власний uid NOTE:."
 
-#: ../src/email.c:446 ../src/property.c:605
+#: ../src/email.c:447 ../src/property.c:606
 #, c-format
 msgid "Error: No editable certificate %s here."
 msgstr "Error: Тут немає редагованого сертифіката %s."
 
-#: ../src/email.c:475 ../src/property.c:632
+#: ../src/email.c:476 ../src/property.c:633
 #, c-format
 msgid "Notice: Certificate %s already carries '%s'."
 msgstr "Notice: Сертифікат %s уже несе «%s»."
 
-#: ../src/email.c:479 ../src/property.c:636
-#, fuzzy, c-format
-#| msgid "Notice: '%s' was revoked earlier and cannot be added again — OpenPGP keeps revoked User IDs on the certificate forever."
-msgid "Notice: '%s' was revoked earlier and cannot be added again — PGP keeps revoked User IDs on the certificate forever."
-msgstr "Notice: «%s» було відкликано раніше й не може бути додано знову — OpenPGP назавжди зберігає на сертифікаті відкликані User ID."
-
-#: ../src/email.c:484 ../src/property.c:641
+#: ../src/email.c:485 ../src/property.c:642
 #, c-format
 msgid "Notice: Adding '%s' into certificate %s…"
 msgstr "Notice: Додавання «%s» до сертифіката %s…"
 
-#: ../src/email.c:487 ../src/genkey.c:358 ../src/genkey.c:363
-#: ../src/genkey.c:373 ../src/property.c:644
+#: ../src/email.c:488 ../src/genkey.c:358 ../src/genkey.c:363
+#: ../src/genkey.c:373 ../src/property.c:645 ../src/uidedit.c:119
 #, c-format
 msgid "Error: gpg would not add '%s'."
 msgstr "Error: gpg відмовився додати «%s»."
 
-#: ../src/email.c:520
+#: ../src/email.c:521
 #, c-format
 msgid "Error: No revokable email '%s' inside certificate %s."
 msgstr "Error: У сертифікаті %s немає відкликуваної адреси «%s»."
 
-#: ../src/email.c:525
+#: ../src/email.c:526
 msgid "Error: At least one email must be retained."
 msgstr "Error: Принаймні одна адреса має залишитися."
 
-#: ../src/email.c:547 ../src/property.c:699
+#: ../src/email.c:548 ../src/property.c:700
 msgid "Warning: Nothing to revoke."
 msgstr "Warning: Відкликати нічого."
 
-#: ../src/email.c:632
+#: ../src/email.c:633
 msgid "Notice: No user id is flagged primary; '--set-primary' chooses one."
 msgstr ""
 
@@ -1414,8 +1409,8 @@ msgstr "Error: «%s» очікує сервер ключів."
 msgid "Error: keyserver MUST be hkp(s)://…"
 msgstr "Error: сервер ключів МУСИТЬ бути hkp(s)://…"
 
-#: ../src/genkey.c:221 ../src/property.c:472 ../src/property.c:575
-#: ../src/property.c:585
+#: ../src/genkey.c:221 ../src/property.c:473 ../src/property.c:576
+#: ../src/property.c:586
 #, c-format
 msgid "Error: A user id holds %d bytes at most."
 msgstr ""
@@ -2680,7 +2675,7 @@ msgstr "Error: Не вдається призначити бажаний сер�
 msgid "Error: Cannot export %s."
 msgstr "Error: Не вдається вивезти %s."
 
-#: ../src/property.c:306 ../src/property.c:749
+#: ../src/property.c:306 ../src/property.c:750
 #, fuzzy, c-format
 #| msgid "Notice: Written into '%s'."
 msgid "Notice: %s carries no %s."
@@ -2781,14 +2776,15 @@ msgid ""
 "      --replace-to VALUE      Exact synonym of --add — terminology is just more relevant for {name,note,ksprefrd,expire}\n"
 "  -R, --revoke VALUE          Revoke the PROPERTY uid carrying VALUE (may be used more than once)\n"
 "      --revoke-all            Revoke every usable PROPERTY uid — all but the newest for {name,email}\n"
-"  -y, --yes                   Assume yes: skip the irreversible-revocation confirmation\n"
+"  -y, --yes                   Assume yes: skip the revocation confirmation\n"
 "      --show-unusable         Also display the uids that no longer stand: revoked, expired, or without a valid self-signature\n"
 "  -K, --keyservers KEYSERVERS If non-empty, send updated certificate to this keyservers - Default: %s\n"
 "  -h, --help                  Print this help and exit\n"
 "  -V, --version               Print the version and exit\n"
 "\n"
-"Revoking is irreversible: PGP keeps the uid on the certificate\n"
-"forever, marked revoked, and an identical one can never be added again.\n"
+"Revoking keeps the uid on the certificate forever, marked revoked, and\n"
+"those who hold it keep it until they refresh. Adding the identical value\n"
+"again signs it anew, certifications others made over it included.\n"
 msgstr ""
 "Usage: %s property PROPERTY [OPTIONS]... [ІМ'Я|АДРЕСА|KEYID|U4|U5]\n"
 "\n"
@@ -2819,51 +2815,51 @@ msgstr ""
 "позначеним як відкликаний, і такого самого вже ніколи не додати.\n"
 "\n"
 
-#: ../src/property.c:468
+#: ../src/property.c:469
 msgid "Error: Too many values at once."
 msgstr "Error: Забагато значень за раз."
 
-#: ../src/property.c:505
+#: ../src/property.c:506
 #, c-format
 msgid "Warning: Ignoring extra argument '%s'."
 msgstr "Warning: Зайвий довід «%s» пропущено."
 
-#: ../src/property.c:510
+#: ../src/property.c:511
 msgid "Error: A property name is required."
 msgstr "Error: Потрібне ім'я властивості."
 
-#: ../src/property.c:531
+#: ../src/property.c:532
 #, c-format
 msgid "Error: Unknown property '%s'."
 msgstr "Error: Невідома властивість «%s»."
 
-#: ../src/property.c:532
+#: ../src/property.c:533
 #, fuzzy, c-format
 #| msgid "Notice: One of name, note, phone, address, url, lang, geo, %s."
 msgid "Notice: One of name, note, phone, address, url, lang, geo, %s, %s."
 msgstr "Notice: Одна з name, note, phone, address, url, lang, geo, %s."
 
-#: ../src/property.c:539
+#: ../src/property.c:540
 #, c-format
 msgid "Error: Only one --add at a time for '%s' — the new value replaces the one before, and two would race."
 msgstr "Error: По одному --add за раз для «%s» — нове значення заступає попереднє, а два змагалися б за місце."
 
-#: ../src/property.c:551 ../src/property.c:559
+#: ../src/property.c:552 ../src/property.c:560
 #, c-format
 msgid "Error: Only one --add at a time for '%s'."
 msgstr "Error: По одному --add за раз для «%s»."
 
-#: ../src/property.c:591
+#: ../src/property.c:592
 #, c-format
 msgid "Error: Invalid %s value '%s'."
 msgstr "Error: Неприпустиме значення %s «%s»."
 
-#: ../src/property.c:671
+#: ../src/property.c:672
 #, c-format
 msgid "Error: No revokable '%s:%s' inside certificate %s."
 msgstr "Error: У сертифікаті %s немає відкликуваного «%s:%s»."
 
-#: ../src/property.c:676
+#: ../src/property.c:677
 #, c-format
 msgid "Error: At least one %s must be retained."
 msgstr "Error: Принаймні одне %s має залишитися."
@@ -4577,67 +4573,99 @@ msgstr "Error: Потрібне одне з local, export чи import."
 msgid "Error: '%s' is not one of local, export or import."
 msgstr "Error: «%s» — це ні local, ні export, ні import."
 
-#: ../src/uidedit.c:69
+#: ../src/uidedit.c:73
 #, fuzzy
 #| msgid "Error: Revoking a User ID is irreversible — OpenPGP keeps it"
-msgid "Error: Revoking a User ID is irreversible — PGP keeps it"
+msgid "Error: Revoking a User ID leaves it on the certificate forever,"
 msgstr "Error: Відкликання User ID незворотне — OpenPGP зберігає його"
 
-#: ../src/uidedit.c:70
-msgid "on the certificate forever, marked revoked, and an identical one"
-msgstr "на сертифікаті назавжди, позначеним як відкликаний, і такий самий"
+#: ../src/uidedit.c:74
+msgid "marked revoked; those who hold it keep it until they refresh."
+msgstr ""
 
-#: ../src/uidedit.c:71
-msgid "can never be added again. Pass --yes if that is what you want:"
+#: ../src/uidedit.c:75
+msgid "Adding the identical value later signs it anew and it stands"
+msgstr ""
+
+#: ../src/uidedit.c:76
+#, fuzzy
+#| msgid "can never be added again. Pass --yes if that is what you want:"
+msgid "again. Pass --yes if that is what you want:"
 msgstr "уже ніколи не додати. Передайте --yes, якщо ви цього хочете:"
 
-#: ../src/uidedit.c:72
+#: ../src/uidedit.c:77
 #, c-format
 msgid "  %s"
 msgstr "  %s"
 
-#: ../src/uidedit.c:75
+#: ../src/uidedit.c:80
 #, c-format
 msgid "Notice: Revoking %s inside certificate %s…"
 msgstr "Notice: Відкликання %s у сертифікаті %s…"
 
-#: ../src/uidedit.c:78
+#: ../src/uidedit.c:83
 #, c-format
 msgid "Error: gpg would not revoke %s."
 msgstr "Error: gpg відмовився відкликати %s."
 
-#: ../src/uidedit.c:115
+#: ../src/uidedit.c:106
+#, fuzzy, c-format
+#| msgid "Error: This certificate carries no name."
+msgid "Error: Certificate %s carries no '%s' to sign again."
+msgstr "Error: Цей сертифікат не несе імені."
+
+#: ../src/uidedit.c:109
+#, fuzzy, c-format
+#| msgid "Notice: %s code unchanged."
+msgid "Notice: '%s' was revoked earlier; signing it again…"
+msgstr "Notice: Код %s без змін."
+
+#: ../src/uidedit.c:114
+#, fuzzy, c-format
+#| msgid "Error: gpg would not export the secret key — right passphrase?"
+msgid "Error: gpg would not drop the revoked '%s' — right PIN?"
+msgstr "Error: gpg відмовився вивезти таємний ключ — правильна парольна фраза?"
+
+#: ../src/uidedit.c:156
 #, c-format
 msgid "Warning: No address left on certificate %s to carry the primary User ID flag."
 msgstr "Warning: На сертифікаті %s не лишилося адреси, яка несла б позначку головного User ID."
 
-#: ../src/uidedit.c:119
+#: ../src/uidedit.c:160
 #, c-format
 msgid "Notice: Main identity is no longer an address: moving the primary User ID flag to %s."
 msgstr "Notice: Головна особа більше не адреса: позначка головного User ID переходить на %s."
 
-#: ../src/uidedit.c:123
+#: ../src/uidedit.c:164
 msgid "Error: gpg would not move the primary User ID flag."
 msgstr "Error: gpg відмовився перенести позначку головного User ID."
 
-#: ../src/uidedit.c:173
+#: ../src/uidedit.c:214
 #, c-format
 msgid "Notice: Minting the identity uid %s…"
 msgstr "Notice: Карбування uid особи %s…"
 
-#: ../src/uidedit.c:176
+#: ../src/uidedit.c:217
 #, c-format
 msgid "Error: gpg would not add %s."
 msgstr "Error: gpg відмовився додати %s."
 
-#: ../src/uidedit.c:195
+#: ../src/uidedit.c:236
 #, c-format
 msgid "Warning: gpg would not add %s."
 msgstr "Warning: gpg відмовився додати %s."
 
-#: ../src/uidedit.c:214
+#: ../src/uidedit.c:255
 msgid "Warning: The reshaped certificate could not be published."
 msgstr ""
+
+#, fuzzy, c-format
+#~| msgid "Notice: '%s' was revoked earlier and cannot be added again — OpenPGP keeps revoked User IDs on the certificate forever."
+#~ msgid "Notice: '%s' was revoked earlier and cannot be added again — PGP keeps revoked User IDs on the certificate forever."
+#~ msgstr "Notice: «%s» було відкликано раніше й не може бути додано знову — OpenPGP назавжди зберігає на сертифікаті відкликані User ID."
+
+#~ msgid "on the certificate forever, marked revoked, and an identical one"
+#~ msgstr "на сертифікаті назавжди, позначеним як відкликаний, і такий самий"
 
 #, c-format
 #~ msgid "Error: '%s' wants an encoding: base64url or base45."

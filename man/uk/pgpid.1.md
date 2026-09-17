@@ -282,14 +282,15 @@ OPTIONS:
       --replace-to VALUE      Exact synonym of --add — terminology is just more relevant for {name,note,ksprefrd,expire}
   -R, --revoke VALUE          Revoke the PROPERTY uid carrying VALUE (may be used more than once)
       --revoke-all            Revoke every usable PROPERTY uid — all but the newest for {name,email}
-  -y, --yes                   Assume yes: skip the irreversible-revocation confirmation
+  -y, --yes                   Assume yes: skip the revocation confirmation
       --show-unusable         Also display the uids that no longer stand: revoked, expired, or without a valid self-signature
   -K, --keyservers KEYSERVERS If non-empty, send updated certificate to this keyservers - Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Print this help and exit
   -V, --version               Print the version and exit
 
-Revoking is irreversible: PGP keeps the uid on the certificate
-forever, marked revoked, and an identical one can never be added again.
+Revoking keeps the uid on the certificate forever, marked revoked, and
+those who hold it keep it until they refresh. Adding the identical value
+again signs it anew, certifications others made over it included.
 ```
 
 ## pgpid cert_email
@@ -312,7 +313,7 @@ OPTIONS:
   -N, --name NAME             The name in front of an added address
                               Default: the certificate's own FN:, else the local part
         --set-primary EMAIL     Make EMAIL the certificate's primary address
-  -y, --yes                   Assume yes: skip the irreversible-revocation confirmation
+  -y, --yes                   Assume yes: skip the revocation confirmation
   -c, --certs-count           Also output the count of external valid certifications per email (tab-separated)
       --show-unusable         Also display the uids that no longer stand: revoked, expired, or without a valid self-signature
       --info                  Synonym of --output-format=info
@@ -320,8 +321,9 @@ OPTIONS:
   -h, --help                  Print this help and exit
   -V, --version               Print the version and exit
 
-Revoking is irreversible: PGP keeps the address on the certificate
-forever, marked revoked, and an identical one can never be added again.
+Revoking keeps the address on the certificate forever, marked revoked, and
+those who hold it keep it until they refresh. Adding the identical address
+again signs it anew, certifications others made over it included.
 ```
 
 ## pgpid cert_avatar

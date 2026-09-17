@@ -286,14 +286,15 @@ OPTIONS:
       --replace-to VALEUR     Synonyme exact de --add — le mot est simplement plus juste pour {name,note,ksprefrd,expire}
   -R, --revoke VALEUR         Révoquer l'uid de PROPRIÉTÉ portant VALEUR (peut servir plusieurs fois)
       --revoke-all            Révoquer tous les uid utilisables de PROPRIÉTÉ — tous sauf le plus récent pour {name,email}
-  -y, --yes                   Répondre oui d'office : sauter la confirmation de révocation irréversible
+  -y, --yes                   Répondre oui d'office : sauter la confirmation de révocation
       --show-unusable         Afficher aussi les uid qui ne tiennent plus : révoqués, expirés, ou sans auto-signature valide
   -K, --keyservers SERVEURS   Si non vide, y envoyer le certificat mis à jour - Par défaut : hkps://keys.foopgp.org hkps://keys.openpgp.org
   -h, --help                  Afficher cette aide et quitter
   -V, --version               Afficher la version et quitter
 
-Révoquer est irréversible : PGP garde l'uid sur le certificat pour toujours,
-marqué révoqué, et un uid identique ne pourra jamais être rajouté.
+Révoquer laisse l'uid sur le certificat pour toujours, marqué révoqué, et
+ceux qui l'ont le gardent jusqu'à leur prochain rafraîchissement. Le rajouter
+à l'identique le re-signe, avec les certifications reçues.
 ```
 
 ## pgpid cert_email
@@ -317,7 +318,7 @@ OPTIONS:
   -N, --name NOM              Le nom placé devant une adresse ajoutée
                               Par défaut : le FN: du certificat, sinon la partie locale
         --set-primary COURRIEL  Faire de COURRIEL l'adresse principale du certificat
-  -y, --yes                   Répondre oui d'office : sauter la confirmation de révocation irréversible
+  -y, --yes                   Répondre oui d'office : sauter la confirmation de révocation
   -c, --certs-count           Afficher aussi le nombre de certifications valides par adresse (tabulé)
       --show-unusable         Afficher aussi les uid qui ne tiennent plus : révoqués, expirés, ou sans auto-signature valide
       --info                  Synonyme de --output-format=info
@@ -325,9 +326,9 @@ OPTIONS:
   -h, --help                  Afficher cette aide et quitter
   -V, --version               Afficher la version et quitter
 
-Révoquer est irréversible : PGP garde l'adresse sur le certificat pour
-toujours, marquée révoquée, et une adresse identique ne pourra jamais être
-rajoutée.
+Révoquer laisse l'adresse sur le certificat pour toujours, marquée révoquée,
+et ceux qui l'ont la gardent jusqu'à leur prochain rafraîchissement. La
+rajouter à l'identique la re-signe, avec les certifications reçues.
 ```
 
 ## pgpid cert_avatar

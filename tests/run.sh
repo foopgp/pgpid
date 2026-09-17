@@ -233,6 +233,17 @@ is "a note past 512 bytes is shown whole" "$("$BIN" cert_property note "$ADA")" 
 long2=${long/Line 001/First line}
 "$BIN" cert_property note --replace-to "$long2" --yes --keyservers '' "$ADA" >/dev/null 2>&1
 is "and replaced whole, the one before revoked" "$("$BIN" cert_property note "$ADA")" "$long2"
+# Revoking is not the end of it: the same value signed again stands again,
+# which is what the help now says instead of "irreversible".
+"$BIN" cert_property url --add https://example.invalid/back --keyservers '' "$ADA" >/dev/null 2>&1
+"$BIN" cert_property url --revoke https://example.invalid/back --yes --keyservers '' "$ADA" >/dev/null 2>&1
+is "a revoked value is gone from the listing" \
+   "$("$BIN" cert_property url "$ADA" | grep --count 'example.invalid/back')" "0"
+"$BIN" cert_property url --add https://example.invalid/back --keyservers '' "$ADA" >/dev/null 2>&1
+is "and comes back when it is added again" \
+   "$("$BIN" cert_property url "$ADA" | grep --count 'example.invalid/back')" "1"
+is "once, not twice" "$("$BIN" cert_property url --show-unusable "$ADA" | grep --count 'example.invalid/back')" "1"
+
 huge=$(head --bytes=2100 /dev/zero | tr '\0' x)
 is "a user id longer than gpg takes is refused first" \
    "$("$BIN" cert_property note --replace-to "$huge" --yes --keyservers '' "$ADA" >/dev/null 2>&1 ; echo $?)" "2"

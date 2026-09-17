@@ -470,6 +470,11 @@ const char *pgpid_uid_address(const char *uid, size_t *len);
  * there to say. */
 bool pgpid_revoke_uid(const char *user, const char *uid, bool assume_yes);
 
+/** Sign a revoked uid again: drop the packet here, add the same string back.
+ *  The revocation and other people's certifications return with the next
+ *  refresh, the revocation older than the new self-signature. */
+bool pgpid_readd_uid(const char *user, const char *uid);
+
 /* Put the primary flag back on an address after a revocation moved it. */
 bool pgpid_fix_primary(const char *user);
 

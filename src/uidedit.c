@@ -7,10 +7,14 @@
  *
  * Three operations that `email` and `property` both need, written once.
  *
- * Revoking a uid is irreversible in a way that surprises people: PGP
- * keeps the revoked uid on the certificate forever, marked revoked, and gpg
- * then refuses to add an identical one. "Undo" means living with a name
- * struck through, not without it.
+ * Revoking a uid leaves it on the certificate forever, marked revoked: the
+ * packet never goes away, and whoever holds the certificate keeps the uid
+ * until they refresh. It is not the end of it, though — a self-signature made
+ * after the revocation supersedes it (RFC 9580: a revocation revokes the
+ * *earlier* certifications of the same issuer), and the certifications other
+ * people made over that uid count again. [pgpid_readd_uid] is that road, and
+ * it is why putting the same string back is not the same as inventing a new
+ * one.
  */
 #include "pgpid.h"
 
@@ -66,9 +70,10 @@ const char *pgpid_uid_address(const char *uid, size_t *len)
 bool pgpid_revoke_uid(const char *user, const char *uid, bool assume_yes)
 {
     if (!assume_yes) {
-        pgpid_error(_("Error: Revoking a User ID is irreversible — PGP keeps it"));
-        pgpid_error(_("on the certificate forever, marked revoked, and an identical one"));
-        pgpid_error(_("can never be added again. Pass --yes if that is what you want:"));
+        pgpid_error(_("Error: Revoking a User ID leaves it on the certificate forever,"));
+        pgpid_error(_("marked revoked; those who hold it keep it until they refresh."));
+        pgpid_error(_("Adding the identical value later signs it anew and it stands"));
+        pgpid_error(_("again. Pass --yes if that is what you want:"));
         pgpid_error(_("  %s"), uid);
         return false;
     }
@@ -76,6 +81,42 @@ bool pgpid_revoke_uid(const char *user, const char *uid, bool assume_yes)
     const char *argv[] = { "--batch", "--quick-revoke-uid", user, uid, NULL };
     if (pgpid_run_engine(argv)) {
         pgpid_error(_("Error: gpg would not revoke %s."), uid);
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Sign a revoked uid again, by the one route gpg leaves open.
+ *
+ * gpg refuses `--quick-add-uid` for a uid the certificate already carries,
+ * revoked or not, and its menu will not sign one either. So the packet goes
+ * first: `deluid` drops the uid and its signatures from *this* keyring, and
+ * `--quick-add-uid` then mints a fresh self-signature over the same string.
+ *
+ * What the keyservers hold comes back at the next refresh: the old revocation,
+ * which is older than the new self-signature and therefore superseded, and the
+ * certifications other people made over that uid, which count again — this is
+ * the whole point of putting the same string back rather than a new one.
+ */
+bool pgpid_readd_uid(const char *user, const char *uid)
+{
+    unsigned index = pgpid_uid_index(user, uid);
+    if (!index) {
+        pgpid_error(_("Error: Certificate %s carries no '%s' to sign again."), user, uid);
+        return false;
+    }
+    pgpid_error(_("Notice: '%s' was revoked earlier; signing it again…"), uid);
+    char script[PGPID_UID_MAX + 64];
+    snprintf(script, sizeof script, "uid %u\ndeluid\ny\nsave\n", index);
+    const char *drop[] = { "--batch", "--command-fd", "0", "--edit-key", user, NULL };
+    if (pgpid_run_engine_input(drop, script)) {
+        pgpid_error(_("Error: gpg would not drop the revoked '%s' — right PIN?"), uid);
+        return false;
+    }
+    const char *add[] = { "--batch", "--quick-add-uid", user, uid, NULL };
+    if (pgpid_run_engine(add)) {
+        pgpid_error(_("Error: gpg would not add '%s'."), uid);
         return false;
     }
     return true;

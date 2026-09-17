@@ -435,7 +435,7 @@ static void usage(FILE *out)
         "      --replace-to VALUE      Exact synonym of --add — terminology is just more relevant for {name,note,ksprefrd,expire}\n"
         "  -R, --revoke VALUE          Revoke the PROPERTY uid carrying VALUE (may be used more than once)\n"
         "      --revoke-all            Revoke every usable PROPERTY uid — all but the newest for {name,email}\n"
-        "  -y, --yes                   Assume yes: skip the irreversible-revocation confirmation\n"
+        "  -y, --yes                   Assume yes: skip the revocation confirmation\n"
         "      --show-unusable         Also display the uids that no longer stand: revoked, expired, or without a valid self-signature\n"
         "  -K, --keyservers KEYSERVERS If non-empty, send updated certificate to this keyservers - Default: "
         "%s"
@@ -443,8 +443,9 @@ static void usage(FILE *out)
         "  -h, --help                  Print this help and exit\n"
         "  -V, --version               Print the version and exit\n"
         "\n"
-        "Revoking is irreversible: PGP keeps the uid on the certificate\n"
-        "forever, marked revoked, and an identical one can never be added again.\n"),
+        "Revoking keeps the uid on the certificate forever, marked revoked, and\n"
+        "those who hold it keep it until they refresh. Adding the identical value\n"
+        "again signs it anew, certifications others made over it included.\n"),
             PGPID_NAME, PGPID_NAME, PGPID_KEYSERVERS);
 }
 
@@ -633,9 +634,9 @@ int pgpid_action_cert_property(int argc, char **argv)
             continue;
         }
         if (struck) {
-            pgpid_error(_("Notice: '%s' was revoked earlier and cannot be added again "
-                        "— PGP keeps revoked User IDs on the certificate "
-                        "forever."), want);
+            if (!pgpid_readd_uid(fpr, want))
+                return PGPID_FAIL;
+            modified = true;
             continue;
         }
         pgpid_error(_("Notice: Adding '%s' into certificate %s…"), want, fpr);

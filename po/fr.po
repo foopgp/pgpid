@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid 0.0.7-35-g8512aa6\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-09-17 20:08+0200\n"
+"POT-Creation-Date: 2026-09-17 21:05+0200\n"
 "PO-Revision-Date: 2026-08-22 22:58+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -147,10 +147,10 @@ msgstr "Error: « %s » attend un répertoire."
 
 #: ../src/avatar.c:523 ../src/certify.c:530 ../src/certrevoke.c:109
 #: ../src/changepass.c:119 ../src/changetokencode.c:127
-#: ../src/changetokenmeta.c:206 ../src/del.c:78 ../src/email.c:424
+#: ../src/changetokenmeta.c:206 ../src/del.c:78 ../src/email.c:425
 #: ../src/genkey.c:207 ../src/genu4.c:523 ../src/genuid.c:162 ../src/get.c:334
 #: ../src/list.c:377 ../src/main.c:194 ../src/printcard.c:222
-#: ../src/printsecret.c:681 ../src/property.c:497 ../src/push.c:81
+#: ../src/printsecret.c:681 ../src/property.c:498 ../src/push.c:81
 #: ../src/scan.c:511 ../src/secretdel.c:78 ../src/secretlist.c:59
 #: ../src/sigs.c:153 ../src/systemadduser.c:416 ../src/systemadmins.c:93
 #: ../src/systemconfhome.c:115 ../src/systemdeluser.c:171
@@ -383,7 +383,7 @@ msgstr "Error: Aucun certificat ici ne porte ces caractères à cet endroit."
 msgid "Error: '%s' wants a key."
 msgstr "Error: « %s » attend une clé."
 
-#: ../src/certify.c:506 ../src/genu4.c:532 ../src/property.c:464
+#: ../src/certify.c:506 ../src/genu4.c:532 ../src/property.c:465
 #: ../src/systemadduser.c:424 ../src/trustdb.c:628
 #, c-format
 msgid "Error: '%s' wants a value."
@@ -394,7 +394,7 @@ msgstr "Error: « %s » attend une valeur."
 msgid "Error: Unknown credibility value '%s'."
 msgstr "Error: Valeur de crédibilité inconnue « %s »."
 
-#: ../src/certify.c:517 ../src/email.c:409 ../src/property.c:484
+#: ../src/certify.c:517 ../src/email.c:410 ../src/property.c:485
 #: ../src/trustdb.c:1025
 #, c-format
 msgid "Error: '%s' wants a list, empty for none."
@@ -1013,7 +1013,7 @@ msgid ""
 "  -N, --name NAME             The name in front of an added address\n"
 "                              Default: the certificate's own FN:, else the local part\n"
 "        --set-primary EMAIL     Make EMAIL the certificate's primary address\n"
-"  -y, --yes                   Assume yes: skip the irreversible-revocation confirmation\n"
+"  -y, --yes                   Assume yes: skip the revocation confirmation\n"
 "  -c, --certs-count           Also output the count of external valid certifications per email (tab-separated)\n"
 "      --show-unusable         Also display the uids that no longer stand: revoked, expired, or without a valid self-signature\n"
 "      --info                  Synonym of --output-format=info\n"
@@ -1021,8 +1021,9 @@ msgid ""
 "  -h, --help                  Print this help and exit\n"
 "  -V, --version               Print the version and exit\n"
 "\n"
-"Revoking is irreversible: PGP keeps the address on the certificate\n"
-"forever, marked revoked, and an identical one can never be added again.\n"
+"Revoking keeps the address on the certificate forever, marked revoked, and\n"
+"those who hold it keep it until they refresh. Adding the identical address\n"
+"again signs it anew, certifications others made over it included.\n"
 msgstr ""
 "Usage: %s cert_email [OPTIONS]... [NOM|COURRIEL|KEYID|U4|U5]\n"
 "\n"
@@ -1042,7 +1043,7 @@ msgstr ""
 "  -N, --name NOM              Le nom placé devant une adresse ajoutée\n"
 "                              Par défaut : le FN: du certificat, sinon la partie locale\n"
 "        --set-primary COURRIEL  Faire de COURRIEL l'adresse principale du certificat\n"
-"  -y, --yes                   Répondre oui d'office : sauter la confirmation de révocation irréversible\n"
+"  -y, --yes                   Répondre oui d'office : sauter la confirmation de révocation\n"
 "  -c, --certs-count           Afficher aussi le nombre de certifications valides par adresse (tabulé)\n"
 "      --show-unusable         Afficher aussi les uid qui ne tiennent plus : révoqués, expirés, ou sans auto-signature valide\n"
 "      --info                  Synonyme de --output-format=info\n"
@@ -1050,116 +1051,111 @@ msgstr ""
 "  -h, --help                  Afficher cette aide et quitter\n"
 "  -V, --version               Afficher la version et quitter\n"
 "\n"
-"Révoquer est irréversible : PGP garde l'adresse sur le certificat pour\n"
-"toujours, marquée révoquée, et une adresse identique ne pourra jamais être\n"
-"rajoutée.\n"
+"Révoquer laisse l'adresse sur le certificat pour toujours, marquée révoquée,\n"
+"et ceux qui l'ont la gardent jusqu'à leur prochain rafraîchissement. La\n"
+"rajouter à l'identique la re-signe, avec les certifications reçues.\n"
 
-#: ../src/email.c:147
+#: ../src/email.c:148
 msgid "Error: No card answered, so there is no certificate to work on."
 msgstr "Error: Aucune carte n'a répondu, il n'y a donc aucun certificat sur lequel travailler."
 
-#: ../src/email.c:148
+#: ../src/email.c:149
 msgid "Name one, or plug the card in."
 msgstr "Nommez-en un, ou branchez la carte."
 
-#: ../src/email.c:167
+#: ../src/email.c:168
 #, c-format
 msgid "Error: No certificate here matches '%s'."
 msgstr "Error: Aucun certificat ici ne correspond à « %s »."
 
-#: ../src/email.c:171
+#: ../src/email.c:172
 #, c-format
 msgid "Error: '%s' matches %u certificates. Name one."
 msgstr "Error: « %s » correspond à %u certificats. Nommez-en un."
 
-#: ../src/email.c:217
+#: ../src/email.c:218
 #, c-format
 msgid "Error: Cannot check the signatures of %s."
 msgstr "Error: Impossible de vérifier les signatures de %s."
 
-#: ../src/email.c:316
+#: ../src/email.c:317
 #, c-format
 msgid "Error: No usable user id of this certificate carries %s."
 msgstr "Error: Aucun uid utilisable de ce certificat ne porte %s."
 
-#: ../src/email.c:325
+#: ../src/email.c:326
 #, c-format
 msgid "Error: Cannot find '%s' in the certificate's user ids."
 msgstr "Error: Impossible de trouver « %s » parmi les uid du certificat."
 
-#: ../src/email.c:335
+#: ../src/email.c:336
 #, c-format
 msgid "Error: Cannot make %s the primary address — right PIN?"
 msgstr "Error: Impossible de faire de %s l'adresse principale — bon PIN ?"
 
-#: ../src/email.c:356 ../src/email.c:395
+#: ../src/email.c:357 ../src/email.c:396
 #, c-format
 msgid "Error: '%s' wants an address."
 msgstr "Error: « %s » attend une adresse."
 
-#: ../src/email.c:362 ../src/email.c:401
+#: ../src/email.c:363 ../src/email.c:402
 #, c-format
 msgid "Error: Invalid email '%s'."
 msgstr "Error: Adresse invalide « %s »."
 
-#: ../src/email.c:366
+#: ../src/email.c:367
 msgid "Error: Too many addresses at once."
 msgstr "Error: Trop d'adresses à la fois."
 
-#: ../src/email.c:376 ../src/genkey.c:133 ../src/printcard.c:206
+#: ../src/email.c:377 ../src/genkey.c:133 ../src/printcard.c:206
 #, c-format
 msgid "Error: '%s' wants a name."
 msgstr "Error: « %s » attend un nom."
 
-#: ../src/email.c:383 ../src/genkey.c:146
+#: ../src/email.c:384 ../src/genkey.c:146
 #, c-format
 msgid "Error: '%s' wants a note."
 msgstr "Error: « %s » attend une note."
 
-#: ../src/email.c:386
+#: ../src/email.c:387
 msgid "Notice: --extra-comment is ignored: a note is carried by its own NOTE: uid."
 msgstr "Notice: --extra-comment est ignoré : une note est portée par son propre uid NOTE:."
 
-#: ../src/email.c:446 ../src/property.c:605
+#: ../src/email.c:447 ../src/property.c:606
 #, c-format
 msgid "Error: No editable certificate %s here."
 msgstr "Error: Aucun certificat %s modifiable ici."
 
-#: ../src/email.c:475 ../src/property.c:632
+#: ../src/email.c:476 ../src/property.c:633
 #, c-format
 msgid "Notice: Certificate %s already carries '%s'."
 msgstr "Notice: Le certificat %s porte déjà « %s »."
 
-#: ../src/email.c:479 ../src/property.c:636
-#, c-format
-msgid "Notice: '%s' was revoked earlier and cannot be added again — PGP keeps revoked User IDs on the certificate forever."
-msgstr "Notice: « %s » a été révoqué plus tôt et ne peut pas être rajouté — PGP garde les uid révoqués sur le certificat pour toujours."
-
-#: ../src/email.c:484 ../src/property.c:641
+#: ../src/email.c:485 ../src/property.c:642
 #, c-format
 msgid "Notice: Adding '%s' into certificate %s…"
 msgstr "Notice: Ajout de « %s » dans le certificat %s…"
 
-#: ../src/email.c:487 ../src/genkey.c:358 ../src/genkey.c:363
-#: ../src/genkey.c:373 ../src/property.c:644
+#: ../src/email.c:488 ../src/genkey.c:358 ../src/genkey.c:363
+#: ../src/genkey.c:373 ../src/property.c:645 ../src/uidedit.c:119
 #, c-format
 msgid "Error: gpg would not add '%s'."
 msgstr "Error: gpg a refusé d'ajouter « %s »."
 
-#: ../src/email.c:520
+#: ../src/email.c:521
 #, c-format
 msgid "Error: No revokable email '%s' inside certificate %s."
 msgstr "Error: Aucune adresse « %s » révocable dans le certificat %s."
 
-#: ../src/email.c:525
+#: ../src/email.c:526
 msgid "Error: At least one email must be retained."
 msgstr "Error: Au moins une adresse doit être conservée."
 
-#: ../src/email.c:547 ../src/property.c:699
+#: ../src/email.c:548 ../src/property.c:700
 msgid "Warning: Nothing to revoke."
 msgstr "Warning: Rien à révoquer."
 
-#: ../src/email.c:632
+#: ../src/email.c:633
 msgid "Notice: No user id is flagged primary; '--set-primary' chooses one."
 msgstr "Notice: Aucun uid n'est marqué principal ; « --set-primary » en choisit un."
 
@@ -1243,8 +1239,8 @@ msgstr "Error: « %s » attend un serveur de clés."
 msgid "Error: keyserver MUST be hkp(s)://…"
 msgstr "Error: le serveur de clés DOIT être en hkp(s)://…"
 
-#: ../src/genkey.c:221 ../src/property.c:472 ../src/property.c:575
-#: ../src/property.c:585
+#: ../src/genkey.c:221 ../src/property.c:473 ../src/property.c:576
+#: ../src/property.c:586
 #, c-format
 msgid "Error: A user id holds %d bytes at most."
 msgstr "Error: Un uid ne contient pas plus de %d octets."
@@ -2376,7 +2372,7 @@ msgstr "Error: Impossible de poser le serveur de clés préféré — le bon PIN
 msgid "Error: Cannot export %s."
 msgstr "Error: Impossible d'exporter %s."
 
-#: ../src/property.c:306 ../src/property.c:749
+#: ../src/property.c:306 ../src/property.c:750
 #, c-format
 msgid "Notice: %s carries no %s."
 msgstr "Notice: %s ne porte pas de %s."
@@ -2444,14 +2440,15 @@ msgid ""
 "      --replace-to VALUE      Exact synonym of --add — terminology is just more relevant for {name,note,ksprefrd,expire}\n"
 "  -R, --revoke VALUE          Revoke the PROPERTY uid carrying VALUE (may be used more than once)\n"
 "      --revoke-all            Revoke every usable PROPERTY uid — all but the newest for {name,email}\n"
-"  -y, --yes                   Assume yes: skip the irreversible-revocation confirmation\n"
+"  -y, --yes                   Assume yes: skip the revocation confirmation\n"
 "      --show-unusable         Also display the uids that no longer stand: revoked, expired, or without a valid self-signature\n"
 "  -K, --keyservers KEYSERVERS If non-empty, send updated certificate to this keyservers - Default: %s\n"
 "  -h, --help                  Print this help and exit\n"
 "  -V, --version               Print the version and exit\n"
 "\n"
-"Revoking is irreversible: PGP keeps the uid on the certificate\n"
-"forever, marked revoked, and an identical one can never be added again.\n"
+"Revoking keeps the uid on the certificate forever, marked revoked, and\n"
+"those who hold it keep it until they refresh. Adding the identical value\n"
+"again signs it anew, certifications others made over it included.\n"
 msgstr ""
 "Usage: %s cert_property PROPRIÉTÉ [OPTIONS]... [NOM|COURRIEL|KEYID|U4|U5]\n"
 "\n"
@@ -2479,59 +2476,60 @@ msgstr ""
 "      --replace-to VALEUR     Synonyme exact de --add — le mot est simplement plus juste pour {name,note,ksprefrd,expire}\n"
 "  -R, --revoke VALEUR         Révoquer l'uid de PROPRIÉTÉ portant VALEUR (peut servir plusieurs fois)\n"
 "      --revoke-all            Révoquer tous les uid utilisables de PROPRIÉTÉ — tous sauf le plus récent pour {name,email}\n"
-"  -y, --yes                   Répondre oui d'office : sauter la confirmation de révocation irréversible\n"
+"  -y, --yes                   Répondre oui d'office : sauter la confirmation de révocation\n"
 "      --show-unusable         Afficher aussi les uid qui ne tiennent plus : révoqués, expirés, ou sans auto-signature valide\n"
 "  -K, --keyservers SERVEURS   Si non vide, y envoyer le certificat mis à jour - Par défaut : %s\n"
 "  -h, --help                  Afficher cette aide et quitter\n"
 "  -V, --version               Afficher la version et quitter\n"
 "\n"
-"Révoquer est irréversible : PGP garde l'uid sur le certificat pour toujours,\n"
-"marqué révoqué, et un uid identique ne pourra jamais être rajouté.\n"
+"Révoquer laisse l'uid sur le certificat pour toujours, marqué révoqué, et\n"
+"ceux qui l'ont le gardent jusqu'à leur prochain rafraîchissement. Le rajouter\n"
+"à l'identique le re-signe, avec les certifications reçues.\n"
 
-#: ../src/property.c:468
+#: ../src/property.c:469
 msgid "Error: Too many values at once."
 msgstr "Error: Trop de valeurs à la fois."
 
-#: ../src/property.c:505
+#: ../src/property.c:506
 #, c-format
 msgid "Warning: Ignoring extra argument '%s'."
 msgstr "Warning: Argument supplémentaire « %s » ignoré."
 
-#: ../src/property.c:510
+#: ../src/property.c:511
 msgid "Error: A property name is required."
 msgstr "Error: Un nom de propriété est exigé."
 
-#: ../src/property.c:531
+#: ../src/property.c:532
 #, c-format
 msgid "Error: Unknown property '%s'."
 msgstr "Error: Propriété inconnue « %s »."
 
-#: ../src/property.c:532
+#: ../src/property.c:533
 #, c-format
 msgid "Notice: One of name, note, phone, address, url, lang, geo, %s, %s."
 msgstr "Notice: L'un de name, note, phone, address, url, lang, geo, %s, %s."
 
-#: ../src/property.c:539
+#: ../src/property.c:540
 #, c-format
 msgid "Error: Only one --add at a time for '%s' — the new value replaces the one before, and two would race."
 msgstr "Error: Un seul --add à la fois pour « %s » — la nouvelle valeur remplace la précédente, et deux se disputeraient la place."
 
-#: ../src/property.c:551 ../src/property.c:559
+#: ../src/property.c:552 ../src/property.c:560
 #, c-format
 msgid "Error: Only one --add at a time for '%s'."
 msgstr "Error: Un seul --add à la fois pour « %s »."
 
-#: ../src/property.c:591
+#: ../src/property.c:592
 #, c-format
 msgid "Error: Invalid %s value '%s'."
 msgstr "Error: Valeur %s invalide « %s »."
 
-#: ../src/property.c:671
+#: ../src/property.c:672
 #, c-format
 msgid "Error: No revokable '%s:%s' inside certificate %s."
 msgstr "Error: Aucun « %s:%s » révocable dans le certificat %s."
 
-#: ../src/property.c:676
+#: ../src/property.c:677
 #, c-format
 msgid "Error: At least one %s must be retained."
 msgstr "Error: Au moins un %s doit être conservé."
@@ -4166,65 +4164,91 @@ msgstr "Error: L'un de local, export ou import est nécessaire."
 msgid "Error: '%s' is not one of local, export or import."
 msgstr "Error: « %s » n'est ni local, ni export, ni import."
 
-#: ../src/uidedit.c:69
-msgid "Error: Revoking a User ID is irreversible — PGP keeps it"
-msgstr "Error: Révoquer un uid est irréversible — PGP le garde"
+#: ../src/uidedit.c:73
+msgid "Error: Revoking a User ID leaves it on the certificate forever,"
+msgstr "Error: Révoquer un uid le laisse sur le certificat pour toujours,"
 
-#: ../src/uidedit.c:70
-msgid "on the certificate forever, marked revoked, and an identical one"
-msgstr "à jamais sur le certificat, marqué révoqué, et un identique"
+#: ../src/uidedit.c:74
+msgid "marked revoked; those who hold it keep it until they refresh."
+msgstr "marqué révoqué ; ceux qui l'ont le gardent jusqu'à leur prochain rafraîchissement."
 
-#: ../src/uidedit.c:71
-msgid "can never be added again. Pass --yes if that is what you want:"
-msgstr "ne pourra plus jamais être ajouté. Passez --yes si c'est ce que vous voulez :"
+#: ../src/uidedit.c:75
+msgid "Adding the identical value later signs it anew and it stands"
+msgstr "Rajouter plus tard la valeur à l'identique le re-signe et il tient de"
 
-#: ../src/uidedit.c:72
+#: ../src/uidedit.c:76
+msgid "again. Pass --yes if that is what you want:"
+msgstr "nouveau. Passez --yes si c'est ce que vous voulez :"
+
+#: ../src/uidedit.c:77
 #, c-format
 msgid "  %s"
 msgstr "  %s"
 
-#: ../src/uidedit.c:75
+#: ../src/uidedit.c:80
 #, c-format
 msgid "Notice: Revoking %s inside certificate %s…"
 msgstr "Notice: Révocation de %s dans le certificat %s…"
 
-#: ../src/uidedit.c:78
+#: ../src/uidedit.c:83
 #, c-format
 msgid "Error: gpg would not revoke %s."
 msgstr "Error: gpg a refusé de révoquer %s."
 
-#: ../src/uidedit.c:115
+#: ../src/uidedit.c:106
+#, c-format
+msgid "Error: Certificate %s carries no '%s' to sign again."
+msgstr "Error: Le certificat %s ne porte aucun '%s' à re-signer."
+
+#: ../src/uidedit.c:109
+#, c-format
+msgid "Notice: '%s' was revoked earlier; signing it again…"
+msgstr "Notice: '%s' avait été révoqué ; il est re-signé…"
+
+#: ../src/uidedit.c:114
+#, c-format
+msgid "Error: gpg would not drop the revoked '%s' — right PIN?"
+msgstr "Error: gpg n'a pas voulu retirer le '%s' révoqué — bon PIN ?"
+
+#: ../src/uidedit.c:156
 #, c-format
 msgid "Warning: No address left on certificate %s to carry the primary User ID flag."
 msgstr "Warning: Plus aucune adresse sur le certificat %s pour porter le drapeau d'User ID principal."
 
-#: ../src/uidedit.c:119
+#: ../src/uidedit.c:160
 #, c-format
 msgid "Notice: Main identity is no longer an address: moving the primary User ID flag to %s."
 msgstr "Notice: L'identité principale n'est plus une adresse : le drapeau d'User ID principal passe sur %s."
 
-#: ../src/uidedit.c:123
+#: ../src/uidedit.c:164
 msgid "Error: gpg would not move the primary User ID flag."
 msgstr "Error: gpg a refusé de déplacer le drapeau d'User ID principal."
 
-#: ../src/uidedit.c:173
+#: ../src/uidedit.c:214
 #, c-format
 msgid "Notice: Minting the identity uid %s…"
 msgstr "Notice: Frappe de l'uid d'identité %s…"
 
-#: ../src/uidedit.c:176
+#: ../src/uidedit.c:217
 #, c-format
 msgid "Error: gpg would not add %s."
 msgstr "Error: gpg a refusé d'ajouter %s."
 
-#: ../src/uidedit.c:195
+#: ../src/uidedit.c:236
 #, c-format
 msgid "Warning: gpg would not add %s."
 msgstr "Warning: gpg a refusé d'ajouter %s."
 
-#: ../src/uidedit.c:214
+#: ../src/uidedit.c:255
 msgid "Warning: The reshaped certificate could not be published."
 msgstr "Warning: Le certificat remanié n'a pas pu être publié."
+
+#, c-format
+#~ msgid "Notice: '%s' was revoked earlier and cannot be added again — PGP keeps revoked User IDs on the certificate forever."
+#~ msgstr "Notice: « %s » a été révoqué plus tôt et ne peut pas être rajouté — PGP garde les uid révoqués sur le certificat pour toujours."
+
+#~ msgid "on the certificate forever, marked revoked, and an identical one"
+#~ msgstr "à jamais sur le certificat, marqué révoqué, et un identique"
 
 #, c-format
 #~ msgid "Error: '%s' wants an encoding: base64url or base45."
