@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid 0.0.7-35-g8512aa6\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-09-17 22:58+0200\n"
+"POT-Creation-Date: 2026-09-18 11:26+0200\n"
 "PO-Revision-Date: 2026-08-22 22:58+0200\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -166,7 +166,7 @@ msgstr "Error: „%s” oczekuje katalogu."
 
 #: ../src/avatar.c:523 ../src/certify.c:530 ../src/certrevoke.c:109
 #: ../src/changepass.c:119 ../src/changetokencode.c:127
-#: ../src/changetokenmeta.c:206 ../src/del.c:78 ../src/email.c:425
+#: ../src/changetokenmeta.c:206 ../src/del.c:78 ../src/email.c:428
 #: ../src/genkey.c:207 ../src/genu4.c:523 ../src/genuid.c:162 ../src/get.c:334
 #: ../src/list.c:377 ../src/main.c:194 ../src/printcard.c:222
 #: ../src/printsecret.c:681 ../src/property.c:498 ../src/push.c:81
@@ -452,7 +452,7 @@ msgstr "Error: „%s” oczekuje wartości."
 msgid "Error: Unknown credibility value '%s'."
 msgstr "Error: Nieznana wartość wiarygodności „%s”."
 
-#: ../src/certify.c:517 ../src/email.c:410 ../src/property.c:485
+#: ../src/certify.c:517 ../src/email.c:413 ../src/property.c:485
 #: ../src/trustdb.c:1025
 #, c-format
 msgid "Error: '%s' wants a list, empty for none."
@@ -1158,11 +1158,11 @@ msgid ""
 "setting one -- onto the uid carrying EMAIL that the address rule picks.\n"
 "\n"
 "OPTIONS:\n"
-"  -R, --revoke EMAIL          Revoke existing EMAIL (may be used more than once)\n"
+"  -R, --revoke EMAIL          Revoke existing EMAIL, in every uid that names it\n"
+"                              (may be used more than once)\n"
 "      --revoke-all            Revoke every usable email uid but the newest\n"
-"  -A, --add EMAIL             Add EMAIL as a 'Name <EMAIL>' uid. Enable the --name option\n"
-"  -N, --name NAME             The name in front of an added address\n"
-"                              Default: the certificate's own FN:, else the local part\n"
+"  -A, --add EMAIL             Add EMAIL as a '<EMAIL>' uid, or sign every uid\n"
+"                              naming it again when it was revoked before\n"
 "        --set-primary EMAIL     Make EMAIL the certificate's primary address\n"
 "  -y, --yes                   Assume yes: skip the revocation confirmation\n"
 "  -c, --certs-count           Also output the count of external valid certifications per email (tab-separated)\n"
@@ -1220,92 +1220,87 @@ msgstr "Error: Żaden certyfikat tutaj nie pasuje do „%s”."
 msgid "Error: '%s' matches %u certificates. Name one."
 msgstr "Error: „%s” pasuje do %u certyfikatów. Wskaż jeden."
 
-#: ../src/email.c:218
+#: ../src/email.c:227
 #, c-format
 msgid "Error: Cannot check the signatures of %s."
 msgstr "Error: Nie można sprawdzić podpisów %s."
 
-#: ../src/email.c:317
+#: ../src/email.c:326
 #, fuzzy, c-format
 #| msgid "Error: No usable certificate for %s."
 msgid "Error: No usable user id of this certificate carries %s."
 msgstr "Error: Brak użytecznego certyfikatu dla %s."
 
-#: ../src/email.c:326
+#: ../src/email.c:335
 #, fuzzy, c-format
 #| msgid "Error: Cannot write the certificate to %s."
 msgid "Error: Cannot find '%s' in the certificate's user ids."
 msgstr "Error: Nie można zapisać certyfikatu do %s."
 
-#: ../src/email.c:336
+#: ../src/email.c:345
 #, fuzzy, c-format
 #| msgid "Error: Cannot set the preferred keyserver — right PIN?"
 msgid "Error: Cannot make %s the primary address — right PIN?"
 msgstr "Error: Nie można ustawić preferowanego serwera kluczy — właściwy PIN?"
 
-#: ../src/email.c:357 ../src/email.c:396
+#: ../src/email.c:366 ../src/email.c:399
 #, c-format
 msgid "Error: '%s' wants an address."
 msgstr "Error: „%s” oczekuje adresu."
 
-#: ../src/email.c:363 ../src/email.c:402
+#: ../src/email.c:372 ../src/email.c:405
 #, c-format
 msgid "Error: Invalid email '%s'."
 msgstr "Error: Nieprawidłowy adres „%s”."
 
-#: ../src/email.c:367
+#: ../src/email.c:376
 msgid "Error: Too many addresses at once."
 msgstr "Error: Za dużo adresów naraz."
 
-#: ../src/email.c:377 ../src/genkey.c:133 ../src/printcard.c:206
-#, c-format
-msgid "Error: '%s' wants a name."
-msgstr "Error: „%s” oczekuje nazwy."
-
-#: ../src/email.c:384 ../src/genkey.c:146
+#: ../src/email.c:387 ../src/genkey.c:146
 #, c-format
 msgid "Error: '%s' wants a note."
 msgstr "Error: „%s” oczekuje notatki."
 
-#: ../src/email.c:387
+#: ../src/email.c:390
 msgid "Notice: --extra-comment is ignored: a note is carried by its own NOTE: uid."
 msgstr "Notice: --extra-comment jest pomijane: notatkę nosi jej własny uid NOTE:."
 
-#: ../src/email.c:447 ../src/property.c:606
+#: ../src/email.c:450 ../src/property.c:606
 #, c-format
 msgid "Error: No editable certificate %s here."
 msgstr "Error: Brak edytowalnego certyfikatu %s tutaj."
 
-#: ../src/email.c:476 ../src/property.c:633
-#, c-format
-msgid "Notice: Certificate %s already carries '%s'."
-msgstr "Notice: Certyfikat %s już nosi „%s”."
-
-#: ../src/email.c:485 ../src/property.c:642
+#: ../src/email.c:472 ../src/property.c:642
 #, c-format
 msgid "Notice: Adding '%s' into certificate %s…"
 msgstr "Notice: Dodawanie „%s” do certyfikatu %s…"
 
-#: ../src/email.c:488 ../src/genkey.c:358 ../src/genkey.c:363
-#: ../src/genkey.c:373 ../src/property.c:645 ../src/uidedit.c:118
+#: ../src/email.c:475 ../src/genkey.c:358 ../src/genkey.c:363
+#: ../src/genkey.c:373 ../src/property.c:645 ../src/uidedit.c:141
 #, c-format
 msgid "Error: gpg would not add '%s'."
 msgstr "Error: gpg odmówił dodania „%s”."
 
-#: ../src/email.c:521
+#: ../src/email.c:496 ../src/property.c:633
+#, c-format
+msgid "Notice: Certificate %s already carries '%s'."
+msgstr "Notice: Certyfikat %s już nosi „%s”."
+
+#: ../src/email.c:517
 #, c-format
 msgid "Error: No revokable email '%s' inside certificate %s."
 msgstr "Error: Brak unieważnialnego adresu „%s” w certyfikacie %s."
 
-#: ../src/email.c:526
+#: ../src/email.c:522
 msgid "Error: At least one email must be retained."
 msgstr "Error: Co najmniej jeden adres musi pozostać."
 
-#: ../src/email.c:548 ../src/property.c:700
+#: ../src/email.c:545 ../src/property.c:700
 msgid "Warning: Nothing to revoke."
 msgstr "Warning: Nic do unieważnienia."
 
-#: ../src/email.c:633
+#: ../src/email.c:630
 msgid "Notice: No user id is flagged primary; '--set-primary' chooses one."
 msgstr ""
 
@@ -1380,6 +1375,11 @@ msgstr ""
 "\n"
 "Oba sposoby podania hasła mają swoją wadę, a drugi mniejszą: argument jest\n"
 "widoczny dla każdego procesu na maszynie, dopóki ten trwa.\n"
+
+#: ../src/genkey.c:133 ../src/printcard.c:206
+#, c-format
+msgid "Error: '%s' wants a name."
+msgstr "Error: „%s” oczekuje nazwy."
 
 #: ../src/genkey.c:139
 #, c-format
@@ -4577,89 +4577,89 @@ msgstr "Error: Potrzebne jest jedno z local, export lub import."
 msgid "Error: '%s' is not one of local, export or import."
 msgstr "Error: „%s” to ani local, ani export, ani import."
 
-#: ../src/uidedit.c:72
+#: ../src/uidedit.c:95
 #, fuzzy
 #| msgid "Error: Revoking a User ID is irreversible — OpenPGP keeps it"
 msgid "Error: Revoking a User ID leaves it on the certificate, marked"
 msgstr "Error: Unieważnienie User ID jest nieodwracalne — OpenPGP zachowuje je"
 
-#: ../src/uidedit.c:73
+#: ../src/uidedit.c:96
 msgid "revoked; whoever holds it keeps it until they refresh."
 msgstr ""
 
-#: ../src/uidedit.c:74
+#: ../src/uidedit.c:97
 msgid "Adding the identical value later signs it anew and it stands"
 msgstr ""
 
-#: ../src/uidedit.c:75
+#: ../src/uidedit.c:98
 #, fuzzy
 #| msgid "can never be added again. Pass --yes if that is what you want:"
 msgid "again. Pass --yes if that is what you want:"
 msgstr "nigdy już nie da się dodać. Podaj --yes, jeśli o to ci chodzi:"
 
-#: ../src/uidedit.c:76
+#: ../src/uidedit.c:99
 #, c-format
 msgid "  %s"
 msgstr "  %s"
 
-#: ../src/uidedit.c:79
+#: ../src/uidedit.c:102
 #, c-format
 msgid "Notice: Revoking %s inside certificate %s…"
 msgstr "Notice: Unieważnianie %s w certyfikacie %s…"
 
-#: ../src/uidedit.c:82
+#: ../src/uidedit.c:105
 #, c-format
 msgid "Error: gpg would not revoke %s."
 msgstr "Error: gpg odmówił unieważnienia %s."
 
-#: ../src/uidedit.c:105
+#: ../src/uidedit.c:128
 #, fuzzy, c-format
 #| msgid "Error: This certificate carries no name."
 msgid "Error: Certificate %s carries no '%s' to sign again."
 msgstr "Error: Ten certyfikat nie nosi żadnej nazwy."
 
-#: ../src/uidedit.c:108
+#: ../src/uidedit.c:131
 #, fuzzy, c-format
 #| msgid "Notice: %s code unchanged."
 msgid "Notice: '%s' was revoked earlier; signing it again…"
 msgstr "Notice: Kod %s bez zmian."
 
-#: ../src/uidedit.c:113
+#: ../src/uidedit.c:136
 #, fuzzy, c-format
 #| msgid "Error: gpg would not export the secret key — right passphrase?"
 msgid "Error: gpg would not drop the revoked '%s' — right PIN?"
 msgstr "Error: gpg odmówił wyeksportowania klucza tajnego — właściwa fraza?"
 
-#: ../src/uidedit.c:155
+#: ../src/uidedit.c:178
 #, c-format
 msgid "Warning: No address left on certificate %s to carry the primary User ID flag."
 msgstr "Warning: Na certyfikacie %s nie został żaden adres, który mógłby nieść znacznik głównego User ID."
 
-#: ../src/uidedit.c:159
+#: ../src/uidedit.c:182
 #, c-format
 msgid "Notice: Main identity is no longer an address: moving the primary User ID flag to %s."
 msgstr "Notice: Główna tożsamość nie jest już adresem: znacznik głównego User ID przechodzi na %s."
 
-#: ../src/uidedit.c:163
+#: ../src/uidedit.c:186
 msgid "Error: gpg would not move the primary User ID flag."
 msgstr "Error: gpg odmówił przeniesienia znacznika głównego User ID."
 
-#: ../src/uidedit.c:213
+#: ../src/uidedit.c:236
 #, c-format
 msgid "Notice: Minting the identity uid %s…"
 msgstr "Notice: Bicie uid tożsamości %s…"
 
-#: ../src/uidedit.c:216
+#: ../src/uidedit.c:239
 #, c-format
 msgid "Error: gpg would not add %s."
 msgstr "Error: gpg odmówił dodania %s."
 
-#: ../src/uidedit.c:235
+#: ../src/uidedit.c:258
 #, c-format
 msgid "Warning: gpg would not add %s."
 msgstr "Warning: gpg odmówił dodania %s."
 
-#: ../src/uidedit.c:254
+#: ../src/uidedit.c:277
 msgid "Warning: The reshaped certificate could not be published."
 msgstr ""
 

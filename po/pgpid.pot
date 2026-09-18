@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-09-17 22:58+0200\n"
+"POT-Creation-Date: 2026-09-18 11:26+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -109,7 +109,7 @@ msgstr ""
 
 #: ../src/avatar.c:523 ../src/certify.c:530 ../src/certrevoke.c:109
 #: ../src/changepass.c:119 ../src/changetokencode.c:127
-#: ../src/changetokenmeta.c:206 ../src/del.c:78 ../src/email.c:425
+#: ../src/changetokenmeta.c:206 ../src/del.c:78 ../src/email.c:428
 #: ../src/genkey.c:207 ../src/genu4.c:523 ../src/genuid.c:162 ../src/get.c:334
 #: ../src/list.c:377 ../src/main.c:194 ../src/printcard.c:222
 #: ../src/printsecret.c:681 ../src/property.c:498 ../src/push.c:81
@@ -313,7 +313,7 @@ msgstr ""
 msgid "Error: Unknown credibility value '%s'."
 msgstr ""
 
-#: ../src/certify.c:517 ../src/email.c:410 ../src/property.c:485
+#: ../src/certify.c:517 ../src/email.c:413 ../src/property.c:485
 #: ../src/trustdb.c:1025
 #, c-format
 msgid "Error: '%s' wants a list, empty for none."
@@ -840,11 +840,11 @@ msgid ""
 "setting one -- onto the uid carrying EMAIL that the address rule picks.\n"
 "\n"
 "OPTIONS:\n"
-"  -R, --revoke EMAIL          Revoke existing EMAIL (may be used more than once)\n"
+"  -R, --revoke EMAIL          Revoke existing EMAIL, in every uid that names it\n"
+"                              (may be used more than once)\n"
 "      --revoke-all            Revoke every usable email uid but the newest\n"
-"  -A, --add EMAIL             Add EMAIL as a 'Name <EMAIL>' uid. Enable the --name option\n"
-"  -N, --name NAME             The name in front of an added address\n"
-"                              Default: the certificate's own FN:, else the local part\n"
+"  -A, --add EMAIL             Add EMAIL as a '<EMAIL>' uid, or sign every uid\n"
+"                              naming it again when it was revoked before\n"
 "        --set-primary EMAIL     Make EMAIL the certificate's primary address\n"
 "  -y, --yes                   Assume yes: skip the revocation confirmation\n"
 "  -c, --certs-count           Also output the count of external valid certifications per email (tab-separated)\n"
@@ -877,89 +877,84 @@ msgstr ""
 msgid "Error: '%s' matches %u certificates. Name one."
 msgstr ""
 
-#: ../src/email.c:218
+#: ../src/email.c:227
 #, c-format
 msgid "Error: Cannot check the signatures of %s."
 msgstr ""
 
-#: ../src/email.c:317
+#: ../src/email.c:326
 #, c-format
 msgid "Error: No usable user id of this certificate carries %s."
 msgstr ""
 
-#: ../src/email.c:326
+#: ../src/email.c:335
 #, c-format
 msgid "Error: Cannot find '%s' in the certificate's user ids."
 msgstr ""
 
-#: ../src/email.c:336
+#: ../src/email.c:345
 #, c-format
 msgid "Error: Cannot make %s the primary address — right PIN?"
 msgstr ""
 
-#: ../src/email.c:357 ../src/email.c:396
+#: ../src/email.c:366 ../src/email.c:399
 #, c-format
 msgid "Error: '%s' wants an address."
 msgstr ""
 
-#: ../src/email.c:363 ../src/email.c:402
+#: ../src/email.c:372 ../src/email.c:405
 #, c-format
 msgid "Error: Invalid email '%s'."
 msgstr ""
 
-#: ../src/email.c:367
+#: ../src/email.c:376
 msgid "Error: Too many addresses at once."
 msgstr ""
 
-#: ../src/email.c:377 ../src/genkey.c:133 ../src/printcard.c:206
-#, c-format
-msgid "Error: '%s' wants a name."
-msgstr ""
-
-#: ../src/email.c:384 ../src/genkey.c:146
+#: ../src/email.c:387 ../src/genkey.c:146
 #, c-format
 msgid "Error: '%s' wants a note."
 msgstr ""
 
-#: ../src/email.c:387
+#: ../src/email.c:390
 msgid "Notice: --extra-comment is ignored: a note is carried by its own NOTE: uid."
 msgstr ""
 
-#: ../src/email.c:447 ../src/property.c:606
+#: ../src/email.c:450 ../src/property.c:606
 #, c-format
 msgid "Error: No editable certificate %s here."
 msgstr ""
 
-#: ../src/email.c:476 ../src/property.c:633
-#, c-format
-msgid "Notice: Certificate %s already carries '%s'."
-msgstr ""
-
-#: ../src/email.c:485 ../src/property.c:642
+#: ../src/email.c:472 ../src/property.c:642
 #, c-format
 msgid "Notice: Adding '%s' into certificate %s…"
 msgstr ""
 
-#: ../src/email.c:488 ../src/genkey.c:358 ../src/genkey.c:363
-#: ../src/genkey.c:373 ../src/property.c:645 ../src/uidedit.c:118
+#: ../src/email.c:475 ../src/genkey.c:358 ../src/genkey.c:363
+#: ../src/genkey.c:373 ../src/property.c:645 ../src/uidedit.c:141
 #, c-format
 msgid "Error: gpg would not add '%s'."
 msgstr ""
 
-#: ../src/email.c:521
+#: ../src/email.c:496 ../src/property.c:633
+#, c-format
+msgid "Notice: Certificate %s already carries '%s'."
+msgstr ""
+
+#: ../src/email.c:517
 #, c-format
 msgid "Error: No revokable email '%s' inside certificate %s."
 msgstr ""
 
-#: ../src/email.c:526
+#: ../src/email.c:522
 msgid "Error: At least one email must be retained."
 msgstr ""
 
-#: ../src/email.c:548 ../src/property.c:700
+#: ../src/email.c:545 ../src/property.c:700
 msgid "Warning: Nothing to revoke."
 msgstr ""
 
-#: ../src/email.c:633
+#: ../src/email.c:630
 msgid "Notice: No user id is flagged primary; '--set-primary' chooses one."
 msgstr ""
 
@@ -989,6 +984,11 @@ msgid ""
 "Both ways of giving the passphrase have their drawback, and the second has\n"
 "fewer: an argument is visible to every process on the machine for as long\n"
 "as this one runs.\n"
+msgstr ""
+
+#: ../src/genkey.c:133 ../src/printcard.c:206
+#, c-format
+msgid "Error: '%s' wants a name."
 msgstr ""
 
 #: ../src/genkey.c:139
@@ -3451,81 +3451,81 @@ msgstr ""
 msgid "Error: '%s' is not one of local, export or import."
 msgstr ""
 
-#: ../src/uidedit.c:72
+#: ../src/uidedit.c:95
 msgid "Error: Revoking a User ID leaves it on the certificate, marked"
 msgstr ""
 
-#: ../src/uidedit.c:73
+#: ../src/uidedit.c:96
 msgid "revoked; whoever holds it keeps it until they refresh."
 msgstr ""
 
-#: ../src/uidedit.c:74
+#: ../src/uidedit.c:97
 msgid "Adding the identical value later signs it anew and it stands"
 msgstr ""
 
-#: ../src/uidedit.c:75
+#: ../src/uidedit.c:98
 msgid "again. Pass --yes if that is what you want:"
 msgstr ""
 
-#: ../src/uidedit.c:76
+#: ../src/uidedit.c:99
 #, c-format
 msgid "  %s"
 msgstr ""
 
-#: ../src/uidedit.c:79
+#: ../src/uidedit.c:102
 #, c-format
 msgid "Notice: Revoking %s inside certificate %s…"
 msgstr ""
 
-#: ../src/uidedit.c:82
+#: ../src/uidedit.c:105
 #, c-format
 msgid "Error: gpg would not revoke %s."
 msgstr ""
 
-#: ../src/uidedit.c:105
+#: ../src/uidedit.c:128
 #, c-format
 msgid "Error: Certificate %s carries no '%s' to sign again."
 msgstr ""
 
-#: ../src/uidedit.c:108
+#: ../src/uidedit.c:131
 #, c-format
 msgid "Notice: '%s' was revoked earlier; signing it again…"
 msgstr ""
 
-#: ../src/uidedit.c:113
+#: ../src/uidedit.c:136
 #, c-format
 msgid "Error: gpg would not drop the revoked '%s' — right PIN?"
 msgstr ""
 
-#: ../src/uidedit.c:155
+#: ../src/uidedit.c:178
 #, c-format
 msgid "Warning: No address left on certificate %s to carry the primary User ID flag."
 msgstr ""
 
-#: ../src/uidedit.c:159
+#: ../src/uidedit.c:182
 #, c-format
 msgid "Notice: Main identity is no longer an address: moving the primary User ID flag to %s."
 msgstr ""
 
-#: ../src/uidedit.c:163
+#: ../src/uidedit.c:186
 msgid "Error: gpg would not move the primary User ID flag."
 msgstr ""
 
-#: ../src/uidedit.c:213
+#: ../src/uidedit.c:236
 #, c-format
 msgid "Notice: Minting the identity uid %s…"
 msgstr ""
 
-#: ../src/uidedit.c:216
+#: ../src/uidedit.c:239
 #, c-format
 msgid "Error: gpg would not add %s."
 msgstr ""
 
-#: ../src/uidedit.c:235
+#: ../src/uidedit.c:258
 #, c-format
 msgid "Warning: gpg would not add %s."
 msgstr ""
 
-#: ../src/uidedit.c:254
+#: ../src/uidedit.c:277
 msgid "Warning: The reshaped certificate could not be published."
 msgstr ""

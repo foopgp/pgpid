@@ -38,11 +38,11 @@ static void usage(FILE *out)
         "setting one -- onto the uid carrying EMAIL that the address rule picks.\n"
         "\n"
         "OPTIONS:\n"
-        "  -R, --revoke EMAIL          Revoke existing EMAIL (may be used more than once)\n"
+        "  -R, --revoke EMAIL          Revoke existing EMAIL, in every uid that names it\n"
+        "                              (may be used more than once)\n"
         "      --revoke-all            Revoke every usable email uid but the newest\n"
-        "  -A, --add EMAIL             Add EMAIL as a 'Name <EMAIL>' uid. Enable the --name option\n"
-        "  -N, --name NAME             The name in front of an added address\n"
-        "                              Default: the certificate's own FN:, else the local part\n"
+        "  -A, --add EMAIL             Add EMAIL as a '<EMAIL>' uid, or sign every uid\n"
+        "                              naming it again when it was revoked before\n"
         "        --set-primary EMAIL     Make EMAIL the certificate's primary address\n"
         "  -y, --yes                   Assume yes: skip the revocation confirmation\n"
         "  -c, --certs-count           Also output the count of external valid certifications per email (tab-separated)\n"
@@ -176,33 +176,42 @@ static int resolve_target(const char *given, char *out, size_t max)
     return PGPID_OK;
 }
 
-/** The name to put in front of an added address: the certificate's own FN:. */
-static void own_name(const struct pgpid_uid *uids, size_t n, char *out, size_t max)
+/**
+ * How many distinct addresses still stand on this certificate.
+ *
+ * Addresses and not uids: the same address can be written twice, as
+ * `Name <a>` and as `EMAIL: <a>`, and counting packets would let the last
+ * address go because it happened to be spelled two ways.
+ */
+static size_t standing_addresses(const struct pgpid_uid *uids, size_t n)
 {
-    *out = '\0';
+    const char *seen[MAX_UIDS];
+    size_t lens[MAX_UIDS], nseen = 0;
+
     for (size_t i = 0; i < n; i++) {
         if (!pgpid_uid_stands(uids[i].validity))
             continue;
-        if (strncmp(uids[i].text, "FN", 2))
+        size_t len = 0;
+        const char *at = vcard_email(uids[i].text, &len);
+        if (!at)
+            at = pgpid_uid_address(uids[i].text, &len);
+        if (!at)
             continue;
-        const char *p = uids[i].text + 2;
-        if (*p == ';') {
-            p = strchr(p, ':');
-            if (!p)
-                continue;
-        } else if (*p != ':') {
+        bool known = false;
+        for (size_t k = 0; k < nseen && !known; k++)
+            known = lens[k] == len && !memcmp(seen[k], at, len);
+        if (known)
             continue;
-        }
-        p++;
-        if (*p == ' ')
-            p++;
-        snprintf(out, max, "%s", p);
-        return;
+        if (nseen == MAX_UIDS)
+            break;
+        seen[nseen] = at;
+        lens[nseen++] = len;
     }
+    return nseen;
 }
 
 /**
- * How many other people vouch for each address.
+ * How many people have certified each address, counted per address.
  *
  * --check-sigs rather than --list-sigs, so gpg verifies each signature and
  * marks it '!'. A local certification is not a public statement and does not
@@ -341,7 +350,7 @@ static int set_primary(const char *user, const char *addr, const char *keyserver
 
 int pgpid_action_cert_email(int argc, char **argv)
 {
-    const char *keyservers = NULL, *pseudo = NULL, *target = NULL;
+    const char *keyservers = NULL, *target = NULL;
     char toadd[MAX_LIST][320], torev[MAX_LIST][320];
     size_t nadd = 0, nrev = 0;
     bool revoke_all = false, assume_yes = false, show_unusable = false;
@@ -372,12 +381,6 @@ int pgpid_action_cert_email(int argc, char **argv)
             revoke_all = true;
         } else if (!strcmp(a, "-y") || !strcmp(a, "--yes")) {
             assume_yes = true;
-        } else if (!strcmp(a, "-N") || !strcmp(a, "--name")) {
-            if (++i >= argc) {
-                pgpid_error(_("Error: '%s' wants a name."), a);
-                return PGPID_USAGE;
-            }
-            pseudo = argv[i];
         } else if (!strcmp(a, "-C") || !strcmp(a, "--extra-comment")
                    || !strcmp(a, "--extracomment")) {
             if (++i >= argc) {
@@ -447,87 +450,81 @@ int pgpid_action_cert_email(int argc, char **argv)
             pgpid_error(_("Error: No editable certificate %s here."), user);
             return PGPID_FAIL;
         }
-        char name[512] = "";
-        if (pseudo)
-            snprintf(name, sizeof name, "%s", pseudo);
-        else
-            own_name(uids, nuids, name, sizeof name);
-
         for (size_t a = 0; a < nadd; a++) {
-            char want[900];
-            /* Bounded explicitly: the compiler cannot see that a name is
-             * 511 characters at most and an address 319. */
-            if (*name)
-                snprintf(want, sizeof want, "%.511s <%.319s>", name, toadd[a]);
-            else
-                snprintf(want, sizeof want, "%.*s <%.319s>",
-                         (int)(strchr(toadd[a], '@') - toadd[a]), toadd[a], toadd[a]);
+            /* The address and nothing else. A name in front is how the same
+             * address ends up on a certificate twice, to be treated as one
+             * identity ever after (JJB, 2026-09-18): no name is asked for. */
+            char want[400];
+            snprintf(want, sizeof want, "<%.319s>", toadd[a]);
 
-            bool here = false, struck = false;
-            for (size_t i = 0; i < nuids; i++) {
-                if (strcmp(uids[i].text, want))
+            /* Every shape this certificate already holds of that address. */
+            const char *held[MAX_UIDS];
+            bool stands[MAX_UIDS];
+            size_t nheld = 0;
+            for (size_t i = 0; i < nuids && nheld < MAX_UIDS; i++) {
+                if (!uid_carries(uids[i].text, toadd[a]))
                     continue;
-                if (pgpid_uid_stands(uids[i].validity))
-                    here = true;
-                else
-                    struck = true;
+                stands[nheld] = pgpid_uid_stands(uids[i].validity);
+                held[nheld++] = uids[i].text;
             }
-            if (here) {
-                pgpid_error(_("Notice: Certificate %s already carries '%s'."), user, want);
-                continue;
-            }
-            if (struck) {
-                if (!pgpid_readd_uid(user, want))
+
+            if (!nheld) {
+                pgpid_error(_("Notice: Adding '%s' into certificate %s…"), want, user);
+                const char *add[] = { "--batch", "--quick-add-uid", user, want, NULL };
+                if (pgpid_run_engine(add)) {
+                    pgpid_error(_("Error: gpg would not add '%s'."), want);
                     return PGPID_FAIL;
+                }
                 changed = true;
                 continue;
             }
-            pgpid_error(_("Notice: Adding '%s' into certificate %s…"), want, user);
-            const char *add[] = { "--batch", "--quick-add-uid", user, want, NULL };
-            if (pgpid_run_engine(add)) {
-                pgpid_error(_("Error: gpg would not add '%s'."), want);
-                return PGPID_FAIL;
+
+            /* Held before and revoked since: every one of its shapes is
+             * signed again, so the address comes back whole rather than in
+             * the one spelling that was asked for. */
+            size_t woken = 0;
+            for (size_t i = 0; i < nheld; i++) {
+                if (stands[i])
+                    continue;
+                if (!pgpid_readd_uid(user, held[i]))
+                    return PGPID_FAIL;
+                woken++;
             }
-            changed = true;
+            if (woken)
+                changed = true;
+            else
+                pgpid_error(_("Notice: Certificate %s already carries '%s'."),
+                            user, toadd[a]);
         }
     }
 
     bool revoked = false;
     for (size_t r = 0; r < nrev; r++) {
         nuids = pgpid_list_uids(user, true, uids, MAX_UIDS);
-        const char *victim = NULL;
-        size_t addresses = 0;
-        /* The vCard shape first, the legacy one after: peeling one per call
-         * means the caller sees each removal, and re-runs for the next. */
-        for (int pass = 0; pass < 2 && !victim; pass++) {
-            for (size_t i = 0; i < nuids; i++) {
-                if (!pgpid_uid_stands(uids[i].validity))
-                    continue;
-                size_t len = 0;
-                bool is_vcard = vcard_email(uids[i].text, &len) != NULL;
-                if (pass == 0 ? !is_vcard : is_vcard)
-                    continue;
-                if (uid_carries(uids[i].text, torev[r])) {
-                    victim = uids[i].text;
-                    break;
-                }
-            }
-        }
-        for (size_t i = 0; i < nuids; i++)
-            if (pgpid_uid_stands(uids[i].validity) && uid_is_email(uids[i].text))
-                addresses++;
 
-        if (!victim) {
+        /* Every uid naming this address, and not the first one found: the
+         * shapes of an address are one identity, so one revocation answers
+         * for all of them (JJB, 2026-09-18). Peeling one per call is what
+         * left a certificate half revoked, with a survivor an expiry refresh
+         * later signed back to life. */
+        const char *victims[MAX_UIDS];
+        size_t nvictims = 0;
+        for (size_t i = 0; i < nuids && nvictims < MAX_UIDS; i++)
+            if (pgpid_uid_stands(uids[i].validity) && uid_carries(uids[i].text, torev[r]))
+                victims[nvictims++] = uids[i].text;
+
+        if (!nvictims) {
             pgpid_error(_("Error: No revokable email '%s' inside certificate %s."),
                         torev[r], user);
             return PGPID_FAIL;
         }
-        if (addresses < 2) {
+        if (standing_addresses(uids, nuids) < 2) {
             pgpid_error(_("Error: At least one email must be retained."));
             return PGPID_FAIL;
         }
-        if (!pgpid_revoke_uid(user, victim, assume_yes))
-            return PGPID_FAIL;
+        for (size_t v = 0; v < nvictims; v++)
+            if (!pgpid_revoke_uid(user, victims[v], assume_yes))
+                return PGPID_FAIL;
         revoked = changed = true;
     }
 

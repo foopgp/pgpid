@@ -312,11 +312,11 @@ plutôt qu'il n'en pose un — sur l'uid portant COURRIEL que la règle d'adress
 retient.
 
 OPTIONS:
-  -R, --revoke COURRIEL       Révoquer l'adresse COURRIEL (peut servir plusieurs fois)
+  -R, --revoke COURRIEL       Révoquer COURRIEL, dans chaque uid qui la nomme
+                              (peut servir plusieurs fois)
       --revoke-all            Révoquer tous les uid d'adresse utilisables sauf le plus récent
-  -A, --add COURRIEL          Ajouter COURRIEL comme uid « Nom <COURRIEL> ». Active l'option --name
-  -N, --name NOM              Le nom placé devant une adresse ajoutée
-                              Par défaut : le FN: du certificat, sinon la partie locale
+  -A, --add COURRIEL          Ajouter COURRIEL comme uid « <COURRIEL> », ou re-signer chaque
+                              uid qui la nomme si elle avait été révoquée
         --set-primary COURRIEL  Faire de COURRIEL l'adresse principale du certificat
   -y, --yes                   Répondre oui d'office : sauter la confirmation de révocation
   -c, --certs-count           Afficher aussi le nombre de certifications valides par adresse (tabulé)
@@ -327,8 +327,8 @@ OPTIONS:
   -V, --version               Afficher la version et quitter
 
 Révoquer laisse l'adresse sur le certificat, marquée révoquée, et ceux qui
-l'ont la gardent jusqu'à leur prochain rafraîchissement. La rajouter à
-l'identique la re-signe, avec les certifications reçues.
+l'ont la gardent jusqu'à leur prochain rafraîchissement. La rajouter re-signe
+chacun de ses uid, avec les certifications reçues.
 ```
 
 ## pgpid cert_avatar

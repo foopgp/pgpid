@@ -1271,6 +1271,59 @@ is "it renders" "$( [ -s "$GNUPGHOME/card.svg" ] && echo yes )" "yes"
 is "with nothing left unfilled" \
    "$(grep --count -- '\${' "$GNUPGHOME/card.svg" 2>/dev/null || true)" "0"
 
+printf '\nthe shapes of one address are one identity\n'
+
+# JJB, 2026-09-18: every uid naming the same email is one identity, so a
+# revocation answers for all of them. Before this, --revoke took one uid per
+# call -- the vCard shape first -- and a certificate stayed half revoked, with
+# a survivor that an expiry refresh later signed back to life (the real case:
+# @kaz.bzh on a member's certificate, revoked in June and alive in September).
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-generate-key "Zoe <zoe@example.org>" ed25519 cert never 2>/dev/null
+ZOE=$(gpg --with-colons --list-keys zoe@example.org 2>/dev/null \
+      | awk --field-separator=: '$1=="fpr"{print $10; exit}')
+# A second address, because the last one may never be revoked.
+"$BIN" cert_email --add keep@example.org --yes --keyservers '' "$ZOE" >/dev/null 2>&1
+is "an address is added as itself, with nothing in front" \
+   "$(gpg --with-colons --list-keys "$ZOE" \
+      | awk --field-separator=: '$1=="uid"{print $10}' \
+      | grep --count '^<keep@example.org>$')" "1"
+
+# The same address in its other shape, as older certificates carry it.
+gpg --batch --quiet --quick-add-uid "$ZOE" "EMAIL: <zoe@example.org>" 2>/dev/null
+standing_zoe() {
+    gpg --with-colons --list-keys "$ZOE" \
+      | awk --field-separator=: '$1=="uid" && $2!="r"{print $10}' \
+      | grep --count 'zoe@example.org'
+}
+is "the certificate carries that address twice" "$(standing_zoe)" "2"
+
+"$BIN" cert_email --revoke zoe@example.org --yes --keyservers '' "$ZOE" >/dev/null 2>&1
+is "revoking an address takes every uid that names it" "$(standing_zoe)" "0"
+is "and leaves the other address alone" \
+   "$("$BIN" cert_email "$ZOE" | awk '{print $1}' | grep --count 'keep@example.org')" "1"
+
+# Back again, and whole: both shapes signed anew, which is the one way a
+# revoked address returns. gpg refuses an identical --quick-add-uid, so each
+# goes through deluid and a fresh self-signature.
+"$BIN" cert_email --add zoe@example.org --yes --keyservers '' "$ZOE" >/dev/null 2>&1
+is "adding it back wakes every shape it had" "$(standing_zoe)" "2"
+
+# The last address cannot go, even written twice: the count is of addresses,
+# not of packets.
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-generate-key "Yann <yann@example.org>" ed25519 cert never 2>/dev/null
+YANN=$(gpg --with-colons --list-keys yann@example.org 2>/dev/null \
+       | awk --field-separator=: '$1=="fpr"{print $10; exit}')
+gpg --batch --quiet --quick-add-uid "$YANN" "EMAIL: <yann@example.org>" 2>/dev/null
+is "the only address is refused, though it is written twice" \
+   "$("$BIN" cert_email --revoke yann@example.org --yes --keyservers '' "$YANN" \
+      >/dev/null 2>&1 ; echo $?)" "1"
+is "and it still stands" \
+   "$(gpg --with-colons --list-keys "$YANN" \
+      | awk --field-separator=: '$1=="uid" && $2!="r"{print $10}' \
+      | grep --count 'yann@example.org')" "2"
+
 printf '\nupgrading a legacy certificate\n'
 # The shape a certificate had before vCard-property uids: one uid carrying
 # the name, the eid in a comment, and the address. Touching a property mints

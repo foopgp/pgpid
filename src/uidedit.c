@@ -23,40 +23,63 @@
 
 #define MAX_UIDS 256
 
-/** Does this uid end in an address, the shape every mail client reads? */
-bool pgpid_uid_has_address(const char *uid)
+/**
+ * Does the text between two chevrons look like an address?
+ *
+ * The same rule as foodjis's `Property.email`, and for the same reason: the
+ * two applications write into the same certificates, and an address one of
+ * them recognises and the other does not is an identity that can be revoked
+ * on a phone and not on a desktop. A local part, one at, a domain with a dot
+ * in it and two characters after that dot. Deliberately not RFC 5322.
+ */
+static bool address_shaped(const char *from, const char *to)
 {
-    const char *lt = NULL;
-    for (const char *p = uid; *p; p++)
-        if (*p == '<')
-            lt = p;
-    if (!lt)
-        return false;
-    const char *gt = strchr(lt, '>');
-    if (!gt || gt == lt + 1)
-        return false;
-    for (const char *p = gt + 1; *p; p++)
-        if (*p != ' ' && *p != '\t')
+    const char *at = NULL, *dot = NULL;
+    for (const char *p = from; p < to; p++) {
+        if (*p <= ' ' || *p == ',' || *p == ';' || *p == '<' || *p == '>')
             return false;
-    /* No nested brackets: "a <b <c>>" is not an address. */
-    for (const char *p = lt + 1; p < gt; p++)
-        if (*p == '<' || *p == '>')
-            return false;
-    return true;
+        if (*p == '@') {
+            if (at || p == from)
+                return false;
+            at = p;
+        } else if (*p == '.' && at) {
+            dot = p;
+        }
+    }
+    return at && dot && dot > at + 1 && to - dot >= 3;
 }
 
-/** The address inside such a uid, or NULL. Points into `uid`. */
+/**
+ * The address a uid names: the **first** thing between chevrons that is one,
+ * or NULL. Points into `uid`.
+ *
+ * The first, and anywhere in the string rather than only at its end. This is
+ * the rule that makes several uids one identity (JJB, 2026-09-18): a
+ * certificate carrying `JJ <jj@example.org>` and `EMAIL: <jj@example.org>`
+ * holds one address in two shapes, and what is done to one is done to both --
+ * revoking first of all. Reading only the last chevrons, and only at the end,
+ * is how those two looked like unrelated things and got revoked one at a time,
+ * leaving a survivor for the next expiry refresh to sign back to life.
+ */
 const char *pgpid_uid_address(const char *uid, size_t *len)
 {
-    if (!pgpid_uid_has_address(uid))
-        return NULL;
-    const char *lt = NULL;
-    for (const char *p = uid; *p; p++)
-        if (*p == '<')
-            lt = p;
-    const char *gt = strchr(lt, '>');
-    *len = (size_t)(gt - lt - 1);
-    return lt + 1;
+    for (const char *lt = strchr(uid, '<'); lt; lt = strchr(lt + 1, '<')) {
+        const char *gt = strchr(lt + 1, '>');
+        if (!gt)
+            return NULL;
+        if (address_shaped(lt + 1, gt)) {
+            *len = (size_t)(gt - lt - 1);
+            return lt + 1;
+        }
+    }
+    return NULL;
+}
+
+/** Whether this uid names an address at all. */
+bool pgpid_uid_has_address(const char *uid)
+{
+    size_t len = 0;
+    return pgpid_uid_address(uid, &len) != NULL;
 }
 
 /**
