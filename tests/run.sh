@@ -898,6 +898,15 @@ is "none of them the older key's"  "$(grep --count "$OLDFPR" <<<"$out")" "0"
 is "the first is the key that carries the identity" \
    "$(gpg --homedir "$NEWHOME" --with-colons --list-keys "=UID:urn:eid:$EID" 2>/dev/null | awk --field-separator=: '$1=="fpr"{print $10; exit}')" \
    "$(head -1 <<<"$out")"
+# The name goes into FN, and in front of the address is its local part: the
+# address uid is then written the same way here as by cert_email --add.
+uids=$(gpg --homedir "$NEWHOME" --with-colons --list-keys "=UID:urn:eid:$EID" 2>/dev/null \
+       | awk --field-separator=: '$1=="uid"{print $10}')
+# --with-colons writes the colon of FN: as \x3a.
+is "the name is the FN" \
+   "$(grep --count --fixed-strings --line-regexp 'FN\x3aNewer' <<<"$uids")" "1"
+is "the address is behind its local part" \
+   "$(grep --count '^same <same@example.invalid>$' <<<"$uids")" "1"
 gpgconf --homedir "$NEWHOME" --kill all >/dev/null 2>&1
 rm -rf "$NEWHOME"
 
@@ -1284,10 +1293,10 @@ ZOE=$(gpg --with-colons --list-keys zoe@example.org 2>/dev/null \
       | awk --field-separator=: '$1=="fpr"{print $10; exit}')
 # A second address, because the last one may never be revoked.
 "$BIN" cert_email --add keep@example.org --yes --keyservers '' "$ZOE" >/dev/null 2>&1
-is "an address is added as itself, with nothing in front" \
+is "an address is added behind its local part, never a name" \
    "$(gpg --with-colons --list-keys "$ZOE" \
       | awk --field-separator=: '$1=="uid"{print $10}' \
-      | grep --count '^<keep@example.org>$')" "1"
+      | grep --count '^keep <keep@example.org>$')" "1"
 
 # The same address in its other shape, as older certificates carry it.
 gpg --batch --quiet --quick-add-uid "$ZOE" "EMAIL: <zoe@example.org>" 2>/dev/null

@@ -41,7 +41,7 @@ static void usage(FILE *out)
         "  -R, --revoke EMAIL          Revoke existing EMAIL, in every uid that names it\n"
         "                              (may be used more than once)\n"
         "      --revoke-all            Revoke every usable email uid but the newest\n"
-        "  -A, --add EMAIL             Add EMAIL as a '<EMAIL>' uid, or sign every uid\n"
+        "  -A, --add EMAIL             Add EMAIL as a 'LOCAL-PART <EMAIL>' uid, or sign every uid\n"
         "                              naming it again when it was revoked before\n"
         "        --set-primary EMAIL     Make EMAIL the certificate's primary address\n"
         "  -y, --yes                   Assume yes: skip the revocation confirmation\n"
@@ -451,11 +451,11 @@ int pgpid_action_cert_email(int argc, char **argv)
             return PGPID_FAIL;
         }
         for (size_t a = 0; a < nadd; a++) {
-            /* The address and nothing else. A name in front is how the same
-             * address ends up on a certificate twice, to be treated as one
-             * identity ever after (JJB, 2026-09-18): no name is asked for. */
-            char want[400];
-            snprintf(want, sizeof want, "<%.319s>", toadd[a]);
+            /* No name is asked for. A name in front is how the same address
+             * ends up on a certificate twice, to be treated as one identity
+             * ever after (JJB, 2026-09-18). */
+            char want[700];
+            pgpid_email_uid(want, sizeof want, toadd[a]);
 
             /* Every shape this certificate already holds of that address. */
             const char *held[MAX_UIDS];

@@ -315,7 +315,7 @@ OPTIONS:
   -R, --revoke COURRIEL       Révoquer COURRIEL, dans chaque uid qui la nomme
                               (peut servir plusieurs fois)
       --revoke-all            Révoquer tous les uid d'adresse utilisables sauf le plus récent
-  -A, --add COURRIEL          Ajouter COURRIEL comme uid « <COURRIEL> », ou re-signer chaque
+  -A, --add COURRIEL          Ajouter COURRIEL comme uid « PARTIE-LOCALE <COURRIEL> », ou re-signer chaque
                               uid qui la nomme si elle avait été révoquée
         --set-primary COURRIEL  Faire de COURRIEL l'adresse principale du certificat
   -y, --yes                   Répondre oui d'office : sauter la confirmation de révocation

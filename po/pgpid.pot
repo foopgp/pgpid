@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pgpid\n"
 "Report-Msgid-Bugs-To: jjbrucker@foopgp.org\n"
-"POT-Creation-Date: 2026-09-18 11:26+0200\n"
+"POT-Creation-Date: 2026-09-19 16:18+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -843,7 +843,7 @@ msgid ""
 "  -R, --revoke EMAIL          Revoke existing EMAIL, in every uid that names it\n"
 "                              (may be used more than once)\n"
 "      --revoke-all            Revoke every usable email uid but the newest\n"
-"  -A, --add EMAIL             Add EMAIL as a '<EMAIL>' uid, or sign every uid\n"
+"  -A, --add EMAIL             Add EMAIL as a 'LOCAL-PART <EMAIL>' uid, or sign every uid\n"
 "                              naming it again when it was revoked before\n"
 "        --set-primary EMAIL     Make EMAIL the certificate's primary address\n"
 "  -y, --yes                   Assume yes: skip the revocation confirmation\n"
@@ -931,7 +931,7 @@ msgid "Notice: Adding '%s' into certificate %s…"
 msgstr ""
 
 #: ../src/email.c:475 ../src/genkey.c:358 ../src/genkey.c:363
-#: ../src/genkey.c:373 ../src/property.c:645 ../src/uidedit.c:141
+#: ../src/genkey.c:373 ../src/property.c:645 ../src/uidedit.c:153
 #, c-format
 msgid "Error: gpg would not add '%s'."
 msgstr ""
@@ -3451,81 +3451,81 @@ msgstr ""
 msgid "Error: '%s' is not one of local, export or import."
 msgstr ""
 
-#: ../src/uidedit.c:95
+#: ../src/uidedit.c:107
 msgid "Error: Revoking a User ID leaves it on the certificate, marked"
 msgstr ""
 
-#: ../src/uidedit.c:96
+#: ../src/uidedit.c:108
 msgid "revoked; whoever holds it keeps it until they refresh."
 msgstr ""
 
-#: ../src/uidedit.c:97
+#: ../src/uidedit.c:109
 msgid "Adding the identical value later signs it anew and it stands"
 msgstr ""
 
-#: ../src/uidedit.c:98
+#: ../src/uidedit.c:110
 msgid "again. Pass --yes if that is what you want:"
 msgstr ""
 
-#: ../src/uidedit.c:99
+#: ../src/uidedit.c:111
 #, c-format
 msgid "  %s"
 msgstr ""
 
-#: ../src/uidedit.c:102
+#: ../src/uidedit.c:114
 #, c-format
 msgid "Notice: Revoking %s inside certificate %s…"
 msgstr ""
 
-#: ../src/uidedit.c:105
+#: ../src/uidedit.c:117
 #, c-format
 msgid "Error: gpg would not revoke %s."
 msgstr ""
 
-#: ../src/uidedit.c:128
+#: ../src/uidedit.c:140
 #, c-format
 msgid "Error: Certificate %s carries no '%s' to sign again."
 msgstr ""
 
-#: ../src/uidedit.c:131
+#: ../src/uidedit.c:143
 #, c-format
 msgid "Notice: '%s' was revoked earlier; signing it again…"
 msgstr ""
 
-#: ../src/uidedit.c:136
+#: ../src/uidedit.c:148
 #, c-format
 msgid "Error: gpg would not drop the revoked '%s' — right PIN?"
 msgstr ""
 
-#: ../src/uidedit.c:178
+#: ../src/uidedit.c:190
 #, c-format
 msgid "Warning: No address left on certificate %s to carry the primary User ID flag."
 msgstr ""
 
-#: ../src/uidedit.c:182
+#: ../src/uidedit.c:194
 #, c-format
 msgid "Notice: Main identity is no longer an address: moving the primary User ID flag to %s."
 msgstr ""
 
-#: ../src/uidedit.c:186
+#: ../src/uidedit.c:198
 msgid "Error: gpg would not move the primary User ID flag."
 msgstr ""
 
-#: ../src/uidedit.c:236
+#: ../src/uidedit.c:248
 #, c-format
 msgid "Notice: Minting the identity uid %s…"
 msgstr ""
 
-#: ../src/uidedit.c:239
+#: ../src/uidedit.c:251
 #, c-format
 msgid "Error: gpg would not add %s."
 msgstr ""
 
-#: ../src/uidedit.c:258
+#: ../src/uidedit.c:270
 #, c-format
 msgid "Warning: gpg would not add %s."
 msgstr ""
 
-#: ../src/uidedit.c:277
+#: ../src/uidedit.c:289
 msgid "Warning: The reshaped certificate could not be published."
 msgstr ""

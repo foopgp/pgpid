@@ -310,7 +310,7 @@ OPTIONS:
   -R, --revoke EMAIL          Revoke existing EMAIL, in every uid that names it
                               (may be used more than once)
       --revoke-all            Revoke every usable email uid but the newest
-  -A, --add EMAIL             Add EMAIL as a '<EMAIL>' uid, or sign every uid
+  -A, --add EMAIL             Add EMAIL as a 'LOCAL-PART <EMAIL>' uid, or sign every uid
                               naming it again when it was revoked before
         --set-primary EMAIL     Make EMAIL the certificate's primary address
   -y, --yes                   Assume yes: skip the revocation confirmation

@@ -465,6 +465,10 @@ bool pgpid_uid_has_address(const char *uid);
 /* The address inside such a uid, pointing into it, or NULL. */
 const char *pgpid_uid_address(const char *uid, size_t *len);
 
+/* The uid an address is written as, at birth as when added:
+ * `local <local@domain>`. */
+void pgpid_email_uid(char *out, size_t max, const char *email);
+
 /* Revoke one uid. Irreversible: PGP keeps it on the certificate forever
  * and gpg then refuses an identical one, which is what the confirmation is
  * there to say. */

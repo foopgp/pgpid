@@ -83,6 +83,18 @@ bool pgpid_uid_has_address(const char *uid)
 }
 
 /**
+ * An address as a uid: its own local part in front, never a name (JJB,
+ * 2026-09-19). The uid is then a function of the address alone, so one
+ * address has one way to be written. The name goes in FN.
+ */
+void pgpid_email_uid(char *out, size_t max, const char *email)
+{
+    const char *at = strchr(email, '@');
+    int local = at ? (int)(at - email) : (int)strlen(email);
+    snprintf(out, max, "%.*s <%s>", local, email, email);
+}
+
+/**
  * Revoke one uid.
  *
  * The confirmation is not ceremony: the sentence it shows is the only place

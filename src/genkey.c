@@ -339,7 +339,7 @@ int pgpid_action_gen_key(int argc, char **argv)
      * straight to gpg rather than through an agent that would ask for it. */
     char fn[600], addr[900], years[16];
     snprintf(fn, sizeof fn, "FN:%.511s", name);
-    snprintf(addr, sizeof addr, "%.511s <%.319s>", name, email);
+    pgpid_email_uid(addr, sizeof addr, email);
     snprintf(years, sizeof years, "%dy", expire);
 
     const char *quick[] = { "--batch", "--pinentry-mode", "loopback",
