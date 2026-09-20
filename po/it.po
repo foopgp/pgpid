@@ -81,35 +81,16 @@ msgid "Info: Putting %s on %s…"
 msgstr "Info: Applicazione di %s su %s…"
 
 #: ../src/avatar.c:410
-#, fuzzy, c-format
-#| msgid "Error: gpg would not add %s."
+#, c-format
 msgid "Error: The engine would not edit %s."
-msgstr "Error: gpg ha rifiutato di aggiungere %s."
+msgstr "Error: il motore non ha voluto modificare %s."
 
 #: ../src/avatar.c:411
 msgid "Notice: A certificate is edited with its secret key - is the right one at hand?"
 msgstr "Notice: Un certificato si modifica con la sua chiave segreta — è quella giusta ad essere a portata?"
 
 #: ../src/avatar.c:423
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s avatar [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
-#| "\n"
-#| "Extract or add image inside OpenPGP certificate.\n"
-#| "Missing NAME|EMAIL|KEYID|U4|U5 => the first secret certificate.\n"
-#| "Writing takes a fingerprint and nothing else: revoking cannot be\n"
-#| "undone, so a search must never become a target.\n"
-#| "New IMAGE should be 180x180 pixels, or it will be resized.\n"
-#| "Output the path of the image that stands today, newest first when several do.\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -E, --extract-all           Output every image, revoked and expired ones included, newest first\n"
-#| "  -A, --replace-to IMAGE      Resize and add new IMAGE inside OpenPGP certificate (revoking any previous image)\n"
-#| "  -R, --revoke                Just revoke all existing images inside OpenPGP certificate\n"
-#| "  -W, --workdir DIRECTORY     Working directory. Will contain previous and new resized images\n"
-#| "  -K, --keyservers KEYSERVERS If non-empty, send updated certificate to this keyservers - Default: %s\n"
-#| "  -h, --help                  Print this help and exit\n"
-#| "  -V, --version               Print the version and exit\n"
+#, c-format
 msgid ""
 "Usage: %s cert_avatar [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
 "\n"
@@ -129,24 +110,24 @@ msgid ""
 "  -h, --help                  Print this help and exit\n"
 "  -V, --version               Print the version and exit\n"
 msgstr ""
-"Usage: %s avatar [OPTIONS]... [NOME|INDIRIZZO|KEYID|U4|U5]\n"
+"Usage: %s cert_avatar [OPTIONS]... [NOME|POSTA|KEYID|U4|U5]\n"
 "\n"
-"Estrarre o aggiungere un'immagine nel certificato OpenPGP.\n"
-"NOME|INDIRIZZO|KEYID|U4|U5 mancante ⇒ il primo certificato segreto.\n"
-"Scrivere richiede un'impronta e nient'altro: revocare non si disfa, e una\n"
-"ricerca non deve mai diventare un bersaglio.\n"
-"La nuova IMMAGINE dev'essere 180×180 pixel, altrimenti sarà ridimensionata.\n"
-"Stampa il percorso dell'immagine che vale oggi, la più recente per prima.\n"
+"Estrarre o aggiungere un'immagine dentro un certificato PGP.\n"
+"Senza NOME|POSTA|KEYID|U4|U5 => il primo certificato segreto.\n"
+"Scrivere richiede un'impronta e nient'altro: una revoca non si disfa, quindi\n"
+"una ricerca non deve mai diventare un bersaglio.\n"
+"La nuova IMMAGINE dovrebbe essere di 180x180 pixel, altrimenti sarà ridimensionata.\n"
+"Mostra il percorso dell'immagine che vale oggi, la più recente per prima\n"
+"quando ne valgono più d'una.\n"
 "\n"
 "OPTIONS:\n"
-"  -E, --extract-all           Stampare ogni immagine, revocate e scadute comprese, la più recente per prima\n"
-"  -A, --replace-to IMMAGINE   Ridimensionare e aggiungere IMMAGINE nel certificato (revocando le precedenti)\n"
-"  -R, --revoke                Revocare soltanto tutte le immagini esistenti nel certificato OpenPGP\n"
-"  -W, --workdir DIRECTORY     Directory di lavoro. Conterrà le immagini precedenti e le nuove ridimensionate\n"
-"  -K, --keyservers SERVER     Se non vuoto, inviare il certificato aggiornato a questi server - Default: %s\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
-"  -V, --version               Stampare la versione e uscire\n"
-"\n"
+"  -E, --extract-all           Mostrare tutte le immagini, anche revocate, la più recente per prima\n"
+"  -A, --replace-to IMMAGINE   Ridimensionare e aggiungere IMMAGINE al certificato (revocando la precedente)\n"
+"  -R, --revoke                Revocare soltanto tutte le immagini del certificato PGP\n"
+"  -W, --workdir DIRECTORY     Directory di lavoro. Conterrà le immagini precedenti e le nuove\n"
+"  -K, --keyservers SERVER     Se non vuoto, inviarvi il certificato aggiornato - Predefinito: %s\n"
+"  -h, --help                  Mostrare questo aiuto ed uscire\n"
+"  -V, --version               Mostrare la versione ed uscire\n"
 
 #: ../src/avatar.c:493
 #, c-format
@@ -275,48 +256,7 @@ msgid "Error: Unhandled or unknown Status Word (%s)."
 msgstr "Error: Parola di stato sconosciuta o non gestita (%s)."
 
 #: ../src/certify.c:41
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s certify [OPTIONS]... [TARGET_KEYFPR] [TARGET_U4|TARGET_U5]\n"
-#| "\n"
-#| "Certify somebody else. Both operands are optional and may come in either\n"
-#| "order — they are recognised by their shape, not by their place. What is\n"
-#| "missing is asked for, unless --batch says there is nobody to ask.\n"
-#| "\n"
-#| "TARGET_KEYFPR is the whole forty characters, read off the other person's\n"
-#| "card — never a search pattern, because a certification cannot be taken\n"
-#| "back. Without it, whoever carries TARGET_U4 is looked up here and on the\n"
-#| "keyservers, and eight characters of the fingerprint are asked for, taken\n"
-#| "at a place drawn at random: enough to prove the card is in your hand.\n"
-#| "\n"
-#| "TARGET_U4 may be written u4VALUE, the deprecated u4=VALUE, or bare.\n"
-#| "Given together with a fingerprint, it asks that the certificate carry it,\n"
-#| "and refuses otherwise.\n"
-#| "\n"
-#| "Certification means : I know this other certificate belongs to this real person.\n"
-#| "This implies verifying the civil status and the public key fingerprint of the TARGET.\n"
-#| "This allows you to expand and strengthen your web of trust and those of your close ones.\n"
-#| "This is a commitment: the more you certify, the more you increase your reputation,\n"
-#| "but if you do it wrong, you will ruin your credibility.\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -u, --use-privkey NAME|KEYID Select private key to use. Default: Guess it from connected token\n"
-#| "  -E, --all-emails             Also certify every OpenPGP uid containing an email. For compatibility with some legacy software.\n"
-#| "  -R, --revoke                 Revoke your previous certifications on someone else's certificate\n"
-#| "  -o, --credibility VALUE      What credibility do you assign to the target to correctly certify others {undefined,marginal,full,never}\n"
-#| "      --ownertrust VALUE       The same, under the name gpg gives it - Default: marginal\n"
-#| "  -l, --local                  « Non-exportable » certification. Pretty useless, except for testing\n"
-#| "  -K, --keyservers KEYSERVERS  If non-empty, receive and send updated certificate from and to this keyservers - Default: %s\n"
-#| "  -h, --help                   Print this help and exit\n"
-#| "  -V, --version                Print the version and exit\n"
-#| "\n"
-#| "Return value:\n"
-#| "-   0 No error\n"
-#| "-   2 Input/Usage error\n"
-#| "- %d Nothing to certify with — say which key with --use-privkey\n"
-#| "- %d No certificate carries that fingerprint\n"
-#| "- %d Self-certification is not innovative! ;-)\n"
-#| "- %d That certificate does not carry that identifier\n"
+#, c-format
 msgid ""
 "Usage: %s certify [OPTIONS]... [TARGET_KEYFPR] [TARGET_U4|TARGET_U5]\n"
 "\n"
@@ -359,48 +299,46 @@ msgid ""
 "- %d Self-certification is not innovative! ;-)\n"
 "- %d That certificate does not carry that identifier\n"
 msgstr ""
-"Usage: %s certify [OPTIONS]... [TARGET_KEYFPR] [TARGET_U4|TARGET_U5]\n"
+"Usage: %s certify [OPTIONS]... [IMPRONTA_BERSAGLIO] [U4_BERSAGLIO|U5_BERSAGLIO]\n"
 "\n"
-"Certificare qualcun altro. Entrambi gli operandi sono facoltativi e possono\n"
-"venire in qualsiasi ordine — sono riconosciuti dalla loro forma, non dal\n"
-"loro posto. Ciò che manca viene chiesto, salvo che --batch dica che non\n"
-"c'è nessuno a cui chiedere.\n"
+"Certificare qualcun altro. I due operandi sono facoltativi e possono venire\n"
+"nell'uno o nell'altro ordine — si riconoscono dalla loro forma, non dal loro\n"
+"posto. Ciò che manca è chiesto, salvo che --batch dica che non c'è nessuno a\n"
+"cui chiedere.\n"
 "\n"
-"TARGET_KEYFPR sono i quaranta caratteri interi, letti sulla carta\n"
+"IMPRONTA_BERSAGLIO sono i quaranta caratteri interi, letti sulla carta\n"
 "dell'altra persona — mai un modello di ricerca, perché una certificazione\n"
-"non si ritira. Senza di esso, chi porta TARGET_U4 viene cercato qui e sui\n"
-"server di chiavi, e vengono chiesti otto caratteri dell'impronta, presi in\n"
-"un punto estratto a sorte: quanto basta a provare che la carta è in mano\n"
-"vostra.\n"
+"non si riprende. Senza di essa, chi porta U4_BERSAGLIO è cercato qui e sui\n"
+"server di chiavi, e otto caratteri dell'impronta sono chiesti, presi in un\n"
+"punto estratto a sorte: abbastanza per provare che la carta è nella vostra mano.\n"
 "\n"
-"TARGET_U4 si scrive u4VALORE, il deprecato u4=VALORE, o nudo. Dato insieme\n"
-"a un'impronta, esige che il certificato lo porti, e rifiuta altrimenti.\n"
+"U4_BERSAGLIO può scriversi u4VALORE, la vecchia forma u4=VALORE, o nudo. Dato\n"
+"insieme a un'impronta, esige che il certificato lo porti, e altrimenti rifiuta.\n"
 "\n"
-"Certificare significa: so che quest'altro certificato appartiene a questa persona reale.\n"
-"Ciò implica verificare lo stato civile e l'impronta della chiave pubblica del BERSAGLIO.\n"
-"Ciò permette di estendere e rafforzare la sua rete di fiducia e quelle dei suoi cari.\n"
-"È un impegno: più certifica, più accresce la sua reputazione,\n"
-"ma se lo fa male, rovinerà la sua credibilità.\n"
+"Certificare vuol dire: so che quest'altro certificato appartiene a questa persona reale.\n"
+"Ciò implica aver verificato lo stato civile e l'impronta della chiave pubblica del BERSAGLIO.\n"
+"Ciò vi permette di estendere e rafforzare la vostra rete di fiducia e quella dei vostri cari.\n"
+"È un impegno: più certificate, più aumentate la vostra reputazione,\n"
+"ma se lo fate male, rovinerete la vostra credibilità.\n"
 "\n"
 "OPTIONS:\n"
-"  -u, --use-privkey NAME|KEYID Certificare con questa chiave\n"
-"  -E, --all-emails            Certificare anche ogni uid con indirizzo,\n"
-"  -R, --revoke                Revocare le sue certificazioni precedenti\n"
-"  -o, --credibility VALUE     Fin dove certificano gli altri, a loro volta\n"
-"      --ownertrust VALUE      Lo stesso, col nome che gpg le dà\n"
-"  -l, --local                 Certificare senza esportare — utile per provare\n"
-"  -K, --keyservers KEYSERVERS Inviare il risultato a questi, separati da - Default: %s\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
-"  -V, --version               Stampare la versione e uscire\n"
+"  -u, --use-privkey NOME|KEYID Scegliere la chiave privata. Predefinito: indovinata dalla chiave collegata\n"
+"  -E, --all-emails             Certificare anche ogni uid PGP con un indirizzo. Per software più vecchi.\n"
+"  -R, --revoke                 Revocare le vostre certificazioni precedenti sul certificato di un altro\n"
+"  -o, --credibility VALORE     Quale credibilità accordate al bersaglio per certificare {undefined,marginal,full,never}\n"
+"      --ownertrust VALORE      La stessa, col nome che le dà gpg - Predefinito: marginal\n"
+"  -l, --local                  Certificazione «non esportabile». Poco utile, salvo per le prove\n"
+"  -K, --keyservers SERVER      Se non vuoto, ricevere e inviare il certificato aggiornato da e verso questi server - Predefinito: %s\n"
+"  -h, --help                   Mostrare questo aiuto ed uscire\n"
+"  -V, --version                Mostrare la versione ed uscire\n"
 "\n"
 "Valore di ritorno:\n"
 "-   0 Nessun errore\n"
-"-   2 Errore di argomento o d'uso\n"
-"- %d Nulla con cui certificare — dica quale chiave con --use-privkey\n"
+"-   2 Errore d'ingresso o d'uso\n"
+"- %d Niente con cui certificare — dite quale chiave con --use-privkey\n"
 "- %d Nessun certificato porta quell'impronta\n"
-"- %d Autocertificarsi non ha nulla di nuovo! ;-)\n"
-"- %d Quel certificato non porta quell'identificativo\n"
-"\n"
+"- %d Certificare sé stessi non è molto innovativo! ;-)\n"
+"- %d Quel certificato non porta quell'identificatore\n"
 
 #: ../src/certify.c:141
 msgid "Error: No card answered, so there is nothing to certify with."
@@ -547,103 +485,95 @@ msgid ""
 "Revoking is final. PGP has no way back: every copy that ever fetches this\n"
 "certificate, anywhere, will see it revoked, and no later signature will count.\n"
 msgstr ""
+"Usage: %s cert_revoke [OPTIONS]... IMPRONTA\n"
+"\n"
+"Revocare un certificato intero e pubblicare la revoca. Richiede la sua\n"
+"chiave segreta, quindi solo un certificato per cui questa macchina può\n"
+"ancora parlare: uno di quelli che mostrano «%s secret_list» o «%s token_list».\n"
+"\n"
+"OPTIONS:\n"
+"  -r, --reason MOTIVO         unspecified | superseded | compromised | unused,\n"
+"                              o 0..3 come li numera la RFC 4880 (non come il menu\n"
+"                              di gpg, che inverte 1 e 2) - Predefinito: unspecified\n"
+"  -d, --description TESTO     Una riga che dice perché, conservata nella revoca\n"
+"  -y, --yes                   Rispondere sì d'ufficio: saltare la conferma\n"
+"  -K, --keyservers SERVER     Dove pubblicare - vuoto per tenerla locale\n"
+"                              Predefinito: %s\n"
+"  -h, --help                  Mostrare questo aiuto ed uscire\n"
+"  -V, --version               Mostrare la versione ed uscire\n"
+"\n"
+"Revocare è definitivo. PGP non ha ritorno: ogni copia che un giorno\n"
+"recupererà questo certificato, ovunque sia, lo vedrà revocato, e nessuna\n"
+"firma posteriore conterà.\n"
 
 #: ../src/certrevoke.c:90
-#, fuzzy, c-format
-#| msgid "Error: Unknown action '%s'."
+#, c-format
 msgid "Error: Unknown reason '%s'."
-msgstr "Error: Azione sconosciuta «%s»."
+msgstr "Error: motivo «%s» ignoto."
 
 #: ../src/certrevoke.c:91
 msgid "Notice: unspecified, compromised, superseded, unused."
-msgstr ""
+msgstr "Notice: unspecified, compromised, superseded, unused."
 
 #: ../src/certrevoke.c:118
-#, fuzzy
-#| msgid "Error: Which certificate? A whole fingerprint is required —"
 msgid "Error: Which certificate? Name it by fingerprint."
-msgstr "Error: Quale certificato? Si esige un'impronta intera —"
+msgstr "Error: quale certificato? Nominatelo per impronta."
 
 #: ../src/certrevoke.c:136
-#, fuzzy, c-format
-#| msgid "Error: No secret for '%s' here."
+#, c-format
 msgid "Error: No secret for '%s' here, so it cannot be revoked."
-msgstr "Error: Nessun segreto per «%s» qui."
+msgstr "Error: nessun segreto per «%s» qui, quindi non si può revocare."
 
 #: ../src/certrevoke.c:137
 #, c-format
 msgid "Notice: Revoking needs the key itself. '%s cert_del' only forgets it."
-msgstr ""
+msgstr "Notice: revocare richiede la chiave stessa. «%s cert_del» la dimentica soltanto."
 
 #: ../src/certrevoke.c:144 ../src/secretdel.c:135 ../src/tokendel.c:142
-#, fuzzy
-#| msgid "Notice: --batch was given, so nothing is asked."
 msgid "Error: --batch was given, so nothing is asked. Add --yes."
-msgstr "Notice: è stato indicato --batch, quindi non si chiede nulla."
+msgstr "Error: --batch è stato dato, quindi non si chiede niente. Aggiungete --yes."
 
 #: ../src/certrevoke.c:148
 #, c-format
 msgid "Notice: About to revoke %s, for good, and tell the keyservers."
-msgstr ""
+msgstr "Notice: si sta per revocare %s, definitivamente, e per dirlo ai server di chiavi."
 
 #: ../src/certrevoke.c:149 ../src/secretdel.c:141 ../src/tokendel.c:136
 msgid "Type yes to go on: "
-msgstr ""
+msgstr "Battete yes per continuare: "
 
 #: ../src/certrevoke.c:151 ../src/secretdel.c:143 ../src/tokendel.c:138
 #: ../src/totoken.c:371
-#, fuzzy
-#| msgid "Notice: No image to take back."
 msgid "Notice: Nothing done."
-msgstr "Notice: Nessuna immagine da ritirare."
+msgstr "Notice: niente fatto."
 
 #: ../src/certrevoke.c:159
-#, fuzzy
-#| msgid "Error: Cannot write the card."
 msgid "Error: Cannot write the revocation anywhere."
-msgstr "Error: Impossibile scrivere la carta."
+msgstr "Error: la revoca non si può scrivere in nessun posto."
 
 #: ../src/certrevoke.c:174
-#, fuzzy
-#| msgid "Error: No fragment was produced."
 msgid "Error: The revocation was not produced."
-msgstr "Error: Nessun frammento è stato prodotto."
+msgstr "Error: la revoca non è stata prodotta."
 
 #: ../src/certrevoke.c:183
 msgid "Error: The revocation was produced but would not import."
-msgstr ""
+msgstr "Error: la revoca è stata prodotta ma non si è potuta importare."
 
 #: ../src/certrevoke.c:186
-#, fuzzy, c-format
-#| msgid "Notice: %s code unchanged."
+#, c-format
 msgid "Notice: %s is revoked here."
-msgstr "Notice: Codice %s invariato."
+msgstr "Notice: %s è revocato qui."
 
 #: ../src/certrevoke.c:190
 msgid "Notice: Not published. Until it is, others still trust this key."
-msgstr ""
+msgstr "Notice: non pubblicato. Finché è così, gli altri si fidano ancora di questa chiave."
 
 #: ../src/certrevoke.c:194
 msgid "Warning: The revocation could not be published. Others still trust this key."
-msgstr ""
+msgstr "Warning: la revoca non si è potuta pubblicare. Gli altri si fidano ancora di questa chiave."
 
 #: ../src/changepass.c:24
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s change_passphrase [OPTIONS]... KEY_ID|FPR|EMAIL|NAME\n"
-#| "\n"
-#| "Change GnuPG passphrase protecting secret parts of an OpenPGP key.\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -p, --passphrase PASSPHRASE    Current passphrase protecting secret parts of OpenPGP key (empty \"\" for none)\n"
-#| "  -P, --passfrom FILE            Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
-#| "  -n, --newpassphrase PASSPHRASE New passphrase to protect secret parts of OpenPGP key (empty \"\" for none)\n"
-#| "  -N, --newpassfrom FILE         Get new passphrase from the first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
-#| "  -h, --help                     Print this help and exit\n"
-#| "  -V, --version                  Print the version and exit\n"
-#| "\n"
-#| "Passing a passphrase as an argument shows it to everything that can read\n"
-#| "this machine's process list. The file forms exist for that reason.\n"
+#, c-format
 msgid ""
 "Usage: %s secret_passphrase [OPTIONS]... KEY_ID|FPR|EMAIL|NAME\n"
 "\n"
@@ -661,22 +591,21 @@ msgid ""
 "Passing a passphrase as an argument shows it to everything that can read\n"
 "this machine's process list. The file forms exist for that reason.\n"
 msgstr ""
-"Usage: %s change_passphrase [OPTIONS]... KEY_ID|FPR|INDIRIZZO|NOME\n"
+"Usage: %s secret_passphrase [OPTIONS]... KEYID|IMPRONTA|POSTA|NOME\n"
 "\n"
-"Cambiare la frase segreta GnuPG che protegge le parti segrete di una chiave OpenPGP.\n"
+"Cambiare la frase segreta GnuPG che protegge le parti segrete di una chiave PGP.\n"
 "\n"
 "OPTIONS:\n"
-"  -p, --passphrase PASSPHRASE L'attuale, \"\" se non ce n'è alcuna\n"
-"  -P, --passfrom FILE         Leggerla sulla prima riga di FILE\n"
-"  -n, --newpassphrase PASSPHRASE La nuova, \"\" per nessuna\n"
-"  -N, --newpassfrom FILE      Leggerla sulla prima riga di FILE\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
-"  -V, --version               Stampare la versione e uscire\n"
+"  -p, --passphrase FRASE         Frase segreta attuale che protegge le parti segrete (vuota \"\" per nessuna)\n"
+"  -P, --passfrom FILE            Leggere la frase in testa a FILE (fifo, tmpfs, /dev/stdin …)\n"
+"  -n, --newpassphrase FRASE      Nuova frase segreta per le parti segrete (vuota \"\" per nessuna)\n"
+"  -N, --newpassfrom FILE         Leggere la nuova frase in testa a FILE (fifo, tmpfs, /dev/stdin …)\n"
+"  -r, --replace                  Cambiare la frase, invece di verificarla soltanto\n"
+"  -h, --help                     Mostrare questo aiuto ed uscire\n"
+"  -V, --version                  Mostrare la versione ed uscire\n"
 "\n"
-"Passare una frase d'accesso come argomento la mostra a tutto ciò che può\n"
-"leggere l'elenco dei processi di questa macchina. Le forme su file\n"
-"esistono per questo.\n"
-"\n"
+"Passare una frase segreta in argomento la mostra a tutto ciò che può leggere\n"
+"la lista dei processi di questa macchina. Le forme per file sono lì per questo.\n"
 
 #: ../src/changepass.c:49 ../src/changetokencode.c:57
 #: ../src/changetokenmeta.c:57 ../src/genkey.c:164 ../src/printsecret.c:94
@@ -722,10 +651,8 @@ msgid "Error: That is not the current passphrase of '%s'."
 msgstr "Error: Quella non è la frase d'accesso attuale di «%s»."
 
 #: ../src/changepass.c:170
-#, fuzzy
-#| msgid "Notice: Passphrase unchanged."
 msgid "Notice: Passphrase verified."
-msgstr "Notice: Frase d'accesso invariata."
+msgstr "Notice: frase segreta verificata."
 
 #: ../src/changepass.c:175
 msgid "Notice: Passphrase unchanged."
@@ -741,30 +668,7 @@ msgid "Notice: Passphrase successfully changed."
 msgstr "Notice: Frase d'accesso cambiata."
 
 #: ../src/changetokencode.c:26
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s change_token_code [OPTIONS]...\n"
-#| "\n"
-#| "Check and change PIN (or Admin) code protecting use of a security token\n"
-#| "(OpenPGP smartcard). Both codes are needed in full: nothing here asks for\n"
-#| "what it is missing.\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -p, --code CURRENTCODE    Current PIN (or Admin) code protecting use of security token (empty \"\" for none)\n"
-#| "  -P, --codefrom FILE       Get current PIN (or Admin) code from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
-#| "  -n, --newcode NEWCODE     New PIN (or Admin) code to protect use of security token\n"
-#| "  -N, --newcodefrom FILE    Get new PIN (or Admin) code from the first line of FILE (eg: fifo, tmpfs ...)\n"
-#| "  -C, --onlycheck           Only check current PIN (or Admin) code, don't change it\n"
-#| "  -A, --admin               Change (or check) Admin code instead of PIN code\n"
-#| "  -U, --unblock             Unblock PIN. Need Admin code to be passed to --code, and new PIN code to be passed to --newcode\n"
-#| "  -h, --help                Print this help and exit\n"
-#| "  -V, --version             Print the version and exit\n"
-#| "\n"
-#| "Return value:\n"
-#| "- 194 (0xC2) if only 2 remaining attempt.\n"
-#| "- 193 (0xC1) if only 1 remaining attempt.\n"
-#| "- 192 (0xC0) if code is blocked.\n"
-#| "- other non-zero value on other errors.\n"
+#, c-format
 msgid ""
 "Usage: %s token_code [OPTIONS]...\n"
 "\n"
@@ -789,28 +693,28 @@ msgid ""
 "- 192 (0xC0) if code is blocked.\n"
 "- other non-zero value on other errors.\n"
 msgstr ""
-"Usage: %s change_token_code [OPTIONS]...\n"
+"Usage: %s token_code [OPTIONS]...\n"
 "\n"
 "Verificare e cambiare il codice PIN (o Admin) che protegge l'uso di una\n"
-"chiave di sicurezza (carta OpenPGP). Entrambi i codici sono attesi per\n"
-"intero: qui nulla chiede ciò che manca.\n"
+"chiave di sicurezza (OpenPGP smartcard). I due codici sono attesi interi:\n"
+"qui niente chiede ciò che gli manca.\n"
 "\n"
 "OPTIONS:\n"
-"  -p, --code CURRENTCODE      Il codice così com'è\n"
-"  -P, --codefrom FILE         Leggerlo sulla prima riga di FILE\n"
-"  -n, --newcode NEWCODE       In che cosa deve diventare\n"
-"  -N, --newcodefrom FILE      Leggere quello sulla prima riga di FILE\n"
-"  -C, --onlycheck             Solo verificare il codice, non cambiare nulla\n"
-"  -A, --admin                 Il codice Admin anziché il PIN\n"
-"  -U, --unblock               Sbloccare il PIN: --code è allora il codice Admin\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
-"  -V, --version               Stampare la versione e uscire\n"
+"  -p, --code CODICEATTUALE  Codice PIN (o Admin) attuale che protegge l'uso (vuoto \"\" per nessuno)\n"
+"  -P, --codefrom FILE       Leggere il codice attuale sulla prima riga di FILE (es.: fifo, tmpfs …)\n"
+"  -n, --newcode CODICENUOVO Nuovo codice PIN (o Admin) che protegge l'uso della chiave\n"
+"  -N, --newcodefrom FILE    Leggere il codice nuovo sulla prima riga di FILE (fifo, tmpfs …)\n"
+"  -r, --replace             Cambiare il codice, invece di verificarlo soltanto\n"
+"  -A, --admin               Cambiare (o verificare) il codice Admin invece del PIN\n"
+"  -U, --unblock             Sbloccare il PIN. Il codice Admin va in --code, e il nuovo PIN in --newcode\n"
+"  -h, --help                Mostrare questo aiuto ed uscire\n"
+"  -V, --version             Mostrare la versione ed uscire\n"
 "\n"
 "Valore di ritorno:\n"
 "- 194 (0xC2) se restano solo 2 tentativi.\n"
-"- 193 (0xC1) se resta un solo tentativo.\n"
+"- 193 (0xC1) se resta solo 1 tentativo.\n"
 "- 192 (0xC0) se il codice è bloccato.\n"
-"- un altro valore non nullo sugli altri errori.\n"
+"- altro valore diverso da zero per gli altri errori.\n"
 
 #: ../src/changetokencode.c:91 ../src/changetokencode.c:100
 #: ../src/changetokenmeta.c:186
@@ -836,13 +740,11 @@ msgstr "Notice: Indicate --code, o --codefrom per tenerlo fuori dalla lista dei 
 
 #: ../src/changetokencode.c:158
 msgid "Error: A new code was given but not --replace, so nothing would change."
-msgstr ""
+msgstr "Error: è stato dato un codice nuovo ma non --replace, quindi niente cambierebbe."
 
 #: ../src/changetokencode.c:160
-#, fuzzy
-#| msgid "Notice: Give --newcode, or --onlycheck to only check the current one."
 msgid "Notice: Add --replace to change it, or drop the new code to only check the current one."
-msgstr "Notice: Indicate --newcode, o --onlycheck per verificare soltanto quello attuale."
+msgstr "Notice: aggiungete --replace per cambiarlo, o togliete il codice nuovo per verificare solo l'attuale."
 
 #: ../src/changetokencode.c:166
 #, c-format
@@ -850,10 +752,8 @@ msgid "New %s code (%zu digits): "
 msgstr "Nuovo codice %s (%zu cifre): "
 
 #: ../src/changetokencode.c:168
-#, fuzzy
-#| msgid "Notice: Give --newcode, or --onlycheck to only check the current one."
 msgid "Notice: Give --newcode, or drop --replace to only check the current one."
-msgstr "Notice: Indicate --newcode, o --onlycheck per verificare soltanto quello attuale."
+msgstr "Notice: date --newcode, o togliete --replace per verificare solo l'attuale."
 
 #: ../src/changetokencode.c:173
 msgid "The same again: "
@@ -894,26 +794,7 @@ msgid "Notice: %s code successfully %s."
 msgstr "Notice: Codice %s: %s."
 
 #: ../src/changetokenmeta.c:29
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s change_token_meta [OPTIONS]... NEW_METADATA\n"
-#| "\n"
-#| "Change a textual metadata of a security token (OpenPGP smartcard).\n"
-#| "Detect if NEW_METADATA is an email, a certurl or a lang:\n"
-#| "\n"
-#| "  an address        the cardholder name (DO 5B)\n"
-#| "  an http(s) URL    where the public certificate lives (DO 5F50)\n"
-#| "  two letters       the language preference, ISO 639-1 (DO 5F2D)\n"
-#| "\n"
-#| "Each is checked before it is written: the address must be one the\n"
-#| "certificate still stands by, and the URL must serve a certificate\n"
-#| "carrying this key's three subkeys.\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -A, --admincode CODE         Admin code (usually 8 digits) protecting writes to security token metadata\n"
-#| "  -p, --admincodefrom FILE     Get admin code from first line of FILE (eg: fifo, tmpfs, /dev/stdin)\n"
-#| "  -h, --help                   Print this help and exit\n"
-#| "  -V, --version                Print the version and exit\n"
+#, c-format
 msgid ""
 "Usage: %s token_meta [OPTIONS]... NEW_METADATA\n"
 "\n"
@@ -935,25 +816,25 @@ msgid ""
 "  -h, --help                   Print this help and exit\n"
 "  -V, --version                Print the version and exit\n"
 msgstr ""
-"Usage: %s change_token_meta [OPTIONS]... METADATO\n"
+"Usage: %s token_meta [OPTIONS]... NUOVO_DATO\n"
 "\n"
-"Cambiare un metadato testuale di una chiave di sicurezza (carta OpenPGP).\n"
-"Rileva se NEW_METADATA è un'email, una certurl o una lingua:\n"
+"Cambiare un dato testuale di una chiave di sicurezza (OpenPGP smartcard).\n"
+"Riconosce se NUOVO_DATO è un indirizzo, una certurl o una lingua:\n"
 "\n"
 "  un indirizzo      il nome del portatore (DO 5B)\n"
-"  una URL http(s)   dove vive il certificato pubblico (DO 5F50)\n"
+"  un URL http(s)    dove vive il certificato pubblico (DO 5F50)\n"
 "  due lettere       la lingua preferita, ISO 639-1 (DO 5F2D)\n"
 "\n"
-"Ciascuna è verificata prima di essere scritta: l'indirizzo deve essere\n"
-"uno di quelli che il certificato porta ancora, e la URL deve servire un\n"
-"certificato che porti le tre sottochiavi di questa carta.\n"
+"Ognuno è verificato prima d'essere scritto: l'indirizzo deve essere uno di\n"
+"quelli che il certificato sostiene ancora, e l'URL deve servire un\n"
+"certificato che porta le tre sottochiavi di questa chiave.\n"
 "\n"
 "OPTIONS:\n"
-"  -A, --admincode CODE        Il codice Admin, otto cifre di solito\n"
-"  -p, --admincodefrom FILE    Leggerlo sulla prima riga di FILE\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
-"  -V, --version               Stampare la versione e uscire\n"
-"\n"
+"  -A, --admincode CODICE       Codice Admin (8 cifre) che protegge la scrittura sulla chiave\n"
+"  -p, --admincodefrom FILE     Leggere il codice Admin in testa a FILE (fifo, tmpfs, /dev/stdin)\n"
+"  -r, --replace                Scrivere NUOVO_DATO, invece di mostrare ciò che c'è\n"
+"  -h, --help                   Mostrare questo aiuto ed uscire\n"
+"  -V, --version                Mostrare la versione ed uscire\n"
 
 #: ../src/changetokenmeta.c:126 ../src/changetokenmeta.c:257
 #: ../src/totoken.c:336
@@ -961,10 +842,9 @@ msgid "Error: No security token detected."
 msgstr "Error: Nessuna chiave di sicurezza rilevata."
 
 #: ../src/changetokenmeta.c:219
-#, fuzzy, c-format
-#| msgid "Error: The Admin code is needed to write to the card."
+#, c-format
 msgid "Notice: Add --replace to write '%s' to the card."
-msgstr "Error: Serve il codice Admin per scrivere sulla carta."
+msgstr "Notice: aggiungete --replace per scrivere «%s» sulla carta."
 
 #: ../src/changetokenmeta.c:228
 msgid "What should the card say? An address, an http URL, or a two-letter language code: "
@@ -1053,18 +933,7 @@ msgid "Warning: %s would not take it."
 msgstr "Warning: %s ha rifiutato di accettarlo."
 
 #: ../src/del.c:28
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s del [OPTIONS]... FINGERPRINT...\n"
-#| "\n"
-#| "Delete certificates from the keyring, secret part included.\n"
-#| "\n"
-#| "Only fingerprints are accepted — 40 or 64 hexadecimal characters. An\n"
-#| "action that deletes does not guess which certificate was meant.\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -s, --secret                Delete only the secret part, keep the certificate\n"
-#| "  -h, --help                  Print this help and exit\n"
+#, c-format
 msgid ""
 "Usage: %s cert_del [OPTIONS]... FINGERPRINT...\n"
 "\n"
@@ -1077,16 +946,16 @@ msgid ""
 "  -s, --secret                Delete only the secret part, keep the certificate\n"
 "  -h, --help                  Print this help and exit\n"
 msgstr ""
-"Usage: %s del [OPTIONS]... IMPRONTA...\n"
+"Usage: %s cert_del [OPTIONS]... IMPRONTA...\n"
 "\n"
-"Cancellare certificati dal portachiavi, parte segreta compresa.\n"
+"Eliminare certificati dal portachiavi, parte segreta compresa.\n"
 "\n"
-"Si accettano solo impronte — 40 o 64 caratteri esadecimali. Un'azione che\n"
-"cancella non indovina quale certificato si intendeva.\n"
+"Solo le impronte sono accettate — 40 o 64 caratteri esadecimali. Un'azione\n"
+"che elimina non indovina di quale certificato si trattava.\n"
 "\n"
 "OPTIONS:\n"
-"  -s, --secret                Cancellare solo il segreto, tenere il resto\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
+"  -s, --secret                Eliminare solo il segreto, tenere il certificato\n"
+"  -h, --help                  Mostrare questo aiuto ed uscire\n"
 
 #: ../src/del.c:51 ../src/sigs.c:180 ../src/trustdb.c:219
 #, c-format
@@ -1117,37 +986,12 @@ msgid "Error: The engine refused to delete the secret part of %s."
 msgstr "Error: Il motore ha rifiutato di cancellare la parte segreta di %s."
 
 #: ../src/del.c:121
-#, fuzzy, c-format
-#| msgid "Error: The engine refused to delete the secret part of %s."
+#, c-format
 msgid "Error: The engine refused to delete %s."
-msgstr "Error: Il motore ha rifiutato di cancellare la parte segreta di %s."
+msgstr "Error: il motore ha rifiutato di eliminare %s."
 
 #: ../src/email.c:28
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s email [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
-#| "\n"
-#| "Display and add or revoke emails inside OpenPGP certificate.\n"
-#| "Missing NAME|EMAIL|KEYID|U4|U5 => the certificate the connected security\n"
-#| "token belongs to.\n"
-#| "Output usable emails (non-revoked and non-expired).\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -R, --revoke EMAIL          Revoke existing EMAIL (may be used more than once)\n"
-#| "      --revoke-all            Revoke every usable email uid but the newest\n"
-#| "  -A, --add EMAIL             Add EMAIL as a 'Name <EMAIL>' uid. Enable the --name option\n"
-#| "  -N, --name NAME             The name in front of an added address\n"
-#| "                              Default: the certificate's own FN:, else the local part\n"
-#| "  -y, --yes                   Assume yes: skip the irreversible-revocation confirmation\n"
-#| "  -c, --certs-count           Also output the count of external valid certifications per email (tab-separated)\n"
-#| "      --show-unusable         Also display the uids that no longer stand: revoked, expired, or without a valid self-signature\n"
-#| "      --info                  Output the emails as pairs key=value ready to be evaluated in bash\n"
-#| "  -K, --keyservers KEYSERVERS If non-empty, send updated certificate to this keyservers - Default: %s\n"
-#| "  -h, --help                  Print this help and exit\n"
-#| "  -V, --version               Print the version and exit\n"
-#| "\n"
-#| "Revoking is irreversible: OpenPGP keeps the address on the certificate\n"
-#| "forever, marked revoked, and an identical one can never be added again.\n"
+#, c-format
 msgid ""
 "Usage: %s cert_email [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
 "\n"
@@ -1178,31 +1022,34 @@ msgid ""
 "holds it keeps it until they refresh. Adding the identical address again\n"
 "signs it anew, certifications others made over it included.\n"
 msgstr ""
-"Usage: %s email [OPTIONS]... [NOME|INDIRIZZO|KEYID|U4|U5]\n"
+"Usage: %s cert_email [OPTIONS]... [NOME|POSTA|KEYID|U4|U5]\n"
 "\n"
-"Mostrare, aggiungere o revocare le email del certificato OpenPGP.\n"
-"NOME|INDIRIZZO|KEYID|U4|U5 mancante ⇒ il certificato a cui appartiene la chiave\n"
-"di sicurezza collegata.\n"
-"Stampa le email utilizzabili (non revocate e non scadute).\n"
+"Mostrare, aggiungere o revocare indirizzi dentro un certificato PGP.\n"
+"Senza NOME|POSTA|KEYID|U4|U5 => il certificato a cui appartiene la chiave di\n"
+"sicurezza collegata.\n"
+"Mostra gli indirizzi utilizzabili (non revocati e non scaduti), ognuno\n"
+"seguito da «primary» o «-». PGP marca un solo uid per tutto il certificato,\n"
+"e non uno per indirizzo: --set-primary sposta dunque quel marcatore invece\n"
+"di metterne uno — sull'uid che porta POSTA che la regola d'indirizzo sceglie.\n"
 "\n"
 "OPTIONS:\n"
-"  -R, --revoke EMAIL          Revocare l'uid che lo porta (ripetibile)\n"
-"      --revoke-all            Revocare tutti gli indirizzi salvo il più recente\n"
-"  -A, --add EMAIL             Aggiungerlo come uid «Nome <INDIRIZZO>» (ripetibile)\n"
-"  -N, --name NAME             Il nome davanti a un indirizzo aggiunto\n"
-"                              Default: il FN: del certificato, altrimenti la parte locale\n"
-"  -y, --yes                   Assumere sì: saltare l'avviso\n"
-"  -c, --certs-count           Contare anche le certificazioni di ogni indirizzo\n"
-"      --show-unusable         Mostrare anche gli indirizzi che non valgono più\n"
-"      --info                  Emettere coppie chiave=valore valutabili in bash\n"
-"  -K, --keyservers KEYSERVERS Inviare il certificato modificato a questi - Default: %s\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
-"  -V, --version               Stampare la versione e uscire\n"
+"  -R, --revoke POSTA            Revocare POSTA, in ogni uid che la nomina\n"
+"                                (usabile più volte)\n"
+"      --revoke-all              Revocare tutti gli uid d'indirizzo utilizzabili tranne il più recente\n"
+"  -A, --add POSTA               Aggiungere POSTA come uid «PARTE-LOCALE <POSTA>», o rifirmare\n"
+"                                ogni uid che la nomina se era stata revocata\n"
+"        --set-primary POSTA     Fare di POSTA l'indirizzo principale del certificato\n"
+"  -y, --yes                     Rispondere sì d'ufficio: saltare la conferma di revoca\n"
+"  -c, --certs-count             Mostrare anche il numero di certificazioni valide per indirizzo (tabulato)\n"
+"      --show-unusable           Mostrare anche gli uid che non valgono più: revocati, scaduti, o senza autofirma valida\n"
+"      --info                    Sinonimo di --output-format=info\n"
+"  -K, --keyservers SERVER       Se non vuoto, inviarvi il certificato aggiornato - Predefinito: %s\n"
+"  -h, --help                    Mostrare questo aiuto ed uscire\n"
+"  -V, --version                 Mostrare la versione ed uscire\n"
 "\n"
-"Revocare è irreversibile: OpenPGP conserva per sempre l'indirizzo sul\n"
-"certificato, marcato revocato, e uno identico non potrà più essere\n"
-"aggiunto.\n"
-"\n"
+"Revocare lascia l'indirizzo sul certificato, marcato revocato, e chi lo ha\n"
+"lo conserva fino al prossimo aggiornamento. Aggiungere di nuovo lo stesso\n"
+"indirizzo lo firma di nuovo, con le certificazioni ricevute.\n"
 
 #: ../src/email.c:148
 msgid "Error: No card answered, so there is no certificate to work on."
@@ -1228,22 +1075,19 @@ msgid "Error: Cannot check the signatures of %s."
 msgstr "Error: Impossibile verificare le firme di %s."
 
 #: ../src/email.c:326
-#, fuzzy, c-format
-#| msgid "Error: No usable certificate for %s."
+#, c-format
 msgid "Error: No usable user id of this certificate carries %s."
-msgstr "Error: Nessun certificato utilizzabile per %s."
+msgstr "Error: nessun uid utilizzabile di questo certificato porta %s."
 
 #: ../src/email.c:335
-#, fuzzy, c-format
-#| msgid "Error: Cannot write the certificate to %s."
+#, c-format
 msgid "Error: Cannot find '%s' in the certificate's user ids."
-msgstr "Error: Impossibile scrivere il certificato in %s."
+msgstr "Error: «%s» non si trova fra gli uid del certificato."
 
 #: ../src/email.c:345
-#, fuzzy, c-format
-#| msgid "Error: Cannot set the preferred keyserver — right PIN?"
+#, c-format
 msgid "Error: Cannot make %s the primary address — right PIN?"
-msgstr "Error: Impossibile impostare il server di chiavi preferito — il PIN giusto?"
+msgstr "Error: impossibile fare di %s l'indirizzo principale — PIN giusto?"
 
 #: ../src/email.c:366 ../src/email.c:399
 #, c-format
@@ -1304,33 +1148,10 @@ msgstr "Warning: Nulla da revocare."
 
 #: ../src/email.c:630
 msgid "Notice: No user id is flagged primary; '--set-primary' chooses one."
-msgstr ""
+msgstr "Notice: nessun uid è marcato principale; «--set-primary» ne sceglie uno."
 
 #: ../src/genkey.c:28
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s gen_key [OPTIONS]... EMAIL\n"
-#| "\n"
-#| "Generate an OpenPGP key pair (public and secret) according to PGP ID standards.\n"
-#| "Output 3 lines for each fingerprints:\n"
-#| "* main key (Sign Certify)\n"
-#| "* decryption key (Encrypt)\n"
-#| "* authentication key (Auth)\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -N, --name PSEUDONYM             Common name or pseudonym. Default: first part of email\n"
-#| "  -c, --eid U4|U5                  Entity ID. Worldwide and decentralised entity identifier. Required here\n"
-#| "  -C, --extra-comment NOTE         Supplemental information or comment associated with the entity\n"
-#| "  -p, --passphrase PASSPHRASE      Passphrase to (symetric) encrypt secret part of OpenPGP key. CAN'T BE EMPTY (at this stage)\n"
-#| "  -P, --passfrom FILE              Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin …)\n"
-#| "  -e, --expiration YEARS           Number of years before certificate expiration. Default: 11\n"
-#| "  -k, --keyserver KEYSERVER        Prefered OpenPGP certificate server. Default: %s\n"
-#| "  -h, --help                       Print this help and exit\n"
-#| "  -V, --version                    Print the version and exit\n"
-#| "\n"
-#| "Both ways of giving the passphrase have their drawback, and the second has\n"
-#| "fewer: an argument is visible to every process on the machine for as long\n"
-#| "as this one runs.\n"
+#, c-format
 msgid ""
 "Usage: %s gen_key [OPTIONS]... EMAIL\n"
 "\n"
@@ -1356,28 +1177,29 @@ msgid ""
 "fewer: an argument is visible to every process on the machine for as long\n"
 "as this one runs.\n"
 msgstr ""
-"Usage: %s gen_key [OPTIONS]... INDIRIZZO\n"
+"Usage: %s gen_key [OPTIONS]... POSTA\n"
 "\n"
-"Generare una coppia di chiavi OpenPGP (pubblica e segreta) secondo le norme PGP ID.\n"
-"Stampa 3 righe, una per impronta:\n"
-"* chiave principale (Firma Certificazione)\n"
+"Generare una coppia di chiavi PGP (pubblica e segreta) secondo gli standard PGP ID.\n"
+"Gli ingressi mancanti sono chiesti, salvo con --batch.\n"
+"Mostra 3 righe, un'impronta per riga:\n"
+"* chiave principale (Firma, Certificazione)\n"
 "* chiave di decifratura (Cifratura)\n"
-"* chiave di autenticazione (Auth)\n"
+"* chiave d'autenticazione (Auth)\n"
 "\n"
 "OPTIONS:\n"
-"  -N, --name PSEUDONYM        Nome comune o pseudonimo\n"
-"  -c, --eid U4|U5             Identificativo d'entità. Esigito: calcolarne uno\n"
-"  -C, --extra-comment NOTE    Una nota sull'entità\n"
-"  -p, --passphrase PASSPHRASE La frase d'accesso. Visibile a tutto ciò che può\n"
-"  -P, --passfrom FILE         Leggerla sulla prima riga di FILE\n"
-"  -e, --expiration YEARS      Anni prima della scadenza - Default: 11\n"
-"  -k, --keyserver KEYSERVER   Il server che questo certificato dice suo - Default: %s\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
-"  -V, --version               Stampare la versione e uscire\n"
+"  -N, --name PSEUDONIMO            Nome comune o pseudonimo. Predefinito: la prima parte dell'indirizzo\n"
+"  -c, --eid U4|U5                  Identificatore d'entità, mondiale e decentrato. Coniato qui se manca\n"
+"  -C, --extra-comment NOTA         Informazione o commento supplementare legato all'entità\n"
+"  -p, --passphrase FRASE           Frase che cifra (simmetricamente) il segreto. NON VUOTA (per ora)\n"
+"  -P, --passfrom FILE              Leggere la frase in testa a FILE (fifo, tmpfs, /dev/stdin …)\n"
+"  -e, --expiration ANNI            Numero d'anni prima della scadenza del certificato. Predefinito: 11\n"
+"  -k, --keyserver SERVER           Server di certificati PGP preferito. Predefinito: %s\n"
+"  -h, --help                       Mostrare questo aiuto ed uscire\n"
+"  -V, --version                    Mostrare la versione ed uscire\n"
 "\n"
-"Entrambi i modi di dare la frase segreta hanno il loro difetto, e il secondo\n"
-"ne ha meno: un argomento è visibile a ogni processo della macchina finché\n"
-"questo dura.\n"
+"Le due maniere di dare la frase segreta hanno il loro difetto, e la seconda\n"
+"ne ha meno: un argomento è visibile a tutti i processi della macchina finché\n"
+"questo gira.\n"
 
 #: ../src/genkey.c:133 ../src/printcard.c:206
 #, c-format
@@ -1417,19 +1239,16 @@ msgstr "Error: il server di chiavi DEVE essere hkp(s)://…"
 #: ../src/property.c:586
 #, c-format
 msgid "Error: A user id holds %d bytes at most."
-msgstr ""
+msgstr "Error: un uid non contiene più di %d byte."
 
 #: ../src/genkey.c:231
-#, fuzzy
-#| msgid "Error: Which certificate?"
 msgid "Email address for this certificate: "
-msgstr "Error: Quale certificato?"
+msgstr "Indirizzo di posta per questo certificato: "
 
 #: ../src/genkey.c:238
-#, fuzzy, c-format
-#| msgid "Error: '%s' wants an address."
+#, c-format
 msgid "Error: '%s' does not look like an email address."
-msgstr "Error: «%s» attende un indirizzo."
+msgstr "Error: «%s» non somiglia a un indirizzo di posta."
 
 #: ../src/genkey.c:249
 msgid "Error: Which entity is this key for? Give --eid."
@@ -1445,10 +1264,9 @@ msgid "  %s gen_u4 --surname … --given-names … --birth-date … --birth-coun
 msgstr "  %s gen_u4 --surname … --given-names … --birth-date … --birth-country …"
 
 #: ../src/genkey.c:257
-#, fuzzy, c-format
-#| msgid "Notice: Minting the identity uid %s…"
+#, c-format
 msgid "Notice: Entity identifier: %s"
-msgstr "Notice: Conio dell'uid d'identità %s…"
+msgstr "Notice: identificatore d'entità: %s"
 
 #: ../src/genkey.c:259
 #, c-format
@@ -1457,13 +1275,11 @@ msgstr "Error: Nessun eid in «%s»."
 
 #: ../src/genkey.c:264
 msgid "Passphrase"
-msgstr ""
+msgstr "Frase segreta"
 
 #: ../src/genkey.c:267
-#, fuzzy
-#| msgid "Notice: Give --passphrase, or --passfrom to keep it off the process list."
 msgid "Error: A passphrase is needed. Give --passphrase, or --passfrom to keep it off the process list."
-msgstr "Notice: Indicate --passphrase, o --passfrom per tenerla fuori dalla lista dei processi."
+msgstr "Error: serve una frase segreta. Date --passphrase, o --passfrom per tenerla fuori dalla lista dei processi."
 
 #: ../src/genkey.c:305
 msgid "Error: gpg would not generate the key."
@@ -1484,37 +1300,7 @@ msgid "Error: gpg would not add the authentication key."
 msgstr "Error: gpg ha rifiutato di aggiungere la chiave di autenticazione."
 
 #: ../src/genu4.c:33
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s gen_u4 [OPTIONS]...\n"
-#| "   or: %s gen_u4 --from-passport-mrz [OPTIONS]... MRZ...\n"
-#| "\n"
-#| "Generate an eid u4 string, from a civil status: the last component of the\n"
-#| "surname, the first two given names, the date of birth, and the country.\n"
-#| "\n"
-#| "With --from-passport-mrz you pass the Machine Readable Zone of an\n"
-#| "international passport instead — 88 characters over two lines, spaces and\n"
-#| "newlines ignored, so it can be pasted as it was read. The four options\n"
-#| "below still work beside it and replace what the zone says: that is how a\n"
-#| "surname truncated to fit gets corrected without typing the rest.\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -s, --surname SURNAME            Surname/family name at birth\n"
-#| "  -g, --given-names GIVEN_NAMES    Given names at birth, separated by space ' ' or comma ',' or hyphen '-'\n"
-#| "  -d, --birth-date YYYY-MM-DD      Birth date, expected format : Year-Month-Day\n"
-#| "  -c, --birth-country COUNTRY_CODE 3 letters country code of birth place: GBR, NGA, FRA, …\n"
-#| "      --from-passport-mrz          Read the civil status off a passport zone given as arguments\n"
-#| "  -u, --uncheck                    With a zone: report a failing check digit rather than refusing\n"
-#| "  -h, --help                       Print this help and exit\n"
-#| "  -V, --version                    Print the version and exit\n"
-#| "\n"
-#| "Typed in, everything is required: asking for what is missing belongs to\n"
-#| "whoever has somebody to ask. From a passport, nothing is — and only\n"
-#| "--birth-date is worth adding, for anyone the zone's two digits cannot place.\n"
-#| "\n"
-#| "There are ~20%% chances that a *u4* generated from a passport is incorrect:\n"
-#| "a surname truncated to fit, a name changed since birth, another\n"
-#| "transliteration, or a year of birth two digits cannot place. Check it.\n"
+#, c-format
 msgid ""
 "Usage: %s gen_u4 [OPTIONS]...\n"
 "   or: %s gen_u4 --from-passport-mrz [OPTIONS]... MRZ...\n"
@@ -1554,40 +1340,47 @@ msgid ""
 "transliteration, or a year of birth two digits cannot place. Check it.\n"
 msgstr ""
 "Usage: %s gen_u4 [OPTIONS]...\n"
-"   or: %s gen_u4 --from-passport-mrz [OPTIONS]... MRZ...\n"
+"    o: %s gen_u4 --from-passport-mrz [OPTIONS]... MRZ...\n"
 "\n"
-"Generare una stringa eid u4, da uno stato civile: l'ultimo elemento del\n"
-"cognome, i primi due nomi, la data di nascita e il paese.\n"
+"Produrre una stringa eid u4 da uno stato civile: l'ultima componente del\n"
+"cognome di nascita, i primi due nomi, la data di nascita e il paese.\n"
 "\n"
-"Con --from-passport-mrz si passa invece la zona a lettura ottica di un\n"
-"passaporto internazionale — 88 caratteri su due righe, spazi e a capo\n"
-"ignorati, può quindi essere incollata così com'è. Le quattro opzioni sotto\n"
-"valgono ancora accanto e sostituiscono ciò che dice la zona: così un cognome\n"
-"troncato per stare si corregge senza riscrivere il resto.\n"
+"Con --from-passport-mrz passate invece la zona a lettura automatica di un\n"
+"passaporto internazionale — 88 caratteri su due righe, spazi e ritorni a capo\n"
+"ignorati, perché possa essere incollata come è stata letta. Le quattro\n"
+"opzioni qui sotto funzionano ancora accanto e sostituiscono ciò che dice la\n"
+"zona: così un cognome troncato per stare si corregge senza ribattere il resto.\n"
 "\n"
 "OPTIONS:\n"
-"  -s, --surname SURNAME       Cognome di nascita\n"
-"  -g, --given-names GIVEN_NAMES Nomi di nascita, separati da spazio o virgola\n"
-"  -d, --birth-date            AAAA-MM-GG      Data di nascita\n"
-"  -c, --birth-country COUNTRY_CODE Codice paese di tre lettere del luogo di nascita\n"
-"      --from-passport-mrz     Leggere lo stato civile da una zona data in argomenti\n"
-"  -u, --uncheck               Con una zona: segnalare una cifra di controllo errata\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
-"  -V, --version               Stampare la versione e uscire\n"
+"  -s, --surname COGNOME            Cognome di famiglia alla nascita\n"
+"  -g, --given-names NOMI           Nomi di nascita, separati da spazio, virgola o trattino\n"
+"  -d, --birth-date AAAA-MM-GG      Data di nascita, formato atteso: Anno-Mese-Giorno\n"
+"  -c, --birth-country CODICE       Codice paese di 3 lettere del luogo di nascita: GBR, NGA, FRA, …\n"
+"      --from-passport-mrz          Leggere lo stato civile in una zona di passaporto data in argomento\n"
+"  -u, --uncheck                    Con una zona: segnalare una cifra di controllo falsa, non rifiutare\n"
+"      --verify                     Mostrare lo stato civile e lasciarlo correggere prima di calcolare\n"
+"  -h, --help                       Mostrare questo aiuto ed uscire\n"
+"  -V, --version                    Mostrare la versione ed uscire\n"
 "\n"
-"Digitato, tutto è esigito: chiedere ciò che manca spetta a chi ha qualcuno a\n"
-"cui chiederlo. Da un passaporto, nulla lo è — e vale la pena aggiungere solo\n"
-"--birth-date, se due cifre non bastano.\n"
+"Battuto a mano, ciò che manca è chiesto, salvo con --batch. Da un passaporto\n"
+"non serve niente — e solo --birth-date vale la pena d'aggiungere, per chi le\n"
+"due cifre della zona non bastano a situare.\n"
 "\n"
-"C'è ~20%% di probabilità che un *u4* generato da un passaporto sia sbagliato:\n"
-"un cognome troncato per stare, un nome cambiato dalla nascita, un'altra\n"
-"traslitterazione, o un anno di nascita che due cifre non collocano.\n"
+"--verify mostra i quattro valori e li lascia correggere prima di calcolare\n"
+"qualsiasi cosa, ciò di cui una zona letta con OCR ha più spesso bisogno.\n"
+"Impedisce anche a una cifra di controllo falsa di far rifiutare di netto,\n"
+"come fa --uncheck: lo scopo è correggere la lettura, non esserne respinti.\n"
+"Sotto --batch non fa niente, dove non c'è nessuno a cui mostrarlo.\n"
+"\n"
+"C'è ~20%% di probabilità che un *u4* prodotto da un passaporto sia falso: un\n"
+"cognome troncato per stare, un nome cambiato dalla nascita, un'altra\n"
+"traslitterazione, o un anno di nascita che due cifre non situano.\n"
 "Verificatelo.\n"
 
 #: ../src/genu4.c:162
 #, c-format
 msgid "Warning: '%s' has been transliterated to '%s'. It may be WRONG!"
-msgstr ""
+msgstr "Warning: «%s» è stato traslitterato in «%s». Può essere FALSO!"
 
 #: ../src/genu4.c:209
 #, c-format
@@ -1601,50 +1394,42 @@ msgstr "Notice: Entrambi hanno bisogno di almeno una lettera una volta ridotti a
 #: ../src/genu4.c:284
 #, c-format
 msgid "Notice: Surname at birth:     %s"
-msgstr ""
+msgstr "Notice: Cognome di nascita: %s"
 
 #: ../src/genu4.c:285
 #, c-format
 msgid "Notice: Given names at birth: %s"
-msgstr ""
+msgstr "Notice: Nomi di nascita:   %s"
 
 #: ../src/genu4.c:286
 #, c-format
 msgid "Notice: Date of birth:       %s"
-msgstr ""
+msgstr "Notice: Data di nascita:   %s"
 
 #: ../src/genu4.c:287
 #, c-format
 msgid "Notice: Country of birth:    %s"
-msgstr ""
+msgstr "Notice: Paese di nascita:  %s"
 
 #: ../src/genu4.c:289
 msgid "Is that correct? [y/N]: "
-msgstr ""
+msgstr "È corretto? [s/N]: "
 
 #: ../src/genu4.c:298 ../src/genu4.c:365
-#, fuzzy
-#| msgid "Birth surname (family name): "
 msgid "Birth surname (family name)"
-msgstr "Cognome di nascita (cognome): "
+msgstr "Cognome di nascita (cognome di famiglia)"
 
 #: ../src/genu4.c:299 ../src/genu4.c:366
-#, fuzzy
-#| msgid "Birth names (all given names): "
 msgid "Birth names (all given names)"
-msgstr "Nomi di nascita (tutti i nomi): "
+msgstr "Nomi di nascita (tutti)"
 
 #: ../src/genu4.c:300 ../src/genu4.c:367
-#, fuzzy
-#| msgid "Birth date (YYYY-MM-DD): "
 msgid "Birth date (YYYY-MM-DD)"
-msgstr "Data di nascita (AAAA-MM-GG): "
+msgstr "Data di nascita (AAAA-MM-GG)"
 
 #: ../src/genu4.c:301 ../src/genu4.c:368
-#, fuzzy
-#| msgid "Birth country (3 letter code): "
 msgid "Birth country (3 letter code)"
-msgstr "Paese di nascita (codice di 3 lettere): "
+msgstr "Paese di nascita (codice di 3 lettere)"
 
 #: ../src/genu4.c:324 ../src/genu4.c:476
 #, c-format
@@ -1738,25 +1523,7 @@ msgid "Notice: '--free-input' takes any string instead."
 msgstr "Notice: «--free-input» accetta invece qualsiasi stringa."
 
 #: ../src/get.c:28
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s get [OPTIONS]... NAME|U4|U5|EMAIL...\n"
-#| "\n"
-#| "Output fingerprints, emails and eid of certificates matching NAME|U4|U5|EMAIL.\n"
-#| "May also get or refresh certificates from keyservers.\n"
-#| "'*' matches the whole keyring; `list` is the one that shows everything\n"
-#| "when asked nothing.\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -F, --fingerprint           Output only fingerprints\n"
-#| "  -E, --email                 Output only emails\n"
-#| "  -f, --no-fetch              Don't refresh certificates from keyservers or Web Key Directories\n"
-#| "  -m, --errexit-g=1           Return an error if there is more than one (1) entry - You may replace '1' by an other number\n"
-#| "  -K, --keyservers KEYSERVERS Search and refresh certificates from this keyservers - Default: %s\n"
-#| "  -h, --help                  Print this help and exit\n"
-#| "  -V, --version               Print the version and exit\n"
-#| "\n"
-#| "There is no 'cert_check': `list` answers what it answered, for less.\n"
+#, c-format
 msgid ""
 "Usage: %s cert_get [OPTIONS]... NAME|U4|U5|EMAIL...\n"
 "\n"
@@ -1779,37 +1546,35 @@ msgid ""
 "\n"
 "There is no 'cert_check': `list` answers what it answered, for less.\n"
 msgstr ""
-"Usage: %s get [OPTIONS]... NOME|U4|U5|INDIRIZZO...\n"
+"Usage: %s cert_get [OPTIONS]... NOME|U4|U5|POSTA...\n"
 "\n"
-"Stampa le impronte, le email e gli eid dei certificati corrispondenti a\n"
-"NOME|U4|U5|INDIRIZZO.\n"
-"Può anche recuperare o aggiornare i certificati dai server di chiavi.\n"
-"'*' vale tutto il portachiavi; `list` è quella che mostra tutto quando non le\n"
-"si chiede nulla.\n"
+"Mostra impronte, indirizzi ed eid dei certificati che corrispondono a\n"
+"NOME|U4|U5|POSTA. Può anche recuperare o aggiornare certificati dai server\n"
+"di chiavi.\n"
+"«*» corrisponde a tutto il portachiavi; «list» è quello che mostra tutto\n"
+"quando non gli si chiede niente.\n"
 "\n"
 "OPTIONS:\n"
-"  -F, --fingerprint           Stampare solo le impronte\n"
-"  -E, --email                 Stampare solo gli indirizzi\n"
-"  -f, --no-fetch              Non aggiornare dai server di chiavi né dai WKD\n"
-"  -m, --errexit-g=1           Fallire se corrispondono più di N certificati\n"
-"  -K, --keyservers KEYSERVERS Aggiornare da questi, separati da spazi - Default: %s\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
-"  -V, --version               Stampare la versione e uscire\n"
+"  -F, --fingerprint           Mostrare solo le impronte\n"
+"  -E, --email                 Mostrare solo gli indirizzi\n"
+"  -f, --no-fetch              Non aggiornare dai server di chiavi né dai Web Key Directories\n"
+"      --import-from FILE      Prendere il certificato da un file invece che da un server\n"
+"  -r, --recurse[=NUM]         Recuperare anche i certificati che firmano il bersaglio, NUM\n"
+"                              livelli in profondità (0..6) - Predefinito con -r: 1\n"
+"  -m, --errexit-g=1           Errore se c'è più di una (1) voce - «1» può essere un altro numero\n"
+"  -K, --keyservers SERVER     Cercare e aggiornare i certificati su questi server - Predefinito: %s\n"
+"  -h, --help                  Mostrare questo aiuto ed uscire\n"
+"  -V, --version               Mostrare la versione ed uscire\n"
 "\n"
-"Non c'è «cert_check»: `list` risponde ciò che rispondeva, per meno.\n"
-"\n"
+"Non c'è «cert_check»: «list» risponde ciò che rispondeva, per meno.\n"
 
 #: ../src/get.c:293
-#, fuzzy
-#| msgid "Error: '%s' wants a number."
 msgid "Error: --recurse takes a number in 0..6."
-msgstr "Error: «%s» attende un numero."
+msgstr "Error: --recurse attende un numero fra 0 e 6."
 
 #: ../src/get.c:298
-#, fuzzy
-#| msgid "Error: '%s' wants a file."
 msgid "Error: --import-from wants a file."
-msgstr "Error: «%s» attende un file."
+msgstr "Error: --import-from attende un file."
 
 #: ../src/get.c:321
 #, c-format
@@ -1821,10 +1586,9 @@ msgid "Error: What are you looking for? '*' for everything."
 msgstr "Error: Che cosa cerca? «*» per tutto."
 
 #: ../src/get.c:359
-#, fuzzy, c-format
-#| msgid "Error: No surname and given names could be read from '%s'."
+#, c-format
 msgid "Error: Nothing could be imported from '%s'."
-msgstr "Error: Impossibile leggere cognome e nomi in «%s»."
+msgstr "Error: niente si è potuto importare da «%s»."
 
 #: ../src/get.c:394 ../src/tovcard.c:384
 msgid "Error: No certificate for what was asked."
@@ -1856,26 +1620,22 @@ msgstr "Notice: Si attendono %zu caratteri esadecimali, ne sono stati letti %zu.
 #: ../src/interactive.c:263 ../src/interactive.c:273
 #, c-format
 msgid "%s: "
-msgstr ""
+msgstr "%s: "
 
 #: ../src/interactive.c:267
 #, c-format
 msgid "Retype %s: "
-msgstr ""
+msgstr "Ribattete %s: "
 
 #: ../src/interactive.c:272
-#, fuzzy
-#| msgid "Error: The two do not match."
 msgid "Notice: The two do not match. Please retype."
-msgstr "Error: I due non corrispondono."
+msgstr "Notice: le due non corrispondono. Ribattete."
 
 #: ../src/list.c:274 ../src/list.c:403 ../src/property.c:184
 #: ../src/secretdel.c:100 ../src/secretlist.c:68 ../src/tokendel.c:112
 #: ../src/trustdb.c:601
-#, fuzzy
-#| msgid "Error: Cannot make a temporary keyring."
 msgid "Error: Cannot read the keyring."
-msgstr "Error: Impossibile creare un portachiavi temporaneo."
+msgstr "Error: impossibile leggere il portachiavi."
 
 #: ../src/list.c:288
 #, c-format
@@ -1883,35 +1643,7 @@ msgid "Warning: Certificate %s carries more than one identifier."
 msgstr "Warning: Il certificato %s porta più di un identificativo."
 
 #: ../src/list.c:319
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s list [OPTIONS]... [SEARCH]\n"
-#| "\n"
-#| "List the certificates of the keyring, one per line.\n"
-#| "\n"
-#| "Columns:\n"
-#| "fingerprint, entity identifier, email (primary), certifications\n"
-#| "(optional), validity, credibility, creation_date, expiration_date,\n"
-#| "revocation_date\n"
-#| "\n"
-#| "Single dash '-' means hidden or unknown value.\n"
-#| "\n"
-#| "Values for validity: certified|uncertified|expired|revoked|broken|-\n"
-#| "Order of importance for unusable certificates: broken>revoked>expired\n"
-#| "\n"
-#| "Values for credibility: never|undefined|marginal|full|ultimate|-\n"
-#| "\n"
-#| "SEARCH, when given, is passed to the engine as a pattern; without it\n"
-#| "the whole keyring is listed.\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -S, --short                 One line per address: fingerprint, identifier, address\n"
-#| "                              What 'pgpid get --no-fetch' answers, to the column\n"
-#| "  -L, --no-check-eid          Legacy: don't consider certificate as 'broken' if there is no consistent eid inside\n"
-#| "      --count-certs           Count the distinct certifiers of each certificates and fill *certifications* column (may take time !)\n"
-#| "      --hide-trust            Credibility (aka ownertrust) is a sensible information used to calculate validity — sometimes both need to stay private\n"
-#| "      --machine-readable      Output time (seconds since epoch) instead of date (iso-8601) and flags instead of human-readable validity and credibility\n"
-#| "  -h, --help                  Print this help and exit\n"
+#, c-format
 msgid ""
 "Usage: %s cert_list [OPTIONS]... [SEARCH]\n"
 "\n"
@@ -1941,193 +1673,189 @@ msgid ""
 "      --machine-readable      Output time (seconds since epoch) instead of date (iso-8601) and flags instead of human-readable validity and credibility\n"
 "  -h, --help                  Print this help and exit\n"
 msgstr ""
-"Usage: %s list [OPTIONS]... [MOTIVO]\n"
+"Usage: %s cert_list [OPTIONS]... [RICERCA]\n"
 "\n"
 "Elencare i certificati del portachiavi, uno per riga.\n"
 "\n"
 "Colonne:\n"
-"impronta, identificativo d'entità, indirizzo (primario), certificazioni\n"
-"(facoltativo), validità, credibilità, data_di_creazione, data_di_scadenza,\n"
-"data_di_revoca\n"
+"impronta, identificatore d'entità, indirizzo (principale), certificazioni\n"
+"(opzionale), validità, credibilità, data_creazione, data_scadenza,\n"
+"data_revoca\n"
 "\n"
-"Un trattino solo «-» significa valore nascosto o sconosciuto.\n"
+"Un semplice trattino «-» significa valore nascosto o ignoto.\n"
 "\n"
 "Valori di validità: certified|uncertified|expired|revoked|broken|-\n"
-"Ordine d'importanza per i certificati inutilizzabili: broken>revoked>expired\n"
+"Ordine d'importanza dei certificati inutilizzabili: broken>revoked>expired\n"
 "\n"
 "Valori di credibilità: never|undefined|marginal|full|ultimate|-\n"
 "\n"
-"MOTIVO, se indicato, è passato tale e quale al motore; senza di esso si\n"
-"elenca tutto il portachiavi.\n"
+"RICERCA, se data, è passata al motore come modello; senza di essa è elencato\n"
+"tutto il portachiavi.\n"
 "\n"
 "OPTIONS:\n"
-"  -S, --short                 Una riga per indirizzo: impronta, identificativo, indirizzo\n"
-"                              Ciò che risponde «pgpid get --no-fetch», colonna per colonna\n"
-"  -L, --no-check-eid          Vecchio: non considerare «broken» un certificato senza eid coerente\n"
-"      --count-certs           Contare i certificatori distinti di ogni certificato e riempire la colonna *certifications* (può richiedere tempo!)\n"
-"      --hide-trust            La credibilità (l'ownertrust) è sensibile e serve alla validità — a volte entrambe devono restare private\n"
-"      --machine-readable      Emettere un tempo (secondi dall'epoca) anziché una data (iso-8601), e contrassegni anziché parole leggibili\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
+"  -S, --short                 Una riga per indirizzo: impronta, identificatore, indirizzo\n"
+"                              Ciò che risponde «pgpid get --no-fetch», a meno della colonna\n"
+"  -L, --no-check-eid          Storico: non tenere un certificato per «broken» in mancanza d'eid coerente\n"
+"      --count-certs           Contare i certificatori distinti e riempire *certifications* (può essere lungo !)\n"
+"      --hide-trust            La credibilità (ownertrust) serve a calcolare la validità e a volte resta privata\n"
+"      --machine-readable      Tempo (secondi dall'epoch) invece della data, flag invece di parole\n"
+"  -h, --help                  Mostrare questo aiuto ed uscire\n"
 
 #: ../src/main.c:38
-#, fuzzy
-#| msgid "listing the certificates"
 msgid "Certificates"
-msgstr "elenco dei certificati"
+msgstr "Certificati"
 
 #: ../src/main.c:39
-#, fuzzy
-#| msgid "listing the certificates"
 msgid "List the certificates of the keyring"
-msgstr "elenco dei certificati"
+msgstr "Elencare i certificati del portachiavi"
 
 #: ../src/main.c:41
 msgid "Look a certificate up, refreshing it first"
-msgstr ""
+msgstr "Cercare un certificato, aggiornandolo prima"
 
 #: ../src/main.c:43
 msgid "Show, add or revoke a vCard property it carries"
-msgstr ""
+msgstr "Mostrare, aggiungere o revocare una proprietà vCard che porta"
 
 #: ../src/main.c:45
 msgid "Show, add or revoke the addresses it carries"
-msgstr ""
+msgstr "Mostrare, aggiungere o revocare gli indirizzi che porta"
 
 #: ../src/main.c:47
 msgid "Extract the image it wears"
-msgstr ""
+msgstr "Estrarre l'immagine che porta"
 
 #: ../src/main.c:49
 msgid "List who has certified it"
-msgstr ""
+msgstr "Elencare chi l'ha certificato"
 
 #: ../src/main.c:51
 msgid "Write it out as a vCard document"
-msgstr ""
+msgstr "Scriverlo come documento vCard"
 
 #: ../src/main.c:53
 msgid "Produce or print a sticker or business card"
-msgstr ""
+msgstr "Produrre o stampare un adesivo o un biglietto da visita"
 
 #: ../src/main.c:55
 msgid "Send certificates to the keyservers"
-msgstr ""
+msgstr "Inviare certificati ai server di chiavi"
 
 #: ../src/main.c:57
 msgid "Revoke one for good, and tell the keyservers"
-msgstr ""
+msgstr "Revocarne uno definitivamente, e dirlo ai server di chiavi"
 
 #: ../src/main.c:59
 msgid "Delete certificates, by fingerprint only"
-msgstr ""
+msgstr "Eliminare certificati, solo per impronta"
 
 #: ../src/main.c:61
 msgid "Secret keys held on this machine"
-msgstr ""
+msgstr "Chiavi segrete tenute su questa macchina"
 
 #: ../src/main.c:62
 msgid "List the secret keys that are really here"
-msgstr ""
+msgstr "Elencare le chiavi segrete davvero presenti qui"
 
 #: ../src/main.c:64
 msgid "Check, or --replace, what protects one"
-msgstr ""
+msgstr "Verificare, o --replace, ciò che ne protegge una"
 
 #: ../src/main.c:66
 msgid "Put one on paper, in fragments"
-msgstr ""
+msgstr "Metterne una su carta, in frammenti"
 
 #: ../src/main.c:68
 msgid "Put it back together from the fragments"
-msgstr ""
+msgstr "Ricomporla a partire dai frammenti"
 
 #: ../src/main.c:70
 msgid "Move one onto a security key"
-msgstr ""
+msgstr "Spostarne una su una chiave di sicurezza"
 
 #: ../src/main.c:73
 msgid "Delete the secret material held here"
-msgstr ""
+msgstr "Eliminare il materiale segreto tenuto qui"
 
 #: ../src/main.c:75
 msgid "Security keys"
-msgstr ""
+msgstr "Chiavi di sicurezza"
 
 #: ../src/main.c:76
 msgid "List the security keys this system knows"
-msgstr ""
+msgstr "Elencare le chiavi di sicurezza che questo sistema conosce"
 
 #: ../src/main.c:78
 msgid "Check what the connected one carries"
-msgstr ""
+msgstr "Verificare cosa porta quella collegata"
 
 #: ../src/main.c:80
 msgid "Attempts left on its codes"
-msgstr ""
+msgstr "Tentativi che restano ai suoi codici"
 
 #: ../src/main.c:82
 msgid "Check, or --replace, its PIN or Admin code"
-msgstr ""
+msgstr "Verificare, o --replace, il suo codice PIN o Admin"
 
 #: ../src/main.c:84
 msgid "Forget one: remove its stubs, or --reset to wipe it"
-msgstr ""
+msgstr "Dimenticarne una: togliere i suoi monconi, o --reset per cancellarla"
 
 #: ../src/main.c:86
 msgid "Show, or --replace, what it says about its holder"
-msgstr ""
+msgstr "Mostrare, o --replace, ciò che dice del suo portatore"
 
 #: ../src/main.c:88
 msgid "Generators"
-msgstr ""
+msgstr "Generatori"
 
 #: ../src/main.c:89
 msgid "Generate a key pair the PGP ID way"
-msgstr ""
+msgstr "Generare una coppia di chiavi alla maniera PGP ID"
 
 #: ../src/main.c:91
 msgid "Print the identifier a civil status or a passport gives"
-msgstr ""
+msgstr "Mostrare l'identificatore che dà uno stato civile o un passaporto"
 
 #: ../src/main.c:93
 msgid "Print the Unix account number an identifier gives"
-msgstr ""
+msgstr "Mostrare il numero di account Unix che dà un identificatore"
 
 #: ../src/main.c:95
 msgid "This computer"
-msgstr ""
+msgstr "Questo computer"
 
 #: ../src/main.c:96
 msgid "List the accounts, and which are PGP ID entities"
-msgstr ""
+msgstr "Elencare gli account, e quali sono entità PGP ID"
 
 #: ../src/main.c:99
 msgid "Open a local account for a PGP ID entity"
-msgstr ""
+msgstr "Aprire un account locale per un'entità PGP ID"
 
 #: ../src/main.c:101
 msgid "Close a local account, alias included"
-msgstr ""
+msgstr "Chiudere un account locale, alias compreso"
 
 #: ../src/main.c:103
 msgid "Lay out a home directory for PGP ID use"
-msgstr ""
+msgstr "Allestire una directory personale per PGP ID"
 
 #: ../src/main.c:105
 msgid "List, add or remove local administrators"
-msgstr ""
+msgstr "Elencare, aggiungere o togliere amministratori locali"
 
 #: ../src/main.c:107
 msgid "Other people"
-msgstr ""
+msgstr "Gli altri"
 
 #: ../src/main.c:108
 msgid "Vouch for somebody else"
-msgstr ""
+msgstr "Farsi garante di qualcun altro"
 
 #: ../src/main.c:110
 msgid "Read, publish and apply the credibility of others"
-msgstr ""
+msgstr "Leggere, pubblicare e applicare la credibilità accordata agli altri"
 
 #: ../src/main.c:115
 #, c-format
@@ -2139,6 +1867,12 @@ msgid ""
 "\n"
 "ACTIONS:\n"
 msgstr ""
+"Usage: %s [OPTIONS]... AZIONE [ARGS]...\n"
+"\n"
+"Leggere e agire su certificati PGP secondo il modello pgpid: identificatori\n"
+"d'entità, validità, credibilità.\n"
+"\n"
+"ACTIONS:\n"
 
 #: ../src/main.c:134
 #, c-format
@@ -2153,6 +1887,15 @@ msgid ""
 "\n"
 "Every action takes --help of its own.\n"
 msgstr ""
+"\n"
+"OPTIONS:\n"
+"  -H, --homedir DIR           Directory di GnuPG e pgpid - Variabile d'ambiente: GNUPGHOME\n"
+"      --output-format=FORMATO Formato di uscita fra {raw, info, md} - Predefinito: «raw»\n"
+"  -B, --batch                 Non chiedere mai: fallire invece di chiedere ciò che manca\n"
+"  -h, --help                  Mostrare questo aiuto ed uscire\n"
+"  -V, --version               Mostrare la versione ed uscire\n"
+"\n"
+"Ogni azione ha il proprio --help.\n"
 
 #: ../src/main.c:172
 #, c-format
@@ -2169,24 +1912,7 @@ msgid "Error: Unknown action '%s'."
 msgstr "Error: Azione sconosciuta «%s»."
 
 #: ../src/printcard.c:32
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s print_card [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
-#| "\n"
-#| "Produce or print a PGP ID stamp or business card.\n"
-#| "Missing NAME|EMAIL|KEYID|U4|U5 => the certificate the connected security\n"
-#| "token belongs to.\n"
-#| "A single email appears on the output: if the argument is an email it is used\n"
-#| "verbatim; otherwise the most recent non-revoked email of the certificate is\n"
-#| "picked.\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -P, --print PRINTER|FILE.svg  Printer name to send to, or output SVG file if it ends with '.svg'\n"
-#| "  -t, --template FILE.svg       Use this template to produce business card\n"
-#| "  -N, --name NAME               Override the displayed name (default: guessed from OpenPGP certificate and email)\n"
-#| "  -g, --no-color                Output in grayscale instead of color\n"
-#| "  -h, --help                    Print this help and exit\n"
-#| "  -V, --version                 Print the version and exit\n"
+#, c-format
 msgid ""
 "Usage: %s cert_tobizcard [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
 "\n"
@@ -2202,22 +1928,19 @@ msgid ""
 "  -t, --template FILE.svg       Use this template to produce business card\n"
 "                                (one is shipped: "
 msgstr ""
-"Usage: %s print_card [OPTIONS]... [NOME|INDIRIZZO|KEYID|U4|U5]\n"
+"Usage: %s cert_tobizcard [OPTIONS]... [NOME|POSTA|KEYID|U4|U5]\n"
 "\n"
-"Produrre o stampare un francobollo o un biglietto da visita PGP ID.\n"
-"NOME|INDIRIZZO|KEYID|U4|U5 mancante ⇒ il certificato a cui appartiene la chiave di\n"
+"Produrre o stampare un timbro o un biglietto da visita PGP ID.\n"
+"Senza NOME|POSTA|KEYID|U4|U5 => il certificato a cui appartiene la chiave di\n"
 "sicurezza collegata.\n"
-"Una sola email compare in uscita: se l'argomento è un'email è ripresa così\n"
-"com'è; altrimenti si sceglie l'email non revocata più recente del certificato.\n"
+"Sull'uscita compare un solo indirizzo: se l'argomento è un indirizzo, è\n"
+"ripreso tale e quale; altrimenti è scelto l'indirizzo non revocato più\n"
+"recente del certificato.\n"
 "\n"
 "OPTIONS:\n"
-"  -P, --print PRINTER|FILE.svg Stampante, o file SVG da scrivere\n"
-"  -t, --template FILE.svg     Usare questo modello anziché l'adesivo\n"
-"  -N, --name NAME             Forzare il nome mostrato\n"
-"  -g, --no-color              Scala di grigi anziché colore\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
-"  -V, --version               Stampare la versione e uscire\n"
-"\n"
+"  -P, --print STAMPANTE|FILE.svg  Stampante, o file SVG se finisce in «.svg»\n"
+"  -t, --template FILE.svg       Usare questo modello per il biglietto da visita\n"
+"                                (ne è fornito uno: "
 
 #: ../src/printcard.c:194
 #, c-format
@@ -2265,7 +1988,7 @@ msgstr "Error: Nessun indirizzo utilizzabile (non revocato) nel certificato %s."
 #: ../src/printcard.c:331
 #, c-format
 msgid "Notice: Picking %s, the address this certificate is written to."
-msgstr ""
+msgstr "Notice: si sceglie %s, l'indirizzo a cui questo certificato è scritto."
 
 #: ../src/printcard.c:383 ../src/printsecret.c:756 ../src/scan.c:558
 msgid "Error: Cannot make a working directory."
@@ -2307,34 +2030,25 @@ msgid "in '.svg' to keep it."
 msgstr "in «.svg» per conservarlo."
 
 #: ../src/printcard.c:528 ../src/printcard.c:535
-#, fuzzy
-#| msgid "Error: gpg would not revoke %s."
 msgid "Error: The card could not be read back."
-msgstr "Error: gpg ha rifiutato di revocare %s."
+msgstr "Error: la carta non si è potuta rileggere."
 
 #: ../src/printcard.c:542
-#, fuzzy, c-format
-#| msgid "Error: %s carries no uid worth printing."
+#, c-format
 msgid "Error: %s does not open with an <svg> tag."
-msgstr "Error: %s non porta alcun uid che valga la pena stampare."
+msgstr "Error: %s non comincia con un tag <svg>."
 
 #: ../src/printcard.c:555
-#, fuzzy
-#| msgid "Error: The card answered %zu hex digits, not four."
 msgid "Error: The card is too big to lay out."
-msgstr "Error: La carta ha risposto %zu cifre esadecimali, non quattro."
+msgstr "Error: la carta è troppo grande per comporla."
 
 #: ../src/printcard.c:573
-#, fuzzy
-#| msgid "Error: gpg would not add %s."
 msgid "Error: The page could not be written."
-msgstr "Error: gpg ha rifiutato di aggiungere %s."
+msgstr "Error: la pagina non si è potuta scrivere."
 
 #: ../src/printcard.c:579
-#, fuzzy
-#| msgid "Error: rsvg-convert would not render the card."
 msgid "Error: rsvg-convert would not render the page."
-msgstr "Error: rsvg-convert ha rifiutato di comporre la carta."
+msgstr "Error: rsvg-convert ha rifiutato di rendere la pagina."
 
 #: ../src/printcard.c:583
 #, c-format
@@ -2346,34 +2060,7 @@ msgid "Error: lpr would not print the page."
 msgstr "Error: lpr ha rifiutato di stampare la pagina."
 
 #: ../src/printsecret.c:37
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s print_secret [OPTIONS]... KEY_ID|FPR\n"
-#| "\n"
-#| "Export and print OpenPGP secrets on multiple QRcode using Shamir's secret\n"
-#| "sharing, split so that no single sheet carries the key.\n"
-#| "\n"
-#| "Missing input will be asked interactively, unless --batch.\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -p, --passphrase PASSPHRASE    Passphrase to access secret parts of OpenPGP key\n"
-#| "  -P, --passfrom FILE            Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
-#| "  -t, --printer PRINTER          Name of printer to use. Empty to produce the sheets and send nothing\n"
-#| "  -w, --with-passphrase          Also print passphrase beside QR codes (INCREASE UX, DECREASE SECURITY)\n"
-#| "  -W, --workdir DIRECTORY        Use given working directory instead of a temporary directory (don't forget to shred its content)\n"
-#| "  -S, --split NUM                Number of shares to be generated, 3 to %d - Default: 5\n"
-#| "  -T, --threshold NUM            Number of shares necessary to reconstruct the secret - Default: 3\n"
-#| "  -h, --help                     Print this help and exit\n"
-#| "  -V, --version                  Print the version and exit\n"
-#| "\n"
-#| "Note: Split number should be greater than threshold number.\n"
-#| "      If they are equal, a simple split is used instead of Shamir's secret sharing,\n"
-#| "      and all secret protection relies on the passphrase.\n"
-#| "      In other terms: if (split_NUM == threshold_NUM), then no passphrase or\n"
-#| "      printing passphrase is VERY UNSECURE.\n"
-#| "\n"
-#| "Photographs are left out of what is printed. A backup does not need your\n"
-#| "face, and paper is handled by whoever finds it.\n"
+#, c-format
 msgid ""
 "Usage: %s secret_print [OPTIONS]... KEY_ID|FPR\n"
 "\n"
@@ -2409,33 +2096,39 @@ msgid ""
 "Photographs are left out of what is printed. A backup does not need your\n"
 "face, and paper is handled by whoever finds it.\n"
 msgstr ""
-"Usage: %s print_secret [OPTIONS]... KEY_ID|FPR\n"
+"Usage: %s secret_print [OPTIONS]... KEYID|IMPRONTA\n"
 "\n"
-"Esportare e stampare i segreti OpenPGP su più codici QR con la condivisione\n"
-"di segreto di Shamir, divisi in modo che nessun foglio porti la chiave.\n"
+"Esportare e stampare segreti PGP su più codici QR con la condivisione di\n"
+"segreto di Shamir, divisi perché nessun foglio da solo porti la chiave.\n"
 "\n"
-"Ciò che manca viene chiesto in modo interattivo, salvo con --batch.\n"
+"Ciò che manca sarà chiesto, salvo con --batch.\n"
 "\n"
 "OPTIONS:\n"
-"  -p, --passphrase PASSPHRASE La frase che protegge le parti segrete\n"
-"  -P, --passfrom FILE         Leggerla sulla prima riga di FILE\n"
-"  -t, --printer PRINTER       Dove stampare. Vuoto per fare i fogli\n"
-"  -w, --with-passphrase       Stampare la frase accanto ai codici QR\n"
-"  -W, --workdir DIRECTORY     Lavorare qui anziché in una temporanea\n"
-"  -S, --split NUM             Frammenti da produrre, da 3 a %d - Default: 5\n"
-"  -T, --threshold NUM         Frammenti per ricomporre - Default: 3\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
-"  -V, --version               Stampare la versione e uscire\n"
+"  -p, --passphrase FRASE         Frase segreta che dà accesso alle parti segrete della chiave PGP\n"
+"  -P, --passfrom FILE            Leggere la frase in testa a FILE (fifo, tmpfs, /dev/stdin …)\n"
+"  -t, --printer STAMPANTE        Nome della stampante. Vuoto per produrre i fogli senza inviare niente\n"
+"  -w, --with-passphrase          Stampare anche la frase accanto ai codici QR (PIÙ COMODO, MENO SICURO)\n"
+"  -W, --workdir DIRECTORY        Directory di lavoro invece di una temporanea (distruggetene il contenuto)\n"
+"  -S, --split NUM                Numero di parti da produrre, da 3 a %d - Predefinito: 5\n"
+"  -T, --threshold NUM            Numero di parti necessarie a ricostituire il segreto, 2 o più - Predefinito: 3\n"
+"  -h, --help                     Mostrare questo aiuto ed uscire\n"
+"  -V, --version                  Mostrare la versione ed uscire\n"
 "\n"
-"Nota: il numero di frammenti dev'essere maggiore della soglia.\n"
-"      Se sono uguali, un semplice taglio sostituisce la condivisione di Shamir,\n"
-"      e tutta la protezione del segreto poggia sulla frase segreta.\n"
-"      In altri termini: se (frammenti == soglia), allora non mettere frase\n"
-"      segreta, o stamparla, è MOLTO POCO SICURO.\n"
+"Nota: il numero di parti dovrebbe superare la soglia.\n"
+"      Se sono uguali, un semplice taglio sostituisce la condivisione di\n"
+"      Shamir, e tutta la protezione del segreto riposa sulla frase segreta.\n"
+"      In altri termini: se (parti == soglia), allora nessuna frase — o una\n"
+"      frase stampata — è MOLTO POCO SICURO.\n"
+"      Una parte ha la dimensione del segreto intero: oltre %d byte un\n"
+"      segreto va su carta solo tagliato, cioè a valori uguali. È rifiutato\n"
+"      con le cifre invece che stampato troppo denso.\n"
 "\n"
-"Le fotografie non vanno in stampa. Un salvataggio non ha bisogno del suo\n"
-"volto, e la carta la maneggia chi la trova.\n"
+"I codici sono QR di versione 6 (draft-foopgp-secret-sheets), due per pagina\n"
+"A4: tagliate ogni pagina in due, e tenete le metà in luoghi diversi. Le\n"
+"versioni 4 e 5 non si scrivono più, e secret_scan le legge ancora.\n"
 "\n"
+"Le fotografie restano fuori da ciò che è stampato. Un salvataggio non ha\n"
+"bisogno del vostro viso, e la carta la maneggia chi la trova.\n"
 
 #: ../src/printsecret.c:591
 msgid "none - produce the sheets and send nothing"
@@ -2513,10 +2206,9 @@ msgid "Error: Working directory is unclean (it holds SECRET*)."
 msgstr "Error: La directory di lavoro non è pulita (contiene SECRET*)."
 
 #: ../src/printsecret.c:762
-#, fuzzy, c-format
-#| msgid "Suggestion: bl-security shred_path --remove '%s'"
+#, c-format
 msgid "Suggestion: shred --remove '%s'/* && rmdir '%s'"
-msgstr "Suggestion: bl-security shred_path --remove '%s'"
+msgstr "Suggestion: shred --remove '%s'/* && rmdir '%s'"
 
 #: ../src/printsecret.c:799
 msgid "Error: gpg would not export the secret key — right passphrase?"
@@ -2537,55 +2229,51 @@ msgid "Notice: Printing %zu uid(s) of %zu — the rest comes back from a keyring
 msgstr "Notice: Stampati %zu uid su %zu — il resto si ritrova in un portachiavi."
 
 #: ../src/printsecret.c:846
-#, fuzzy
-#| msgid "Error: gpg would not add %s."
 msgid "Error: The export could not be measured."
-msgstr "Error: gpg ha rifiutato di aggiungere %s."
+msgstr "Error: la dimensione dell'export non si è potuta leggere."
 
 #: ../src/printsecret.c:857
 #, c-format
 msgid "Error: One sheet would carry %zu bytes of the secret, and %d is what one can still be read back from."
-msgstr ""
+msgstr "Error: un foglio porterebbe %zu byte del segreto, e %d è ciò che si riesce ancora a rileggere."
 
 #: ../src/printsecret.c:860
 msgid "Notice: Every share of a shared secret is the size of the secret, so more shares make none of them smaller. Cutting does, and a cut is asked for by making --threshold equal to --split."
-msgstr ""
+msgstr "Notice: ogni parte di un segreto condiviso ha la dimensione del segreto: farne di più non ne renderà nessuna più piccola. Il taglio sì — e si chiede rendendo --threshold uguale a --split."
 
 #: ../src/printsecret.c:864
 #, c-format
 msgid "Notice: Even %d pieces would not be enough, and %d is as many as a fragment's header can number."
-msgstr ""
+msgstr "Notice: nemmeno %d pezzi basterebbero, e %d è tutto ciò che l'intestazione di un frammento sa numerare."
 
 #: ../src/printsecret.c:867
 #, c-format
 msgid "Suggestion: --threshold %d, or --split %d. Every sheet is then needed."
-msgstr ""
+msgstr "Suggestion: --threshold %d, o --split %d. Allora servono tutti i fogli."
 
 #: ../src/printsecret.c:870
 #, c-format
 msgid "Suggestion: --threshold %d. Every sheet is then needed."
-msgstr ""
+msgstr "Suggestion: --threshold %d. Allora servono tutti i fogli."
 
 #: ../src/printsecret.c:873
 #, c-format
 msgid "Suggestion: --split %d --threshold %d. Every sheet is then needed."
-msgstr ""
+msgstr "Suggestion: --split %d --threshold %d. Allora servono tutti i fogli."
 
 #: ../src/printsecret.c:887
-#, fuzzy, c-format
-#| msgid "Error: gpg would not add %s."
+#, c-format
 msgid "Error: The export could not be cut in %d."
-msgstr "Error: gpg ha rifiutato di aggiungere %s."
+msgstr "Error: l'export non si è potuto tagliare in %d."
 
 #: ../src/printsecret.c:901
 msgid "Error: gfsplit would not share the secret out."
 msgstr "Error: gfsplit ha rifiutato di ripartire il segreto."
 
 #: ../src/printsecret.c:915
-#, fuzzy, c-format
-#| msgid "Error: gpg would not revoke %s."
+#, c-format
 msgid "Error: %s could not be encoded."
-msgstr "Error: gpg ha rifiutato di revocare %s."
+msgstr "Error: %s non si è potuto codificare."
 
 #: ../src/printsecret.c:933
 #, c-format
@@ -2621,10 +2309,9 @@ msgid "Error: qrencode would not draw fragment %zu."
 msgstr "Error: qrencode ha rifiutato di disegnare il frammento %zu."
 
 #: ../src/printsecret.c:1043
-#, fuzzy, c-format
-#| msgid "Error: pdfjam would not lay the page out."
+#, c-format
 msgid "Error: Fragment %zu could not be laid out."
-msgstr "Error: pdfjam ha rifiutato di impaginare."
+msgstr "Error: il frammento %zu non si è potuto comporre."
 
 #: ../src/printsecret.c:1050
 #, c-format
@@ -2637,10 +2324,9 @@ msgid "Notice: The working copies are removed. Shred %s if anything is left."
 msgstr "Notice: Le copie di lavoro sono rimosse. Trituri %s se resta qualcosa."
 
 #: ../src/printsecret.c:1075
-#, fuzzy, c-format
-#| msgid "Notice: The fragments are in %s. Shred it once they are on paper: bl-security shred_path --remove '%s'"
+#, c-format
 msgid "Notice: The fragments are in %s. Shred them once they are on paper: find '%s' -type f -exec shred --remove {} +"
-msgstr "Notice: I frammenti sono in %s. Lo trituri una volta che sono su carta: bl-security shred_path --remove '%s'"
+msgstr "Notice: i frammenti sono in %s. Distruggeteli una volta su carta: find '%s' -type f -exec shred --remove {} +"
 
 #: ../src/property.c:223
 #, c-format
@@ -2662,15 +2348,13 @@ msgid "Error: 'ksprefrd' must start with hkp:// or hkps:// (%s)."
 msgstr "Error: «ksprefrd» deve iniziare con hkp:// o hkps:// (%s)."
 
 #: ../src/property.c:270
-#, fuzzy
-#| msgid "Error: This certificate carries no name."
 msgid "Error: This certificate flags no primary user id."
-msgstr "Error: Questo certificato non porta alcun nome."
+msgstr "Error: questo certificato non marca alcun uid come principale."
 
 #: ../src/property.c:271
 #, c-format
 msgid "Notice: '%s cert_email --set-primary ADDRESS' gives it one."
-msgstr ""
+msgstr "Notice: «%s cert_email --set-primary INDIRIZZO» gliene dà uno."
 
 #: ../src/property.c:291
 msgid "Error: Cannot set the preferred keyserver — right PIN?"
@@ -2682,82 +2366,49 @@ msgid "Error: Cannot export %s."
 msgstr "Error: Impossibile esportare %s."
 
 #: ../src/property.c:306 ../src/property.c:750
-#, fuzzy, c-format
-#| msgid "Notice: Written into '%s'."
+#, c-format
 msgid "Notice: %s carries no %s."
-msgstr "Notice: Scritto in «%s»."
+msgstr "Notice: %s non porta alcun %s."
 
 #: ../src/property.c:335
-#, fuzzy, c-format
-#| msgid "Error: 'ksprefrd' cannot be revoked — it is a subpacket of a signature, not a uid. Set another value instead."
+#, c-format
 msgid "Error: '%s' cannot be revoked — it is a property of a signature, not a uid. Set another value instead."
-msgstr "Error: «ksprefrd» non si revoca — è un sottopacchetto di firma, non un uid. Imposti invece un altro valore."
+msgstr "Error: «%s» non si può revocare — è una proprietà di una firma, non un uid. Mettete invece un altro valore."
 
 #: ../src/property.c:346
-#, fuzzy
-#| msgid "Error: No certificate matching '%s'."
 msgid "Error: A certificate has to run out; nothing lasts."
-msgstr "Error: Nessun certificato corrisponde a «%s»."
+msgstr "Error: un certificato deve scadere; niente dura."
 
 #: ../src/property.c:347
 msgid "Notice: Give a date, or a duration: 2y, 18m, 90d."
-msgstr ""
+msgstr "Notice: date una data, o una durata: 2y, 18m, 90d."
 
 #: ../src/property.c:355
-#, fuzzy, c-format
-#| msgid "Error: '%s' is not a date. Give it as YYYY-MM-DD."
+#, c-format
 msgid "Error: '%s' is not a date (YYYY-MM-DD) nor a duration."
-msgstr "Error: «%s» non è una data. La dia in AAAA-MM-GG."
+msgstr "Error: «%s» non è né una data (AAAA-MM-GG) né una durata."
 
 #: ../src/property.c:360
 #, c-format
 msgid "Error: %s is more than %d years off, which is no expiry at all."
-msgstr ""
+msgstr "Error: %s è a più di %d anni, e questa non è una scadenza."
 
 #: ../src/property.c:368
-#, fuzzy, c-format
-#| msgid "Error: Cannot set the preferred keyserver — right PIN?"
+#, c-format
 msgid "Error: Cannot set the expiry — right PIN, and is '%s' a date?"
-msgstr "Error: Impossibile impostare il server di chiavi preferito — il PIN giusto?"
+msgstr "Error: impossibile fissare la scadenza — PIN giusto, e «%s» è una data?"
 
 #: ../src/property.c:389
 #, c-format
 msgid "Warning: %s carries no expiry, which is a promise nobody can keep."
-msgstr ""
+msgstr "Warning: %s non porta alcuna scadenza, ed è una promessa che nessuno può mantenere."
 
 #: ../src/property.c:390
 msgid "Notice: '--replace-to 3y' gives it one."
-msgstr ""
+msgstr "Notice: «--replace-to 3y» gliene dà una."
 
 #: ../src/property.c:411
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s property PROPERTY [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
-#| "\n"
-#| "Display and add or revoke vCard-property uids inside OpenPGP certificate.\n"
-#| "PROPERTY is one of: { name, note, address, phone, url, lang, geo, ksprefrd }.\n"
-#| "Email addresses are not vCard-property uids (they keep the 'Name <addr>' shape\n"
-#| "every mail client understands): manage them with '%s email'.\n"
-#| "'ksprefrd' is preferred certificate server. This is not stored as a\n"
-#| "vCard-property uid, but used when generating vCard: it can be replaced,\n"
-#| "never revoked.\n"
-#| "Missing NAME|EMAIL|KEYID|U4|U5 => the certificate whose secret key is at hand.\n"
-#| "Free-text values (name, note) with , ; \\ or newlines are stored RFC 6350-escaped\n"
-#| "and decoded back on display (address keeps its structural ';')\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -A, --add VALUE             Add ({name,note,ksprefrd} ⇒ replace) a PROPERTY uid (may be used more than once)\n"
-#| "      --replace-to VALUE      Exact synonym of --add — terminology is just more relevant for {name,note,ksprefrd}\n"
-#| "  -R, --revoke VALUE          Revoke the PROPERTY uid carrying VALUE (may be used more than once)\n"
-#| "      --revoke-all            Revoke every usable PROPERTY uid — all but the newest for {name,email}\n"
-#| "  -y, --yes                   Assume yes: skip the irreversible-revocation confirmation\n"
-#| "      --show-unusable         Also display the uids that no longer stand: revoked, expired, or without a valid self-signature\n"
-#| "  -K, --keyservers KEYSERVERS If non-empty, send updated certificate to this keyservers - Default: %s\n"
-#| "  -h, --help                  Print this help and exit\n"
-#| "  -V, --version               Print the version and exit\n"
-#| "\n"
-#| "Revoking is irreversible: OpenPGP keeps the uid on the certificate\n"
-#| "forever, marked revoked, and an identical one can never be added again.\n"
+#, c-format
 msgid ""
 "Usage: %s cert_property PROPERTY [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
 "\n"
@@ -2792,34 +2443,39 @@ msgid ""
 "holds it keeps it until they refresh. Adding the identical value again\n"
 "signs it anew, certifications others made over it included.\n"
 msgstr ""
-"Usage: %s property PROPERTY [OPTIONS]... [NOME|INDIRIZZO|KEYID|U4|U5]\n"
+"Usage: %s cert_property PROPRIETÀ [OPTIONS]... [NOME|POSTA|KEYID|U4|U5]\n"
 "\n"
-"Mostrare, aggiungere o revocare gli uid di proprietà vCard del certificato OpenPGP.\n"
-"PROPERTY è una tra: { name, note, address, phone, url, lang, geo, ksprefrd }.\n"
-"Gli indirizzi email non sono uid di proprietà vCard (mantengono la forma\n"
-"'Nome <indirizzo>' che ogni client di posta capisce): gestiteli con '%s email'.\n"
-"'ksprefrd' è il server di certificati preferito. Non è memorizzato come uid di\n"
-"proprietà vCard, ma usato nel generare la vCard: si sostituisce, mai si revoca.\n"
-"NOME|INDIRIZZO|KEYID|U4|U5 mancante ⇒ il certificato la cui chiave segreta è a portata.\n"
-"I valori liberi (name, note) con , ; \\ o a capo sono memorizzati con escape\n"
-"secondo la RFC 6350 e decodificati alla stampa (address tiene il suo ';'\n"
-"strutturale)\n"
+"Mostrare, aggiungere o revocare uid di proprietà vCard dentro un certificato PGP.\n"
+"PROPRIETÀ è una fra: { name, note, address, phone, url, lang, geo, ksprefrd,\n"
+"expire }.\n"
+"Gli indirizzi di posta non sono uid di proprietà vCard (conservano la forma\n"
+"«Nome <indirizzo>» che ogni client di posta capisce): usate «%s cert_email».\n"
+"«ksprefrd» (server di certificati preferito, usato per produrre la vCard) e\n"
+"«expire» non sono uid neanche loro: vivono nell'autofirma, e si sostituiscono,\n"
+"mai si revocano. «expire» prende una data o una durata (2y, 18m, 90d), a 30 anni\n"
+"al più, e sposta insieme la chiave principale e ogni sottochiave che vale. Non\n"
+"c'è modo di chiedere l'assenza di scadenza: niente dura.\n"
+"«name» è quella che PGP ID esige: chiederla quando manca risponde 141, dove\n"
+"ogni altra proprietà risponde 0.\n"
+"Senza NOME|POSTA|KEYID|U4|U5 => il certificato la cui chiave segreta è a portata.\n"
+"I valori in testo libero (name, note) con , ; \\ o ritorni a capo sono salvati\n"
+"con escape secondo la RFC 6350 e ridecodificati alla visualizzazione (address\n"
+"conserva il suo «;»)\n"
 "\n"
 "OPTIONS:\n"
-"  -A, --add VALUE             Aggiungere un valore (ripetibile)\n"
-"      --replace-to VALUE      La stessa parola, per quelle a valore unico\n"
-"  -R, --revoke VALUE          Revocare l'uid che porta VALORE (ripetibile)\n"
-"      --revoke-all            Revocare tutti i valori, salvo il più recente\n"
-"  -y, --yes                   Assumere sì: saltare l'avviso\n"
-"      --show-unusable         Mostrare anche i valori che non valgono più\n"
-"  -K, --keyservers KEYSERVERS Inviare il certificato modificato a questi - Default: %s\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
-"  -V, --version               Stampare la versione e uscire\n"
+"  -A, --add VALORE            Aggiungere ({name,note,ksprefrd,expire} ⇒ sostituire) una PROPRIETÀ (più volte)\n"
+"      --replace-to VALORE     Sinonimo esatto di --add — la parola calza meglio per {name,note,ksprefrd,expire}\n"
+"  -R, --revoke VALORE         Revocare l'uid di PROPRIETÀ che porta VALORE (usabile più volte)\n"
+"      --revoke-all            Revocare tutti gli uid utilizzabili di PROPRIETÀ — tutti tranne il più recente per {name,email}\n"
+"  -y, --yes                   Rispondere sì d'ufficio: saltare la conferma di revoca\n"
+"      --show-unusable         Mostrare anche gli uid che non valgono più: revocati, scaduti, o senza autofirma valida\n"
+"  -K, --keyservers SERVER     Se non vuoto, inviarvi il certificato aggiornato - Predefinito: %s\n"
+"  -h, --help                  Mostrare questo aiuto ed uscire\n"
+"  -V, --version               Mostrare la versione ed uscire\n"
 "\n"
-"Revocare è irreversibile: OpenPGP conserva per sempre l'uid sul\n"
-"certificato, marcato revocato, e uno identico non potrà più essere\n"
-"aggiunto.\n"
-"\n"
+"Revocare lascia l'uid sul certificato, marcato revocato, e chi lo ha lo\n"
+"conserva fino al prossimo aggiornamento. Aggiungere di nuovo lo stesso valore\n"
+"lo firma di nuovo, con le certificazioni ricevute.\n"
 
 #: ../src/property.c:469
 msgid "Error: Too many values at once."
@@ -2840,10 +2496,9 @@ msgid "Error: Unknown property '%s'."
 msgstr "Error: Proprietà sconosciuta «%s»."
 
 #: ../src/property.c:533
-#, fuzzy, c-format
-#| msgid "Notice: One of name, note, phone, address, url, lang, geo, %s."
+#, c-format
 msgid "Notice: One of name, note, phone, address, url, lang, geo, %s, %s."
-msgstr "Notice: Uno tra name, note, phone, address, url, lang, geo, %s."
+msgstr "Notice: una fra name, note, phone, address, url, lang, geo, %s, %s."
 
 #: ../src/property.c:540
 #, c-format
@@ -2871,18 +2526,7 @@ msgid "Error: At least one %s must be retained."
 msgstr "Error: Almeno un %s deve essere conservato."
 
 #: ../src/push.c:30
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s push [OPTIONS]... FINGERPRINT...\n"
-#| "\n"
-#| "Send certificates to the keyservers as they stand, changing nothing.\n"
-#| "Fingerprints only: what is published cannot be recalled.\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -K, --keyservers SERVERS    Send to these, space separated\n"
-#| "                              Empty for none. Default: %s\n"
-#| "  -h, --help                  Print this help and exit\n"
-#| "  -V, --version               Print the version and exit\n"
+#, c-format
 msgid ""
 "Usage: %s cert_push [OPTIONS]... FINGERPRINT...\n"
 "\n"
@@ -2897,22 +2541,22 @@ msgid ""
 "  -h, --help                  Print this help and exit\n"
 "  -V, --version               Print the version and exit\n"
 msgstr ""
-"Usage: %s push [OPTIONS]... IMPRONTA...\n"
+"Usage: %s cert_push [OPTIONS]... IMPRONTA...\n"
 "\n"
-"Inviare certificati ai server di chiavi così come sono, senza cambiare\n"
-"nulla. Solo impronte: ciò che è pubblicato non si richiama.\n"
+"Inviare certificati ai server di chiavi così come sono, senza cambiare niente.\n"
+"Solo impronte: ciò che è pubblicato non si richiama.\n"
 "\n"
 "OPTIONS:\n"
 "  -K, --keyservers SERVER     Inviare a questi, separati da spazi\n"
-"                              Vuoto per nessuno. Default: %s\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
-"  -V, --version               Stampare la versione e uscire\n"
+"                              Vuoto per nessuno. Predefinito: %s\n"
+"      --export-to FILE        Scrivervi i certificati invece di inviarli\n"
+"      --armor                 Scriverli come testo invece che in binario\n"
+"  -h, --help                  Mostrare questo aiuto ed uscire\n"
+"  -V, --version               Mostrare la versione ed uscire\n"
 
 #: ../src/push.c:59
-#, fuzzy
-#| msgid "Error: '%s' wants a file."
 msgid "Error: --export-to wants a file."
-msgstr "Error: «%s» attende un file."
+msgstr "Error: --export-to attende un file."
 
 #: ../src/push.c:91
 msgid "Error: Which certificate?"
@@ -2923,10 +2567,9 @@ msgid "Notice: Publishing takes fingerprints, so a search never becomes a broadc
 msgstr "Notice: Pubblicare esige impronte, così una ricerca non diventa mai una diffusione."
 
 #: ../src/push.c:121
-#, fuzzy, c-format
-#| msgid "Error: Nothing to write."
+#, c-format
 msgid "Error: Nothing was written to '%s'."
-msgstr "Error: Niente da scrivere."
+msgstr "Error: niente è stato scritto in «%s»."
 
 #: ../src/push.c:124 ../src/tovcard.c:551
 #, c-format
@@ -2938,26 +2581,7 @@ msgid "Notice: No keyserver asked for; nothing sent."
 msgstr "Notice: Nessun server di chiavi richiesto; nulla inviato."
 
 #: ../src/scan.c:42
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s scan [OPTIONS]... IMAGES...\n"
-#| "\n"
-#| "Reconstitute OpenPGP secrets from QRcodes scanned from IMAGES.\n"
-#| "Output OpenPGP certification key fingerprint.\n"
-#| "Images may be PNG, JPEG, or PDF.\n"
-#| "\n"
-#| "QR code versions 4 and 5, which is what print_secret writes. Versions 1\n"
-#| "to 3 were experimental and never released; 'bl-pgpkey scan' still reads\n"
-#| "them. A key that arrives protected stays protected: taking the\n"
-#| "passphrase off is the business of whoever moves it onto a card.\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -W, --workdir DIRECTORY       Use given working directory instead of a temporary directory (don't forget to shred its content)\n"
-#| "  -h, --help                    Print this help and exit\n"
-#| "  -V, --version                 Print the version and exit\n"
-#| "\n"
-#| "Fragments missing are named rather than worked around: this reads what it\n"
-#| "is given, and does not open a camera to go looking.\n"
+#, c-format
 msgid ""
 "Usage: %s secret_scan [OPTIONS]... IMAGES...\n"
 "\n"
@@ -2984,24 +2608,30 @@ msgid ""
 "of the camera until it has enough, or until three codes in a row say\n"
 "nothing.\n"
 msgstr ""
-"Usage: %s scan [OPTIONS]... IMAGES...\n"
+"Usage: %s secret_scan [OPTIONS]... IMMAGINI...\n"
 "\n"
-"Ricostituire i segreti OpenPGP dai codici QR scansionati in IMAGES.\n"
-"Stampa l'impronta della chiave di certificazione OpenPGP.\n"
+"Ricostituire segreti PGP da codici QR letti nelle IMMAGINI.\n"
+"Mostra l'impronta della chiave di certificazione PGP.\n"
 "Le immagini possono essere PNG, JPEG o PDF.\n"
 "\n"
-"Versioni 4 e 5 dei codici QR, cioè quanto scrive print_secret. Le versioni\n"
-"da 1 a 3 erano sperimentali e mai pubblicate; «bl-pgpkey scan» le legge\n"
-"ancora. Una chiave che arriva protetta resta protetta: togliere la frase\n"
-"d'accesso spetta a chi la sposta su una carta.\n"
+"Codici QR di versione 4, 5 e 6: la 6 è quella che secret_print scrive, la 4\n"
+"e la 5 quelle che scriveva prima. Le versioni da 1 a 3 erano sperimentali e\n"
+"non sono mai state pubblicate; «bl-pgpkey scan» le legge ancora. Una chiave\n"
+"che arriva protetta resta protetta: togliere la frase segreta riguarda chi\n"
+"la sposta su una carta.\n"
 "\n"
 "OPTIONS:\n"
-"  -W, --workdir DIRECTORY     Lavorare qui anziché in una temporanea\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
-"  -V, --version               Stampare la versione e uscire\n"
+"  -c, --camera [DISPOV4L]         Leggere i frammenti da una telecamera (/dev/v4l/by-id/…)\n"
+"      --cameras                   Elencare le telecamere di questa macchina, e non leggere niente\n"
+"      --camera-size LARGxALT      Chiedere quel fotogramma alla telecamera invece di 640x480\n"
+"  -W, --workdir DIRECTORY         Directory di lavoro invece di una temporanea (distruggetene il contenuto)\n"
+"  -h, --help                      Mostrare questo aiuto ed uscire\n"
+"  -V, --version                   Mostrare la versione ed uscire\n"
 "\n"
-"I frammenti mancanti sono nominati anziché aggirati: questo legge ciò che\n"
-"gli si dà, e non apre una telecamera per andare a cercare.\n"
+"Senza --camera, i frammenti mancanti sono nominati invece che aggirati:\n"
+"l'azione legge ciò che le si dà e si ferma. Con essa, aspetta davanti alla\n"
+"telecamera finché non ne ha abbastanza, o finché tre codici di seguito non\n"
+"dicono niente.\n"
 
 #: ../src/scan.c:140
 msgid "Crit: A QR code starts like a fragment, but its head is damaged."
@@ -3027,87 +2657,78 @@ msgid "Crit: Fragment number %d is out of range."
 msgstr "Crit: Il numero di frammento %d è fuori intervallo."
 
 #: ../src/scan.c:256
-#, fuzzy
-#| msgid "Error: No certificate matching '%s'."
 msgid "Error: No camera on this machine."
-msgstr "Error: Nessun certificato corrisponde a «%s»."
+msgstr "Error: nessuna telecamera su questa macchina."
 
 #: ../src/scan.c:260
-#, fuzzy, c-format
-#| msgid "Info: Sending %s to %s…"
+#, c-format
 msgid "Info: Reading from %s (%s)."
-msgstr "Info: Invio di %s a %s…"
+msgstr "Info: lettura da %s (%s)."
 
 #: ../src/scan.c:266
-#, fuzzy, c-format
-#| msgid "Error: %s: %s (%s)"
+#, c-format
 msgid "Notice: %zu. %s (%s)"
-msgstr "Error: %s: %s (%s)"
+msgstr "Notice: %zu. %s (%s)"
 
 #: ../src/scan.c:268
 #, c-format
 msgid "Error: %zu cameras here. Name one: --camera DEVICE."
-msgstr ""
+msgstr "Error: %zu telecamere qui. Nominatene una: --camera DISPOSITIVO."
 
 #: ../src/scan.c:272
 msgid "Which camera? "
-msgstr ""
+msgstr "Quale telecamera? "
 
 #: ../src/scan.c:277
-#, fuzzy, c-format
-#| msgid "Error: '%s' is not a directory of yours."
+#, c-format
 msgid "Error: '%s' is not one of the %zu."
-msgstr "Error: «%s» non è una directory sua."
+msgstr "Error: «%s» non è una delle %zu."
 
 #: ../src/scan.c:331
 #, c-format
 msgid "Info: %s, %s."
-msgstr ""
+msgstr "Info: %s, %s."
 
 #: ../src/scan.c:342
 #, c-format
 msgid "Info: %d of %d fragments — that is all of them."
-msgstr ""
+msgstr "Info: %d frammenti su %d — ci sono tutti."
 
 #: ../src/scan.c:352
 #, c-format
 msgid "Info: %zu of %d fragments; show the camera another (Ctrl-C to stop)."
-msgstr ""
+msgstr "Info: %zu frammenti su %d; mostratene un altro alla telecamera (Ctrl-C per fermare)."
 
 #: ../src/scan.c:355
 msgid "Info: Show the camera a fragment (Ctrl-C to stop)."
-msgstr ""
+msgstr "Info: mostrate un frammento alla telecamera (Ctrl-C per fermare)."
 
 #: ../src/scan.c:377
-#, fuzzy
-#| msgid "Error: The card answered nothing readable."
 msgid "Error: Three in a row that brought nothing new."
-msgstr "Error: La carta non ha risposto nulla di leggibile."
+msgstr "Error: tre di seguito che non hanno portato niente di nuovo."
 
 #: ../src/scan.c:390
 msgid "Notice: That fragment is already in hand — another?"
-msgstr ""
+msgstr "Notice: quel frammento è già in mano — un altro?"
 
 #: ../src/scan.c:392
 msgid "Notice: That is a QR code, but not a fragment of a secret — wrong sheet?"
-msgstr ""
+msgstr "Notice: è un codice QR, ma non un frammento di segreto — foglio sbagliato?"
 
 #: ../src/scan.c:395
 #, c-format
 msgid "Notice: Nothing read from '%s' — try again."
-msgstr ""
+msgstr "Notice: niente letto da «%s» — riprovate."
 
 #: ../src/scan.c:492
-#, fuzzy, c-format
-#| msgid "Error: '%s' wants a file."
+#, c-format
 msgid "Error: '%s' wants a size, as WIDTHxHEIGHT."
-msgstr "Error: «%s» attende un file."
+msgstr "Error: «%s» attende una dimensione, come LARGHEZZAxALTEZZA."
 
 #: ../src/scan.c:497
-#, fuzzy, c-format
-#| msgid "Error: '%s' is not a date. Give it as YYYY-MM-DD."
+#, c-format
 msgid "Error: '%s' is not a size. Give it as WIDTHxHEIGHT."
-msgstr "Error: «%s» non è una data. La dia in AAAA-MM-GG."
+msgstr "Error: «%s» non è una dimensione. Datela come LARGHEZZAxALTEZZA."
 
 #: ../src/scan.c:517
 #, c-format
@@ -3115,16 +2736,13 @@ msgid "Error: Too many images given. Maximum: %d."
 msgstr "Error: Troppe immagini date. Massimo: %d."
 
 #: ../src/scan.c:546
-#, fuzzy
-#| msgid "Error: Which images? There is no camera to fall back on here."
 msgid "Error: Which images? Name some, or --camera to read them off one."
-msgstr "Error: Quali immagini? Qui non c'è telecamera su cui ripiegare."
+msgstr "Error: quali immagini? Nominatene alcune, o --camera per leggerle da una telecamera."
 
 #: ../src/scan.c:564
-#, fuzzy, c-format
-#| msgid "Suggestion: bl-security shred_path --remove '%s'"
+#, c-format
 msgid "Suggestion: find '%s' -type f -exec shred --remove {} +"
-msgstr "Suggestion: bl-security shred_path --remove '%s'"
+msgstr "Suggestion: find '%s' -type f -exec shred --remove {} +"
 
 #: ../src/scan.c:589
 #, c-format
@@ -3160,16 +2778,13 @@ msgid "Error: %zu fragment(s) of the %d needed; missing: %s."
 msgstr "Error: %zu frammento/i sui %d necessari; mancano: %s."
 
 #: ../src/scan.c:668 ../src/scan.c:680 ../src/scan.c:686
-#, fuzzy
-#| msgid "Error: basenc would not encode %s."
 msgid "Error: The fragments would not decode."
-msgstr "Error: basenc ha rifiutato di codificare %s."
+msgstr "Error: i frammenti non si sono potuti decodificare."
 
 #: ../src/scan.c:704
-#, fuzzy, c-format
-#| msgid "Error: basenc would not encode %s."
+#, c-format
 msgid "Error: Fragment %zu would not decode."
-msgstr "Error: basenc ha rifiutato di codificare %s."
+msgstr "Error: il frammento %zu non si è potuto decodificare."
 
 #: ../src/scan.c:712
 msgid "Error: gfcombine would not put the fragments back together."
@@ -3186,16 +2801,16 @@ msgstr "Frammenti provenienti da due stampe diverse, con ogni probabilità."
 #: ../src/scan.c:748
 #, c-format
 msgid "Notice: Secret key put back together: %.40s."
-msgstr ""
+msgstr "Notice: chiave segreta ricomposta: %.40s."
 
 #: ../src/scan.c:757
 msgid "Notice: Secret key put back together, and imported."
-msgstr ""
+msgstr "Notice: chiave segreta ricomposta, e importata."
 
 #: ../src/scan.c:769
 #, c-format
 msgid "Notice: %s still holds the pieces. Shred it: find '%s' -type f -exec shred --remove {} +"
-msgstr ""
+msgstr "Notice: %s contiene ancora i pezzi. Distruggeteli: find '%s' -type f -exec shred --remove {} +"
 
 #: ../src/seckeys.c:76
 #, c-format
@@ -3228,54 +2843,56 @@ msgid ""
 "or backed up somewhere. The certificate remains, and stays unusable for\n"
 "signing and decryption without its secret.\n"
 msgstr ""
+"Usage: %s secret_del [OPTIONS]... IMPRONTA...\n"
+"\n"
+"Eliminare il materiale segreto tenuto su questa macchina, lasciando il\n"
+"certificato. Solo ciò che secret_list mostra si può eliminare qui: una voce\n"
+"che è un moncone che punta a una chiave di sicurezza non ha niente di locale\n"
+"da togliere — token_del dimentica quelli, e la chiave stessa tiene il segreto.\n"
+"\n"
+"Solo le impronte sono accettate — 40 o 64 caratteri esadecimali. Un'azione\n"
+"che distrugge non indovina di quale chiave si trattava.\n"
+"\n"
+"OPTIONS:\n"
+"  -y, --yes                   Rispondere sì d'ufficio: saltare la conferma\n"
+"  -h, --help                  Mostrare questo aiuto ed uscire\n"
+"  -V, --version               Mostrare la versione ed uscire\n"
+"\n"
+"Questo è irreversibile a meno che la chiave non sia stata stampata, spostata\n"
+"su una chiave di sicurezza, o salvata da qualche parte. Il certificato resta,\n"
+"e resta inutilizzabile per firmare e decifrare senza il suo segreto.\n"
 
 #: ../src/secretdel.c:84
-#, fuzzy, c-format
-#| msgid "Notice: 40 or 64 hexadecimal characters, nothing else."
+#, c-format
 msgid "Notice: 40 or 64 hexadecimal characters. See '%s secret_list'."
-msgstr "Notice: 40 o 64 caratteri esadecimali, nient'altro."
+msgstr "Notice: 40 o 64 caratteri esadecimali. Vedete «%s secret_list»."
 
 #: ../src/secretdel.c:93
-#, fuzzy
-#| msgid "Error: Which secret key should be printed?"
 msgid "Error: Which secret? Name it by fingerprint."
-msgstr "Error: Quale chiave segreta deve essere stampata?"
+msgstr "Error: quale segreto? Nominatelo per impronta."
 
 #: ../src/secretdel.c:120
-#, fuzzy, c-format
-#| msgid "Error: No security key answered."
+#, c-format
 msgid "Error: '%s' is a stub on a security key, not a local secret."
-msgstr "Error: Nessuna chiave di sicurezza ha risposto."
+msgstr "Error: «%s» è un moncone su una chiave di sicurezza, non un segreto locale."
 
 #: ../src/secretdel.c:122
 #, c-format
 msgid "Notice: '%s token_del' forgets the key; the secret stays on it."
-msgstr ""
+msgstr "Notice: «%s token_del» dimentica la chiave; il segreto vi resta."
 
 #: ../src/secretdel.c:139
 #, c-format
 msgid "Notice: %zu secret(s) will be deleted. The certificates stay."
-msgstr ""
+msgstr "Notice: %zu segreto(i) saranno eliminati. I certificati restano."
 
 #: ../src/secretdel.c:151
-#, fuzzy, c-format
-#| msgid "Error: '%s' wants a note."
+#, c-format
 msgid "Error: '%s' would not go."
-msgstr "Error: «%s» attende una nota."
+msgstr "Error: «%s» non si è potuto togliere."
 
 #: ../src/secretlist.c:24
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s push [OPTIONS]... FINGERPRINT...\n"
-#| "\n"
-#| "Send certificates to the keyservers as they stand, changing nothing.\n"
-#| "Fingerprints only: what is published cannot be recalled.\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -K, --keyservers SERVERS    Send to these, space separated\n"
-#| "                              Empty for none. Default: %s\n"
-#| "  -h, --help                  Print this help and exit\n"
-#| "  -V, --version               Print the version and exit\n"
+#, c-format
 msgid ""
 "Usage: %s %s [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]...\n"
 "\n"
@@ -3287,42 +2904,23 @@ msgid ""
 "  -h, --help                  Print this help and exit\n"
 "  -V, --version               Print the version and exit\n"
 msgstr ""
-"Usage: %s push [OPTIONS]... IMPRONTA...\n"
+"Usage: %s %s [OPTIONS]... [NOME|POSTA|KEYID|U4|U5]...\n"
 "\n"
-"Inviare certificati ai server di chiavi così come sono, senza cambiare\n"
-"nulla. Solo impronte: ciò che è pubblicato non si richiama.\n"
+"Elencare le chiavi segrete il cui materiale è davvero qui, lasciando da\n"
+"parte i monconi che puntano soltanto a una chiave di sicurezza. Per quelli,\n"
+"vedete «%s token_list».\n"
 "\n"
 "OPTIONS:\n"
-"  -K, --keyservers SERVER     Inviare a questi, separati da spazi\n"
-"                              Vuoto per nessuno. Default: %s\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
-"  -V, --version               Stampare la versione e uscire\n"
+"  -F, --fingerprint           Mostrare solo le impronte\n"
+"  -h, --help                  Mostrare questo aiuto ed uscire\n"
+"  -V, --version               Mostrare la versione ed uscire\n"
 
 #: ../src/secretlist.c:87
-#, fuzzy
-#| msgid "Notice: No keyserver asked for; nothing sent."
 msgid "Notice: No secret key is held on this machine."
-msgstr "Notice: Nessun server di chiavi richiesto; nulla inviato."
+msgstr "Notice: nessuna chiave segreta è tenuta su questa macchina."
 
 #: ../src/sigs.c:112
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s sigs [OPTIONS]... FINGERPRINT\n"
-#| "\n"
-#| "List who has certified that certificate, oldest first: date, key\n"
-#| "identifier, address. The key identifier is what a search takes to walk\n"
-#| "one step further into the web of trust.\n"
-#| "\n"
-#| "Only the identity uid (UID:urn:eid:...) is read, because a certification\n"
-#| "is about the entity and not about one of its addresses. A certificate\n"
-#| "carrying no identity uid falls back to the merged list, with a notice.\n"
-#| "\n"
-#| "Self-signatures are left out: they make a uid stand, they do not\n"
-#| "certify anyone.\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -a, --all-uids              Merge the signatures of every uid\n"
-#| "  -h, --help                  Print this help and exit\n"
+#, c-format
 msgid ""
 "Usage: %s cert_sigs [OPTIONS]... FINGERPRINT\n"
 "\n"
@@ -3342,27 +2940,26 @@ msgid ""
 "      --no-self-sig           Leave out the certificate's own signature, counted by default\n"
 "  -h, --help                  Print this help and exit\n"
 msgstr ""
-"Usage: %s sigs [OPTIONS]... IMPRONTA\n"
+"Usage: %s cert_sigs [OPTIONS]... IMPRONTA\n"
 "\n"
-"Elencare chi ha certificato quel certificato, dal più antico: data,\n"
-"identificativo di chiave, indirizzo. L'identificativo di chiave è ciò che\n"
-"una ricerca prende per avanzare di un passo nella rete di fiducia.\n"
+"Elencare chi ha certificato quel certificato, dal più antico al più recente:\n"
+"data, identificatore di chiave, indirizzo e data. L'impronta è ciò che una\n"
+"ricerca riprende per avanzare di un passo nella rete di fiducia.\n"
 "\n"
-"Si legge solo l'uid d'identità (UID:urn:eid:...), perché una\n"
-"certificazione riguarda l'entità e non uno dei suoi indirizzi. Un\n"
-"certificato senza uid d'identità ricade sull'elenco fuso, con un avviso.\n"
+"Solo l'uid d'identità (UID:urn:eid:...) è letto, perché una certificazione\n"
+"riguarda l'entità e non uno dei suoi indirizzi. Un certificato senza uid\n"
+"d'identità ricade sulla lista fusa, con un avviso.\n"
 "\n"
-"Le autofirme restano fuori: fanno valere un uid, non certificano nessuno.\n"
+"Le autofirme restano da parte: fanno valere un uid, non certificano nessuno.\n"
 "\n"
 "OPTIONS:\n"
 "  -a, --all-uids              Fondere le firme di tutti gli uid\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
+"      --no-self-sig           Lasciare fuori la firma del certificato, contata di norma\n"
+"  -h, --help                  Mostrare questo aiuto ed uscire\n"
 
 #: ../src/sigs.c:172
-#, fuzzy
-#| msgid "Error: A fingerprint is required to set a credibility."
 msgid "Error: A fingerprint is required, and no security key was ever seen."
-msgstr "Error: Serve un'impronta per porre una credibilità."
+msgstr "Error: serve un'impronta, e non si è mai vista alcuna chiave di sicurezza."
 
 #: ../src/sigs.c:194
 msgid "Notice: No identity uid; merging every uid instead."
@@ -3413,205 +3010,222 @@ msgid ""
 "of that name: the second is refused, and --user gives it another. The\n"
 "identifier still settles the numbers, which do not collide.\n"
 msgstr ""
+"Usage: %s system_adduser [OPTIONS]... [FILE.asc]\n"
+"\n"
+"Aggiungere un'entità PGP ID come utente di questo sistema. Diritti\n"
+"d'amministratore richiesti (sudo).\n"
+"Richiede un certificato PGP ID, in argomento o sull'ingresso standard.\n"
+"Ciò che manca è chiesto.\n"
+"\n"
+"Su un sistema Unix, PGP ID regola:\n"
+"  - il nome dell'account (la parte locale dell'indirizzo dell'entità)\n"
+"  - i campi GECOS (posta, telefono, indirizzo)\n"
+"  - i numeri d'utente e di gruppo (UID e GID)\n"
+"  - il percorso della directory personale (/home/<eid>)\n"
+"\n"
+"La directory stessa è allestita da «%s system_confhome».\n"
+"\n"
+"OPTIONS:\n"
+"  -p, --password PASSWORD  Password dell'utente (per questo computer)\n"
+"  -P, --passfrom FILE      Leggere la password sulla prima riga di FILE\n"
+"                           (es.: fifo, tmpfs, /dev/stdin, …)\n"
+"  -u, --user UTENTE        Chiamare l'account UTENTE invece della parte locale\n"
+"                           del suo indirizzo\n"
+"  -f, --fingerprint IMPR   Prendere il certificato dal portachiavi locale\n"
+"                           (Predefinito: quello di SUDO_USER, altrimenti root)\n"
+"  -c, --if-certified       Rifiutare un'entità che non è certificata\n"
+"                           (Predefinito: dal SUDO_USER locale, altrimenti root)\n"
+"  -F, --from UTENTE        Altro utente per --fingerprint e --if-certified\n"
+"  -m, --migrate UTENTE     Passare un account locale allo standard PGP ID: la sua\n"
+"                           directory diventa /home/<eid> e i suoi numeri vengono\n"
+"                           dall'identificatore. L'utente non deve essere connesso\n"
+"                           (quindi non può essere SUDO_USER)\n"
+"  -s, --sweep              Con --migrate, cercare su tutti i filesystem montati i file\n"
+"                           che possedeva il vecchio account, non solo la sua directory\n"
+"                           e i posti abituali\n"
+"  -h, --help               Mostrare questo aiuto ed uscire\n"
+"  -V, --version            Mostrare la versione ed uscire\n"
+"\n"
+"A un account già presente si risponde 11 invece di un fallimento ordinario:\n"
+"un chiamante che voglia dirlo deve poterlo distinguere dal resto.\n"
+"\n"
+"Due persone i cui indirizzi condividono la parte locale non possono avere\n"
+"entrambe un account di quel nome: la seconda è rifiutata, e --user gliene dà\n"
+"un altro. L'identificatore regola sempre i numeri, che non si scontrano.\n"
 
 #: ../src/systemadduser.c:337
-#, fuzzy, c-format
-#| msgid "Warning: gpg would not add %s."
+#, c-format
 msgid "Warning: Could not hand %s its own certificate."
-msgstr "Warning: gpg ha rifiutato di aggiungere %s."
+msgstr "Warning: impossibile consegnare a %s il suo stesso certificato."
 
 #: ../src/systemadduser.c:373
 #, c-format
 msgid "Info: Looking through every mounted filesystem for files of %lu."
-msgstr ""
+msgstr "Info: ricerca dei file di %lu su tutti i filesystem montati."
 
 #: ../src/systemadduser.c:431
-#, fuzzy
-#| msgid "Error: '--keyservers' publishes a change; there is none to make."
 msgid "Error: '--sweep' looks for what an old account owned; there is none without '--migrate'."
-msgstr "Error: «--keyservers» pubblica una modifica; non ce n'è alcuna da fare."
+msgstr "Error: «--sweep» cerca ciò che possedeva un vecchio account; senza «--migrate» non ce n'è."
 
 #: ../src/systemadduser.c:435
-#, fuzzy, c-format
-#| msgid "Error: '%s' is not a date this can read."
+#, c-format
 msgid "Error: '%s' is not a usable account name."
-msgstr "Error: «%s» non è una data leggibile qui."
+msgstr "Error: «%s» non è un nome di account utilizzabile."
 
 #: ../src/systemadduser.c:436
 msgid "Notice: Letters, digits, '_', '-' and '.', and not a digit first."
-msgstr ""
+msgstr "Notice: lettere, cifre, «_», «-» e «.», e non una cifra per prima."
 
 #: ../src/systemadduser.c:440
 msgid "Error: Opening an account needs administrator rights (sudo)."
-msgstr ""
+msgstr "Error: aprire un account richiede i diritti d'amministratore (sudo)."
 
 #: ../src/systemadduser.c:451 ../src/systemadduser.c:473
-#, fuzzy, c-format
-#| msgid "Error: Cannot read '%s' as an image."
+#, c-format
 msgid "Error: No account named '%s' on this system."
-msgstr "Error: Impossibile leggere «%s» come immagine."
+msgstr "Error: nessun account chiamato «%s» su questo sistema."
 
 #: ../src/systemadduser.c:461 ../src/systemconfhome.c:133
 #: ../src/systemdeluser.c:193
-#, fuzzy, c-format
-#| msgid "Error: No secret for '%s' here."
+#, c-format
 msgid "Error: No account for '%s' on this system."
-msgstr "Error: Nessun segreto per «%s» qui."
+msgstr "Error: nessun account per «%s» su questo sistema."
 
 #: ../src/systemadduser.c:478
 #, c-format
 msgid "Error: '%s' is logged in; an account cannot be moved under its owner."
-msgstr ""
+msgstr "Error: «%s» è connesso; un account non si sposta sotto il suo proprietario."
 
 #: ../src/systemadduser.c:505
-#, fuzzy, c-format
-#| msgid "Error: No certificate here carries %s."
+#, c-format
 msgid "Error: No certificate could be read from %s."
-msgstr "Error: Nessun certificato qui porta %s."
+msgstr "Error: nessun certificato si è potuto leggere da %s."
 
 #: ../src/systemadduser.c:506
 msgid "standard input"
-msgstr ""
+msgstr "ingresso standard"
 
 #: ../src/systemadduser.c:514
-#, fuzzy, c-format
-#| msgid "Crit: %s carries no identity uid — the certificate looks broken."
+#, c-format
 msgid "Error: '%s' carries no identifier, so its certificate is unknown."
-msgstr "Crit: %s non porta uid d'identità — il certificato sembra danneggiato."
+msgstr "Error: «%s» non porta alcun identificatore, quindi il suo certificato è ignoto."
 
 #: ../src/systemadduser.c:516
-#, fuzzy
-#| msgid "Notice: Name the fingerprint to say which one."
 msgid "Notice: Name it with '--fingerprint', or hand the certificate over."
-msgstr "Notice: Indicate l'impronta per dire quale."
+msgstr "Notice: nominatelo con «--fingerprint», o fornite il certificato."
 
 #: ../src/systemadduser.c:522
-#, fuzzy
-#| msgid "Error: Which certificate? A whole fingerprint is required —"
 msgid "Error: Which certificate? A file, '--fingerprint', or standard input."
-msgstr "Error: Quale certificato? Si esige un'impronta intera —"
+msgstr "Error: quale certificato? Un file, «--fingerprint», o l'ingresso standard."
 
 #: ../src/systemadduser.c:537
-#, fuzzy
-#| msgid "Error: No certificate here has those characters there."
 msgid "Error: No PGP ID certificate there: none found, or none carrying an identifier."
-msgstr "Error: Nessun certificato qui porta questi caratteri in quel punto."
+msgstr "Error: là nessun certificato PGP ID: nessuno trovato, o nessuno con identificatore."
 
 #: ../src/systemadduser.c:543
-#, fuzzy, c-format
-#| msgid "Error: No usable certificate for %s."
+#, c-format
 msgid "Error: %s is not certified for %s."
-msgstr "Error: Nessun certificato utilizzabile per %s."
+msgstr "Error: %s non è certificato per %s."
 
 #: ../src/systemadduser.c:544
 #, c-format
 msgid "Notice: '%s certify %s' says so, once it is true."
-msgstr ""
+msgstr "Notice: «%s certify %s» lo dice, una volta che è vero."
 
 #: ../src/systemadduser.c:550
-#, fuzzy, c-format
-#| msgid "Error: '%s' wants a number of one or more."
+#, c-format
 msgid "Error: No account number comes out of %s."
-msgstr "Error: «%s» attende un numero maggiore o uguale a uno."
+msgstr "Error: da %s non esce alcun numero di account."
 
 #: ../src/systemadduser.c:564
-#, fuzzy, c-format
-#| msgid "Error: That passphrase does not open '%s'."
+#, c-format
 msgid "Error: No account name comes out of '%s'."
-msgstr "Error: Questa frase d'accesso non apre «%s»."
+msgstr "Error: da «%s» non esce alcun nome di account."
 
 #: ../src/systemadduser.c:566
 msgid "Notice: '--user NAME' gives one."
-msgstr ""
+msgstr "Notice: «--user NOME» ne dà uno."
 
 #: ../src/systemadduser.c:581
 #, c-format
 msgid "Warning: %lu is already '%s' here; %s takes the same number."
-msgstr ""
+msgstr "Warning: %lu è già «%s» qui; %s prende lo stesso numero."
 
 #: ../src/systemadduser.c:589
-#, fuzzy, c-format
-#| msgid "Error: Nothing to write."
+#, c-format
 msgid "Error: Nothing to read in %s."
-msgstr "Error: Niente da scrivere."
+msgstr "Error: niente da leggere in %s."
 
 #: ../src/systemadduser.c:602
 msgid "Password for this computer: "
-msgstr ""
+msgstr "Password per questo computer: "
 
 #: ../src/systemadduser.c:603
 msgid "Once more: "
-msgstr ""
+msgstr "Ancora una volta: "
 
 #: ../src/systemadduser.c:607
 #, c-format
 msgid "Notice: No password set; login stays closed until 'passwd %s'."
-msgstr ""
+msgstr "Notice: nessuna password messa; l'accesso resta chiuso fino a «passwd %s»."
 
 #: ../src/systemadduser.c:609
 msgid "Notice: No password given and nothing to ask with; login stays closed."
-msgstr ""
+msgstr "Notice: nessuna password data e niente con cui chiederla; l'accesso resta chiuso."
 
 #: ../src/systemadduser.c:610
-#, fuzzy, c-format
-#| msgid "Notice: Give --passphrase, or --passfrom to keep it off the process list."
+#, c-format
 msgid "Notice: '--password' or '--passfrom FILE' sets one, 'passwd %s' too."
-msgstr "Notice: Indicate --passphrase, o --passfrom per tenerla fuori dalla lista dei processi."
+msgstr "Notice: «--password» o «--passfrom FILE» ne mette una, «passwd %s» anche."
 
 #: ../src/systemadduser.c:631
-#, fuzzy, c-format
-#| msgid "Info: Sending %s to %s…"
+#, c-format
 msgid "Info: Moving '%s' to %s."
-msgstr "Info: Invio di %s a %s…"
+msgstr "Info: spostamento di «%s» verso %s."
 
 #: ../src/systemadduser.c:635
-#, fuzzy, c-format
-#| msgid "Error: '%s' is not a date this can read."
+#, c-format
 msgid "Error: '%s' could not be renamed; nothing was changed."
-msgstr "Error: «%s» non è una data leggibile qui."
+msgstr "Error: «%s» non si è potuto rinominare; niente è stato cambiato."
 
 #: ../src/systemadduser.c:669
-#, fuzzy, c-format
-#| msgid "Error: '%s' is not a date this can read."
+#, c-format
 msgid "Error: '%s' is already the account of %s here."
-msgstr "Error: «%s» non è una data leggibile qui."
+msgstr "Error: «%s» è già qui l'account di %s."
 
 #: ../src/systemadduser.c:671
 msgid "Notice: '--user NAME' gives this one another name."
-msgstr ""
+msgstr "Notice: «--user NOME» ne dà un altro a questo."
 
 #: ../src/systemadduser.c:676
-#, fuzzy, c-format
-#| msgid "Error: '%s' wants a code."
+#, c-format
 msgid "Error: %s already has an account here."
-msgstr "Error: «%s» attende un codice."
+msgstr "Error: %s ha già un account qui."
 
 #: ../src/systemadduser.c:677
 #, c-format
 msgid "Notice: '--migrate %s' brings an existing one up to date."
-msgstr ""
+msgstr "Notice: «--migrate %s» aggiorna un account esistente."
 
 #: ../src/systemadduser.c:688
-#, fuzzy, c-format
-#| msgid "Error: gpg would not add %s."
+#, c-format
 msgid "Error: No group could be made for %s."
-msgstr "Error: gpg ha rifiutato di aggiungere %s."
+msgstr "Error: nessun gruppo si è potuto creare per %s."
 
 #: ../src/systemadduser.c:709
-#, fuzzy, c-format
-#| msgid "Error: Can't convert pdf %s."
+#, c-format
 msgid "Error: No account could be opened for %s."
-msgstr "Error: Impossibile convertire il pdf %s."
+msgstr "Error: nessun account si è potuto aprire per %s."
 
 #: ../src/systemadduser.c:739
 #, c-format
 msgid "Notice: %s now has an account here as '%s' (%lu), home %s."
-msgstr ""
+msgstr "Notice: %s ha ora un account qui come «%s» (%lu), directory %s."
 
 #: ../src/systemadduser.c:741
 #, c-format
 msgid "Notice: '%s system_confhome %s' lays that home out for PGP ID use."
-msgstr ""
+msgstr "Notice: «%s system_confhome %s» allestisce quella directory per PGP ID."
 
 #: ../src/systemadmins.c:31
 #, c-format
@@ -3620,34 +3234,36 @@ msgid ""
 "\n"
 "List, add or remove local administrators (root power through the '"
 msgstr ""
+"Usage: %s system_admins [OPTIONS]...\n"
+"\n"
+"Elencare, aggiungere o togliere amministratori locali (potere root tramite il «"
 
 #: ../src/systemadmins.c:100
 #, c-format
 msgid "Error: This system has no '%s' group, so it has no administrators"
-msgstr ""
+msgstr "Error: questo sistema non ha gruppo «%s», quindi non ha amministratori"
 
 #: ../src/systemadmins.c:102
 msgid "Notice: to speak of. Installing sudo creates one."
-msgstr ""
+msgstr "Notice: a dire il vero. Installare sudo ne crea uno."
 
 #: ../src/systemadmins.c:121
-#, fuzzy, c-format
-#| msgid "Error: gpg would not add '%s'."
+#, c-format
 msgid "Error: No account named '%s'."
-msgstr "Error: gpg ha rifiutato di aggiungere «%s»."
+msgstr "Error: nessun account chiamato «%s»."
 
 #: ../src/systemadmins.c:125
 #, c-format
 msgid "Error: '%s' is you, and nobody removes their own administrator rights."
-msgstr ""
+msgstr "Error: «%s» siete voi, e nessuno si toglie i propri diritti d'amministratore."
 
 #: ../src/systemadmins.c:132
 msgid "Error: Adding or removing an administrator needs root."
-msgstr ""
+msgstr "Error: aggiungere o togliere un amministratore richiede root."
 
 #: ../src/systemadmins.c:157
 msgid "Notice: Nobody is an administrator of this system."
-msgstr ""
+msgstr "Notice: nessuno è amministratore di questo sistema."
 
 #: ../src/systemconfhome.c:52
 #, c-format
@@ -3672,68 +3288,84 @@ msgid ""
 "  -h, --help                  Print this help and exit\n"
 "  -V, --version               Print the version and exit\n"
 msgstr ""
+"Usage: %s system_confhome [OPTIONS]... [UTENTE|EID]\n"
+"\n"
+"Allestire una directory personale per PGP ID. Senza argomento, la vostra.\n"
+"Quella di qualcun altro richiede i diritti d'amministratore, e si fa a suo\n"
+"nome invece che da root, perché niente nella sua directory finisca di un altro.\n"
+"\n"
+"Tutto è fatto salvo rifiuto:\n"
+"\n"
+"OPTIONS:\n"
+"      --no-gnupg              Lasciare stare ~/.gnupg: directory, chiave\n"
+"                              predefinita, e la credibilità che la rende propria\n"
+"      --no-systemd            Lasciare il socket che punta SSH_AUTH_SOCK a gpg-agent\n"
+"      --no-ssh                Lasciare stare ~/.ssh/authorized_keys. Altrimenti la\n"
+"                              sottochiave d'autenticazione diventa la SOLA chiave\n"
+"                              autorizzata lì: tutto il resto è tolto\n"
+"      --no-git                Lasciare stare user.signingKey di git\n"
+"      --no-face               Lasciare stare ~/.face\n"
+"  -h, --help                  Mostrare questo aiuto ed uscire\n"
+"  -V, --version               Mostrare la versione ed uscire\n"
 
 #: ../src/systemconfhome.c:141
 #, c-format
 msgid "Error: Laying out '%s' home needs administrator rights."
-msgstr ""
+msgstr "Error: allestire la directory di «%s» richiede i diritti d'amministratore."
 
 #: ../src/systemconfhome.c:173
 #, c-format
 msgid "Error: '%s' can reach no copy of this program, so its home cannot be laid out."
-msgstr ""
+msgstr "Error: «%s» non raggiunge alcuna copia di questo programma, quindi la sua directory non si può allestire."
 
 #: ../src/systemconfhome.c:175
 #, c-format
 msgid "Notice: %s is out of their reach, and no installed copy knows this action."
-msgstr ""
+msgstr "Notice: %s è fuori dalla sua portata, e nessuna copia installata conosce questa azione."
 
 #: ../src/systemconfhome.c:180
 #, c-format
 msgid "Notice: '%s' cannot reach %s; '%s' is used instead."
-msgstr ""
+msgstr "Notice: «%s» non può raggiungere %s; si usa «%s» al suo posto."
 
 #: ../src/systemconfhome.c:195
-#, fuzzy, c-format
-#| msgid "Error: '%s' is neither a fingerprint nor an identifier."
+#, c-format
 msgid "Error: '%s' is not a PGP ID account: no identifier in its name"
-msgstr "Error: «%s» non è né un'impronta né un identificativo."
+msgstr "Error: «%s» non è un account PGP ID: nessun identificatore nel suo nome"
 
 #: ../src/systemconfhome.c:197
 #, c-format
 msgid "Notice: nor in its home. '%s system_adduser --migrate' makes it one."
-msgstr ""
+msgstr "Notice: né nella sua directory. «%s system_adduser --migrate» ne fa uno."
 
 #: ../src/systemconfhome.c:205
 #, c-format
 msgid "Notice: '%s cert_get %s' fetches it first."
-msgstr ""
+msgstr "Notice: «%s cert_get %s» lo recupera prima."
 
 #: ../src/systemconfhome.c:208
-#, fuzzy, c-format
-#| msgid "Info: Putting %s on %s…"
+#, c-format
 msgid "Info: Laying out %s for %s."
-msgstr "Info: Applicazione di %s su %s…"
+msgstr "Info: allestimento di %s per %s."
 
 #: ../src/systemconfhome.c:230
 msgid "Notice: No gpg-agent.socket unit here; SSH_AUTH_SOCK is yours to set."
-msgstr ""
+msgstr "Notice: nessuna unità gpg-agent.socket qui; SSH_AUTH_SOCK sta a voi metterla."
 
 #: ../src/systemconfhome.c:276
-#, fuzzy, c-format
-#| msgid "Error: This certificate carries no name."
+#, c-format
 msgid "Info: The certificate's picture is now %s."
-msgstr "Error: Questo certificato non porta alcun nome."
+msgstr "Info: l'immagine del certificato è ora %s."
 
 #: ../src/systemconfhome.c:278
 #, c-format
 msgid "Notice: The certificate wears no picture; %s left alone."
-msgstr ""
+msgstr "Notice: il certificato non porta immagine; %s è lasciato così."
 
 #: ../src/systemdeluser.c:92
 #, c-format
 msgid "Notice: %u process of '%s' had to be ended (%u of them the hard way)."
-msgstr ""
+msgstr "Notice: %u processi di «%s» si sono dovuti terminare (%u di forza)."
 
 #: ../src/systemdeluser.c:114
 #, c-format
@@ -3752,67 +3384,65 @@ msgid ""
 "  -h, --help                  Print this help and exit\n"
 "  -V, --version               Print the version and exit\n"
 msgstr ""
+"Usage: %s system_deluser [OPTIONS]... UTENTE|EID\n"
+"\n"
+"Togliere un account locale, e il gruppo che gli è proprio. Diritti\n"
+"d'amministratore richiesti (sudo).\n"
+"\n"
+"La directory personale è tenuta salvo che «--remove-home» dica il contrario:\n"
+"un account si riapre dal certificato, ciò che conteneva la sua directory no,\n"
+"e una chiave segreta che non ne fosse mai uscita se ne andrebbe con lui.\n"
+"\n"
+"OPTIONS:\n"
+"  -r, --remove-home           Togliere anche la directory personale\n"
+"  -h, --help                  Mostrare questo aiuto ed uscire\n"
+"  -V, --version               Mostrare la versione ed uscire\n"
 
 #: ../src/systemdeluser.c:180
-#, fuzzy
-#| msgid "Error: Which certificate?"
 msgid "Error: Which account?"
-msgstr "Error: Quale certificato?"
+msgstr "Error: quale account?"
 
 #: ../src/systemdeluser.c:185
 msgid "Error: Closing an account needs administrator rights (sudo)."
-msgstr ""
+msgstr "Error: chiudere un account richiede i diritti d'amministratore (sudo)."
 
 #: ../src/systemdeluser.c:204
-#, fuzzy, c-format
-#| msgid "Error: '%s' is not a date this can read."
+#, c-format
 msgid "Error: '%s' is the administrator of this machine."
-msgstr "Error: «%s» non è una data leggibile qui."
+msgstr "Error: «%s» è l'amministratore di questa macchina."
 
 #: ../src/systemdeluser.c:210
 #, c-format
 msgid "Error: '%s' is logged in; an account cannot be closed under its owner."
-msgstr ""
+msgstr "Error: «%s» è connesso; un account non si chiude sotto il suo proprietario."
 
 #: ../src/systemdeluser.c:218
-#, fuzzy, c-format
-#| msgid "Error: gpg would not revoke %s."
+#, c-format
 msgid "Error: '%s' could not be removed."
-msgstr "Error: gpg ha rifiutato di revocare %s."
+msgstr "Error: «%s» non si è potuto rimuovere."
 
 #: ../src/systemdeluser.c:219
 #, c-format
 msgid "Notice: A process of its own still holds it; 'pkill --uid %lu' ends those."
-msgstr ""
+msgstr "Notice: un suo processo lo trattiene ancora; «pkill --uid %lu» li termina."
 
 #: ../src/systemdeluser.c:223
 #, c-format
 msgid "Notice: '%s' is no longer an account here."
-msgstr ""
+msgstr "Notice: «%s» non è più un account qui."
 
 #: ../src/systemdeluser.c:231
 #, c-format
 msgid "Warning: The group '%s' (%lu) is still there."
-msgstr ""
+msgstr "Warning: il gruppo «%s» (%lu) è ancora lì."
 
 #: ../src/systemdeluser.c:235
 #, c-format
 msgid "Notice: %s is left standing, and still belongs to %lu."
-msgstr ""
+msgstr "Notice: %s è lasciato al suo posto, e appartiene ancora a %lu."
 
 #: ../src/systemusers.c:83
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s push [OPTIONS]... FINGERPRINT...\n"
-#| "\n"
-#| "Send certificates to the keyservers as they stand, changing nothing.\n"
-#| "Fingerprints only: what is published cannot be recalled.\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -K, --keyservers SERVERS    Send to these, space separated\n"
-#| "                              Empty for none. Default: %s\n"
-#| "  -h, --help                  Print this help and exit\n"
-#| "  -V, --version               Print the version and exit\n"
+#, c-format
 msgid ""
 "Usage: %s system_users [OPTIONS]...\n"
 "\n"
@@ -3824,16 +3454,15 @@ msgid ""
 "  -h, --help                  Print this help and exit\n"
 "  -V, --version               Print the version and exit\n"
 msgstr ""
-"Usage: %s push [OPTIONS]... IMPRONTA...\n"
+"Usage: %s system_users [OPTIONS]...\n"
 "\n"
-"Inviare certificati ai server di chiavi così come sono, senza cambiare\n"
-"nulla. Solo impronte: ciò che è pubblicato non si richiama.\n"
+"Elencare gli account di questo sistema, e quali sono entità PGP ID. Un\n"
+"account lo è quando la sua directory è /home/<eid>, comunque si chiami.\n"
 "\n"
 "OPTIONS:\n"
-"  -K, --keyservers SERVER     Inviare a questi, separati da spazi\n"
-"                              Vuoto per nessuno. Default: %s\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
-"  -V, --version               Stampare la versione e uscire\n"
+"  -p, --pgpid-only            Lasciare fuori gli account che non sono entità\n"
+"  -h, --help                  Mostrare questo aiuto ed uscire\n"
+"  -V, --version               Mostrare la versione ed uscire\n"
 
 #: ../src/token.c:24
 #, c-format
@@ -3969,64 +3598,60 @@ msgid ""
 "A factory reset is irreversible: whatever the key held is gone, and no\n"
 "backup of it exists unless you made one.\n"
 msgstr ""
+"Usage: %s token_del [OPTIONS]... [SERIE]\n"
+"\n"
+"Dimenticare una chiave di sicurezza: togliere i monconi che puntano a lei, e\n"
+"nient'altro. I certificati pubblici restano — ciò che ha portato un segreto\n"
+"non fa parte di ciò che il certificato dice. Senza SERIE, la chiave collegata.\n"
+"\n"
+"OPTIONS:\n"
+"      --reset                 Ripristinare prima la chiave collegata\n"
+"  -y, --yes                   Rispondere sì d'ufficio: saltare la conferma\n"
+"  -h, --help                  Mostrare questo aiuto ed uscire\n"
+"  -V, --version               Mostrare la versione ed uscire\n"
+"\n"
+"Un ripristino di fabbrica è irreversibile: ciò che la chiave portava è perso,\n"
+"e non ne esiste alcun salvataggio a meno che non ne abbiate fatto uno.\n"
 
 #: ../src/tokendel.c:101
 msgid "Error: --reset wipes the connected key, and none answered."
-msgstr ""
+msgstr "Error: --reset cancella la chiave collegata, e nessuna ha risposto."
 
 #: ../src/tokendel.c:105
-#, fuzzy
-#| msgid "Error: Which secret key? This machine may hold several."
 msgid "Error: Which security key? Name its serial, or plug one in."
-msgstr "Error: Quale chiave segreta? Questa macchina può custodirne diverse."
+msgstr "Error: quale chiave di sicurezza? Dite il suo numero di serie, o collegatene una."
 
 #: ../src/tokendel.c:132
 #, c-format
 msgid "Notice: About to wipe the key %s. This cannot be undone."
-msgstr ""
+msgstr "Notice: si sta per cancellare la chiave %s. Questo non si disfa."
 
 #: ../src/tokendel.c:134
-#, fuzzy, c-format
-#| msgid "Notice: Signed %zu uid(s) of certificate %s."
+#, c-format
 msgid "Notice: %zu stub(s) will be forgotten; the certificates stay."
-msgstr "Notice: Firmati %zu uid del certificato %s."
+msgstr "Notice: %zu moncone(i) saranno dimenticati; i certificati restano."
 
 #: ../src/tokendel.c:147
-#, fuzzy
-#| msgid "Error: The engine refused to delete the secret part of %s."
 msgid "Error: The key refused the factory reset."
-msgstr "Error: Il motore ha rifiutato di cancellare la parte segreta di %s."
+msgstr "Error: la chiave ha rifiutato il ripristino di fabbrica."
 
 #: ../src/tokendel.c:154
-#, fuzzy, c-format
-#| msgid "Warning: %s would not take it."
+#, c-format
 msgid "Warning: The stub of %s would not go."
-msgstr "Warning: %s ha rifiutato di accettarlo."
+msgstr "Warning: il moncone di %s non si è potuto togliere."
 
 #: ../src/tokendel.c:159
 #, c-format
 msgid "Notice: What we knew of %s is forgotten too."
-msgstr ""
+msgstr "Notice: ciò che sapevamo di %s è dimenticato anch'esso."
 
 #: ../src/tokendel.c:162
-#, fuzzy, c-format
-#| msgid "Notice: Wrote SVG to %s."
+#, c-format
 msgid "Notice: No stub pointed at %s."
-msgstr "Notice: SVG scritto in %s."
+msgstr "Notice: nessun moncone puntava a %s."
 
 #: ../src/tokenlist.c:46
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s push [OPTIONS]... FINGERPRINT...\n"
-#| "\n"
-#| "Send certificates to the keyservers as they stand, changing nothing.\n"
-#| "Fingerprints only: what is published cannot be recalled.\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -K, --keyservers SERVERS    Send to these, space separated\n"
-#| "                              Empty for none. Default: %s\n"
-#| "  -h, --help                  Print this help and exit\n"
-#| "  -V, --version               Print the version and exit\n"
+#, c-format
 msgid ""
 "Usage: %s %s [OPTIONS]...\n"
 "\n"
@@ -4039,54 +3664,24 @@ msgid ""
 "  -h, --help                  Print this help and exit\n"
 "  -V, --version               Print the version and exit\n"
 msgstr ""
-"Usage: %s push [OPTIONS]... IMPRONTA...\n"
+"Usage: %s %s [OPTIONS]...\n"
 "\n"
-"Inviare certificati ai server di chiavi così come sono, senza cambiare\n"
-"nulla. Solo impronte: ciò che è pubblicato non si richiama.\n"
+"Elencare le chiavi di sicurezza che questo sistema conosce, che una sia\n"
+"collegata o no: ogni moncone segreto del portachiavi nomina la carta su cui\n"
+"riposa il suo materiale.\n"
+"«%s token_check» risponde su quella collegata; questo risponde su tutte.\n"
 "\n"
 "OPTIONS:\n"
-"  -K, --keyservers SERVER     Inviare a questi, separati da spazi\n"
-"                              Vuoto per nessuno. Default: %s\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
-"  -V, --version               Stampare la versione e uscire\n"
+"  -q, --quiet                 Mostrare solo i numeri di serie\n"
+"  -h, --help                  Mostrare questo aiuto ed uscire\n"
+"  -V, --version               Mostrare la versione ed uscire\n"
 
 #: ../src/tokenlist.c:116
-#, fuzzy
-#| msgid "Notice: Wrote new value '%s' into the security token."
 msgid "Notice: This system knows no security key."
-msgstr "Notice: Nuovo valore «%s» scritto nella chiave di sicurezza."
+msgstr "Notice: questo sistema non conosce alcuna chiave di sicurezza."
 
 #: ../src/totoken.c:41
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s totoken [OPTIONS]... KEY_ID|FPR\n"
-#| "\n"
-#| "Move OpenPGP secrets to security token (OpenPGP smartcard).\n"
-#| "Security token (OpenPGP smartcard) must be connected.\n"
-#| "Output ASCII armored OpenPGP certificate, PIN code and admin code.\n"
-#| "\n"
-#| "This wipes the card and takes the secret parts off this machine. Both are\n"
-#| "final. Print the key first if it is not printed: %s print_secret.\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -p, --passphrase PASSPHRASE  Passphrase to access secret parts of OpenPGP key\n"
-#| "  -P, --passfrom FILE          Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)\n"
-#| "  -U, --certurl URL            URL to retrieve your OpenPGP certificate\n"
-#| "                               Default: https://%s/pks/lookup?op=get&search=0x<FPR>\n"
-#| "  -L, --lang LANG              Security token (OpenPGP smartcard) prefered language (default: the locale's)\n"
-#| "  -k, --keyserver KEYSERVER    Send OpenPGP certificate to this public keys server\n"
-#| "                               Empty to send it nowhere. Does not change --certurl\n"
-#| "                               Default: %s\n"
-#| "  -K, --pubkey FILE            Also write armored OpenPGP certificate to given FILE\n"
-#| "      --force                  Don't ask before resetting unempty security token (OpenPGP smartcard)\n"
-#| "  -h, --help                   Print this help and exit\n"
-#| "  -V, --version                Print the version and exit\n"
-#| "\n"
-#| "Return value:\n"
-#| "-   0 No error\n"
-#| "-   2 Input/Usage error\n"
-#| "- %d The passphrase given does not open the secret key\n"
-#| "- %d The key is protected and no passphrase was given\n"
+#, c-format
 msgid ""
 "Usage: %s secret_totoken [OPTIONS]... KEY_ID|FPR\n"
 "\n"
@@ -4117,35 +3712,34 @@ msgid ""
 "- %d The passphrase given does not open the secret key\n"
 "- %d The key is protected and no passphrase was given\n"
 msgstr ""
-"Usage: %s totoken [OPTIONS]... KEY_ID|FPR\n"
+"Usage: %s secret_totoken [OPTIONS]... KEYID|IMPRONTA\n"
 "\n"
-"Spostare i segreti OpenPGP su una chiave di sicurezza (carta OpenPGP).\n"
-"La chiave di sicurezza (carta OpenPGP) dev'essere collegata.\n"
-"Stampa il certificato OpenPGP in armatura ASCII, il codice PIN e il codice admin.\n"
+"Spostare segreti PGP su una chiave di sicurezza (OpenPGP smartcard).\n"
+"La chiave di sicurezza (OpenPGP smartcard) deve essere collegata.\n"
+"Mostra il certificato PGP in ASCII armored, il codice PIN e il codice Admin.\n"
 "\n"
-"Questo cancella la carta e ritira le parti segrete da questa macchina.\n"
-"Entrambe le cose sono definitive. Stampi prima la chiave se non lo è:\n"
-"%s print_secret.\n"
+"Questo cancella la carta e toglie le parti segrete da questa macchina.\n"
+"Entrambe sono definitive. Stampate prima la chiave se non lo è: %s secret_print.\n"
 "\n"
 "OPTIONS:\n"
-"  -p, --passphrase PASSPHRASE La frase che protegge le parti segrete\n"
-"  -P, --passfrom FILE         Leggerla sulla prima riga di FILE\n"
-"  -U, --certurl URL           Dove il certificato può essere recuperato\n"
-"                              Default: https://%s/pks/lookup?op=get&search=0x<FPR>\n"
-"  -L, --lang LANG             Lingua preferita della carta - Default: la locale\n"
-"  -k, --keyserver KEYSERVER   Inviare il certificato a questo server di chiavi pubblico\n"
-"                              Vuoto per non inviarlo da nessuna parte. Non cambia --certurl\n"
-"                              Default: %s\n"
-"  -K, --pubkey FILE           Scrivere anche il certificato in armatura lì\n"
-"      --force                 Cancellare una carta che non è vergine\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
-"  -V, --version               Stampare la versione e uscire\n"
+"  -p, --passphrase FRASE       Frase segreta che dà accesso alle parti segrete della chiave PGP\n"
+"  -P, --passfrom FILE          Leggere la frase in testa a FILE (fifo, tmpfs, /dev/stdin …)\n"
+"  -U, --certurl URL            URL dove recuperare il vostro certificato PGP\n"
+"                               Predefinito: https://%s/pks/lookup?op=get&search=0x<IMPRONTA>\n"
+"  -L, --lang LINGUA            Lingua preferita della chiave di sicurezza (predefinito: quella del locale)\n"
+"  -k, --keyserver SERVER       Inviare il certificato PGP a questo server di chiavi pubbliche\n"
+"                               Vuoto per non inviarlo da nessuna parte. Non cambia --certurl\n"
+"                               Predefinito: %s\n"
+"  -K, --pubkey FILE            Scrivere anche il certificato PGP armored in FILE\n"
+"      --force                  Non chiedere prima di ripristinare una chiave di sicurezza non vuota\n"
+"  -h, --help                   Mostrare questo aiuto ed uscire\n"
+"  -V, --version                Mostrare la versione ed uscire\n"
 "\n"
 "Valore di ritorno:\n"
 "-   0 Nessun errore\n"
-"-   2 Errore di input o d'uso\n"
-"- %d La frase d'accesso data non apre la chiave segreta\n"
-"- %d La chiave è protetta e non è stata data alcuna frase d'accesso\n"
+"-   2 Errore d'ingresso o d'uso\n"
+"- %d La frase segreta data non apre la chiave segreta\n"
+"- %d La chiave è protetta e non è stata data alcuna frase segreta\n"
 
 #: ../src/totoken.c:192
 #, c-format
@@ -4176,16 +3770,14 @@ msgid "Error: Cannot write the certificate to %s."
 msgstr "Error: Impossibile scrivere il certificato in %s."
 
 #: ../src/totoken.c:314
-#, fuzzy, c-format
-#| msgid "Error: No email for OpenPGP key '%s'."
+#, c-format
 msgid "Error: No email for PGP key '%s'."
-msgstr "Error: Nessun indirizzo per la chiave OpenPGP «%s»."
+msgstr "Error: nessun indirizzo per la chiave PGP «%s»."
 
 #: ../src/totoken.c:346
-#, fuzzy, c-format
-#| msgid "Notice: Detected OpenPGP security token: %s."
+#, c-format
 msgid "Notice: Detected OpenPGP security token: %s — holder: %s %s."
-msgstr "Notice: Chiave di sicurezza OpenPGP rilevata: %s."
+msgstr "Notice: chiave di sicurezza OpenPGP rilevata: %s — portatore: %s %s."
 
 #: ../src/totoken.c:349
 #, c-format
@@ -4195,27 +3787,24 @@ msgstr "Notice: Chiave di sicurezza OpenPGP rilevata: %s."
 #: ../src/totoken.c:361
 #, c-format
 msgid "Warning: Card %s is not empty: it already carries keys or a"
-msgstr ""
+msgstr "Warning: la carta %s non è vuota: porta già chiavi o un"
 
 #: ../src/totoken.c:362
 msgid "holder. This wipes all of it, and takes the secret parts of"
-msgstr ""
+msgstr "portatore. Questo cancella tutto, e toglie le parti segrete di"
 
 #: ../src/totoken.c:363
-#, fuzzy, c-format
-#| msgid "secret parts of %s off this machine. Neither can be undone."
+#, c-format
 msgid "%s off this machine. Neither can be undone."
-msgstr "parti segrete di %s da questa macchina. Né l'uno né l'altro si disfa."
+msgstr "%s da questa macchina. Né l'una né l'altra si disfa."
 
 #: ../src/totoken.c:365
-#, fuzzy
-#| msgid "Notice: --batch was given, so nothing is asked."
 msgid "Error: --batch was given, so nothing is asked. Add --force."
-msgstr "Notice: è stato indicato --batch, quindi non si chiede nulla."
+msgstr "Error: --batch è stato dato, quindi non si chiede niente. Aggiungete --force."
 
 #: ../src/totoken.c:369
 msgid "Type yes to wipe it: "
-msgstr ""
+msgstr "Battete yes per cancellarla: "
 
 #: ../src/totoken.c:391
 msgid "Passphrase protecting the secret key: "
@@ -4255,10 +3844,8 @@ msgid "Error: Setting the card's key attributes failed."
 msgstr "Error: L'impostazione degli attributi di chiave della carta è fallita."
 
 #: ../src/totoken.c:441
-#, fuzzy
-#| msgid "Notice: Moving OpenPGP secrets to security token…"
 msgid "Notice: Moving PGP secrets to security token…"
-msgstr "Notice: Spostamento dei segreti OpenPGP sulla chiave di sicurezza…"
+msgstr "Notice: spostamento dei segreti PGP sulla chiave di sicurezza…"
 
 #: ../src/totoken.c:446
 msgid "Error: Moving the secrets to the card failed."
@@ -4287,10 +3874,9 @@ msgid "Warning: Please publish this certificate on the Internet (a keyserver wil
 msgstr "Warning: Pubblichi questo certificato su Internet (un server di chiavi va bene)."
 
 #: ../src/totoken.c:514
-#, fuzzy, c-format
-#| msgid "Notice: Write these down. Nothing else knows them. They can be changed with '%s change_token_code'."
+#, c-format
 msgid "Notice: Write these down. Nothing else knows them. They can be changed with '%s token_code --replace'."
-msgstr "Notice: Li annoti. Nient'altro li conosce. Si cambiano con «%s change_token_code»."
+msgstr "Notice: annotateli. Nient'altro li conosce. Si cambiano con «%s token_code --replace»."
 
 #: ../src/tovcard.c:235
 #, c-format
@@ -4298,19 +3884,7 @@ msgid "Warning: Several preferred keyservers across uids — kept '%s'."
 msgstr "Warning: Più server di chiavi preferiti secondo gli uid — conservato «%s»."
 
 #: ../src/tovcard.c:324
-#, fuzzy, c-format
-#| msgid ""
-#| "Usage: %s to_vcard [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
-#| "\n"
-#| "Convert OpenPGP certificate to vCard (format 4.0).\n"
-#| "Missing NAME|EMAIL|KEYID|U4|U5 => the certificate whose secret key is at\n"
-#| "hand.\n"
-#| "\n"
-#| "OPTIONS:\n"
-#| "  -o, --output FILE           Write into given FILE instead of standard output\n"
-#| "      --raw                   Don't convert, but raw output all OpenPGP uids strings, separated by empty lines\n"
-#| "  -h, --help                  Print this help and exit\n"
-#| "  -V, --version               Print the version and exit\n"
+#, c-format
 msgid ""
 "Usage: %s cert_tovcard [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]\n"
 "\n"
@@ -4324,17 +3898,17 @@ msgid ""
 "  -h, --help                  Print this help and exit\n"
 "  -V, --version               Print the version and exit\n"
 msgstr ""
-"Usage: %s to_vcard [OPTIONS]... [NOME|INDIRIZZO|KEYID|U4|U5]\n"
+"Usage: %s cert_tovcard [OPTIONS]... [NOME|POSTA|KEYID|U4|U5]\n"
 "\n"
-"Convertire il certificato OpenPGP in vCard (formato 4.0).\n"
-"NOME|INDIRIZZO|KEYID|U4|U5 mancante ⇒ il certificato la cui chiave segreta è a portata.\n"
+"Convertire un certificato PGP in vCard (formato 4.0).\n"
+"Senza NOME|POSTA|KEYID|U4|U5 => il certificato la cui chiave segreta è a\n"
+"portata.\n"
 "\n"
 "OPTIONS:\n"
-"  -o, --output FILE           Scrivervi anziché sull'uscita standard\n"
-"      --raw                   Stampare invece ogni uid, uno per paragrafo\n"
-"  -h, --help                  Stampare questo aiuto e uscire\n"
-"  -V, --version               Stampare la versione e uscire\n"
-"\n"
+"  -o, --output FILE           Scrivere in FILE invece che sull'uscita standard\n"
+"      --raw                   Non convertire, mostrare tali e quali gli uid PGP, separati da righe vuote\n"
+"  -h, --help                  Mostrare questo aiuto ed uscire\n"
+"  -V, --version               Mostrare la versione ed uscire\n"
 
 #: ../src/tovcard.c:391
 #, c-format
@@ -4497,10 +4071,8 @@ msgid "Notice: no one has ruled on already reads as."
 msgstr "Notice: sul quale nessuno si è ancora pronunciato."
 
 #: ../src/trustdb.c:717
-#, fuzzy
-#| msgid "Error: The engine refused to delete the secret part of %s."
 msgid "Error: The engine refused to set the credibility."
-msgstr "Error: Il motore ha rifiutato di cancellare la parte segreta di %s."
+msgstr "Error: il motore ha rifiutato di fissare la credibilità."
 
 #: ../src/trustdb.c:771
 #, c-format
@@ -4580,24 +4152,20 @@ msgid "Error: '%s' is not one of local, export or import."
 msgstr "Error: «%s» non è né local, né export, né import."
 
 #: ../src/uidedit.c:107
-#, fuzzy
-#| msgid "Error: Revoking a User ID is irreversible — OpenPGP keeps it"
 msgid "Error: Revoking a User ID leaves it on the certificate, marked"
-msgstr "Error: Revocare uno User ID è irreversibile — OpenPGP lo conserva"
+msgstr "Error: revocare un uid lo lascia sul certificato, marcato"
 
 #: ../src/uidedit.c:108
 msgid "revoked; whoever holds it keeps it until they refresh."
-msgstr ""
+msgstr "revocato; chi lo ha lo conserva fino al prossimo aggiornamento."
 
 #: ../src/uidedit.c:109
 msgid "Adding the identical value later signs it anew and it stands"
-msgstr ""
+msgstr "Aggiungere più tardi lo stesso valore lo firma di nuovo e torna a"
 
 #: ../src/uidedit.c:110
-#, fuzzy
-#| msgid "can never be added again. Pass --yes if that is what you want:"
 msgid "again. Pass --yes if that is what you want:"
-msgstr "non potrà mai più essere aggiunto. Passi --yes se è ciò che vuole:"
+msgstr "valere. Passate --yes se è ciò che volete:"
 
 #: ../src/uidedit.c:111
 #, c-format
@@ -4615,22 +4183,19 @@ msgid "Error: gpg would not revoke %s."
 msgstr "Error: gpg ha rifiutato di revocare %s."
 
 #: ../src/uidedit.c:140
-#, fuzzy, c-format
-#| msgid "Error: This certificate carries no name."
+#, c-format
 msgid "Error: Certificate %s carries no '%s' to sign again."
-msgstr "Error: Questo certificato non porta alcun nome."
+msgstr "Error: il certificato %s non porta alcun '%s' da rifirmare."
 
 #: ../src/uidedit.c:143
-#, fuzzy, c-format
-#| msgid "Notice: %s code unchanged."
+#, c-format
 msgid "Notice: '%s' was revoked earlier; signing it again…"
-msgstr "Notice: Codice %s invariato."
+msgstr "Notice: '%s' era stato revocato; viene rifirmato…"
 
 #: ../src/uidedit.c:148
-#, fuzzy, c-format
-#| msgid "Error: gpg would not export the secret key — right passphrase?"
+#, c-format
 msgid "Error: gpg would not drop the revoked '%s' — right PIN?"
-msgstr "Error: gpg ha rifiutato di esportare la chiave segreta — la frase giusta?"
+msgstr "Error: gpg non ha voluto togliere il '%s' revocato — PIN giusto?"
 
 #: ../src/uidedit.c:190
 #, c-format
@@ -4663,12 +4228,11 @@ msgstr "Warning: gpg ha rifiutato di aggiungere %s."
 
 #: ../src/uidedit.c:289
 msgid "Warning: The reshaped certificate could not be published."
-msgstr ""
+msgstr "Warning: il certificato rimaneggiato non si è potuto pubblicare."
 
-#, fuzzy, c-format
-#~| msgid "Notice: '%s' was revoked earlier and cannot be added again — OpenPGP keeps revoked User IDs on the certificate forever."
+#, c-format
 #~ msgid "Notice: '%s' was revoked earlier and cannot be added again — PGP keeps revoked User IDs on the certificate forever."
-#~ msgstr "Notice: «%s» è stato revocato in precedenza e non può essere riaggiunto — OpenPGP conserva per sempre sul certificato gli User ID revocati."
+#~ msgstr "Notice: «%s» era stato revocato prima e non si può aggiungere di nuovo — PGP tiene gli uid revocati sul certificato per sempre."
 
 #~ msgid "on the certificate forever, marked revoked, and an identical one"
 #~ msgstr "per sempre sul certificato, marcato revocato, e uno identico"

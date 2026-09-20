@@ -16,374 +16,379 @@ footer: pgpid 0.1.1
 
 # NAME
 
-pgpid - Read and act on PGP certificates through the pgpid model: entity identifiers, validity, credibility.
+pgpid - PGP-Zertifikate nach dem pgpid-Modell lesen und bearbeiten: Entitätsidentifikatoren, Gültigkeit, Glaubwürdigkeit.
 
 # SYNOPSIS
 
-**pgpid** \[*OPTIONS*\]\... *ACTION* \[*ARGS*\]\...
+**pgpid** \[*OPTIONS*\]\... *AKTION* \[*ARGS*\]\...
 
 # DESCRIPTION
 
-Read and act on PGP certificates through the pgpid model: entity
-identifiers, validity, credibility.
+PGP-Zertifikate nach dem pgpid-Modell lesen und bearbeiten:
+Entitätsidentifikatoren, Gültigkeit, Glaubwürdigkeit.
 
 ACTIONS:
 
-> Certificates:
+> Zertifikate:
 
 cert_list
 
-:   List the certificates of the keyring
+:   Die Zertifikate des Schlüsselbunds auflisten
 
 cert_get
 
-:   Look a certificate up, refreshing it first
+:   Ein Zertifikat nachsehen, zuvor aktualisiert
 
 cert_property
 
-:   Show, add or revoke a vCard property it carries
+:   Eine getragene vCard-Eigenschaft anzeigen, hinzufügen oder
+    widerrufen
 
 cert_email
 
-:   Show, add or revoke the addresses it carries
+:   Die getragenen Adressen anzeigen, hinzufügen oder widerrufen
 
 cert_avatar
 
-:   Extract the image it wears
+:   Das Bild herausziehen, das es trägt
 
 cert_sigs
 
-:   List who has certified it
+:   Auflisten, wer es beglaubigt hat
 
 cert_tovcard
 
-:   Write it out as a vCard document
+:   Es als vCard-Dokument ausschreiben
 
 cert_tobizcard
 
-:   Produce or print a sticker or business card
+:   Einen Aufkleber oder eine Visitenkarte erzeugen oder drucken
 
 cert_push
 
-:   Send certificates to the keyservers
+:   Zertifikate an die Schlüsselserver senden
 
 cert_revoke
 
-:   Revoke one for good, and tell the keyservers
+:   Einen endgültig widerrufen und es den Schlüsselservern sagen
 
 cert_del
 
-:   Delete certificates, by fingerprint only
+:   Zertifikate löschen, nur per Fingerabdruck
 
-    Secret keys held on this machine:
+    Auf diesem Rechner gehaltene geheime Schlüssel:
 
 secret_list
 
-:   List the secret keys that are really here
+:   Die geheimen Schlüssel auflisten, die wirklich hier sind
 
 secret_passphrase
 
-:   Check, or **\--replace**, what protects one
+:   Prüfen, oder **\--replace**, was einen Schlüssel schützt
 
 secret_print
 
-:   Put one on paper, in fragments
+:   Einen auf Papier bringen, in Fragmenten
 
 secret_scan
 
-:   Put it back together from the fragments
+:   Ihn aus den Fragmenten wieder zusammensetzen
 
 secret_totoken
 
-:   Move one onto a security key
+:   Einen auf einen Sicherheitsschlüssel verschieben
 
 secret_del
 
-:   Delete the secret material held here
+:   Das hier gehaltene geheime Material löschen
 
-    Security keys:
+    Sicherheitsschlüssel:
 
 token_list
 
-:   List the security keys this system knows
+:   Die Sicherheitsschlüssel auflisten, die dieses System kennt
 
 token_check
 
-:   Check what the connected one carries
+:   Prüfen, was die angeschlossene trägt
 
 token_retries
 
-:   Attempts left on its codes
+:   Verbleibende Versuche für ihre Codes
 
 token_code
 
-:   Check, or **\--replace**, its PIN or Admin code
+:   Ihren PIN- oder Admin-Code prüfen, oder **\--replace**
 
 token_del
 
-:   Forget one: remove its stubs, or **\--reset** to wipe it
+:   Einen vergessen: seine Stummel entfernen, oder **\--reset**, um ihn
+    zu löschen
 
 token_meta
 
-:   Show, or **\--replace**, what it says about its holder
+:   Anzeigen, oder **\--replace**, was sie über ihren Inhaber sagt
 
-    Generators:
+    Generatoren:
 
 gen_key
 
-:   Generate a key pair the PGP ID way
+:   Ein Schlüsselpaar nach PGP-ID-Art erzeugen
 
 gen_u4
 
-:   Print the identifier a civil status or a passport gives
+:   Den Identifikator anzeigen, den ein Personenstand oder ein Pass
+    ergibt
 
 gen_uid
 
-:   Print the Unix account number an identifier gives
+:   Die Unix-Kontonummer anzeigen, die ein Identifikator ergibt
 
-    This computer:
+    Dieser Rechner:
 
 system_users
 
-:   List the accounts, and which are PGP ID entities
+:   Die Konten auflisten, und welche davon PGP-ID-Entitäten sind
 
 system_adduser
 
-:   Open a local account for a PGP ID entity
+:   Ein lokales Konto für eine PGP-ID-Entität eröffnen
 
 system_deluser
 
-:   Close a local account, alias included
+:   Ein lokales Konto schließen, samt Alias
 
 system_confhome
 
-:   Lay out a home directory for PGP ID use
+:   Ein Benutzerverzeichnis für PGP ID einrichten
 
 system_admins
 
-:   List, add or remove local administrators
+:   Lokale Administratoren auflisten, hinzufügen oder entfernen
 
-    Other people:
+    Die anderen:
 
 certify
 
-:   Vouch for somebody else
+:   Für jemand anderen bürgen
 
 trustdb
 
-:   Read, publish and apply the credibility of others
+:   Die Glaubwürdigkeit anderer lesen, veröffentlichen und anwenden
 
 ## OPTIONS:
 
-**-H**, **\--homedir** DIR
+**-H**, **\--homedir** VERZ
 
-:   GnuPG and pgpid home directory - Environment variable: GNUPGHOME
+:   GnuPG- und pgpid-Verzeichnis - Umgebungsvariable: GNUPGHOME
 
 **\--output-format**=*FORMAT*
 
-:   Specify output format between {raw, info, md} - Default: 'raw'
+:   Ausgabeformat aus {raw, info, md} - Vorgabe: „raw"
 
 **-B**, **\--batch**
 
-:   Never ask: fail instead of prompting for what is missing
+:   Nie fragen: scheitern, statt Fehlendes zu erfragen
 
 **-h**, **\--help**
 
-:   Print this help and exit
+:   Diese Hilfe anzeigen und beenden
 
 **-V**, **\--version**
 
-:   Print the version and exit
+:   Die Version anzeigen und beenden
 
-Every action takes **\--help** of its own.
+Jede Aktion hat ihr eigenes **\--help**.
 
 # ACTIONS
 
 ## pgpid cert_list
 
 ```
-Usage: pgpid cert_list [OPTIONS]... [SEARCH]
+Usage: pgpid cert_list [OPTIONS]... [SUCHE]
 
-List the certificates of the keyring, one per line.
+Die Zertifikate des Schlüsselbunds auflisten, eines je Zeile.
 
-Columns:
-fingerprint, entity identifier, email (primary), certifications
-(optional), validity, credibility, creation_date, expiration_date,
-revocation_date
+Spalten:
+Fingerabdruck, Entitätsidentifikator, Adresse (primary), Beglaubigungen
+(optional), Gültigkeit, Glaubwürdigkeit, Erstellungsdatum, Ablaufdatum,
+Widerrufsdatum
 
-Single dash '-' means hidden or unknown value.
+Ein einfacher Strich „-“ heißt verborgener oder unbekannter Wert.
 
-Values for validity: certified|uncertified|expired|revoked|broken|-
-Order of importance for unusable certificates: broken>revoked>expired
+Werte für Gültigkeit: certified|uncertified|expired|revoked|broken|-
+Rangfolge unbrauchbarer Zertifikate: broken>revoked>expired
 
-Values for credibility: never|undefined|marginal|full|ultimate|-
+Werte für Glaubwürdigkeit: never|undefined|marginal|full|ultimate|-
 
-SEARCH, when given, is passed to the engine as a pattern; without it
-the whole keyring is listed.
+SUCHE wird, wenn angegeben, als Muster an die Engine gegeben; ohne sie wird
+der ganze Schlüsselbund aufgelistet.
 
 OPTIONS:
-  -S, --short                 One line per address: fingerprint, identifier, address
-                              What 'pgpid get --no-fetch' answers, to the column
-  -L, --no-check-eid          Legacy: don't consider certificate as 'broken' if there is no consistent eid inside
-      --count-certs           Count the distinct certifiers of each certificates and fill *certifications* column (may take time !)
-      --hide-trust            Credibility (aka ownertrust) is a sensible information used to calculate validity — sometimes both need to stay private
-      --machine-readable      Output time (seconds since epoch) instead of date (iso-8601) and flags instead of human-readable validity and credibility
-  -h, --help                  Print this help and exit
+  -S, --short                 Eine Zeile je Adresse: Fingerabdruck, Identifikator, Adresse
+                              Was „pgpid get --no-fetch“ antwortet, bis auf die Spalte
+  -L, --no-check-eid          Altlast: ein Zertifikat ohne stimmigen eid nicht als „broken“ führen
+      --count-certs           Die verschiedenen Beglaubiger jedes Zertifikats zählen und die Spalte *certifications* füllen (kann dauern !)
+      --hide-trust            Glaubwürdigkeit (ownertrust) dient der Gültigkeit und bleibt manchmal privat
+      --machine-readable      Zeit (Sekunden seit epoch) statt Datum, Flags statt Wörter
+  -h, --help                  Diese Hilfe anzeigen und beenden
 ```
 
 ## pgpid cert_get
 
 ```
-Usage: pgpid cert_get [OPTIONS]... NAME|U4|U5|EMAIL...
+Usage: pgpid cert_get [OPTIONS]... NAME|U4|U5|E-MAIL...
 
-Output fingerprints, emails and eid of certificates matching NAME|U4|U5|EMAIL.
-May also get or refresh certificates from keyservers.
-'*' matches the whole keyring; `list` is the one that shows everything
-when asked nothing.
+Gibt Fingerabdrücke, Adressen und eid der Zertifikate aus, die zu
+NAME|U4|U5|E-MAIL passen. Kann Zertifikate auch von Schlüsselservern holen
+oder aktualisieren.
+„*“ passt auf den ganzen Schlüsselbund; „list“ ist das, was alles zeigt,
+wenn man es nichts fragt.
 
 OPTIONS:
-  -F, --fingerprint           Output only fingerprints
-  -E, --email                 Output only emails
-  -f, --no-fetch              Don't refresh certificates from keyservers or Web Key Directories
-      --import-from FILE      Take the certificate from a file rather than a keyserver
-  -r, --recurse[=NUM]         Also fetch the certificates signing the target, NUM
-                              levels deep (0..6) - Default with -r: 1
-  -m, --errexit-g=1           Return an error if there is more than one (1) entry - You may replace '1' by an other number
-  -K, --keyservers KEYSERVERS Search and refresh certificates from this keyservers - Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -h, --help                  Print this help and exit
-  -V, --version               Print the version and exit
+  -F, --fingerprint           Nur Fingerabdrücke ausgeben
+  -E, --email                 Nur Adressen ausgeben
+  -f, --no-fetch              Zertifikate nicht von Schlüsselservern oder Web Key Directories aktualisieren
+      --import-from DATEI     Das Zertifikat aus einer Datei nehmen statt von einem Server
+  -r, --recurse[=ZAHL]        Auch die Zertifikate holen, die das Ziel unterschreiben, ZAHL
+                              Ebenen tief (0..6) - Vorgabe mit -r: 1
+  -m, --errexit-g=1           Fehler, wenn es mehr als einen (1) Eintrag gibt - „1“ darf eine andere Zahl sein
+  -K, --keyservers SERVER     Zertifikate auf diesen Servern suchen und aktualisieren - Vorgabe: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -h, --help                  Diese Hilfe anzeigen und beenden
+  -V, --version               Die Version anzeigen und beenden
 
-There is no 'cert_check': `list` answers what it answered, for less.
+Es gibt kein „cert_check“: „list“ antwortet, was es antwortete, für weniger.
 ```
 
 ## pgpid cert_property
 
 ```
-Usage: pgpid cert_property PROPERTY [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]
+Usage: pgpid cert_property EIGENSCHAFT [OPTIONS]... [NAME|E-MAIL|KEYID|U4|U5]
 
-Display and add or revoke vCard-property uids inside PGP certificate.
-PROPERTY is one of: { name, note, address, phone, url, lang, geo, ksprefrd,
-expire }.
-Email addresses are not vCard-property uids (they keep the 'Name <addr>' shape
-every mail client understands): manage them with 'pgpid cert_email'.
-'ksprefrd' (preferred certificate server, used when generating vCard) and
-'expire' are not uids either: they live in the self-signature, and can be
-replaced, never revoked. 'expire' takes a date or a duration (2y, 18m, 90d),
-at most 30 years off, and moves the primary key and every standing subkey
-together. There is no way to ask for no expiry: nothing lasts.
-'name' is the one PGP ID requires: asking for a missing one answers 141,
-where every other property answers 0.
-Missing NAME|EMAIL|KEYID|U4|U5 => the certificate whose secret key is at hand.
-Free-text values (name, note) with , ; \ or newlines are stored RFC 6350-escaped
-and decoded back on display (address keeps its structural ';')
+vCard-Eigenschafts-uid eines PGP-Zertifikats anzeigen, hinzufügen oder widerrufen.
+EIGENSCHAFT ist eine von: { name, note, address, phone, url, lang, geo,
+ksprefrd, expire }.
+E-Mail-Adressen sind keine vCard-Eigenschafts-uid (sie behalten die Form
+„Name <adresse>“, die jedes Mailprogramm versteht): dafür „pgpid cert_email“.
+„ksprefrd“ (bevorzugter Zertifikatsserver, für die vCard) und „expire“ sind
+auch keine uid: sie leben in der Selbstunterschrift und lassen sich ersetzen,
+nie widerrufen. „expire“ nimmt ein Datum oder eine Dauer (2y, 18m, 90d), höchstens
+30 Jahre entfernt, und verschiebt den Hauptschlüssel und jeden geltenden
+Unterschlüssel zusammen. Kein Ablauf ist nicht zu haben: nichts hält für immer.
+„name“ ist die, die PGP ID verlangt: sie zu erfragen, wenn sie fehlt, antwortet
+141, wo jede andere Eigenschaft 0 antwortet.
+Ohne NAME|E-MAIL|KEYID|U4|U5 => das Zertifikat, dessen geheimer Schlüssel zur Hand ist.
+Freie Werte (name, note) mit , ; \ oder Zeilenumbrüchen werden nach RFC 6350
+maskiert gespeichert und zur Anzeige zurückgelesen (address behält sein „;“)
 
 OPTIONS:
-  -A, --add VALUE             Add ({name,note,ksprefrd,expire} ⇒ replace) a PROPERTY (may be used more than once)
-      --replace-to VALUE      Exact synonym of --add — terminology is just more relevant for {name,note,ksprefrd,expire}
-  -R, --revoke VALUE          Revoke the PROPERTY uid carrying VALUE (may be used more than once)
-      --revoke-all            Revoke every usable PROPERTY uid — all but the newest for {name,email}
-  -y, --yes                   Assume yes: skip the revocation confirmation
-      --show-unusable         Also display the uids that no longer stand: revoked, expired, or without a valid self-signature
-  -K, --keyservers KEYSERVERS If non-empty, send updated certificate to this keyservers - Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -h, --help                  Print this help and exit
-  -V, --version               Print the version and exit
+  -A, --add WERT              Eine EIGENSCHAFT hinzufügen ({name,note,ksprefrd,expire} ⇒ ersetzen) (mehrfach verwendbar)
+      --replace-to WERT       Genaues Synonym von --add — das Wort passt nur besser für {name,note,ksprefrd,expire}
+  -R, --revoke WERT           Die EIGENSCHAFTS-uid mit WERT widerrufen (mehrfach verwendbar)
+      --revoke-all            Alle brauchbaren EIGENSCHAFTS-uid widerrufen — alle außer der neuesten für {name,email}
+  -y, --yes                   Ja annehmen: die Widerrufsbestätigung überspringen
+      --show-unusable         Auch die uid zeigen, die nicht gelten: widerrufen, abgelaufen, ohne gültige Selbstsignatur
+  -K, --keyservers SERVER     Wenn nicht leer, das aktualisierte Zertifikat dorthin senden - Vorgabe: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -h, --help                  Diese Hilfe anzeigen und beenden
+  -V, --version               Die Version anzeigen und beenden
 
-Revoking keeps the uid on the certificate, marked revoked, and whoever
-holds it keeps it until they refresh. Adding the identical value again
-signs it anew, certifications others made over it included.
+Widerrufen lässt die uid auf dem Zertifikat, als widerrufen markiert, und wer
+es hat, behält sie bis zur nächsten Aktualisierung. Denselben Wert erneut
+hinzuzufügen unterschreibt ihn neu, samt erhaltener Beglaubigungen.
 ```
 
 ## pgpid cert_email
 
 ```
-Usage: pgpid cert_email [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]
+Usage: pgpid cert_email [OPTIONS]... [NAME|E-MAIL|KEYID|U4|U5]
 
-Display and add or revoke emails inside PGP certificate.
-Missing NAME|EMAIL|KEYID|U4|U5 => the certificate the connected security
-token belongs to.
-Output usable emails (non-revoked and non-expired), each followed by
-'primary' or '-'. PGP flags one user id for the whole certificate,
-not one per address, so --set-primary moves that flag rather than
-setting one -- onto the uid carrying EMAIL that the address rule picks.
+Adressen eines PGP-Zertifikats anzeigen, hinzufügen oder widerrufen.
+Ohne NAME|E-MAIL|KEYID|U4|U5 => das Zertifikat, zu dem der angeschlossene
+Sicherheitsschlüssel gehört.
+Gibt die brauchbaren Adressen aus (nicht widerrufen, nicht abgelaufen),
+jede gefolgt von „primary“ oder „-“. PGP markiert eine uid für das ganze
+Zertifikat, nicht eine je Adresse: --set-primary verschiebt diese Markierung
+also, statt eine zu setzen — auf die uid mit E-MAIL, die die Adressregel wählt.
 
 OPTIONS:
-  -R, --revoke EMAIL          Revoke existing EMAIL, in every uid that names it
-                              (may be used more than once)
-      --revoke-all            Revoke every usable email uid but the newest
-  -A, --add EMAIL             Add EMAIL as a 'LOCAL-PART <EMAIL>' uid, or sign every uid
-                              naming it again when it was revoked before
-        --set-primary EMAIL     Make EMAIL the certificate's primary address
-  -y, --yes                   Assume yes: skip the revocation confirmation
-  -c, --certs-count           Also output the count of external valid certifications per email (tab-separated)
-      --show-unusable         Also display the uids that no longer stand: revoked, expired, or without a valid self-signature
-      --info                  Synonym of --output-format=info
-  -K, --keyservers KEYSERVERS If non-empty, send updated certificate to this keyservers - Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -h, --help                  Print this help and exit
-  -V, --version               Print the version and exit
+  -R, --revoke E-MAIL           E-MAIL widerrufen, in jeder uid, die sie nennt
+                                (mehrfach verwendbar)
+      --revoke-all              Alle brauchbaren Adress-uid widerrufen außer der neuesten
+  -A, --add E-MAIL              E-MAIL als uid „LOKALTEIL <E-MAIL>“ hinzufügen, oder jede uid,
+                                die sie nennt, neu unterschreiben, wenn sie widerrufen war
+        --set-primary E-MAIL    E-MAIL zur Hauptadresse des Zertifikats machen
+  -y, --yes                     Ja annehmen: die Widerrufsbestätigung überspringen
+  -c, --certs-count             Auch die Zahl der gültigen Beglaubigungen je Adresse ausgeben (tabuliert)
+      --show-unusable           Auch die uid zeigen, die nicht gelten: widerrufen, abgelaufen, ohne gültige Selbstsignatur
+      --info                    Synonym von --output-format=info
+  -K, --keyservers SERVER       Wenn nicht leer, das aktualisierte Zertifikat dorthin senden - Vorgabe: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -h, --help                    Diese Hilfe anzeigen und beenden
+  -V, --version                 Die Version anzeigen und beenden
 
-Revoking keeps the address on the certificate, marked revoked, and whoever
-holds it keeps it until they refresh. Adding the identical address again
-signs it anew, certifications others made over it included.
+Widerrufen lässt die Adresse auf dem Zertifikat, als widerrufen markiert, und
+wer es hat, behält sie bis zur nächsten Aktualisierung. Dieselbe Adresse
+erneut hinzuzufügen unterschreibt sie neu, samt erhaltener Beglaubigungen.
 ```
 
 ## pgpid cert_avatar
 
 ```
-Usage: pgpid cert_avatar [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]
+Usage: pgpid cert_avatar [OPTIONS]... [NAME|E-MAIL|KEYID|U4|U5]
 
-Extract or add image inside PGP certificate.
-Missing NAME|EMAIL|KEYID|U4|U5 => the first secret certificate.
-Writing takes a fingerprint and nothing else: revoking cannot be
-undone, so a search must never become a target.
-New IMAGE should be 180x180 pixels, or it will be resized.
-Output the path of the image that stands today, newest first when several do.
+Ein Bild aus einem PGP-Zertifikat holen oder eines hineinlegen.
+Ohne NAME|E-MAIL|KEYID|U4|U5 => das erste geheime Zertifikat.
+Schreiben verlangt einen Fingerabdruck und nichts anderes: ein Widerruf
+lässt sich nicht zurücknehmen, eine Suche darf also nie zum Ziel werden.
+Das neue BILD sollte 180x180 Pixel haben, sonst wird es skaliert.
+Gibt den Pfad des Bildes aus, das heute gilt, das neueste zuerst, wenn
+mehrere gelten.
 
 OPTIONS:
-  -E, --extract-all           Output every image, revoked and expired ones included, newest first
-  -A, --replace-to IMAGE      Resize and add new IMAGE inside PGP certificate (revoking any previous image)
-  -R, --revoke                Just revoke all existing images inside PGP certificate
-  -W, --workdir DIRECTORY     Working directory. Will contain previous and new resized images
-  -K, --keyservers KEYSERVERS If non-empty, send updated certificate to this keyservers - Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -h, --help                  Print this help and exit
-  -V, --version               Print the version and exit
+  -E, --extract-all           Alle Bilder ausgeben, auch widerrufene, neueste zuerst
+  -A, --replace-to BILD       BILD skalieren und ins Zertifikat legen (das vorherige widerrufen)
+  -R, --revoke                Nur alle vorhandenen Bilder des PGP-Zertifikats widerrufen
+  -W, --workdir VERZ          Arbeitsverzeichnis. Enthält die vorherigen und die skalierten Bilder
+  -K, --keyservers SERVER     Wenn nicht leer, das aktualisierte Zertifikat dorthin senden - Vorgabe: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -h, --help                  Diese Hilfe anzeigen und beenden
+  -V, --version               Die Version anzeigen und beenden
 ```
 
 ## pgpid cert_sigs
 
 ```
-Usage: pgpid cert_sigs [OPTIONS]... FINGERPRINT
+Usage: pgpid cert_sigs [OPTIONS]... FINGERABDRUCK
 
-List who has certified that certificate, oldest first: date, key
-identifier, address and date. The fingerprint is what a search takes to walk
-one step further into the web of trust.
+Auflisten, wer dieses Zertifikat beglaubigt hat, das älteste zuerst: Datum,
+Schlüsselkennung, Adresse und Datum. Der Fingerabdruck ist das, was eine
+Suche aufnimmt, um einen Schritt weiter in das Netz des Vertrauens zu gehen.
 
-Only the identity uid (UID:urn:eid:...) is read, because a certification
-is about the entity and not about one of its addresses. A certificate
-carrying no identity uid falls back to the merged list, with a notice.
+Nur die Identitäts-uid (UID:urn:eid:...) wird gelesen, weil eine Beglaubigung
+die Entität betrifft und nicht eine ihrer Adressen. Ein Zertifikat ohne
+Identitäts-uid fällt auf die zusammengeführte Liste zurück, mit einem Hinweis.
 
-Self-signatures are left out: they make a uid stand, they do not
-certify anyone.
+Selbstunterschriften bleiben außen vor: sie lassen eine uid gelten, sie
+beglaubigen niemanden.
 
 OPTIONS:
-  -a, --all-uids              Merge the signatures of every uid
-      --no-self-sig           Leave out the certificate's own signature, counted by default
-  -h, --help                  Print this help and exit
+  -a, --all-uids              Die Unterschriften aller uid zusammenführen
+      --no-self-sig           Die eigene Signatur auslassen, die sonst mitgezählt wird
+  -h, --help                  Diese Hilfe anzeigen und beenden
 ```
 
 ## pgpid cert_tovcard
 
 ```
-Usage: pgpid cert_tovcard [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]
+Usage: pgpid cert_tovcard [OPTIONS]... [NAME|E-MAIL|KEYID|U4|U5]
 
-Convert PGP certificate to vCard (format 4.0).
-Missing NAME|EMAIL|KEYID|U4|U5 => the certificate whose secret key is at
-hand.
+Ein PGP-Zertifikat in eine vCard (Format 4.0) umwandeln.
+Ohne NAME|E-MAIL|KEYID|U4|U5 => das Zertifikat, dessen geheimer Schlüssel
+zur Hand ist.
 
 OPTIONS:
-  -o, --output FILE           Write into given FILE instead of standard output
-      --raw                   Don't convert, but raw output all PGP uids strings, separated by empty lines
-  -h, --help                  Print this help and exit
-  -V, --version               Print the version and exit
+  -o, --output DATEI          In DATEI schreiben statt auf die Standardausgabe
+      --raw                   Nicht umwandeln, alle PGP-uid roh ausgeben, durch Leerzeilen getrennt
+  -h, --help                  Diese Hilfe anzeigen und beenden
+  -V, --version               Die Version anzeigen und beenden
 ```
 
 ## pgpid cert_tobizcard
@@ -411,214 +416,219 @@ OPTIONS:
 ## pgpid cert_push
 
 ```
-Usage: pgpid cert_push [OPTIONS]... FINGERPRINT...
+Usage: pgpid cert_push [OPTIONS]... FINGERABDRUCK...
 
-Send certificates to the keyservers as they stand, changing nothing.
-Fingerprints only: what is published cannot be recalled.
+Zertifikate an die Schlüsselserver senden, wie sie sind, ohne etwas zu ändern.
+Nur Fingerabdrücke: was veröffentlicht ist, lässt sich nicht zurückrufen.
 
 OPTIONS:
-  -K, --keyservers SERVERS    Send to these, space separated
-                              Empty for none. Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
-      --export-to FILE        Write the certificates there instead of sending them
-      --armor                 Write them as text rather than binary
-  -h, --help                  Print this help and exit
-  -V, --version               Print the version and exit
+  -K, --keyservers SERVER     An diese senden, durch Leerzeichen getrennt
+                              Leer für keinen. Vorgabe: hkps://keys.foopgp.org hkps://keys.openpgp.org
+      --export-to DATEI       Die Zertifikate dorthin schreiben statt zu senden
+      --armor                 Sie als Text schreiben statt binär
+  -h, --help                  Diese Hilfe anzeigen und beenden
+  -V, --version               Die Version anzeigen und beenden
 ```
 
 ## pgpid cert_revoke
 
 ```
-Usage: pgpid cert_revoke [OPTIONS]... FINGERPRINT
+Usage: pgpid cert_revoke [OPTIONS]... FINGERABDRUCK
 
-Revoke a whole certificate and publish the revocation. Needs its secret key,
-so only a certificate this machine can still speak for: one of those
-'pgpid secret_list' or 'pgpid token_list' shows.
+Ein ganzes Zertifikat widerrufen und den Widerruf veröffentlichen. Braucht
+seinen geheimen Schlüssel, also nur ein Zertifikat, für das dieser Rechner
+noch sprechen kann: eines von denen, die „pgpid secret_list“ oder
+„pgpid token_list“ zeigen.
 
 OPTIONS:
-  -r, --reason REASON         unspecified | superseded | compromised | unused,
-                              or 0..3 as RFC 4880 numbers them (not as gpg's
-                              menu does, which swaps 1 and 2) - Default: unspecified
-  -d, --description TEXT      A line saying why, kept in the revocation
-  -y, --yes                   Assume yes: skip the confirmation
-  -K, --keyservers KEYSERVERS Where to publish - empty to keep it local
-                              Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -h, --help                  Print this help and exit
-  -V, --version               Print the version and exit
+  -r, --reason GRUND          unspecified | superseded | compromised | unused,
+                              oder 0..3 wie in RFC 4880 (nicht wie im Menü von gpg,
+                              das 1 und 2 tauscht) - Vorgabe: unspecified
+  -d, --description TEXT      Eine Zeile, die sagt warum, im Widerruf bewahrt
+  -y, --yes                   Ja annehmen: die Bestätigung überspringen
+  -K, --keyservers SERVER     Wo veröffentlichen - leer, um ihn lokal zu halten
+                              Vorgabe: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -h, --help                  Diese Hilfe anzeigen und beenden
+  -V, --version               Die Version anzeigen und beenden
 
-Revoking is final. PGP has no way back: every copy that ever fetches this
-certificate, anywhere, will see it revoked, and no later signature will count.
+Widerrufen ist endgültig. PGP hat keinen Weg zurück: jede Kopie, die dieses
+Zertifikat je holt, wo auch immer, wird es widerrufen sehen, und keine spätere
+Unterschrift wird zählen.
 ```
 
 ## pgpid cert_del
 
 ```
-Usage: pgpid cert_del [OPTIONS]... FINGERPRINT...
+Usage: pgpid cert_del [OPTIONS]... FINGERABDRUCK...
 
-Delete certificates from the keyring, secret part included.
+Zertifikate aus dem Schlüsselbund löschen, den geheimen Teil inbegriffen.
 
-Only fingerprints are accepted — 40 or 64 hexadecimal characters. An
-action that deletes does not guess which certificate was meant.
+Nur Fingerabdrücke werden angenommen — 40 oder 64 hexadezimale Zeichen. Eine
+Aktion, die löscht, errät nicht, welches Zertifikat gemeint war.
 
 OPTIONS:
-  -s, --secret                Delete only the secret part, keep the certificate
-  -h, --help                  Print this help and exit
+  -s, --secret                Nur den geheimen Teil löschen, Zertifikat bleibt
+  -h, --help                  Diese Hilfe anzeigen und beenden
 ```
 
 ## pgpid secret_list
 
 ```
-Usage: pgpid secret_list [OPTIONS]... [NAME|EMAIL|KEYID|U4|U5]...
+Usage: pgpid secret_list [OPTIONS]... [NAME|E-MAIL|KEYID|U4|U5]...
 
-List the secret keys whose material is really here, leaving out the stubs
-that only point at a security key. See 'pgpid token_list' for those.
+Die geheimen Schlüssel auflisten, deren Material wirklich hier liegt, ohne
+die Stummel, die nur auf einen Sicherheitsschlüssel zeigen. Für die siehe
+„pgpid token_list“.
 
 OPTIONS:
-  -F, --fingerprint           Output only fingerprints
-  -h, --help                  Print this help and exit
-  -V, --version               Print the version and exit
+  -F, --fingerprint           Nur Fingerabdrücke ausgeben
+  -h, --help                  Diese Hilfe anzeigen und beenden
+  -V, --version               Die Version anzeigen und beenden
 ```
 
 ## pgpid secret_passphrase
 
 ```
-Usage: pgpid secret_passphrase [OPTIONS]... KEY_ID|FPR|EMAIL|NAME
+Usage: pgpid secret_passphrase [OPTIONS]... KEYID|FPR|E-MAIL|NAME
 
-Change GnuPG passphrase protecting secret parts of a PGP key.
+Die GnuPG-Passphrase ändern, die die geheimen Teile eines PGP-Schlüssels schützt.
 
 OPTIONS:
-  -p, --passphrase PASSPHRASE    Current passphrase protecting secret parts of PGP key (empty "" for none)
-  -P, --passfrom FILE            Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)
-  -n, --newpassphrase PASSPHRASE New passphrase to protect secret parts of PGP key (empty "" for none)
-  -N, --newpassfrom FILE         Get new passphrase from the first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)
-  -r, --replace                  Change the passphrase, instead of only checking it
-  -h, --help                     Print this help and exit
-  -V, --version                  Print the version and exit
+  -p, --passphrase PASSPHRASE    Aktuelle Passphrase, die die geheimen Teile schützt (leer "" für keine)
+  -P, --passfrom DATEI           Die Passphrase aus der ersten Zeile von DATEI (fifo, tmpfs, /dev/stdin …)
+  -n, --newpassphrase PASSPHRASE Neue Passphrase für die geheimen Teile (leer "" für keine)
+  -N, --newpassfrom DATEI        Die neue Passphrase aus der ersten Zeile von DATEI (fifo, tmpfs, /dev/stdin …)
+  -r, --replace                  Die Passphrase ändern, statt sie nur zu prüfen
+  -h, --help                     Diese Hilfe anzeigen und beenden
+  -V, --version                  Die Version anzeigen und beenden
 
-Passing a passphrase as an argument shows it to everything that can read
-this machine's process list. The file forms exist for that reason.
+Eine Passphrase als Argument zu übergeben zeigt sie allem, was die
+Prozessliste dieses Rechners lesen kann. Dafür gibt es die Datei-Formen.
 ```
 
 ## pgpid secret_print
 
 ```
-Usage: pgpid secret_print [OPTIONS]... KEY_ID|FPR
+Usage: pgpid secret_print [OPTIONS]... KEYID|FPR
 
-Export and print PGP secrets on multiple QRcode using Shamir's secret
-sharing, split so that no single sheet carries the key.
+PGP-Geheimnisse auf mehrere QR-Codes exportieren und drucken, mit Shamirs
+Secret Sharing geteilt, so dass kein einzelnes Blatt den Schlüssel trägt.
 
-Missing input will be asked interactively, unless --batch.
+Fehlende Eingaben werden erfragt, außer mit --batch.
 
 OPTIONS:
-  -p, --passphrase PASSPHRASE    Passphrase to access secret parts of PGP key
-  -P, --passfrom FILE            Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)
-  -t, --printer PRINTER          Name of printer to use. Empty to produce the sheets and send nothing
-  -w, --with-passphrase          Also print passphrase beside QR codes (INCREASE UX, DECREASE SECURITY)
-  -W, --workdir DIRECTORY        Use given working directory instead of a temporary directory (don't forget to shred its content)
-  -S, --split NUM                Number of shares to be generated, 3 to 16 - Default: 5
-  -T, --threshold NUM            Number of shares necessary to reconstruct the secret, 2 or more - Default: 3
-  -h, --help                     Print this help and exit
-  -V, --version                  Print the version and exit
+  -p, --passphrase PASSPHRASE    Passphrase für den Zugang zu den geheimen Teilen des PGP-Schlüssels
+  -P, --passfrom DATEI           Die Passphrase aus der ersten Zeile von DATEI (fifo, tmpfs, /dev/stdin …)
+  -t, --printer DRUCKER          Name des Druckers. Leer, um die Blätter zu erzeugen und nichts zu senden
+  -w, --with-passphrase          Die Passphrase auch neben die QR-Codes drucken (BEQUEMER, UNSICHERER)
+  -W, --workdir VERZEICHNIS      Dieses Arbeitsverzeichnis statt eines temporären (Inhalt danach vernichten)
+  -S, --split ZAHL               Zahl der zu erzeugenden Teile, 3 bis 16 - Vorgabe: 5
+  -T, --threshold ZAHL           Zahl der Teile, die zum Wiederherstellen nötig sind, 2 oder mehr - Vorgabe: 3
+  -h, --help                     Diese Hilfe anzeigen und beenden
+  -V, --version                  Die Version anzeigen und beenden
 
-Note: Split number should be greater than threshold number.
-      If they are equal, a simple split is used instead of Shamir's secret sharing,
-      and all secret protection relies on the passphrase.
-      In other terms: if (split_NUM == threshold_NUM), then no passphrase or
-      printing passphrase is VERY UNSECURE.
-      A share is the size of the whole secret, so a secret above 1672 bytes
-      only goes on paper cut, which is the equal case. It is refused with
-      the numbers rather than printed too dense to scan.
+Hinweis: Die Zahl der Teile sollte über dem Schwellenwert liegen.
+         Sind sie gleich, tritt ein einfacher Schnitt an die Stelle von
+         Shamirs Verfahren, und der ganze Schutz hängt an der Passphrase.
+         Anders gesagt: wenn (Teile == Schwelle), dann ist keine Passphrase —
+         oder eine gedruckte Passphrase — SEHR UNSICHER.
+         Ein Teil hat die Größe des ganzen Geheimnisses: über 1672 Bytes geht
+         ein Geheimnis nur geschnitten auf Papier, also bei gleichen Zahlen.
+         Es wird mit den Zahlen abgewiesen, statt zu dicht gedruckt.
 
-The codes are QR version 6 (draft-foopgp-secret-sheets), two to an A4 page:
-cut each page in two, and keep the halves in different places. Versions 4
-and 5 are no longer written, and secret_scan still reads them.
+Die Codes sind QR-Codes der Version 6 (draft-foopgp-secret-sheets), zwei je
+A4-Seite: schneiden Sie jede Seite in zwei und bewahren Sie die Hälften an
+verschiedenen Orten. Die Versionen 4 und 5 werden nicht mehr geschrieben,
+und secret_scan liest sie weiter.
 
-Photographs are left out of what is printed. A backup does not need your
-face, and paper is handled by whoever finds it.
+Fotografien bleiben aus dem Gedruckten heraus. Eine Sicherung braucht Ihr
+Gesicht nicht, und Papier wird von dem angefasst, der es findet.
 ```
 
 ## pgpid secret_scan
 
 ```
-Usage: pgpid secret_scan [OPTIONS]... IMAGES...
+Usage: pgpid secret_scan [OPTIONS]... BILDER...
 
-Reconstitute PGP secrets from QRcodes scanned from IMAGES.
-Output PGP certification key fingerprint.
-Images may be PNG, JPEG, or PDF.
+PGP-Geheimnisse aus QR-Codes wiederherstellen, die aus BILDERN gelesen werden.
+Gibt den Fingerabdruck des PGP-Beglaubigungsschlüssels aus.
+Die Bilder dürfen PNG, JPEG oder PDF sein.
 
-QR code versions 4, 5 and 6: 6 is what secret_print writes, 4 and 5 what
-it wrote before. Versions 1 to 3 were experimental and never released;
-'bl-pgpkey scan' still reads them. A key that arrives protected stays
-protected: taking the passphrase off is the business of whoever moves it
-onto a card.
+QR-Codes der Versionen 4, 5 und 6: die 6 schreibt secret_print, die 4 und
+die 5 schrieb es früher. Die Versionen 1 bis 3 waren erprobend und wurden
+nie veröffentlicht; „bl-pgpkey scan“ liest sie noch. Ein Schlüssel, der
+geschützt ankommt, bleibt geschützt: die Passphrase abzunehmen ist Sache
+dessen, der ihn auf eine Karte verschiebt.
 
 OPTIONS:
-  -c, --camera [V4LDEVICE]      Read the fragments off a camera (/dev/v4l/by-id/...)
-      --cameras                 List the cameras this machine has, and read nothing
-      --camera-size WIDTHxHEIGHT  Ask the camera for that frame instead of 640x480
-  -W, --workdir DIRECTORY       Use given working directory instead of a temporary directory (don't forget to shred its content)
-  -h, --help                    Print this help and exit
-  -V, --version                 Print the version and exit
+  -c, --camera [V4LGERÄT]         Die Fragmente von einer Kamera lesen (/dev/v4l/by-id/…)
+      --cameras                   Die Kameras dieses Rechners auflisten, und nichts lesen
+      --camera-size BREITExHÖHE   Der Kamera dieses Bild abverlangen statt 640x480
+  -W, --workdir VERZEICHNIS       Dieses Arbeitsverzeichnis statt eines temporären (Inhalt danach vernichten)
+  -h, --help                      Diese Hilfe anzeigen und beenden
+  -V, --version                   Die Version anzeigen und beenden
 
-Without --camera, fragments missing are named rather than worked around:
-the action reads what it is given and stops. With it, it waits in front
-of the camera until it has enough, or until three codes in a row say
-nothing.
+Ohne --camera werden fehlende Fragmente genannt statt umgangen: die Aktion
+liest, was man ihr gibt, und hört auf. Mit ihr wartet sie vor der Kamera,
+bis sie genug hat, oder bis drei Codes hintereinander nichts sagen.
 ```
 
 ## pgpid secret_totoken
 
 ```
-Usage: pgpid secret_totoken [OPTIONS]... KEY_ID|FPR
+Usage: pgpid secret_totoken [OPTIONS]... KEYID|FPR
 
-Move PGP secrets to security token (OpenPGP smartcard).
-Security token (OpenPGP smartcard) must be connected.
-Output ASCII armored PGP certificate, PIN code and admin code.
+PGP-Geheimnisse auf einen Sicherheitsschlüssel (OpenPGP-Smartcard) verschieben.
+Der Sicherheitsschlüssel (OpenPGP-Smartcard) muss angeschlossen sein.
+Gibt das PGP-Zertifikat in ASCII-Armor, den PIN-Code und den Admin-Code aus.
 
-This wipes the card and takes the secret parts off this machine. Both are
-final. Print the key first if it is not printed: pgpid secret_print.
+Dies löscht die Karte und nimmt die geheimen Teile von diesem Rechner. Beides
+ist endgültig. Drucken Sie den Schlüssel zuvor, wenn er es nicht ist: pgpid secret_print.
 
 OPTIONS:
-  -p, --passphrase PASSPHRASE  Passphrase to access secret parts of PGP key
-  -P, --passfrom FILE          Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)
-  -U, --certurl URL            URL to retrieve your PGP certificate
-                               Default: https://keys.foopgp.org/pks/lookup?op=get&search=0x<FPR>
-  -L, --lang LANG              Security token (OpenPGP smartcard) prefered language (default: the locale's)
-  -k, --keyserver KEYSERVER    Send PGP certificate to this public keys server
-                               Empty to send it nowhere. Does not change --certurl
-                               Default: hkps://keys.foopgp.org
-  -K, --pubkey FILE            Also write armored PGP certificate to given FILE
-      --force                  Don't ask before resetting unempty security token (OpenPGP smartcard)
-  -h, --help                   Print this help and exit
-  -V, --version                Print the version and exit
+  -p, --passphrase PASSPHRASE  Passphrase für den Zugang zu den geheimen Teilen des PGP-Schlüssels
+  -P, --passfrom DATEI         Die Passphrase aus der ersten Zeile von DATEI (fifo, tmpfs, /dev/stdin …)
+  -U, --certurl URL            URL, unter der Ihr PGP-Zertifikat zu holen ist
+                               Vorgabe: https://keys.foopgp.org/pks/lookup?op=get&search=0x<FPR>
+  -L, --lang SPRACHE           Bevorzugte Sprache des Sicherheitsschlüssels (Vorgabe: die der Locale)
+  -k, --keyserver SERVER       Das PGP-Zertifikat an diesen Server für öffentliche Schlüssel senden
+                               Leer, um es nirgends zu senden. Ändert --certurl nicht
+                               Vorgabe: hkps://keys.foopgp.org
+  -K, --pubkey DATEI           Das PGP-Zertifikat in ASCII-Armor auch in DATEI schreiben
+      --force                  Nicht fragen, bevor ein nicht leerer Sicherheitsschlüssel zurückgesetzt wird
+  -h, --help                   Diese Hilfe anzeigen und beenden
+  -V, --version                Die Version anzeigen und beenden
 
-Return value:
--   0 No error
--   2 Input/Usage error
-- 40 The passphrase given does not open the secret key
-- 41 The key is protected and no passphrase was given
+Rückgabewert:
+-   0 Kein Fehler
+-   2 Eingabe- oder Benutzungsfehler
+- 40 Die übergebene Passphrase öffnet den geheimen Schlüssel nicht
+- 41 Der Schlüssel ist geschützt und es wurde keine Passphrase übergeben
 ```
 
 ## pgpid secret_del
 
 ```
-Usage: pgpid secret_del [OPTIONS]... FINGERPRINT...
+Usage: pgpid secret_del [OPTIONS]... FINGERABDRUCK...
 
-Delete the secret material held on this machine, leaving the certificate.
-Only what secret_list shows can be deleted here: an entry that is a stub
-pointing at a security key has nothing local to remove -- token_del forgets
-those, and the key itself still holds the secret.
+Das auf diesem Rechner gehaltene geheime Material löschen, das Zertifikat
+bleibt. Nur was secret_list zeigt, lässt sich hier löschen: ein Eintrag, der
+ein Stummel ist und nur auf einen Sicherheitsschlüssel zeigt, hat nichts
+Lokales zu entfernen — token_del vergisst jene, und der Schlüssel selbst
+behält das Geheimnis.
 
-Only fingerprints are accepted — 40 or 64 hexadecimal characters. An action
-that destroys does not guess which key was meant.
+Nur Fingerabdrücke werden angenommen — 40 oder 64 hexadezimale Zeichen. Eine
+Aktion, die zerstört, errät nicht, welcher Schlüssel gemeint war.
 
 OPTIONS:
-  -y, --yes                   Assume yes: skip the confirmation
-  -h, --help                  Print this help and exit
-  -V, --version               Print the version and exit
+  -y, --yes                   Ja annehmen: die Bestätigung überspringen
+  -h, --help                  Diese Hilfe anzeigen und beenden
+  -V, --version               Die Version anzeigen und beenden
 
-This is irreversible unless the key was printed, moved onto a security key,
-or backed up somewhere. The certificate remains, and stays unusable for
-signing and decryption without its secret.
+Das ist unumkehrbar, es sei denn, der Schlüssel wurde gedruckt, auf einen
+Sicherheitsschlüssel verschoben oder irgendwo gesichert. Das Zertifikat
+bleibt und bleibt ohne sein Geheimnis unbrauchbar für Unterschrift und
+Entschlüsselung.
 ```
 
 ## pgpid token_list
@@ -626,14 +636,15 @@ signing and decryption without its secret.
 ```
 Usage: pgpid token_list [OPTIONS]...
 
-List the security keys this system knows, whether or not one is plugged in:
-every secret stub in the keyring names the card its material sits on.
-'pgpid token_check' answers about the connected one; this answers about all of them.
+Die Sicherheitsschlüssel auflisten, die dieses System kennt, ob einer steckt
+oder nicht: jeder geheime Stummel im Schlüsselbund nennt die Karte, auf der
+sein Material liegt.
+„pgpid token_check“ antwortet über den angeschlossenen; dies antwortet über alle.
 
 OPTIONS:
-  -q, --quiet                 Output only the serials
-  -h, --help                  Print this help and exit
-  -V, --version               Print the version and exit
+  -q, --quiet                 Nur die Seriennummern ausgeben
+  -h, --help                  Diese Hilfe anzeigen und beenden
+  -V, --version               Die Version anzeigen und beenden
 ```
 
 ## pgpid token_check
@@ -684,138 +695,142 @@ OPTIONS:
 ```
 Usage: pgpid token_code [OPTIONS]...
 
-Check and change PIN (or Admin) code protecting use of a security token
-(OpenPGP smartcard). Both codes are needed in full: nothing here asks for
-what it is missing.
+Den PIN- (oder Admin-) Code prüfen und ändern, der die Benutzung eines
+Sicherheitsschlüssels (OpenPGP-Smartcard) schützt. Beide Codes werden ganz
+erwartet: hier erfragt nichts, was ihm fehlt.
 
 OPTIONS:
-  -p, --code CURRENTCODE    Current PIN (or Admin) code protecting use of security token (empty "" for none)
-  -P, --codefrom FILE       Get current PIN (or Admin) code from first line of FILE (eg: fifo, tmpfs, /dev/stdin ...)
-  -n, --newcode NEWCODE     New PIN (or Admin) code to protect use of security token
-  -N, --newcodefrom FILE    Get new PIN (or Admin) code from the first line of FILE (eg: fifo, tmpfs ...)
-  -r, --replace             Change the code, instead of only checking it
-  -A, --admin               Change (or check) Admin code instead of PIN code
-  -U, --unblock             Unblock PIN. Need Admin code to be passed to --code, and new PIN code to be passed to --newcode
-  -h, --help                Print this help and exit
-  -V, --version             Print the version and exit
+  -p, --code AKTUELLERCODE  Aktueller PIN- (oder Admin-) Code, der die Benutzung schützt (leer "" für keinen)
+  -P, --codefrom DATEI      Den aktuellen Code aus der ersten Zeile von DATEI lesen (z. B. fifo, tmpfs, /dev/stdin …)
+  -n, --newcode NEUERCODE   Neuer PIN- (oder Admin-) Code, der die Benutzung schützt
+  -N, --newcodefrom DATEI   Den neuen Code aus der ersten Zeile von DATEI lesen (z. B. fifo, tmpfs …)
+  -r, --replace             Den Code ändern, statt ihn nur zu prüfen
+  -A, --admin               Den Admin-Code ändern (oder prüfen) statt des PIN-Codes
+  -U, --unblock             Die PIN entsperren. Der Admin-Code gehört in --code, die neue PIN in --newcode
+  -h, --help                Diese Hilfe anzeigen und beenden
+  -V, --version             Die Version anzeigen und beenden
 
-Return value:
-- 194 (0xC2) if only 2 remaining attempt.
-- 193 (0xC1) if only 1 remaining attempt.
-- 192 (0xC0) if code is blocked.
-- other non-zero value on other errors.
+Rückgabewert:
+- 194 (0xC2) wenn nur noch 2 Versuche bleiben.
+- 193 (0xC1) wenn nur noch 1 Versuch bleibt.
+- 192 (0xC0) wenn der Code gesperrt ist.
+- anderer Wert ungleich null bei anderen Fehlern.
 ```
 
 ## pgpid token_del
 
 ```
-Usage: pgpid token_del [OPTIONS]... [SERIAL]
+Usage: pgpid token_del [OPTIONS]... [SERIENNUMMER]
 
-Forget a security key: remove the stubs that point at it, and nothing else.
-The public certificates stay -- what carried a secret is not part of what
-the certificate says. Without SERIAL, the connected key.
+Einen Sicherheitsschlüssel vergessen: die Stummel entfernen, die auf ihn
+zeigen, und nichts weiter. Die öffentlichen Zertifikate bleiben — was ein
+Geheimnis trug, ist nicht Teil dessen, was das Zertifikat sagt. Ohne
+SERIENNUMMER der angeschlossene Schlüssel.
 
 OPTIONS:
-      --reset                 Factory-reset the connected key first, wiping it
-  -y, --yes                   Assume yes: skip the confirmation
-  -h, --help                  Print this help and exit
-  -V, --version               Print the version and exit
+      --reset                 Den Schlüssel zuerst auf Werkszustand setzen
+  -y, --yes                   Ja annehmen: die Bestätigung überspringen
+  -h, --help                  Diese Hilfe anzeigen und beenden
+  -V, --version               Die Version anzeigen und beenden
 
-A factory reset is irreversible: whatever the key held is gone, and no
-backup of it exists unless you made one.
+Ein Zurücksetzen auf Werkszustand ist unumkehrbar: was der Schlüssel trug,
+ist fort, und es gibt keine Sicherung davon, außer Sie haben eine gemacht.
 ```
 
 ## pgpid token_meta
 
 ```
-Usage: pgpid token_meta [OPTIONS]... NEW_METADATA
+Usage: pgpid token_meta [OPTIONS]... NEUE_ANGABE
 
-Change a textual metadata of a security token (OpenPGP smartcard).
-Detect if NEW_METADATA is an email, a certurl or a lang:
+Eine Textangabe eines Sicherheitsschlüssels (OpenPGP-Smartcard) ändern.
+Erkennt, ob NEUE_ANGABE eine Adresse, eine certurl oder eine Sprache ist:
 
-  an address        the cardholder name (DO 5B)
-  an http(s) URL    where the public certificate lives (DO 5F50)
-  two letters       the language preference, ISO 639-1 (DO 5F2D)
+  eine Adresse      der Name des Inhabers (DO 5B)
+  eine http(s)-URL  wo das öffentliche Zertifikat lebt (DO 5F50)
+  zwei Buchstaben   die bevorzugte Sprache, ISO 639-1 (DO 5F2D)
 
-Each is checked before it is written: the address must be one the
-certificate still stands by, and the URL must serve a certificate
-carrying this key's three subkeys.
+Jede wird geprüft, bevor sie geschrieben wird: die Adresse muss eine sein,
+zu der das Zertifikat noch steht, und die URL muss ein Zertifikat ausliefern,
+das die drei Unterschlüssel dieses Schlüssels trägt.
 
 OPTIONS:
-  -A, --admincode CODE         Admin code (usually 8 digits) protecting writes to security token metadata
-  -p, --admincodefrom FILE     Get admin code from first line of FILE (eg: fifo, tmpfs, /dev/stdin)
-  -r, --replace                Write NEW_METADATA, instead of showing what is there
-  -h, --help                   Print this help and exit
-  -V, --version                Print the version and exit
+  -A, --admincode CODE         Admin-Code (meist 8 Ziffern), der Schreibzugriffe auf die Angaben schützt
+  -p, --admincodefrom DATEI    Den Admin-Code aus der ersten Zeile von DATEI (fifo, tmpfs, /dev/stdin)
+  -r, --replace                NEUE_ANGABE schreiben, statt zu zeigen, was da ist
+  -h, --help                   Diese Hilfe anzeigen und beenden
+  -V, --version                Die Version anzeigen und beenden
 ```
 
 ## pgpid gen_key
 
 ```
-Usage: pgpid gen_key [OPTIONS]... EMAIL
+Usage: pgpid gen_key [OPTIONS]... E-MAIL
 
-Generate a PGP key pair (public and secret) according to PGP ID standards.
-Missing input will be asked interactively, unless --batch.
-Output 3 lines for each fingerprints:
-* main key (Sign Certify)
-* decryption key (Encrypt)
-* authentication key (Auth)
+Ein PGP-Schlüsselpaar (öffentlich und geheim) nach den PGP-ID-Standards erzeugen.
+Fehlende Eingaben werden erfragt, außer mit --batch.
+Gibt 3 Zeilen aus, einen Fingerabdruck je Zeile:
+* Hauptschlüssel (Unterschreiben, Beglaubigen)
+* Entschlüsselungsschlüssel (Verschlüsseln)
+* Authentifizierungsschlüssel (Auth)
 
 OPTIONS:
-  -N, --name PSEUDONYM             Common name or pseudonym. Default: first part of email
-  -c, --eid U4|U5                  Entity ID. Worldwide and decentralised entity identifier. Minted here if missing
-  -C, --extra-comment NOTE         Supplemental information or comment associated with the entity
-  -p, --passphrase PASSPHRASE      Passphrase to (symetric) encrypt secret part of PGP key. CAN'T BE EMPTY (at this stage)
-  -P, --passfrom FILE              Get passphrase from first line of FILE (eg: fifo, tmpfs, /dev/stdin …)
-  -e, --expiration YEARS           Number of years before certificate expiration. Default: 11
-  -k, --keyserver KEYSERVER        Prefered PGP certificate server. Default: hkps://keys.foopgp.org
-  -h, --help                       Print this help and exit
-  -V, --version                    Print the version and exit
+  -N, --name PSEUDONYM             Rufname oder Pseudonym. Vorgabe: der erste Teil der Adresse
+  -c, --eid U4|U5                  Entitätsidentifikator, weltweit und dezentral. Hier geprägt, wenn er fehlt
+  -C, --extra-comment NOTIZ        Zusätzliche Angabe oder Bemerkung zur Entität
+  -p, --passphrase PASSPHRASE      Passphrase, die den geheimen Teil verschlüsselt. NICHT LEER (in diesem Stand)
+  -P, --passfrom DATEI             Die Passphrase aus der ersten Zeile von DATEI (fifo, tmpfs, /dev/stdin …)
+  -e, --expiration JAHRE           Jahre bis zum Ablauf des Zertifikats. Vorgabe: 11
+  -k, --keyserver SERVER           Bevorzugter PGP-Zertifikatsserver. Vorgabe: hkps://keys.foopgp.org
+  -h, --help                       Diese Hilfe anzeigen und beenden
+  -V, --version                    Die Version anzeigen und beenden
 
-Both ways of giving the passphrase have their drawback, and the second has
-fewer: an argument is visible to every process on the machine for as long
-as this one runs.
+Beide Wege, die Passphrase zu übergeben, haben ihren Nachteil, und der zweite
+hat weniger: ein Argument ist für jeden Prozess des Rechners sichtbar, solange
+dieser läuft.
 ```
 
 ## pgpid gen_u4
 
 ```
 Usage: pgpid gen_u4 [OPTIONS]...
-   or: pgpid gen_u4 --from-passport-mrz [OPTIONS]... MRZ...
+  oder: pgpid gen_u4 --from-passport-mrz [OPTIONS]... MRZ...
 
-Generate an eid u4 string, from a civil status: the last component of the
-surname, the first two given names, the date of birth, and the country.
+Eine eid-u4-Zeichenkette aus einem Personenstand erzeugen: der letzte
+Bestandteil des Geburtsnamens, die ersten zwei Vornamen, das Geburtsdatum
+und das Land.
 
-With --from-passport-mrz you pass the Machine Readable Zone of an
-international passport instead — 88 characters over two lines, spaces and
-newlines ignored, so it can be pasted as it was read. The four options
-below still work beside it and replace what the zone says: that is how a
-surname truncated to fit gets corrected without typing the rest.
+Mit --from-passport-mrz übergeben Sie stattdessen die maschinenlesbare Zone
+eines internationalen Passes — 88 Zeichen auf zwei Zeilen, Leerzeichen und
+Zeilenumbrüche werden übergangen, damit sie eingefügt werden kann, wie sie
+gelesen wurde. Die vier Optionen unten wirken daneben weiter und ersetzen,
+was die Zone sagt: so wird ein Name, der zum Passen gekürzt wurde, berichtigt,
+ohne den Rest neu zu tippen.
 
 OPTIONS:
-  -s, --surname SURNAME            Surname/family name at birth
-  -g, --given-names GIVEN_NAMES    Given names at birth, separated by space ' ' or comma ',' or hyphen '-'
-  -d, --birth-date YYYY-MM-DD      Birth date, expected format : Year-Month-Day
-  -c, --birth-country COUNTRY_CODE 3 letters country code of birth place: GBR, NGA, FRA, …
-      --from-passport-mrz          Read the civil status off a passport zone given as arguments
-  -u, --uncheck                    With a zone: report a failing check digit rather than refusing
-      --verify                     Show the civil status and let it be corrected before computing
-  -h, --help                       Print this help and exit
-  -V, --version                    Print the version and exit
+  -s, --surname NAME               Familien- oder Geburtsname
+  -g, --given-names VORNAMEN       Vornamen bei Geburt, getrennt durch Leerzeichen, Komma oder Bindestrich
+  -d, --birth-date JJJJ-MM-TT      Geburtsdatum, erwartetes Format: Jahr-Monat-Tag
+  -c, --birth-country LANDCODE     3-Buchstaben-Code des Geburtslands: GBR, NGA, FRA, …
+      --from-passport-mrz          Den Personenstand aus einer als Argument gegebenen Passzone lesen
+  -u, --uncheck                    Mit einer Zone: eine falsche Prüfziffer melden statt abzuweisen
+      --verify                     Den Personenstand zeigen und vor dem Rechnen berichtigen lassen
+  -h, --help                       Diese Hilfe anzeigen und beenden
+  -V, --version                    Die Version anzeigen und beenden
 
-Typed in, whatever is missing is asked for, unless --batch. From a
-passport, nothing is required — and only --birth-date is worth adding, for
-anyone the zone's two digits cannot place.
+Von Hand getippt wird alles Fehlende erfragt, außer mit --batch. Aus einem
+Pass ist nichts nötig — und nur --birth-date lohnt sich, für jeden, den die
+zwei Ziffern der Zone nicht einordnen können.
 
---verify shows the four values and lets them be corrected before anything is
-computed, which is what a zone read by OCR usually needs. It also stops a
-failing check digit from refusing outright, the way --uncheck does: the
-point is to correct the reading rather than to be sent away from it. It
-does nothing under --batch, where there is nobody to show it to.
+--verify zeigt die vier Werte und lässt sie berichtigen, bevor irgendetwas
+gerechnet wird, was eine per OCR gelesene Zone meist braucht. Es hält auch
+eine falsche Prüfziffer davon ab, glatt abzuweisen, wie --uncheck: es geht
+darum, die Lesung zu berichtigen, nicht von ihr weggeschickt zu werden. Unter
+--batch tut es nichts, denn dort ist niemand, dem man es zeigen könnte.
 
-There are ~20% chances that a *u4* generated from a passport is incorrect:
-a surname truncated to fit, a name changed since birth, another
-transliteration, or a year of birth two digits cannot place. Check it.
+Es gibt ~20% Wahrscheinlichkeit, dass ein aus einem Pass erzeugter *u4*
+falsch ist: ein zum Passen gekürzter Name, ein seit der Geburt geänderter
+Name, eine andere Transliteration, oder ein Geburtsjahr, das zwei Ziffern
+nicht einordnen. Prüfen Sie ihn.
 ```
 
 ## pgpid gen_uid
@@ -842,101 +857,105 @@ ist Sache des Aufrufers.
 ```
 Usage: pgpid system_users [OPTIONS]...
 
-List the accounts of this system, and which of them are PGP ID entities.
-An account is one when its home is /home/<eid>, whatever it is called.
+Die Konten dieses Systems auflisten, und welche davon PGP-ID-Entitäten sind.
+Ein Konto ist eine, wenn sein Verzeichnis /home/<eid> ist, wie es auch heißt.
 
 OPTIONS:
-  -p, --pgpid-only            Leave out the accounts that are not entities
-  -h, --help                  Print this help and exit
-  -V, --version               Print the version and exit
+  -p, --pgpid-only            Die Konten auslassen, die keine Entitäten sind
+  -h, --help                  Diese Hilfe anzeigen und beenden
+  -V, --version               Die Version anzeigen und beenden
 ```
 
 ## pgpid system_adduser
 
 ```
-Usage: pgpid system_adduser [OPTIONS]... [FILE.asc]
+Usage: pgpid system_adduser [OPTIONS]... [DATEI.asc]
 
-Add a PGP ID entity as a user of this system. Administrator rights required (sudo).
-Needs a PGP ID certificate, as an argument or on standard input.
-What is missing is asked for.
+Eine PGP-ID-Entität als Benutzer dieses Systems hinzufügen. Administratorrechte
+nötig (sudo).
+Braucht ein PGP-ID-Zertifikat, als Argument oder auf der Standardeingabe.
+Was fehlt, wird erfragt.
 
-On a Unix system, PGP ID settles:
-  - the name of the account (the local part of the entity's address)
-  - the GECOS fields (email, phone, address)
-  - the user and group numbers (UID and GID)
-  - the path of the home directory (/home/<eid>)
+Auf einem Unix-System legt PGP ID fest:
+  - den Namen des Kontos (den lokalen Teil der Adresse der Entität)
+  - die GECOS-Felder (Adresse, Telefon, Postanschrift)
+  - die Benutzer- und Gruppennummern (UID und GID)
+  - den Pfad des Benutzerverzeichnisses (/home/<eid>)
 
-The home itself is laid out by 'pgpid system_confhome'.
+Das Verzeichnis selbst richtet „pgpid system_confhome“ ein.
 
 OPTIONS:
-  -p, --password PASSWORD  User password (for this computer)
-  -P, --passfrom FILE      Read the user password from the first line of FILE
-                           (eg: fifo, tmpfs, /dev/stdin, …)
-  -u, --user USER          Name the account USER instead of the local part
-                           of its address
-  -f, --fingerprint FPR    Take the certificate from the local keyring
-                           (Default: the one of SUDO_USER, else root)
-  -c, --if-certified       Refuse an entity that is not certified
-                           (Default: by the local SUDO_USER, else root)
-  -F, --from USER          Another reference user for --fingerprint and --if-certified
-  -m, --migrate USER       Move a local account to the PGP ID standard: its home
-                           becomes /home/<eid> and its numbers come from the
-                           identifier. The user must not be logged in (so cannot
-                           be SUDO_USER)
-  -s, --sweep              With --migrate, look through every mounted filesystem
-                           for files the old account owned, not only its home and
-                           the usual places
-  -h, --help               Print this help and exit
-  -V, --version            Print the version and exit
+  -p, --password PASSWORT  Passwort des Benutzers (für diesen Rechner)
+  -P, --passfrom DATEI     Das Passwort aus der ersten Zeile von DATEI lesen
+                           (z. B. fifo, tmpfs, /dev/stdin, …)
+  -u, --user BENUTZER      Das Konto BENUTZER nennen statt nach dem lokalen
+                           Teil seiner Adresse
+  -f, --fingerprint FPR    Das Zertifikat aus dem lokalen Schlüsselbund nehmen
+                           (Vorgabe: das von SUDO_USER, sonst root)
+  -c, --if-certified       Eine nicht beglaubigte Entität abweisen
+                           (Vorgabe: durch den lokalen SUDO_USER, sonst root)
+  -F, --from BENUTZER      Anderer Bezugsbenutzer für --fingerprint und --if-certified
+  -m, --migrate BENUTZER   Ein lokales Konto auf den PGP-ID-Standard bringen: sein
+                           Verzeichnis wird /home/<eid> und seine Nummern kommen
+                           aus dem Identifikator. Der Benutzer darf nicht angemeldet
+                           sein (kann also nicht SUDO_USER sein)
+  -s, --sweep              Mit --migrate alle eingehängten Dateisysteme nach Dateien
+                           durchsuchen, die das alte Konto besaß, nicht nur sein
+                           Verzeichnis und die üblichen Orte
+  -h, --help               Diese Hilfe anzeigen und beenden
+  -V, --version            Die Version anzeigen und beenden
 
-An account that is already there is answered with 11 rather than a plain
-failure: a caller wanting to say so needs to tell it apart from the rest.
+Ein Konto, das schon da ist, wird mit 11 beantwortet statt mit einem einfachen
+Fehlschlag: ein Aufrufer, der das sagen will, muss es vom Rest unterscheiden
+können.
 
-Two people whose addresses share a local part cannot both have an account
-of that name: the second is refused, and --user gives it another. The
-identifier still settles the numbers, which do not collide.
+Zwei Personen, deren Adressen den lokalen Teil teilen, können nicht beide ein
+Konto dieses Namens haben: die zweite wird abgewiesen, und --user gibt ihr
+einen anderen. Der Identifikator legt weiter die Nummern fest, die nicht
+zusammenstoßen.
 ```
 
 ## pgpid system_deluser
 
 ```
-Usage: pgpid system_deluser [OPTIONS]... USER|EID
+Usage: pgpid system_deluser [OPTIONS]... BENUTZER|EID
 
-Remove a local account, and the group of its own. Administrator rights
-required (sudo).
+Ein lokales Konto entfernen, und die Gruppe, die ihm eigen ist.
+Administratorrechte nötig (sudo).
 
-The home directory is kept unless '--remove-home' says otherwise: an
-account can be opened again from the certificate, what its home held
-cannot, and a secret key that never left it would go with it.
+Das Benutzerverzeichnis bleibt, außer „--remove-home“ sagt etwas anderes: ein
+Konto lässt sich aus dem Zertifikat wieder eröffnen, was sein Verzeichnis
+enthielt nicht, und ein geheimer Schlüssel, der es nie verlassen hat, ginge
+mit ihm.
 
 OPTIONS:
-  -r, --remove-home           Remove the home directory and its contents too
-  -h, --help                  Print this help and exit
-  -V, --version               Print the version and exit
+  -r, --remove-home           Auch das Verzeichnis und seinen Inhalt entfernen
+  -h, --help                  Diese Hilfe anzeigen und beenden
+  -V, --version               Die Version anzeigen und beenden
 ```
 
 ## pgpid system_confhome
 
 ```
-Usage: pgpid system_confhome [OPTIONS]... [USER|EID]
+Usage: pgpid system_confhome [OPTIONS]... [BENUTZER|EID]
 
-Lay out a home directory for PGP ID use. Without an argument, your own.
-Somebody else's needs administrator rights, and is done as them rather than
-as root, so that nothing in their home ends up owned by somebody else.
+Ein Benutzerverzeichnis für PGP ID einrichten. Ohne Argument Ihr eigenes.
+Das eines anderen braucht Administratorrechte und wird in seinem Namen getan
+statt als root, damit in seinem Verzeichnis nichts einem anderen gehört.
 
-Everything is done unless refused:
+Alles wird getan, außer es wird abgelehnt:
 
 OPTIONS:
-      --no-gnupg              Leave ~/.gnupg alone: directories, default key,
-                              and the credibility that makes it one's own
-      --no-systemd            Leave the socket that points SSH_AUTH_SOCK at gpg-agent
-      --no-ssh                Leave ~/.ssh/authorized_keys alone. Otherwise the
-                              certificate's authentication subkey becomes the ONLY
-                              key authorised there: anything else is dropped
-      --no-git                Leave git's user.signingKey alone
-      --no-face               Leave ~/.face alone
-  -h, --help                  Print this help and exit
-  -V, --version               Print the version and exit
+      --no-gnupg              ~/.gnupg lassen: Verzeichnisse, Standardschlüssel,
+                              und die Glaubwürdigkeit, die ihn zum eigenen macht
+      --no-systemd            Die Socket für SSH_AUTH_SOCK auf gpg-agent lassen
+      --no-ssh                ~/.ssh/authorized_keys unberührt lassen. Sonst wird der
+                              Auth-Unterschlüssel des Zertifikats der EINZIGE dort
+                              erlaubte Schlüssel: alles andere fällt weg
+      --no-git                user.signingKey von git unberührt lassen
+      --no-face               ~/.face unberührt lassen
+  -h, --help                  Diese Hilfe anzeigen und beenden
+  -V, --version               Die Version anzeigen und beenden
 ```
 
 ## pgpid system_admins
@@ -958,46 +977,48 @@ OPTIONS:
 ## pgpid certify
 
 ```
-Usage: pgpid certify [OPTIONS]... [TARGET_KEYFPR] [TARGET_U4|TARGET_U5]
+Usage: pgpid certify [OPTIONS]... [ZIEL_KEYFPR] [ZIEL_U4|ZIEL_U5]
 
-Certify somebody else. Both operands are optional and may come in either
-order — they are recognised by their shape, not by their place. What is
-missing is asked for, unless --batch says there is nobody to ask.
+Jemand anderen beglaubigen. Beide Operanden sind freiwillig und dürfen in
+beliebiger Reihenfolge kommen — sie werden an ihrer Form erkannt, nicht an
+ihrem Platz. Was fehlt, wird erfragt, außer --batch sagt, dass niemand da
+ist, den man fragen könnte.
 
-TARGET_KEYFPR is the whole forty characters, read off the other person's
-card — never a search pattern, because a certification cannot be taken
-back. Without it, whoever carries TARGET_U4 is looked up here and on the
-keyservers, and eight characters of the fingerprint are asked for, taken
-at a place drawn at random: enough to prove the card is in your hand.
+ZIEL_KEYFPR sind alle vierzig Zeichen, von der Karte der anderen Person
+gelesen — nie ein Suchmuster, denn eine Beglaubigung lässt sich nicht
+zurücknehmen. Ohne ihn wird, wer ZIEL_U4 trägt, hier und auf den
+Schlüsselservern gesucht, und acht Zeichen des Fingerabdrucks werden
+erfragt, an einer zufällig gezogenen Stelle: genug, um zu belegen, dass die
+Karte in Ihrer Hand ist.
 
-TARGET_U4 may be written u4VALUE, the deprecated u4=VALUE, or bare.
-Given together with a fingerprint, it asks that the certificate carry it,
-and refuses otherwise.
+ZIEL_U4 darf u4WERT, das veraltete u4=WERT, oder nackt geschrieben werden.
+Zusammen mit einem Fingerabdruck verlangt es, dass das Zertifikat ihn trägt,
+und weist es sonst ab.
 
-Certification means : I know this other certificate belongs to this real person.
-This implies verifying the civil status and the public key fingerprint of the TARGET.
-This allows you to expand and strengthen your web of trust and those of your close ones.
-This is a commitment: the more you certify, the more you increase your reputation,
-but if you do it wrong, you will ruin your credibility.
+Beglaubigen heißt: ich weiß, dass dieses andere Zertifikat dieser wirklichen Person gehört.
+Das setzt voraus, den Personenstand und den Fingerabdruck des öffentlichen Schlüssels des ZIELS geprüft zu haben.
+So erweitern und stärken Sie Ihr Netz des Vertrauens und das Ihrer Nächsten.
+Das ist eine Verpflichtung: je mehr Sie beglaubigen, desto mehr wächst Ihr Ansehen,
+aber wenn Sie es falsch machen, ruinieren Sie Ihre Glaubwürdigkeit.
 
 OPTIONS:
-  -u, --use-privkey NAME|KEYID Select private key to use. Default: Guess it from connected token
-  -E, --all-emails             Also certify every PGP uid containing an email. For compatibility with some legacy software.
-  -R, --revoke                 Revoke your previous certifications on someone else's certificate
-  -o, --credibility VALUE      What credibility do you assign to the target to correctly certify others {undefined,marginal,full,never}
-      --ownertrust VALUE       The same, under the name gpg gives it - Default: marginal
-  -l, --local                  « Non-exportable » certification. Pretty useless, except for testing
-  -K, --keyservers KEYSERVERS  If non-empty, receive and send updated certificate from and to this keyservers - Default: hkps://keys.foopgp.org hkps://keys.openpgp.org
-  -h, --help                   Print this help and exit
-  -V, --version                Print the version and exit
+  -u, --use-privkey NAME|KEYID Privaten Schlüssel wählen. Vorgabe: vom angeschlossenen Schlüssel geraten
+  -E, --all-emails             Auch jede PGP-uid mit einer Adresse beglaubigen. Für ältere Software.
+  -R, --revoke                 Ihre früheren Beglaubigungen auf dem Zertifikat eines anderen widerrufen
+  -o, --credibility WERT       Welche Glaubwürdigkeit das Ziel hat, andere zu beglaubigen {undefined,marginal,full,never}
+      --ownertrust WERT        Dieselbe, unter dem Namen, den gpg ihr gibt - Vorgabe: marginal
+  -l, --local                  „Nicht exportierbare“ Beglaubigung. Recht nutzlos, außer zum Erproben
+  -K, --keyservers SERVER      Wenn nicht leer, das aktualisierte Zertifikat von diesen Servern holen und dorthin senden - Vorgabe: hkps://keys.foopgp.org hkps://keys.openpgp.org
+  -h, --help                   Diese Hilfe anzeigen und beenden
+  -V, --version                Die Version anzeigen und beenden
 
-Return value:
--   0 No error
--   2 Input/Usage error
-- 140 Nothing to certify with — say which key with --use-privkey
-- 141 No certificate carries that fingerprint
-- 142 Self-certification is not innovative! ;-)
-- 143 That certificate does not carry that identifier
+Rückgabewert:
+-   0 Kein Fehler
+-   2 Eingabe- oder Benutzungsfehler
+- 140 Nichts, womit beglaubigt werden könnte — sagen Sie mit --use-privkey, welcher Schlüssel
+- 141 Kein Zertifikat trägt diesen Fingerabdruck
+- 142 Sich selbst zu beglaubigen ist nicht sehr neu! ;-)
+- 143 Dieses Zertifikat trägt diesen Identifikator nicht
 ```
 
 ## pgpid trustdb
