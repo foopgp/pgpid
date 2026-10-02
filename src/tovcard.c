@@ -120,16 +120,16 @@ static bool key_url(const char *keyserver, const char *fpr, char *out, size_t ma
     else if (!secure && strcmp(scheme, "hkp") && strcmp(scheme, "http"))
         return false;
 
-    /* Lowercase fingerprint, matching what the web page of the same name
-     * produces — two tools writing the same card must write it the same. */
-    char lower[80];
+    /* Upper case, as fingerprints are written everywhere else (JJB,
+     * 2026-10-02) — and the same in every tool that writes this card. */
+    char upper[80];
     size_t f = 0;
-    for (; fpr[f] && f < sizeof lower - 1; f++)
-        lower[f] = (char)tolower((unsigned char)fpr[f]);
-    lower[f] = '\0';
+    for (; fpr[f] && f < sizeof upper - 1; f++)
+        upper[f] = (char)toupper((unsigned char)fpr[f]);
+    upper[f] = '\0';
 
     snprintf(out, max, "%s://%s/pks/lookup?op=get&search=0x%s",
-             secure ? "https" : "http", hostport, lower);
+             secure ? "https" : "http", hostport, upper);
     return true;
 }
 
@@ -528,10 +528,30 @@ int pgpid_action_cert_tovcard(int argc, char **argv)
         fold(line);
     }
 
+    /* UID: the certificate's own UID:urn:eid: uid passes through below; one
+     * from before it, carried in a comment ("u4=…"), is written here
+     * (draft-foopgp-openpgp-vcard §4.5). A certificate naming two entities
+     * gets none, and is told so. */
+    unsigned neid = 0;
+    char *eid = pgpid_eid_of_key(key, &neid, true);
+    bool own_uid = false;
+    for (size_t i = 0; i < key->nuid; i++) {
+        const struct pgpid_keyuid *u = &key->uid[i];
+        if (!u->revoked && !u->invalid && !strncmp(u->text, "UID:urn:eid:", 12))
+            own_uid = true;
+    }
+    if (neid > 1) {
+        pgpid_error(_("Warning: This certificate names %u different identifiers; the card carries none."), neid);
+    } else if (eid && !own_uid) {
+        snprintf(line, sizeof line, "UID:urn:eid:%s", eid);
+        fold(line);
+    }
+    free(eid);
+
     /* PREF=1 belongs to the address of the uid the certificate flags
-     * primary, and to nothing else: when that uid carries no address, no
-     * address is the preferred one (JJB, 2026-10-02). The others follow from
-     * 2, in the order of the uids. */
+     * primary: that is all OpenPGP says about which address comes first.
+     * The others carry no PREF — nothing tells their order, and none is
+     * invented (JJB, 2026-10-02). */
     size_t raw_len = 0;
     unsigned char *raw_key = pgpid_export_key(fpr, true, &raw_len);
     char primary[PGPID_UID_MAX] = "", primary_address[512] = "";
@@ -542,7 +562,7 @@ int pgpid_action_cert_tovcard(int argc, char **argv)
         fold(line);
     }
 
-    unsigned pref = 1, at = 0;
+    unsigned at = 0;
     char name[64], value[512];
     for (size_t i = 0; i < key->nuid; i++, at++) {
         const struct pgpid_keyuid *u = &key->uid[i];
@@ -551,7 +571,9 @@ int pgpid_action_cert_tovcard(int argc, char **argv)
             continue;
         const char *v = pgpid_uid_property(u->text, name, sizeof name);
         if (v) {
-            if (!strcmp(name, "EMAIL")) {
+            if (!strcmp(name, "UID") && neid > 1) {
+                continue;   /* two entities named: no UID at all */
+            } else if (!strcmp(name, "EMAIL")) {
                 /* The 'EMAIL: <addr>' shape the vCard-uid experiment used.
                  * Still rendered, so certificates minted then keep working. */
                 const char *a = v;
@@ -565,7 +587,7 @@ int pgpid_action_cert_tovcard(int argc, char **argv)
                     stripped[n] = '\0';
                     a = stripped;
                 }
-                snprintf(line, sizeof line, "EMAIL;PREF=%u:%s", ++pref, a);
+                snprintf(line, sizeof line, "EMAIL:%s", a);
                 fold(line);
             } else {
                 fold(u->text);  /* already a valid, escaped vCard line */
@@ -576,7 +598,7 @@ int pgpid_action_cert_tovcard(int argc, char **argv)
              * The primary uid's was written first, as PREF=1. */
             if (*primary_address && !strcmp(u->text, primary))
                 continue;
-            snprintf(line, sizeof line, "EMAIL;PREF=%u:%s", ++pref, value);
+            snprintf(line, sizeof line, "EMAIL:%s", value);
             fold(line);
         }
     }

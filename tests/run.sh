@@ -600,8 +600,9 @@ card=$("$BIN" cert_tovcard "$FPR")
 is "opens and closes a vCard 4.0"  "$(printf '%s' "$card" | head --lines=2 | tr -d '\r' | tr '\n' ' ')" "BEGIN:VCARD VERSION:4.0 "
 is "carries the identifier"        "$(grep --count "UID:urn:eid:$EID" <<<"$card")" "1"
 # PREF=1 is the address of the uid flagged primary, and nobody else's: Ada's
-# uid was added afterwards, so it comes after, from 2.
-is "carries the address"           "$(grep --count 'EMAIL;PREF=2:ada@example.invalid' <<<"$card")" "1"
+# uid was added afterwards, and OpenPGP says nothing of its rank.
+is "carries the address"           "$(grep --count '^EMAIL:ada@example.invalid' <<<"$card")" "1"
+is "the key's address in capitals" "$(tr -d '\r\n ' <<<"$card" | grep --count "search=0x$FPR")" "1"
 is "carries the key inline"        "$(grep --count '^KEY:data:application/pgp-keys;base64,' <<<"$card")" "1"
 is "and where to fetch it"         "$(grep --count '^KEY;MEDIATYPE=' <<<"$card")" "1"
 is "and the photograph"            "$(grep --count '^PHOTO:data:image/jpeg;base64,' <<<"$card")" "1"
@@ -619,10 +620,16 @@ gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
 GFPR=$(gpg --with-colons --list-keys grace@example.invalid 2>/dev/null | awk --field-separator=: '$1=="fpr"{print $10; exit}')
 is "derives FN from the uid name"  "$("$BIN" cert_tovcard "$GFPR" | grep --only-matching '^FN:.*' | tr -d '\r')" "FN:Grace Hopper"
 # gpg flags no uid primary on a new key: no address is the preferred one.
-is "and still carries the address" "$("$BIN" cert_tovcard "$GFPR" | grep --count 'EMAIL;PREF=2:grace@example.invalid')" "1"
+is "and still carries the address" "$("$BIN" cert_tovcard "$GFPR" | grep --count '^EMAIL:grace@example.invalid')" "1"
 gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
     --quick-set-primary-uid "$GFPR" 'Grace Hopper <grace@example.invalid>' 2>/dev/null
 is "flagged primary, it is PREF=1" "$("$BIN" cert_tovcard "$GFPR" | grep --count 'EMAIL;PREF=1:grace@example.invalid')" "1"
+# A certificate from before the UID:urn:eid: uid carries its identifier in a
+# comment; the card reads it from there (draft-foopgp-openpgp-vcard §4.5).
+gpg --batch --quiet --passphrase '' --pinentry-mode loopback \
+    --quick-generate-key "Lin Old (u5=${EID#u5}) <lin@example.invalid>" ed25519 cert never 2>/dev/null
+LFPR=$(gpg --with-colons --list-keys lin@example.invalid 2>/dev/null | awk --field-separator=: '$1=="fpr"{print $10; exit}')
+is "a legacy comment gives the UID" "$("$BIN" cert_tovcard "$LFPR" | tr -d '\r' | grep --count "^UID:urn:eid:$EID\$")" "1"
 is "a bare 'Nobody' is a name"     "$("$BIN" cert_tovcard "$NFPR" | grep --only-matching '^FN:.*' | tr -d '\r')" "FN:Nobody"
 # A uid holding nothing but an address has no name to show, and a card that
 # would say who this is cannot be written.
