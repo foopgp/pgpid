@@ -238,6 +238,77 @@ char *pgpid_preferred_keyserver(const unsigned char *buf, size_t len,
 }
 
 /**
+ * The uid the certificate flags as primary, as its packets spell it.
+ *
+ * Read the way the keyserver is above, and the way foodjis reads it: a uid
+ * whose newest self-signature carries the Primary User ID subpacket (25) and
+ * is not outdone by a revocation of its own. No guess when none is flagged —
+ * "nobody has chosen" is not an answer to give in the owner's name.
+ */
+static bool primary_uid(const unsigned char *buf, size_t len, const char *fpr,
+                        char *out, size_t max)
+{
+    const char *keyid = strlen(fpr) >= 16 ? fpr + strlen(fpr) - 16 : fpr;
+    const unsigned char *p = buf, *end = buf + len;
+    struct pgpid_packet pkt;
+    const unsigned char *text = NULL;
+    size_t text_len = 0;
+    unsigned long newest_binding = 0, newest_revocation = 0;
+    bool flagged = false;
+
+    /* The uid just walked past, kept when it stands flagged. */
+    #define SETTLE()                                                         \
+        do {                                                                 \
+            if (text && flagged && newest_binding > newest_revocation         \
+                && text_len < max) {                                         \
+                memcpy(out, text, text_len);                                 \
+                out[text_len] = '\0';                                        \
+                return true;                                                 \
+            }                                                                \
+        } while (0)
+
+    while (pgpid_packet_next(p, end, &pkt)) {
+        p = pkt.next;
+        if (pkt.tag == TAG_USER_ID) {
+            SETTLE();
+            text = pkt.body;
+            text_len = pkt.len;
+            newest_binding = newest_revocation = 0;
+            flagged = false;
+            continue;
+        }
+        if (pkt.tag != TAG_SIGNATURE) {
+            SETTLE();
+            text = NULL;
+            continue;
+        }
+        if (!text)
+            continue;
+        unsigned type;
+        unsigned long created;
+        const char *issuer;
+        if (!pgpid_signature_read(&pkt, &type, &created, &issuer))
+            continue;
+        if (!issuer || strcasecmp(issuer, keyid))
+            continue;
+        if (type == SIG_CERT_REVOKE) {
+            if (created > newest_revocation)
+                newest_revocation = created;
+            continue;
+        }
+        if (type < SIG_CERT_LOWEST || type > SIG_CERT_HIGHEST || created <= newest_binding)
+            continue;
+        newest_binding = created;
+        const unsigned char *value;
+        size_t vlen;
+        flagged = pgpid_signature_subpacket(&pkt, 25, &value, &vlen) && vlen && value[0];
+    }
+    SETTLE();
+    #undef SETTLE
+    return false;
+}
+
+/**
  * The certificate without its attribute packets.
  *
  * A card already carries the photograph as PHOTO; carrying it a second time
@@ -404,6 +475,7 @@ int pgpid_action_cert_tovcard(int argc, char **argv)
      * revoked, expired, invalid and disabled. The letters come from the
      * engine's own listing, in step with the uids. */
     char line[4096];
+    char name_scratch[64];
     char validity[256];
     size_t nvalid = pgpid_uid_validities(fpr, validity, sizeof validity);
 
@@ -456,7 +528,21 @@ int pgpid_action_cert_tovcard(int argc, char **argv)
         fold(line);
     }
 
-    unsigned pref = 0, at = 0;
+    /* PREF=1 belongs to the address of the uid the certificate flags
+     * primary, and to nothing else: when that uid carries no address, no
+     * address is the preferred one (JJB, 2026-10-02). The others follow from
+     * 2, in the order of the uids. */
+    size_t raw_len = 0;
+    unsigned char *raw_key = pgpid_export_key(fpr, true, &raw_len);
+    char primary[PGPID_UID_MAX] = "", primary_address[512] = "";
+    if (raw_key && primary_uid(raw_key, raw_len, fpr, primary, sizeof primary)
+        && !pgpid_uid_property(primary, name_scratch, sizeof name_scratch)
+        && bracketed_address(primary, primary_address, sizeof primary_address)) {
+        snprintf(line, sizeof line, "EMAIL;PREF=1:%s", primary_address);
+        fold(line);
+    }
+
+    unsigned pref = 1, at = 0;
     char name[64], value[512];
     for (size_t i = 0; i < key->nuid; i++, at++) {
         const struct pgpid_keyuid *u = &key->uid[i];
@@ -486,7 +572,10 @@ int pgpid_action_cert_tovcard(int argc, char **argv)
             }
         } else if (bracketed_address(u->text, value, sizeof value)) {
             /* A plain 'Name <addr>' uid: only its address becomes a line.
-             * The name is carried by FN:, the identifier by UID:urn:eid:. */
+             * The name is carried by FN:, the identifier by UID:urn:eid:.
+             * The primary uid's was written first, as PREF=1. */
+            if (*primary_address && !strcmp(u->text, primary))
+                continue;
             snprintf(line, sizeof line, "EMAIL;PREF=%u:%s", ++pref, value);
             fold(line);
         }
@@ -495,8 +584,6 @@ int pgpid_action_cert_tovcard(int argc, char **argv)
     /* The certificate itself, twice: where to fetch it, and inline. The URL
      * is worth having because a card outlives the bytes in it — a key gains
      * signatures, an address is revoked. */
-    size_t raw_len = 0;
-    unsigned char *raw_key = pgpid_export_key(fpr, true, &raw_len);
 
     char url[512];
     const char *ks = raw_key ? pgpid_preferred_keyserver(raw_key, raw_len, fpr) : NULL;
